@@ -845,47 +845,28 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
   return (
     <div className="max-w-lg space-y-6">
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">AI Providers</h3>
+        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Google Gemini API</h3>
         <p className="mb-4 text-sm text-muted-foreground">
-          Lovable Cloud AI is used by default. Add your Gemini API key as a fallback provider.
+          Enter your Gemini API key to power all AI content generation. Get a key from{" "}
+          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google AI Studio</a>.
         </p>
 
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20">
-              <span className="text-xs font-bold text-primary">1</span>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">Lovable Cloud AI</p>
-              <p className="text-xs text-muted-foreground">Default provider · No key needed</p>
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-border p-3">
-            <div className="mb-3 flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary">
-                <span className="text-xs font-bold text-muted-foreground">2</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">Google Gemini API</p>
-                <p className="text-xs text-muted-foreground">Fallback provider</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Input
-                type="password"
-                placeholder="Enter your Gemini API key"
-                value={localGeminiKey}
-                onChange={(e) => setLocalGeminiKey(e.target.value)}
-                className="flex-1"
-              />
-              <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2">
-                <Key className="h-3 w-3" />
-                {saving ? "Saving..." : "Save"}
-              </Button>
-            </div>
-          </div>
+        <div className="flex gap-2">
+          <Input
+            type="password"
+            placeholder="Enter your Gemini API key"
+            value={localGeminiKey}
+            onChange={(e) => setLocalGeminiKey(e.target.value)}
+            className="flex-1"
+          />
+          <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2">
+            <Key className="h-3 w-3" />
+            {saving ? "Saving..." : "Save"}
+          </Button>
         </div>
+        {localGeminiKey && (
+          <p className="mt-2 text-xs text-green-600">✓ API key configured</p>
+        )}
       </div>
     </div>
   );
