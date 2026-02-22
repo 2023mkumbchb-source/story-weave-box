@@ -19,8 +19,8 @@ const UNIT_CATEGORIES = [
 ];
 
 async function callAI(messages: any[], geminiKey?: string): Promise<string> {
-  // Use server-side secret first, then client-provided key
-  const apiKey = Deno.env.get("GEMINI_API_KEY") || geminiKey;
+  // Prioritize client-provided key, then fall back to server secret
+  const apiKey = (geminiKey && geminiKey.length > 0) ? geminiKey : Deno.env.get("GEMINI_API_KEY");
   
   if (!apiKey || apiKey.length === 0) {
     throw new Error(
