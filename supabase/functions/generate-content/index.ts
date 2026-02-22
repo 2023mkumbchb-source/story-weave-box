@@ -18,102 +18,50 @@ const UNIT_CATEGORIES = [
   "Cardiovascular System Pathology",
 ];
 
-async function tryLovableAI(messages: any[], model?: string) {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) return null;
-
-  try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: model || "google/gemini-3-flash-preview",
-        messages,
-      }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 429 || response.status === 402) {
-        console.log("Lovable AI rate limited or out of credits");
-        return null;
-      }
-      return null;
-    }
-
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || "";
-  } catch (err) {
-    console.log("Lovable error:", err);
-    return null;
-  }
-}
-
-async function tryGeminiAPI(messages: any[], apiKey: string) {
-  try {
-    if (!apiKey || apiKey.length === 0) {
-      console.log("No Gemini API key provided");
-      return null;
-    }
-
-    const systemMsg = messages.find((m: any) => m.role === "system")?.content || "";
-    const userMsg = messages.find((m: any) => m.role === "user")?.content || "";
-    const prompt = systemMsg + "\n\n" + userMsg;
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      console.log("Gemini API error:", response.status);
-      const errText = await response.text();
-      console.log("Gemini response:", errText.substring(0, 200));
-      return null;
-    }
-
-    const data = await response.json();
-    if (data.error) {
-      console.log("Gemini error:", data.error);
-      return null;
-    }
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-  } catch (err) {
-    console.log("Gemini exception:", err);
-    return null;
-  }
-}
-
 async function callAI(messages: any[], geminiKey?: string): Promise<string> {
-  // Try Lovable first
-  let text = await tryLovableAI(messages);
-  if (text) {
-    return text;
-  }
-
-  // Fallback to Gemini with provided key
-  if (!geminiKey) {
+  // Use server-side secret first, then client-provided key
+  const apiKey = Deno.env.get("GEMINI_API_KEY") || geminiKey;
+  
+  if (!apiKey || apiKey.length === 0) {
     throw new Error(
-      "All AI providers failed. Lovable is unavailable and no Gemini API key provided. Please save your Gemini API key in Settings."
+      "No Gemini API key configured. Please save your Gemini API key in Settings."
     );
   }
 
-  text = await tryGeminiAPI(messages, geminiKey);
-  if (text) {
-    return text;
+  const systemMsg = messages.find((m: any) => m.role === "system")?.content || "";
+  const userMsg = messages.find((m: any) => m.role === "user")?.content || "";
+  const prompt = systemMsg + "\n\n" + userMsg;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error("Gemini API error:", response.status, errText.substring(0, 300));
+    throw new Error(
+      `Gemini API error (${response.status}). Verify your API key is valid and the Generative AI API is enabled.`
+    );
   }
 
-  throw new Error(
-    "All AI providers failed. Gemini API returned an error. Verify your API key is valid and your Google Cloud project has the Generative AI API enabled."
-  );
+  const data = await response.json();
+  if (data.error) {
+    throw new Error(`Gemini error: ${data.error.message || JSON.stringify(data.error)}`);
+  }
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  if (!text) {
+    throw new Error("Gemini returned an empty response. Please try again.");
+  }
+
+  return text;
 }
 
 serve(async (req) => {
