@@ -32,7 +32,7 @@ async function callAI(messages: any[], geminiKey?: string): Promise<string> {
   const prompt = systemMsg + "\n\n" + userMsg;
 
   const MAX_RETRIES = 2;
-  const MODELS = ["gemini-2.0-flash", "gemini-1.5-flash"];
+  const MODELS = ["gemini-2.5-flash", "gemini-1.5-flash"];
   const REQUEST_TIMEOUT_MS = 25000;
 
   for (let modelIdx = 0; modelIdx < MODELS.length; modelIdx++) {
