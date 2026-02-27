@@ -1121,9 +1121,9 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
   return (
     <div className="max-w-lg space-y-6">
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Google Gemini API</h3>
+        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Google Gemini API (Gemini-only mode)</h3>
         <p className="mb-4 text-sm text-muted-foreground">
-          Enter your Gemini API key to power all AI content generation. Get a key from{" "}
+          This project uses Gemini only for AI generation. Enter your Gemini API key from{" "}
           <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google AI Studio</a>.
         </p>
 
@@ -1141,7 +1141,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
           </Button>
         </div>
         {localGeminiKey && (
-          <p className="mt-2 text-xs text-green-600">✓ API key configured</p>
+          <p className="mt-2 text-xs text-primary">✓ API key configured</p>
         )}
       </div>
     </div>
