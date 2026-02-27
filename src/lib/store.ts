@@ -321,24 +321,38 @@ export async function getCategories(): Promise<{ name: string; count: number }[]
 
 // App Settings
 export async function getSetting(key: string): Promise<string> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("app_settings")
     .select("value")
     .eq("key", key)
     .maybeSingle();
+
+  if (error) {
+    console.error(`Failed to load setting \"${key}\":`, error.message);
+    return "";
+  }
+
   return data?.value || "";
 }
 
 export async function saveSetting(key: string, value: string): Promise<void> {
-  const { data: existing } = await supabase
+  const normalized = value.trim();
+
+  const { data: existing, error: existingError } = await supabase
     .from("app_settings")
     .select("id")
     .eq("key", key)
     .maybeSingle();
-  
+
+  if (existingError) {
+    throw existingError;
+  }
+
   if (existing) {
-    await supabase.from("app_settings").update({ value }).eq("key", key);
+    const { error } = await supabase.from("app_settings").update({ value: normalized }).eq("key", key);
+    if (error) throw error;
   } else {
-    await supabase.from("app_settings").insert({ key, value });
+    const { error } = await supabase.from("app_settings").insert({ key, value: normalized });
+    if (error) throw error;
   }
 }
