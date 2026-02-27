@@ -16,6 +16,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 
 type Tab = "create" | "articles" | "flashcards" | "mcqs" | "settings";
+type DirectType = "article" | "mcqs" | "flashcards";
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -41,10 +42,14 @@ export default function Admin() {
   const [cardCount, setCardCount] = useState(20);
   const [mcqCount, setMcqCount] = useState(15);
 
-  // Batch generation checkboxes
-  const [genArticle, setGenArticle] = useState(true);
-  const [genFlashcards, setGenFlashcards] = useState(true);
-  const [genMcqs, setGenMcqs] = useState(true);
+  // Direct publish mode
+  const [directType, setDirectType] = useState<DirectType>("article");
+  const [directTitle, setDirectTitle] = useState("");
+  const [directContent, setDirectContent] = useState("");
+  const [directCategory, setDirectCategory] = useState("");
+  const [directPreviewArticle, setDirectPreviewArticle] = useState<{ title: string; content: string } | null>(null);
+  const [directPreviewCards, setDirectPreviewCards] = useState<{ question: string; answer: string }[] | null>(null);
+  const [directPreviewMcqs, setDirectPreviewMcqs] = useState<{ question: string; options: string[]; correct_answer: number; explanation?: string }[] | null>(null);
 
   // Preview state for batch
   const [batchArticle, setBatchArticle] = useState<{ title: string; content: string } | null>(null);
