@@ -31,53 +31,77 @@ async function callAI(messages: any[], geminiKey?: string): Promise<string> {
   const userMsg = messages.find((m: any) => m.role === "user")?.content || "";
   const prompt = systemMsg + "\n\n" + userMsg;
 
-  const MAX_RETRIES = 4;
+  const MAX_RETRIES = 2;
   const MODELS = ["gemini-2.0-flash", "gemini-1.5-flash"];
-  
+  const REQUEST_TIMEOUT_MS = 25000;
+
   for (let modelIdx = 0; modelIdx < MODELS.length; modelIdx++) {
     const model = MODELS[modelIdx];
+
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-          }),
-        }
-      );
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.error) {
-          throw new Error(`Gemini error: ${data.error.message || JSON.stringify(data.error)}`);
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+            }),
+            signal: controller.signal,
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.error) {
+            throw new Error(`Gemini error: ${data.error.message || JSON.stringify(data.error)}`);
+          }
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          if (!text) {
+            throw new Error("Gemini returned an empty response. Please try again.");
+          }
+          return text;
         }
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        if (!text) {
-          throw new Error("Gemini returned an empty response. Please try again.");
+
+        const errText = await response.text();
+
+        if (response.status === 429) {
+          const waitTime = Math.pow(2, attempt) * 1500; // 1.5s, 3s
+          console.log(`Rate limited (${model}), waiting ${waitTime}ms before retry ${attempt + 1}/${MAX_RETRIES}...`);
+          if (attempt < MAX_RETRIES - 1) {
+            await new Promise((r) => setTimeout(r, waitTime));
+            continue;
+          }
+          break; // move to next model quickly
         }
-        return text;
+
+        console.error("Gemini API error:", response.status, errText.substring(0, 300));
+        throw new Error(
+          `Gemini API error (${response.status}). Verify your API key is valid and the Generative AI API is enabled.`
+        );
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          console.error(`Gemini request timeout (${model}) after ${REQUEST_TIMEOUT_MS}ms`);
+          if (attempt < MAX_RETRIES - 1) {
+            continue;
+          }
+          break;
+        }
+        throw err;
+      } finally {
+        clearTimeout(timeout);
       }
-
-      if (response.status === 429) {
-        const waitTime = Math.pow(2, attempt + 1) * 5000; // 10s, 20s, 40s, 80s
-        console.log(`Rate limited (${model}), waiting ${waitTime/1000}s before retry ${attempt + 1}/${MAX_RETRIES}...`);
-        await new Promise(r => setTimeout(r, waitTime));
-        continue;
-      }
-
-      const errText = await response.text();
-      console.error("Gemini API error:", response.status, errText.substring(0, 300));
-      throw new Error(
-        `Gemini API error (${response.status}). Verify your API key is valid and the Generative AI API is enabled.`
-      );
     }
-    console.log(`All retries exhausted for ${model}, trying next model...`);
+
+    console.log(`Retries exhausted for ${model}, trying next model...`);
   }
 
   throw new Error(
-    "Gemini API rate limit exceeded after multiple retries. The free tier has very strict limits (2 requests/minute). Please wait a minute and try again, or upgrade to a paid plan at https://ai.google.dev."
+    "Gemini is currently rate-limited for this API key (free tier quota reached). Wait a bit and retry, or use a billed key/project for stable generation."
   );
 }
 
