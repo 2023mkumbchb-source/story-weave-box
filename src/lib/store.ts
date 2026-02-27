@@ -335,6 +335,9 @@ export async function getSetting(key: string): Promise<string> {
   return data?.value || "";
 }
 
+export async function saveSetting(key: string, value: string): Promise<void> {
+  const normalized = value.trim();
+
   const { data: existing, error: existingError } = await supabase
     .from("app_settings")
     .select("id")
