@@ -48,7 +48,8 @@ function ReadingProgress() {
 }
 
 // ── Table ─────────────────────────────────────────────────────────────────────
-// Matches screenshot: light blue/tinted header row, thin row dividers, rounded border box, no zebra
+// Full width, no horizontal scroll — columns share width evenly
+// Matches mobile screenshots: dark header row, thin dividers, rounded border
 function TableBlock({ lines }: { lines: string[] }) {
   const isSep = (l: string) => /^\|[-:\s|]+\|$/.test(l.trim());
   const parse = (l: string) =>
@@ -59,16 +60,25 @@ function TableBlock({ lines }: { lines: string[] }) {
   const [hLine, ...bLines] = data;
   const headers = parse(hLine);
   const rows = bLines.map(parse);
+  const colPct = Math.floor(100 / headers.length);
 
   return (
-    <div className="my-5 w-full overflow-x-auto rounded-xl border border-border">
-      <table className="w-full border-collapse" style={{ minWidth: `${Math.max(headers.length * 150, 380)}px` }}>
+    <div className="my-5 w-full rounded-xl border border-border overflow-hidden">
+      <table className="w-full border-collapse table-fixed">
+        <colgroup>
+          {headers.map((_, i) => (
+            <col key={i} style={{ width: `${colPct}%` }} />
+          ))}
+        </colgroup>
         <thead>
-          <tr className="border-b border-border" style={{ background: "hsl(var(--primary) / 0.07)" }}>
+          <tr
+            className="border-b border-border"
+            style={{ background: "hsl(var(--primary) / 0.1)" }}
+          >
             {headers.map((h, i) => (
               <th
                 key={i}
-                className="px-5 py-3 text-left text-[15px] font-bold text-foreground"
+                className="px-3 py-3 text-left text-[14px] font-bold text-foreground align-top"
               >
                 <Inline text={h} />
               </th>
@@ -77,9 +87,15 @@ function TableBlock({ lines }: { lines: string[] }) {
         </thead>
         <tbody>
           {rows.map((row, ri) => (
-            <tr key={ri} className="border-b border-border last:border-0">
+            <tr
+              key={ri}
+              className="border-b border-border/60 last:border-0"
+            >
               {headers.map((_, ci) => (
-                <td key={ci} className="px-5 py-4 text-[16px] leading-snug text-foreground/85 align-top">
+                <td
+                  key={ci}
+                  className="px-3 py-3 text-[15px] leading-snug text-foreground/85 align-top"
+                >
                   {row[ci] ? <Inline text={row[ci]} /> : null}
                 </td>
               ))}
@@ -102,7 +118,7 @@ function PracticeQuestion({ number, question, answer }: {
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-start gap-3 px-4 py-4 text-left hover:bg-muted/20 active:bg-muted/40 transition-colors"
       >
-        <span className="shrink-0 flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-primary text-[14px] font-bold mt-0.5">
+        <span className="shrink-0 flex h-7 w-7 items-center justify-center rounded-full border border-primary/50 bg-primary/10 text-primary text-[14px] font-bold mt-0.5">
           {number}
         </span>
         <span className="flex-1 text-[17px] font-medium text-foreground leading-snug">
@@ -188,7 +204,7 @@ function ArticleContent({ content }: { content: string }) {
 
     if (!t) { flushList(); return; }
 
-    // ## H2 — matches screenshot: outlined circle number + big uppercase title + bottom border
+    // ## H2 — outlined circle badge + large uppercase title + bottom border
     if (t.startsWith("## ")) {
       flushList();
       if (t.toLowerCase().includes("practice")) { inPractice = true; return; }
@@ -199,10 +215,12 @@ function ArticleContent({ content }: { content: string }) {
       els.push(
         <div key={`h2-${i}`} className="mt-12 mb-6">
           <div className="flex items-center gap-4 mb-4">
-            {/* Outlined circle badge — matches screenshot exactly */}
             <div
-              className="shrink-0 flex items-center justify-center rounded-full border-2 border-primary/40 text-primary font-bold text-[16px]"
-              style={{ width: "44px", height: "44px", minWidth: "44px", background: "hsl(var(--primary) / 0.08)" }}
+              className="shrink-0 flex items-center justify-center rounded-full border-2 border-primary/50 text-primary font-bold text-[16px]"
+              style={{
+                width: "46px", height: "46px", minWidth: "46px",
+                background: "hsl(var(--primary) / 0.1)",
+              }}
             >
               {n}
             </div>
@@ -216,15 +234,15 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
-    // ### H3 — matches screenshot: blue filled dot + bold text, no underline
+    // ### H3 — bold text ONLY, no dot, no line — just like the screenshots show
+    // "Structural Units", "Liver Functions", "Mechanisms in Cirrhosis" etc. are all bold with NO dot
     if (t.startsWith("### ")) {
       flushList();
       const txt = t.slice(4).replace(/\*+/g, "").replace(/\s*⭐+/g, "").trim();
       els.push(
-        <div key={`h3-${i}`} className="mt-6 mb-3 flex items-start gap-3">
-          <div className="h-[10px] w-[10px] rounded-full bg-primary shrink-0 mt-[7px]" />
-          <h3 className="font-bold text-[18px] sm:text-[19px] text-foreground leading-snug">{txt}</h3>
-        </div>
+        <h3 key={`h3-${i}`} className="mt-6 mb-3 font-bold text-[18px] sm:text-[19px] text-foreground leading-snug">
+          {txt}
+        </h3>
       );
       return;
     }
@@ -254,7 +272,7 @@ function ArticleContent({ content }: { content: string }) {
     }
     if (inPractice && t.startsWith("→")) return;
 
-    // Bullet — matches screenshot: filled blue circle dot, same size as body text
+    // Bullet — filled blue circle dot, matches screenshots
     if (t.startsWith("- ")) {
       if (!listBuf || listBuf.type !== "ul") { flushList(); listBuf = { type: "ul", items: [] }; }
       listBuf.items.push(
@@ -271,18 +289,21 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
-    // Numbered list — matches screenshot: small outlined circle badge with number
+    // Numbered list — outlined circle badge matching screenshots
     if (/^\d+\.\s/.test(t) && !t.includes("→") && !inPractice) {
       if (!listBuf || listBuf.type !== "ol") { flushList(); listBuf = { type: "ol", items: [] }; }
       const num = t.match(/^(\d+)/)?.[1] ?? "";
       listBuf.items.push(
         <div key={`ol-${i}`} className="flex items-start gap-3">
           <div
-            className="shrink-0 flex items-center justify-center rounded-full border border-primary/40 text-primary font-semibold"
+            className="shrink-0 flex items-center justify-center rounded-full border border-primary/50"
             style={{
-              width: "26px", height: "26px", minWidth: "26px",
-              fontSize: "13px", marginTop: "1px",
-              background: "hsl(var(--primary) / 0.07)",
+              width: "28px", height: "28px", minWidth: "28px",
+              marginTop: "1px",
+              background: "hsl(var(--primary) / 0.08)",
+              color: "hsl(var(--primary))",
+              fontSize: "13px",
+              fontWeight: "600",
             }}
           >
             {num}
@@ -355,7 +376,7 @@ export default function BlogPost() {
       <ReadingProgress />
       <div className="mx-auto max-w-3xl px-5 sm:px-6 py-8 sm:py-12">
 
-        {/* Back — matches screenshot: plain arrow + text */}
+        {/* Back */}
         <Link
           to="/blog"
           className="inline-flex items-center gap-2 text-[15px] text-muted-foreground hover:text-foreground transition-colors mb-10"
@@ -364,7 +385,7 @@ export default function BlogPost() {
           Back to Blog
         </Link>
 
-        {/* Meta — matches screenshot: date · CATEGORY inline */}
+        {/* Meta */}
         <div className="flex flex-wrap items-center gap-2 mb-4 text-[15px] text-muted-foreground">
           <Calendar className="h-4 w-4" />
           <span>{date}</span>
@@ -376,7 +397,7 @@ export default function BlogPost() {
           )}
         </div>
 
-        {/* Title — matches screenshot: large bold uppercase serif-ish */}
+        {/* Title */}
         <h1 className="mb-10 font-bold text-[28px] sm:text-[36px] leading-tight text-foreground uppercase tracking-wide">
           {article.title}
         </h1>
