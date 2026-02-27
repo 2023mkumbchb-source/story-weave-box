@@ -110,6 +110,191 @@ export default function Admin() {
     return data?.category || "Uncategorized";
   };
 
+  const parseDirectMcqs = (raw: string) => {
+    const trimmed = raw.trim();
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter((q) => q?.question && Array.isArray(q?.options) && q.options.length >= 4)
+          .map((q) => ({
+            question: String(q.question).trim(),
+            options: q.options.slice(0, 4).map((o: string) => String(o).trim()),
+            correct_answer: Number.isInteger(q.correct_answer) ? Math.min(Math.max(q.correct_answer, 0), 3) : 0,
+            explanation: q.explanation ? String(q.explanation).trim() : undefined,
+          }));
+      }
+    } catch {}
+
+    const blocks = trimmed.split(/\n\s*\n(?=(?:Q\d+|\d+\.|Question))/i).filter(Boolean);
+    const parsed = blocks
+      .map((block) => {
+        const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+        if (lines.length < 5) return null;
+
+        const question = lines[0].replace(/^(Q\d+[:.)-]?|\d+[.)-]?|Question\s*\d*[:.)-]?)\s*/i, "").trim();
+        const options = lines
+          .filter((l) => /^[A-D][\).:-]\s+/i.test(l))
+          .map((l) => l.replace(/^[A-D][\).:-]\s+/i, "").trim())
+          .slice(0, 4);
+
+        if (!question || options.length < 4) return null;
+
+        const answerLine = lines.find((l) => /^Answer\s*[:\-]/i.test(l));
+        const explanationLine = lines.find((l) => /^Explanation\s*[:\-]/i.test(l));
+        let correct_answer = 0;
+
+        if (answerLine) {
+          const val = answerLine.replace(/^Answer\s*[:\-]\s*/i, "").trim().toUpperCase();
+          if (/^[A-D]$/.test(val)) correct_answer = val.charCodeAt(0) - 65;
+          if (/^[1-4]$/.test(val)) correct_answer = Number(val) - 1;
+        }
+
+        return {
+          question,
+          options,
+          correct_answer,
+          explanation: explanationLine ? explanationLine.replace(/^Explanation\s*[:\-]\s*/i, "").trim() : undefined,
+        };
+      })
+      .filter(Boolean) as { question: string; options: string[]; correct_answer: number; explanation?: string }[];
+
+    return parsed;
+  };
+
+  const parseDirectFlashcards = (raw: string) => {
+    const trimmed = raw.trim();
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter((c) => c?.question && c?.answer)
+          .map((c) => ({ question: String(c.question).trim(), answer: String(c.answer).trim() }));
+      }
+    } catch {}
+
+    const pairs = trimmed
+      .split(/\n\s*\n/)
+      .map((block) => block.trim())
+      .filter(Boolean)
+      .map((block) => {
+        const qMatch = block.match(/Q(?:uestion)?\s*[:\-]\s*([\s\S]*?)\nA(?:nswer)?\s*[:\-]\s*([\s\S]*)/i);
+        if (qMatch) {
+          return { question: qMatch[1].trim(), answer: qMatch[2].trim() };
+        }
+        const linePair = block.split(/\n|\t|\s+-\s+/).map((s) => s.trim()).filter(Boolean);
+        if (linePair.length >= 2) {
+          return { question: linePair[0], answer: linePair.slice(1).join(" ") };
+        }
+        return null;
+      })
+      .filter(Boolean) as { question: string; answer: string }[];
+
+    return pairs;
+  };
+
+  const parseDirectArticle = (raw: string) => {
+    const clean = raw.trim();
+    const lines = clean.split("\n").map((l) => l.trim());
+    const firstNonEmpty = lines.find((l) => l.length > 0) || "Article";
+    const inferredTitle = firstNonEmpty.replace(/^#+\s*/, "").replace(/\*+/g, "").trim();
+    const title = directTitle.trim() || inferredTitle;
+
+    if (/^##\s+/m.test(clean)) {
+      return { title, content: clean };
+    }
+
+    const paragraphs = clean.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+    const summary = paragraphs.slice(0, 2).join(" ") || "Study summary.";
+    const detailed = paragraphs.slice(2).join("\n\n") || paragraphs.join("\n\n");
+    const content = `## Summary\n${summary}\n\n## Detailed Notes\n${detailed}`;
+
+    return { title, content };
+  };
+
+  const handleFormatDirect = async () => {
+    if (!directContent.trim()) {
+      toast({ title: "Paste content first", variant: "destructive" });
+      return;
+    }
+
+    try {
+      if (directType === "article") {
+        setDirectPreviewArticle(parseDirectArticle(directContent));
+        setDirectPreviewCards(null);
+        setDirectPreviewMcqs(null);
+      } else if (directType === "mcqs") {
+        const parsed = parseDirectMcqs(directContent);
+        if (!parsed.length) throw new Error("Could not parse MCQs. Paste JSON or Q/A option format.");
+        setDirectPreviewMcqs(parsed);
+        setDirectPreviewArticle(null);
+        setDirectPreviewCards(null);
+      } else {
+        const parsed = parseDirectFlashcards(directContent);
+        if (!parsed.length) throw new Error("Could not parse flashcards. Paste JSON or Q/A format.");
+        setDirectPreviewCards(parsed);
+        setDirectPreviewArticle(null);
+        setDirectPreviewMcqs(null);
+      }
+
+      toast({ title: "Formatted and ready to publish" });
+    } catch (err: any) {
+      toast({ title: "Format error", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleDirectSave = async (publish: boolean) => {
+    try {
+      let cat = directCategory;
+      if (!cat) {
+        cat = await autoCategorizе(directContent);
+        setDirectCategory(cat);
+      }
+      const finalCategory = cat || "Uncategorized";
+
+      if (directPreviewArticle) {
+        await saveArticle({
+          title: directPreviewArticle.title,
+          content: directPreviewArticle.content,
+          created_at: new Date().toISOString(),
+          published: publish,
+          original_notes: directContent,
+          category: finalCategory,
+        });
+      } else if (directPreviewMcqs) {
+        await saveMcqSet({
+          title: directTitle.trim() || `MCQ: ${directContent.slice(0, 50)}...`,
+          questions: directPreviewMcqs,
+          created_at: new Date().toISOString(),
+          published: publish,
+          original_notes: directContent,
+          category: finalCategory,
+        });
+      } else if (directPreviewCards) {
+        await saveFlashcardSet({
+          title: directTitle.trim() || `Flashcards: ${directContent.slice(0, 50)}...`,
+          cards: directPreviewCards,
+          created_at: new Date().toISOString(),
+          published: publish,
+          original_notes: directContent,
+          category: finalCategory,
+        });
+      } else {
+        toast({ title: "No direct preview yet", description: "Click Format & Preview first.", variant: "destructive" });
+        return;
+      }
+
+      toast({ title: publish ? "Published!" : "Draft saved!" });
+      setDirectContent("");
+      setDirectTitle("");
+      setDirectPreviewArticle(null);
+      setDirectPreviewCards(null);
+      setDirectPreviewMcqs(null);
+    } catch (err: any) {
+      toast({ title: "Save failed", description: err.message, variant: "destructive" });
+    }
+  };
+
   const handleGenerate = async (type: "article" | "flashcards" | "mcqs") => {
     if (!notes.trim()) {
       toast({ title: "Please enter some notes", variant: "destructive" });
