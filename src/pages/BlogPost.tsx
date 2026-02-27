@@ -9,9 +9,9 @@ import { getArticleById, getRelatedContent, getCategoryDisplayName, type Article
 import { Button } from "@/components/ui/button";
 import { markArticleVisited } from "@/lib/progress-store";
 
-// ── Inline renderer — preserves ⭐ exactly where it appears ──────────────────
-function Inline({ text, star = true }: { text: string; star?: boolean }) {
-  const hasStar = star && text.includes("⭐");
+// ── Inline renderer ───────────────────────────────────────────────────────────
+function Inline({ text }: { text: string }) {
+  const hasStar = text.includes("⭐");
   const cleaned = text.replace(/⭐+/g, "").trim();
   const parts = cleaned.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
   return (
@@ -34,19 +34,20 @@ function ReadingProgress() {
   useEffect(() => {
     const fn = () => {
       const d = document.documentElement;
-      setW(d.scrollHeight - d.clientHeight > 0 ? (d.scrollTop / (d.scrollHeight - d.clientHeight)) * 100 : 0);
+      const total = d.scrollHeight - d.clientHeight;
+      setW(total > 0 ? (d.scrollTop / total) * 100 : 0);
     };
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
   }, []);
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-transparent">
+    <div className="fixed top-0 left-0 right-0 z-50 h-[3px]">
       <div className="h-full bg-primary transition-all duration-100" style={{ width: `${w}%` }} />
     </div>
   );
 }
 
-// ── Swipeable table — exactly matching screenshots ────────────────────────────
+// ── Table — swipeable, starts flush with left edge ────────────────────────────
 function TableBlock({ lines }: { lines: string[] }) {
   const isSep = (l: string) => /^\|[-:\s|]+\|$/.test(l.trim());
   const parse = (l: string) =>
@@ -59,16 +60,24 @@ function TableBlock({ lines }: { lines: string[] }) {
   const rows = bLines.map(parse);
 
   return (
-    <div className="my-6">
-      <div className="text-right pr-1 mb-1.5">
-        <span className="text-sm text-muted-foreground/50 italic">← swipe →</span>
+    <div className="my-5">
+      <div className="flex justify-end mb-1">
+        <span className="text-[13px] text-muted-foreground/50 italic">← swipe →</span>
       </div>
-      <div className="overflow-x-auto">
-        <table className="border-collapse" style={{ minWidth: `${headers.length * 160}px`, width: "100%" }}>
+      {/* Full-bleed scroll container that starts at the left page edge */}
+      <div className="overflow-x-auto w-full">
+        <table
+          className="border-collapse w-full"
+          style={{ minWidth: `${Math.max(headers.length * 150, 400)}px` }}
+        >
           <thead>
             <tr className="border-b-2 border-border">
               {headers.map((h, i) => (
-                <th key={i} className="pb-3 pr-6 text-left font-bold text-[17px] text-foreground first:pl-0 whitespace-nowrap">
+                <th
+                  key={i}
+                  className="pb-3 pr-5 text-left font-bold text-[17px] text-foreground"
+                  style={{ minWidth: i === 0 ? "130px" : "140px" }}
+                >
                   <Inline text={h} />
                 </th>
               ))}
@@ -77,9 +86,9 @@ function TableBlock({ lines }: { lines: string[] }) {
           <tbody>
             {rows.map((row, ri) => (
               <tr key={ri} className="border-b border-border/40 last:border-0">
-                {row.map((cell, ci) => (
-                  <td key={ci} className="py-4 pr-6 align-top first:pl-0 text-[16px] leading-relaxed text-foreground/85">
-                    <Inline text={cell} />
+                {headers.map((_, ci) => (
+                  <td key={ci} className="py-4 pr-5 align-top text-[17px] leading-snug text-foreground/85">
+                    {row[ci] ? <Inline text={row[ci]} /> : null}
                   </td>
                 ))}
               </tr>
@@ -100,9 +109,9 @@ function PracticeQuestion({ number, question, answer }: {
     <div className="rounded-2xl border border-border overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-start gap-3 px-5 py-4 text-left hover:bg-muted/20 active:bg-muted/40 transition-colors"
+        className="w-full flex items-start gap-3 px-4 py-4 text-left hover:bg-muted/20 active:bg-muted/40 transition-colors"
       >
-        <span className="shrink-0 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-500 text-sm font-bold mt-0.5">
+        <span className="shrink-0 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-500 text-[14px] font-bold mt-0.5">
           {number}
         </span>
         <span className="flex-1 text-[17px] font-medium text-foreground leading-snug">
@@ -120,9 +129,11 @@ function PracticeQuestion({ number, question, answer }: {
             transition={{ duration: 0.18 }}
             className="overflow-hidden"
           >
-            <div className="px-5 py-4 border-t border-border bg-emerald-500/5 flex gap-3">
+            <div className="px-4 py-4 border-t border-border bg-emerald-500/5 flex gap-3">
               <span className="text-emerald-500 font-bold text-[17px] shrink-0 mt-0.5">→</span>
-              <p className="text-[17px] text-foreground/90 leading-relaxed"><Inline text={answer} /></p>
+              <p className="text-[17px] text-foreground/90 leading-relaxed">
+                <Inline text={answer} />
+              </p>
             </div>
           </motion.div>
         )}
@@ -131,22 +142,22 @@ function PracticeQuestion({ number, question, answer }: {
   );
 }
 
-// ── Content renderer ──────────────────────────────────────────────────────────
-let sectionNum = 0;
+// ── Article content renderer ──────────────────────────────────────────────────
+let _sec = 0;
 
 function ArticleContent({ content }: { content: string }) {
-  sectionNum = 0;
+  _sec = 0;
   const lines = content.split("\n");
   const els: React.ReactNode[] = [];
   let listBuf: { type: "ul" | "ol"; items: React.ReactNode[] } | null = null;
   let inPractice = false;
   let tableBuf: string[] = [];
-  const practiceQ: { number: string; question: string; answer: string }[] = [];
+  const pqs: { number: string; question: string; answer: string }[] = [];
 
   const flushList = () => {
     if (!listBuf) return;
     els.push(
-      <div key={`list-${els.length}`} className={`mb-5 space-y-3`}>
+      <div key={`list-${els.length}`} className="mb-5 space-y-4">
         {listBuf.items}
       </div>
     );
@@ -160,7 +171,7 @@ function ArticleContent({ content }: { content: string }) {
   };
 
   const flushPractice = () => {
-    if (!practiceQ.length) return;
+    if (!pqs.length) return;
     els.push(
       <div key={`pq-${els.length}`} className="my-6">
         <div className="flex items-center gap-2 mb-4">
@@ -169,56 +180,58 @@ function ArticleContent({ content }: { content: string }) {
           <span className="ml-auto text-[12px] text-muted-foreground italic">tap to reveal</span>
         </div>
         <div className="space-y-3">
-          {practiceQ.map((q, k) => (
+          {pqs.map((q, k) => (
             <PracticeQuestion key={k} number={q.number} question={q.question} answer={q.answer} />
           ))}
         </div>
       </div>
     );
-    practiceQ.length = 0;
+    pqs.length = 0;
   };
 
   lines.forEach((line, i) => {
     const t = line.trim();
 
-    // table rows
     if (t.startsWith("|")) { flushList(); tableBuf.push(t); return; }
     else if (tableBuf.length) flushTable();
 
     if (!t) { flushList(); return; }
 
-    // ## H2 — numbered badge
+    // ## H2 — numbered badge, single line, title next to badge
     if (t.startsWith("## ")) {
       flushList();
       if (t.toLowerCase().includes("practice")) { inPractice = true; return; }
       flushPractice(); inPractice = false;
-      sectionNum++;
-      const n = sectionNum;
+      _sec++;
+      const n = _sec;
       const txt = t.slice(3).replace(/\*+/g, "").replace(/\s*⭐+/g, "").replace(/^\d+\.\s*/, "").trim();
       els.push(
-        <div key={`h2-${i}`} className="mt-12 mb-6">
-          <div className="flex items-center gap-4 mb-4">
-            {/* Badge exactly like screenshots — rounded square, blue */}
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/20">
-              <span className="font-bold text-[18px] text-primary">{n}</span>
+        <div key={`h2-${i}`} className="mt-12 mb-5">
+          {/* Badge + title on same line — exactly like images 1 & 2 */}
+          <div className="flex items-center gap-3 mb-3">
+            <div
+              className="shrink-0 flex items-center justify-center rounded-xl bg-primary/20"
+              style={{ width: "44px", height: "44px", minWidth: "44px" }}
+            >
+              <span className="font-bold text-[18px] text-primary leading-none">{n}</span>
             </div>
             <h2 className="font-bold text-[22px] uppercase tracking-wide text-foreground leading-tight">
               {txt}
             </h2>
           </div>
-          <div className="border-b border-border/60" />
+          <div className="border-b border-border/50 mt-1" />
         </div>
       );
       return;
     }
 
-    // ### H3 — bold sub-heading with blue dot (like "Pathway", "Structural Units")
+    // ### H3 — large bold blue-dot sub-heading
     if (t.startsWith("### ")) {
       flushList();
       const txt = t.slice(4).replace(/\*+/g, "").replace(/\s*⭐+/g, "").trim();
       els.push(
-        <div key={`h3-${i}`} className="mt-7 mb-4 flex items-start gap-3">
-          <div className="h-2.5 w-2.5 rounded-full bg-primary mt-[6px] shrink-0" />
+        <div key={`h3-${i}`} className="mt-6 mb-3 flex items-start gap-3">
+          <div className="h-[10px] w-[10px] rounded-full bg-primary mt-[7px] shrink-0" />
           <h3 className="font-bold text-[19px] text-foreground leading-snug">{txt}</h3>
         </div>
       );
@@ -229,7 +242,7 @@ function ArticleContent({ content }: { content: string }) {
     const qa = t.match(/^(\d+)\.\s(.+?)\s*→\s*(.+)$/);
     if (qa) {
       flushList();
-      if (inPractice) practiceQ.push({ number: qa[1], question: qa[2], answer: qa[3] });
+      if (inPractice) pqs.push({ number: qa[1], question: qa[2], answer: qa[3] });
       else els.push(
         <div key={`qa-${i}`} className="mb-4 rounded-2xl border border-border bg-card p-5">
           <p className="text-[17px] font-medium text-foreground">{qa[1]}. <Inline text={qa[2]} /></p>
@@ -239,10 +252,9 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
-    // practice standalone Q
     if (inPractice && /^\d+\.\s/.test(t) && !t.includes("→")) {
       const next = lines[i + 1]?.trim() ?? "";
-      practiceQ.push({
+      pqs.push({
         number: t.match(/^(\d+)/)?.[1] ?? "",
         question: t.replace(/^\d+\.\s/, ""),
         answer: next.startsWith("→") ? next.slice(1).trim() : "",
@@ -251,12 +263,15 @@ function ArticleContent({ content }: { content: string }) {
     }
     if (inPractice && t.startsWith("→")) return;
 
-    // Bullet — big blue dot + large font matching screenshots
+    // Bullet — large blue dot, 17px text, generous gap
     if (t.startsWith("- ")) {
       if (!listBuf || listBuf.type !== "ul") { flushList(); listBuf = { type: "ul", items: [] }; }
       listBuf.items.push(
         <div key={`li-${i}`} className="flex items-start gap-3">
-          <div className="h-2.5 w-2.5 rounded-full bg-primary/70 mt-[9px] shrink-0" />
+          <div
+            className="rounded-full bg-primary shrink-0"
+            style={{ width: "9px", height: "9px", minWidth: "9px", marginTop: "9px" }}
+          />
           <span className="text-[17px] text-foreground/90 leading-relaxed flex-1">
             <Inline text={t.slice(2)} />
           </span>
@@ -265,13 +280,16 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
-    // Numbered list — circle badges
+    // Numbered list — circle badge
     if (/^\d+\.\s/.test(t) && !t.includes("→") && !inPractice) {
       if (!listBuf || listBuf.type !== "ol") { flushList(); listBuf = { type: "ol", items: [] }; }
       const num = t.match(/^(\d+)/)?.[1] ?? "";
       listBuf.items.push(
         <div key={`ol-${i}`} className="flex items-start gap-3">
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 mt-[2px]">
+          <div
+            className="shrink-0 flex items-center justify-center rounded-full bg-primary/15"
+            style={{ width: "26px", height: "26px", minWidth: "26px", marginTop: "1px" }}
+          >
             <span className="text-[13px] font-bold text-primary leading-none">{num}</span>
           </div>
           <span className="text-[17px] text-foreground/90 leading-relaxed flex-1">
@@ -282,7 +300,7 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
-    // paragraph
+    // Paragraph
     flushList();
     els.push(
       <p key={`p-${i}`} className="mb-4 text-[17px] leading-relaxed text-foreground/85">
@@ -343,7 +361,7 @@ export default function BlogPost() {
       <div className="mx-auto max-w-3xl px-5 sm:px-6 py-8 sm:py-12">
 
         {/* Back */}
-        <Button asChild variant="ghost" size="sm" className="mb-8 gap-2 text-muted-foreground -ml-2 text-[16px]">
+        <Button asChild variant="ghost" size="sm" className="mb-8 gap-2 text-muted-foreground -ml-2">
           <Link to="/blog"><ArrowLeft className="h-5 w-5" /> Back to Blog</Link>
         </Button>
 
@@ -361,24 +379,20 @@ export default function BlogPost() {
         </div>
 
         {/* Title */}
-        <h1 className="mb-8 font-bold text-[28px] sm:text-[36px] leading-tight text-foreground break-words uppercase tracking-wide">
+        <h1 className="mb-3 font-bold text-[26px] sm:text-[32px] leading-tight text-foreground break-words">
           {article.title}
         </h1>
 
-        {/* Decorative divider */}
-        <div className="mb-10 flex items-center gap-3">
-          <div className="flex-1 h-px bg-border" />
-          <div className="h-2 w-2 rounded-full bg-primary" />
-          <div className="flex-1 h-px bg-border" />
-        </div>
+        {/* Thin divider */}
+        <div className="mb-10 border-b border-border/50" />
 
-        {/* Article body */}
+        {/* Body */}
         <ArticleContent content={article.content} />
 
         {/* Continue learning */}
         {hasRelated && (
           <div className="mt-14 rounded-2xl border border-border bg-card overflow-hidden">
-            <div className="px-5 py-5 border-b border-border flex items-center gap-2">
+            <div className="px-5 py-4 border-b border-border flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
               <h3 className="font-semibold text-[17px] text-foreground">Continue Learning</h3>
               {unitName && unitName !== "Uncategorized" && (
