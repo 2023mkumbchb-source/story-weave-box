@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft, Calendar, Loader2, GraduationCap, ListChecks,
-  ChevronDown, FileText, HelpCircle, BookOpen, Star,
+  ChevronDown, FileText, HelpCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getArticleById, getRelatedContent, getCategoryDisplayName, type Article } from "@/lib/store";
@@ -11,7 +11,9 @@ import { markArticleVisited } from "@/lib/progress-store";
 
 // ── Inline markdown renderer ──────────────────────────────────────────────────
 function Inline({ text }: { text: string }) {
-  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  // Strip ⭐ emoji from inline text (handled separately as badges)
+  const cleaned = text.replace(/⭐+/g, "").trim();
+  const parts = cleaned.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
   return (
     <>
       {parts.map((part, j) => {
@@ -21,6 +23,25 @@ function Inline({ text }: { text: string }) {
           return <em key={j} className="italic">{part.slice(1, -1)}</em>;
         return <span key={j}>{part.replace(/\*/g, "")}</span>;
       })}
+    </>
+  );
+}
+
+// Keep ⭐ for lines that genuinely need a star badge
+function InlineWithStar({ text }: { text: string }) {
+  const hasStar = text.includes("⭐");
+  const cleaned = text.replace(/⭐+/g, "").trim();
+  const parts = cleaned.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  return (
+    <>
+      {parts.map((part, j) => {
+        if (part.startsWith("**") && part.endsWith("**"))
+          return <strong key={j} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
+        if (part.startsWith("*") && part.endsWith("*") && part.length > 2)
+          return <em key={j} className="italic">{part.slice(1, -1)}</em>;
+        return <span key={j}>{part.replace(/\*/g, "")}</span>;
+      })}
+      {hasStar && <span className="ml-1.5 text-base leading-none">⭐</span>}
     </>
   );
 }
@@ -38,16 +59,13 @@ function ReadingProgress() {
     return () => window.removeEventListener("scroll", update);
   }, []);
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-border/40">
-      <div
-        className="h-full bg-primary transition-all duration-150"
-        style={{ width: `${progress}%` }}
-      />
+    <div className="fixed top-0 left-0 right-0 z-50 h-0.5 bg-transparent">
+      <div className="h-full bg-primary transition-all duration-100" style={{ width: `${progress}%` }} />
     </div>
   );
 }
 
-// ── Table: stacked cards on mobile, normal table on desktop ───────────────────
+// ── Swipeable table (exactly like the screenshots) ────────────────────────────
 function TableBlock({ lines }: { lines: string[] }) {
   const isSep = (l: string) => /^\|[-:\s|]+\|$/.test(l.trim());
   const parseRow = (l: string) =>
@@ -60,54 +78,35 @@ function TableBlock({ lines }: { lines: string[] }) {
   const rows = bodyLines.map(parseRow);
 
   return (
-    <>
-      {/* ── MOBILE: stacked cards (no clipping ever) ── */}
-      <div className="my-5 space-y-2 sm:hidden">
-        {rows.map((row, ri) => (
-          <div key={ri} className="rounded-xl border border-border bg-card overflow-hidden">
-            {row[0] && (
-              <div className="px-4 py-3 bg-primary/8 border-b border-border/70">
-                <p className="text-sm font-bold text-foreground leading-snug">
-                  <Inline text={row[0]} />
-                </p>
-              </div>
-            )}
-            <div className="divide-y divide-border/40 px-4">
-              {headers.slice(1).map((h, hi) =>
-                row[hi + 1] ? (
-                  <div key={hi} className="py-2.5 flex gap-3 items-baseline">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary/55 w-[88px] shrink-0 leading-snug pt-0.5">
-                      <Inline text={h} />
-                    </span>
-                    <span className="text-[13px] text-foreground/85 leading-snug flex-1">
-                      <Inline text={row[hi + 1]} />
-                    </span>
-                  </div>
-                ) : null
-              )}
-            </div>
-          </div>
-        ))}
+    <div className="my-5">
+      {/* swipe hint — matches screenshots */}
+      <div className="flex justify-end pr-1 mb-1">
+        <span className="text-xs text-muted-foreground/60 italic">← swipe →</span>
       </div>
-
-      {/* ── DESKTOP: traditional table ── */}
-      <div className="my-5 hidden sm:block overflow-x-auto rounded-xl border border-border">
-        <table className="w-full border-collapse text-sm">
+      <div className="overflow-x-auto -mx-4 px-4">
+        <table className="min-w-full border-collapse text-[14px]" style={{ minWidth: "480px" }}>
           <thead>
-            <tr className="border-b border-border bg-muted/40">
+            <tr className="border-b-2 border-border">
               {headers.map((h, i) => (
-                <th key={i} className="py-2.5 px-4 text-left text-xs font-bold uppercase tracking-wider text-primary/70 whitespace-nowrap">
+                <th
+                  key={i}
+                  className="py-3 pr-4 text-left font-bold text-foreground first:pl-0"
+                  style={{ minWidth: i === 0 ? "110px" : "120px" }}
+                >
                   <Inline text={h} />
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-border/50">
             {rows.map((row, ri) => (
-              <tr key={ri} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
+              <tr key={ri}>
                 {row.map((cell, ci) => (
-                  <td key={ci} className={`py-2.5 px-4 leading-snug ${ci === 0 ? "font-semibold text-foreground whitespace-nowrap" : "text-foreground/85"}`}>
-                    <Inline text={cell} />
+                  <td
+                    key={ci}
+                    className={`py-3 pr-4 leading-snug first:pl-0 align-top ${ci === 0 ? "text-foreground/80" : "text-foreground/80"}`}
+                  >
+                    <InlineWithStar text={cell} />
                   </td>
                 ))}
               </tr>
@@ -115,7 +114,7 @@ function TableBlock({ lines }: { lines: string[] }) {
           </tbody>
         </table>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -128,12 +127,12 @@ function PracticeQuestion({ number, question, answer }: {
     <div className="rounded-xl border border-border overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-start gap-3 px-4 py-4 text-left hover:bg-muted/30 active:bg-muted/50 transition-colors"
+        className="w-full flex items-start gap-3 px-4 py-4 text-left hover:bg-muted/20 active:bg-muted/40 transition-colors"
       >
-        <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-bold mt-0.5">
+        <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-500 text-xs font-bold mt-0.5">
           {number}
         </span>
-        <span className="flex-1 text-sm font-medium text-foreground leading-snug">
+        <span className="flex-1 text-[15px] font-medium text-foreground leading-snug">
           <Inline text={question} />
         </span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground mt-0.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
@@ -150,7 +149,7 @@ function PracticeQuestion({ number, question, answer }: {
           >
             <div className="px-4 py-4 border-t border-border bg-emerald-500/5 flex items-start gap-3">
               <span className="shrink-0 text-emerald-500 font-bold text-sm mt-0.5">→</span>
-              <p className="text-sm text-foreground/90 leading-relaxed">
+              <p className="text-[15px] text-foreground/90 leading-relaxed">
                 <Inline text={answer} />
               </p>
             </div>
@@ -161,62 +160,13 @@ function PracticeQuestion({ number, question, answer }: {
   );
 }
 
-// ── Collapsible Table of Contents ─────────────────────────────────────────────
-function SectionNav({ content }: { content: string }) {
-  const [open, setOpen] = useState(false);
-  const sections = content
-    .split("\n")
-    .filter(l => l.trim().startsWith("## ") && !l.toLowerCase().includes("practice"))
-    .map(l => l.trim().slice(3).replace(/\*+/g, "").replace(/\s*⭐+/g, "").trim());
-
-  if (sections.length < 3) return null;
-  return (
-    <div className="mb-8 rounded-xl border border-border overflow-hidden">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 px-4 py-3.5 text-left bg-muted/30 hover:bg-muted/50 active:bg-muted/60 transition-colors"
-      >
-        <BookOpen className="h-4 w-4 text-primary shrink-0" />
-        <span className="text-sm font-semibold text-foreground flex-1">Table of Contents</span>
-        <span className="text-xs text-muted-foreground mr-1">{sections.length} sections</span>
-        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            initial={{ height: 0 }}
-            animate={{ height: "auto" }}
-            exit={{ height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="border-t border-border divide-y divide-border/40 bg-background">
-              {sections.map((s, i) => (
-                <div key={i} className="flex items-center gap-3 px-4 py-2.5">
-                  <span className="text-xs font-bold text-primary/50 w-5 shrink-0 text-right tabular-nums">{i + 1}</span>
-                  <span className="text-sm text-foreground/80 leading-snug">{s}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-// ── High-yield callout ────────────────────────────────────────────────────────
-function Callout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="my-4 flex gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
-      <Star className="h-3.5 w-3.5 shrink-0 text-amber-500 mt-0.5" fill="currentColor" />
-      <div className="text-sm leading-relaxed text-foreground/90 flex-1">{children}</div>
-    </div>
-  );
-}
+// ── Section counter (shared state via ref passed down) ────────────────────────
+let _sectionCount = 0;
 
 // ── Full article content renderer ─────────────────────────────────────────────
 function ArticleContent({ content }: { content: string }) {
+  _sectionCount = 0; // reset on each render
+
   const lines = content.split("\n");
   const elements: React.ReactNode[] = [];
   let listBuffer: { type: "ul" | "ol"; items: React.ReactNode[] } | null = null;
@@ -228,8 +178,10 @@ function ArticleContent({ content }: { content: string }) {
     if (!listBuffer) return;
     const Tag = listBuffer.type === "ul" ? "ul" : "ol";
     elements.push(
-      <Tag key={`list-${elements.length}`}
-        className={`mb-5 space-y-2 pl-5 ${listBuffer.type === "ul" ? "list-disc" : "list-decimal"} marker:text-primary/50`}>
+      <Tag
+        key={`list-${elements.length}`}
+        className={`mb-4 space-y-2.5 ${listBuffer.type === "ul" ? "list-none pl-0" : "list-none pl-0"}`}
+      >
         {listBuffer.items}
       </Tag>
     );
@@ -249,7 +201,7 @@ function ArticleContent({ content }: { content: string }) {
       <div key={`practice-${elements.length}`} className="my-6">
         <div className="flex items-center gap-2 mb-3">
           <HelpCircle className="h-4 w-4 text-emerald-500" />
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Practice Questions</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-emerald-500">Practice Questions</span>
           <span className="ml-auto text-[10px] text-muted-foreground italic">tap to reveal</span>
         </div>
         <div className="space-y-2">
@@ -265,7 +217,7 @@ function ArticleContent({ content }: { content: string }) {
   lines.forEach((line, i) => {
     const trimmed = line.trim();
 
-    // Table rows — collect
+    // Table rows
     if (trimmed.startsWith("|")) {
       flushList();
       tableBuffer.push(trimmed);
@@ -276,41 +228,44 @@ function ArticleContent({ content }: { content: string }) {
 
     if (!trimmed) { flushList(); return; }
 
-    // H2
+    // H2 — numbered badge section header (matches screenshots exactly)
     if (trimmed.startsWith("## ")) {
       flushList();
       if (trimmed.toLowerCase().includes("practice")) { inPractice = true; return; }
       flushPractice();
       inPractice = false;
+      _sectionCount++;
+      const num = _sectionCount;
       const text = trimmed.slice(3).replace(/\*+/g, "").replace(/\s*⭐+/g, "").trim();
+      // Strip leading number if content already has it e.g. "1. LIVER HISTOLOGY"
+      const cleanText = text.replace(/^\d+\.\s*/, "");
       elements.push(
-        <div key={`h2-${i}`} className="mt-10 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="h-5 w-1 rounded-full bg-primary shrink-0" />
-            <h2 className="font-bold text-lg sm:text-xl text-foreground leading-snug"><Inline text={text} /></h2>
+        <div key={`h2-${i}`} className="mt-10 mb-5">
+          <div className="flex items-center gap-3 mb-3">
+            {/* Numbered badge — exactly like screenshots */}
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-primary font-bold text-sm">
+              {num}
+            </div>
+            <h2 className="font-bold text-[17px] sm:text-[19px] uppercase tracking-wide text-foreground leading-snug">
+              {cleanText}
+            </h2>
           </div>
-          <div className="mt-2.5 border-b border-border/60" />
+          <div className="border-b border-border/70" />
         </div>
       );
       return;
     }
 
-    // H3
+    // H3 — rendered as bold bullet (matches screenshots)
     if (trimmed.startsWith("### ")) {
       flushList();
+      const text = trimmed.slice(4).replace(/\*+/g, "").replace(/\s*⭐+/g, "").trim();
       elements.push(
-        <h3 key={`h3-${i}`} className="mt-6 mb-2.5 font-semibold text-[15px] sm:text-base text-foreground">
-          <Inline text={trimmed.slice(4).replace(/\*+/g, "")} />
-        </h3>
+        <div key={`h3-${i}`} className="mt-5 mb-2 flex items-start gap-2.5">
+          <div className="h-2 w-2 rounded-full bg-primary mt-[7px] shrink-0" />
+          <h3 className="font-bold text-[16px] text-foreground leading-snug">{text}</h3>
+        </div>
       );
-      return;
-    }
-
-    // High-yield callout
-    if (trimmed.includes("⭐⭐⭐") || trimmed.toUpperCase().startsWith("MUST MEMORIZE")) {
-      flushList();
-      const clean = trimmed.replace(/⭐+/g, "").replace(/\*+/g, "").trim();
-      if (clean) elements.push(<Callout key={`callout-${i}`}><Inline text={clean} /></Callout>);
       return;
     }
 
@@ -323,8 +278,8 @@ function ArticleContent({ content }: { content: string }) {
       } else {
         elements.push(
           <div key={`qa-${i}`} className="mb-3 rounded-xl border border-border bg-card p-4">
-            <p className="text-sm font-medium text-foreground">{qaMatch[1]}. <Inline text={qaMatch[2]} /></p>
-            <p className="mt-1.5 text-sm text-primary font-medium">→ <Inline text={qaMatch[3]} /></p>
+            <p className="text-[15px] font-medium text-foreground">{qaMatch[1]}. <Inline text={qaMatch[2]} /></p>
+            <p className="mt-1.5 text-[15px] text-primary font-medium">→ <Inline text={qaMatch[3]} /></p>
           </div>
         );
       }
@@ -343,12 +298,20 @@ function ArticleContent({ content }: { content: string }) {
     }
     if (inPractice && trimmed.startsWith("→")) return;
 
-    // Bullet list
+    // Bullet list — using blue dot like screenshots
     if (trimmed.startsWith("- ")) {
-      if (!listBuffer || listBuffer.type !== "ul") { flushList(); listBuffer = { type: "ul", items: [] }; }
+      if (!listBuffer || listBuffer.type !== "ul") {
+        flushList();
+        listBuffer = { type: "ul", items: [] };
+      }
+      const text = trimmed.slice(2);
+      const hasStar = text.includes("⭐");
       listBuffer.items.push(
-        <li key={`li-${i}`} className="text-[15px] text-foreground/85 leading-relaxed">
-          <Inline text={trimmed.slice(2)} />
+        <li key={`li-${i}`} className="flex items-start gap-2.5">
+          <div className="h-2 w-2 rounded-full bg-primary/70 mt-[8px] shrink-0" />
+          <span className="text-[15px] text-foreground/90 leading-relaxed flex-1">
+            <InlineWithStar text={text} />
+          </span>
         </li>
       );
       return;
@@ -356,10 +319,20 @@ function ArticleContent({ content }: { content: string }) {
 
     // Numbered list
     if (/^\d+\.\s/.test(trimmed) && !trimmed.includes("→") && !inPractice) {
-      if (!listBuffer || listBuffer.type !== "ol") { flushList(); listBuffer = { type: "ol", items: [] }; }
+      if (!listBuffer || listBuffer.type !== "ol") {
+        flushList();
+        listBuffer = { type: "ol", items: [] };
+      }
+      const num = trimmed.match(/^(\d+)/)?.[1] ?? "";
+      const text = trimmed.replace(/^\d+\.\s/, "");
       listBuffer.items.push(
-        <li key={`oli-${i}`} className="text-[15px] text-foreground/85 leading-relaxed">
-          <Inline text={trimmed.replace(/^\d+\.\s/, "")} />
+        <li key={`oli-${i}`} className="flex items-start gap-2.5">
+          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 mt-[2px]">
+            <span className="text-[11px] font-bold text-primary">{num}</span>
+          </div>
+          <span className="text-[15px] text-foreground/90 leading-relaxed flex-1">
+            <InlineWithStar text={text} />
+          </span>
         </li>
       );
       return;
@@ -369,7 +342,7 @@ function ArticleContent({ content }: { content: string }) {
     flushList();
     elements.push(
       <p key={`p-${i}`} className="mb-3 leading-relaxed text-foreground/85 text-[15px]">
-        <Inline text={trimmed} />
+        <InlineWithStar text={trimmed} />
       </p>
     );
   });
@@ -427,31 +400,40 @@ export default function BlogPost() {
       <ReadingProgress />
       <div className="mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-12">
 
-        <Button asChild variant="ghost" size="sm" className="mb-6 -ml-2 gap-2 text-muted-foreground">
-          <Link to="/blog"><ArrowLeft className="h-4 w-4" /> Blog</Link>
+        {/* Back */}
+        <Button asChild variant="ghost" size="sm" className="mb-8 gap-2 text-muted-foreground -ml-2">
+          <Link to="/blog"><ArrowLeft className="h-4 w-4" /> Back to Blog</Link>
         </Button>
 
-        <div className="mb-5 flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Calendar className="h-3.5 w-3.5" />
-            <span className="text-xs">{date}</span>
+        {/* Meta */}
+        <div className="mb-5 flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Calendar className="h-4 w-4" />
+            <span className="text-sm">{date}</span>
           </div>
           {unitName && unitName !== "Uncategorized" && (
-            <>
-              <span className="text-border text-xs">·</span>
-              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">{unitName}</span>
-            </>
+            <span className="rounded-full bg-primary/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary">
+              {unitName}
+            </span>
           )}
         </div>
 
-        <h1 className="mb-8 font-bold text-2xl sm:text-3xl md:text-4xl leading-tight text-foreground break-words">
+        {/* Title — large, bold, all-caps style matches screenshots */}
+        <h1 className="mb-10 font-bold text-[26px] sm:text-[32px] leading-tight text-foreground uppercase tracking-wide break-words">
           {article.title}
         </h1>
 
-        <SectionNav content={article.content} />
+        {/* Divider dots like in screenshots */}
+        <div className="mb-10 flex items-center gap-2">
+          <div className="flex-1 h-px bg-border" />
+          <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+          <div className="flex-1 h-px bg-border" />
+        </div>
 
+        {/* Body */}
         <ArticleContent content={article.content} />
 
+        {/* Continue learning */}
         {hasRelated && (
           <div className="mt-12 rounded-2xl border border-border bg-card overflow-hidden">
             <div className="px-5 py-4 border-b border-border flex items-center gap-2">
