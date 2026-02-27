@@ -16,6 +16,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 
 type Tab = "create" | "articles" | "flashcards" | "mcqs" | "settings";
+type DirectType = "article" | "mcqs" | "flashcards";
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -45,6 +46,15 @@ export default function Admin() {
   const [genArticle, setGenArticle] = useState(true);
   const [genFlashcards, setGenFlashcards] = useState(true);
   const [genMcqs, setGenMcqs] = useState(true);
+
+  // Direct publish mode
+  const [directType, setDirectType] = useState<DirectType>("article");
+  const [directTitle, setDirectTitle] = useState("");
+  const [directContent, setDirectContent] = useState("");
+  const [directCategory, setDirectCategory] = useState("");
+  const [directPreviewArticle, setDirectPreviewArticle] = useState<{ title: string; content: string } | null>(null);
+  const [directPreviewCards, setDirectPreviewCards] = useState<{ question: string; answer: string }[] | null>(null);
+  const [directPreviewMcqs, setDirectPreviewMcqs] = useState<{ question: string; options: string[]; correct_answer: number; explanation?: string }[] | null>(null);
 
   // Preview state for batch
   const [batchArticle, setBatchArticle] = useState<{ title: string; content: string } | null>(null);
@@ -98,6 +108,191 @@ export default function Admin() {
     });
     if (error) return "Uncategorized";
     return data?.category || "Uncategorized";
+  };
+
+  const parseDirectMcqs = (raw: string) => {
+    const trimmed = raw.trim();
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter((q) => q?.question && Array.isArray(q?.options) && q.options.length >= 4)
+          .map((q) => ({
+            question: String(q.question).trim(),
+            options: q.options.slice(0, 4).map((o: string) => String(o).trim()),
+            correct_answer: Number.isInteger(q.correct_answer) ? Math.min(Math.max(q.correct_answer, 0), 3) : 0,
+            explanation: q.explanation ? String(q.explanation).trim() : undefined,
+          }));
+      }
+    } catch {}
+
+    const blocks = trimmed.split(/\n\s*\n(?=(?:Q\d+|\d+\.|Question))/i).filter(Boolean);
+    const parsed = blocks
+      .map((block) => {
+        const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+        if (lines.length < 5) return null;
+
+        const question = lines[0].replace(/^(Q\d+[:.)-]?|\d+[.)-]?|Question\s*\d*[:.)-]?)\s*/i, "").trim();
+        const options = lines
+          .filter((l) => /^[A-D][\).:-]\s+/i.test(l))
+          .map((l) => l.replace(/^[A-D][\).:-]\s+/i, "").trim())
+          .slice(0, 4);
+
+        if (!question || options.length < 4) return null;
+
+        const answerLine = lines.find((l) => /^Answer\s*[:\-]/i.test(l));
+        const explanationLine = lines.find((l) => /^Explanation\s*[:\-]/i.test(l));
+        let correct_answer = 0;
+
+        if (answerLine) {
+          const val = answerLine.replace(/^Answer\s*[:\-]\s*/i, "").trim().toUpperCase();
+          if (/^[A-D]$/.test(val)) correct_answer = val.charCodeAt(0) - 65;
+          if (/^[1-4]$/.test(val)) correct_answer = Number(val) - 1;
+        }
+
+        return {
+          question,
+          options,
+          correct_answer,
+          explanation: explanationLine ? explanationLine.replace(/^Explanation\s*[:\-]\s*/i, "").trim() : undefined,
+        };
+      })
+      .filter(Boolean) as { question: string; options: string[]; correct_answer: number; explanation?: string }[];
+
+    return parsed;
+  };
+
+  const parseDirectFlashcards = (raw: string) => {
+    const trimmed = raw.trim();
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter((c) => c?.question && c?.answer)
+          .map((c) => ({ question: String(c.question).trim(), answer: String(c.answer).trim() }));
+      }
+    } catch {}
+
+    const pairs = trimmed
+      .split(/\n\s*\n/)
+      .map((block) => block.trim())
+      .filter(Boolean)
+      .map((block) => {
+        const qMatch = block.match(/Q(?:uestion)?\s*[:\-]\s*([\s\S]*?)\nA(?:nswer)?\s*[:\-]\s*([\s\S]*)/i);
+        if (qMatch) {
+          return { question: qMatch[1].trim(), answer: qMatch[2].trim() };
+        }
+        const linePair = block.split(/\n|\t|\s+-\s+/).map((s) => s.trim()).filter(Boolean);
+        if (linePair.length >= 2) {
+          return { question: linePair[0], answer: linePair.slice(1).join(" ") };
+        }
+        return null;
+      })
+      .filter(Boolean) as { question: string; answer: string }[];
+
+    return pairs;
+  };
+
+  const parseDirectArticle = (raw: string) => {
+    const clean = raw.trim();
+    const lines = clean.split("\n").map((l) => l.trim());
+    const firstNonEmpty = lines.find((l) => l.length > 0) || "Article";
+    const inferredTitle = firstNonEmpty.replace(/^#+\s*/, "").replace(/\*+/g, "").trim();
+    const title = directTitle.trim() || inferredTitle;
+
+    if (/^##\s+/m.test(clean)) {
+      return { title, content: clean };
+    }
+
+    const paragraphs = clean.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+    const summary = paragraphs.slice(0, 2).join(" ") || "Study summary.";
+    const detailed = paragraphs.slice(2).join("\n\n") || paragraphs.join("\n\n");
+    const content = `## Summary\n${summary}\n\n## Detailed Notes\n${detailed}`;
+
+    return { title, content };
+  };
+
+  const handleFormatDirect = async () => {
+    if (!directContent.trim()) {
+      toast({ title: "Paste content first", variant: "destructive" });
+      return;
+    }
+
+    try {
+      if (directType === "article") {
+        setDirectPreviewArticle(parseDirectArticle(directContent));
+        setDirectPreviewCards(null);
+        setDirectPreviewMcqs(null);
+      } else if (directType === "mcqs") {
+        const parsed = parseDirectMcqs(directContent);
+        if (!parsed.length) throw new Error("Could not parse MCQs. Paste JSON or Q/A option format.");
+        setDirectPreviewMcqs(parsed);
+        setDirectPreviewArticle(null);
+        setDirectPreviewCards(null);
+      } else {
+        const parsed = parseDirectFlashcards(directContent);
+        if (!parsed.length) throw new Error("Could not parse flashcards. Paste JSON or Q/A format.");
+        setDirectPreviewCards(parsed);
+        setDirectPreviewArticle(null);
+        setDirectPreviewMcqs(null);
+      }
+
+      toast({ title: "Formatted and ready to publish" });
+    } catch (err: any) {
+      toast({ title: "Format error", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleDirectSave = async (publish: boolean) => {
+    try {
+      let cat = directCategory;
+      if (!cat) {
+        cat = await autoCategorizе(directContent);
+        setDirectCategory(cat);
+      }
+      const finalCategory = cat || "Uncategorized";
+
+      if (directPreviewArticle) {
+        await saveArticle({
+          title: directPreviewArticle.title,
+          content: directPreviewArticle.content,
+          created_at: new Date().toISOString(),
+          published: publish,
+          original_notes: directContent,
+          category: finalCategory,
+        });
+      } else if (directPreviewMcqs) {
+        await saveMcqSet({
+          title: directTitle.trim() || `MCQ: ${directContent.slice(0, 50)}...`,
+          questions: directPreviewMcqs,
+          created_at: new Date().toISOString(),
+          published: publish,
+          original_notes: directContent,
+          category: finalCategory,
+        });
+      } else if (directPreviewCards) {
+        await saveFlashcardSet({
+          title: directTitle.trim() || `Flashcards: ${directContent.slice(0, 50)}...`,
+          cards: directPreviewCards,
+          created_at: new Date().toISOString(),
+          published: publish,
+          original_notes: directContent,
+          category: finalCategory,
+        });
+      } else {
+        toast({ title: "No direct preview yet", description: "Click Format & Preview first.", variant: "destructive" });
+        return;
+      }
+
+      toast({ title: publish ? "Published!" : "Draft saved!" });
+      setDirectContent("");
+      setDirectTitle("");
+      setDirectPreviewArticle(null);
+      setDirectPreviewCards(null);
+      setDirectPreviewMcqs(null);
+    } catch (err: any) {
+      toast({ title: "Save failed", description: err.message, variant: "destructive" });
+    }
   };
 
   const handleGenerate = async (type: "article" | "flashcards" | "mcqs") => {
@@ -561,6 +756,85 @@ export default function Admin() {
               </div>
             </div>
           )}
+
+          <div className="mt-8 rounded-xl border border-border bg-card p-6">
+            <h3 className="mb-2 font-display text-lg font-bold text-foreground">📋 Direct Publish Mode</h3>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Paste pre-written article/MCQ/flashcard content and I’ll do minimal formatting for clean publishing.
+            </p>
+
+            <div className="mb-4 grid gap-4 md:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground">Content Type</label>
+                <select
+                  value={directType}
+                  onChange={(e) => setDirectType(e.target.value as DirectType)}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
+                >
+                  <option value="article">📄 Article</option>
+                  <option value="mcqs">✅ MCQs</option>
+                  <option value="flashcards">🃏 Flashcards</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground">Unit/Category</label>
+                <select
+                  value={directCategory}
+                  onChange={(e) => setDirectCategory(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
+                >
+                  <option value="">Auto-detect</option>
+                  {UNIT_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground">Title (optional)</label>
+                <Input value={directTitle} onChange={(e) => setDirectTitle(e.target.value)} placeholder="Custom title" />
+              </div>
+            </div>
+
+            <Textarea
+              value={directContent}
+              onChange={(e) => setDirectContent(e.target.value)}
+              placeholder={directType === "article" ? "Paste article markdown/plain text" : directType === "mcqs" ? "Paste MCQs JSON or Q1 + A) B) C) D) format" : "Paste flashcards JSON or Q:/A: format"}
+              className="mb-4 min-h-[180px]"
+            />
+
+            <div className="mb-4 flex flex-wrap gap-3">
+              <Button onClick={handleFormatDirect} variant="outline">Format & Preview</Button>
+              <Button onClick={() => handleDirectSave(false)} variant="outline">Save Draft</Button>
+              <Button onClick={() => handleDirectSave(true)}>Direct Publish</Button>
+            </div>
+
+            {directPreviewArticle && (
+              <div className="rounded-lg border border-border bg-secondary/30 p-4">
+                <p className="font-medium text-foreground">{directPreviewArticle.title}</p>
+                <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{directPreviewArticle.content.slice(0, 500)}...</p>
+              </div>
+            )}
+
+            {directPreviewMcqs && (
+              <div className="rounded-lg border border-border bg-secondary/30 p-4">
+                <p className="mb-2 font-medium text-foreground">Parsed MCQs: {directPreviewMcqs.length}</p>
+                {directPreviewMcqs.slice(0, 2).map((q, i) => (
+                  <p key={i} className="text-sm text-muted-foreground">{i + 1}. {q.question}</p>
+                ))}
+              </div>
+            )}
+
+            {directPreviewCards && (
+              <div className="rounded-lg border border-border bg-secondary/30 p-4">
+                <p className="mb-2 font-medium text-foreground">Parsed Flashcards: {directPreviewCards.length}</p>
+                {directPreviewCards.slice(0, 2).map((c, i) => (
+                  <p key={i} className="text-sm text-muted-foreground">Q: {c.question}</p>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -830,9 +1104,11 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
   const handleSave = async () => {
     setSaving(true);
     try {
-      await saveSetting("gemini_api_key", localGeminiKey);
-      setGeminiKey(localGeminiKey);  // Update parent state
-      toast({ title: "API key saved!" });
+      const normalized = localGeminiKey.trim();
+      await saveSetting("gemini_api_key", normalized);
+      setGeminiKey(normalized);
+      setLocalGeminiKey(normalized);
+      toast({ title: "Gemini API key saved!" });
     } catch (err: any) {
       toast({ title: "Failed to save", description: err.message, variant: "destructive" });
     } finally {
@@ -845,9 +1121,9 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
   return (
     <div className="max-w-lg space-y-6">
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Google Gemini API</h3>
+        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Google Gemini API (Gemini-only mode)</h3>
         <p className="mb-4 text-sm text-muted-foreground">
-          Enter your Gemini API key to power all AI content generation. Get a key from{" "}
+          This project uses Gemini only for AI generation. Enter your Gemini API key from{" "}
           <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google AI Studio</a>.
         </p>
 
@@ -865,7 +1141,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
           </Button>
         </div>
         {localGeminiKey && (
-          <p className="mt-2 text-xs text-green-600">✓ API key configured</p>
+          <p className="mt-2 text-xs text-primary">✓ API key configured</p>
         )}
       </div>
     </div>

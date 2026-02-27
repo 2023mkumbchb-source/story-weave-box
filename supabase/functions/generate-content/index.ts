@@ -32,8 +32,8 @@ async function callAI(messages: any[], geminiKey?: string): Promise<string> {
   const prompt = systemMsg + "\n\n" + userMsg;
 
   const MAX_RETRIES = 2;
-  const MODELS = ["gemini-2.5-flash", "gemini-1.5-flash"];
-  const REQUEST_TIMEOUT_MS = 25000;
+  const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
+  const REQUEST_TIMEOUT_MS = 35000;
 
   for (let modelIdx = 0; modelIdx < MODELS.length; modelIdx++) {
     const model = MODELS[modelIdx];
@@ -77,6 +77,11 @@ async function callAI(messages: any[], geminiKey?: string): Promise<string> {
             continue;
           }
           break; // move to next model quickly
+        }
+
+        if (response.status === 404) {
+          console.warn(`Model not available (${model}), trying next model...`);
+          break;
         }
 
         console.error("Gemini API error:", response.status, errText.substring(0, 300));
@@ -131,43 +136,36 @@ serve(async (req) => {
 
     let systemPrompt: string;
     if (type === "article") {
-      systemPrompt = `You are a medical education expert. Convert notes into a comprehensive study article that goes BEYOND the provided notes. Include commonly tested "must know" topics for that unit that medical students need for exams.
+      systemPrompt = `You are a medical education expert. Convert notes into a clean, exam-focused study article with strict formatting.
 
 IMPORTANT FORMATTING RULES:
-- Do NOT use asterisks (*) for emphasis in regular text
-- Use ## for section headings and ### for sub-headings
-- Use **bold** ONLY for key terms in bullet points
-- Keep text clean and readable without excessive formatting marks
+- Return plain markdown only
+- First line MUST be the title only (no #, no bullets, no asterisks)
+- Use headings exactly: ## Summary, ## Key Points, ## Detailed Notes, ## Practice Questions
+- In Key Points, use bullet lines like: - **Term**: explanation
+- Keep sentences concise and readable
+- Do not output code fences
 
-Format the output EXACTLY like this:
+CONTENT RULES:
+- Expand beyond raw notes with commonly tested exam facts
+- Keep total length around 500-900 words for reliability
+- In Practice Questions, include at least 8 high-yield Q→A lines
 
-TITLE (first line, no markdown symbols, no asterisks - make it descriptive and exam-relevant)
-
-(blank line)
+Output template:
+TITLE
 
 ## Summary
-A concise 3-4 sentence overview covering the key clinical significance.
+...
 
 ## Key Points
-- **Point 1**: Brief explanation with clinical relevance
-- **Point 2**: Brief explanation
-- **Point 3**: Brief explanation
-(cover ALL major topics including commonly tested ones not in the notes)
+- **...**: ...
 
 ## Detailed Notes
-Write detailed, exam-focused explanations organized by topic with clear paragraphs. Use subheadings (###) for different sections. Include:
-- Pathophysiology
-- Clinical features and presentations
-- Diagnostic criteria and investigations
-- Management and treatment approaches
-- Complications and prognosis
+### ...
+...
 
 ## Practice Questions
-1. Question? → Answer
-2. Question? → Answer
-(at least 8 practice questions covering commonly tested concepts)
-
-Make it at least 800 words. Include high-yield exam content beyond the provided notes. Do NOT use asterisks except for **bold key terms**.`;
+1. ... → ...` ;
     } else if (type === "mcqs") {
       systemPrompt = `You are a medical exam question writer. Create EXACTLY ${cardCount} high-quality exam-style MCQ questions. Focus on questions that are commonly asked in medical exams. Include questions from commonly tested topics in this medical unit, not just from the notes provided. Each question MUST have exactly 4 options, one correct answer, AND a clear 1-2 sentence explanation of why the correct answer is right and key differentiators.
 
