@@ -756,6 +756,85 @@ export default function Admin() {
               </div>
             </div>
           )}
+
+          <div className="mt-8 rounded-xl border border-border bg-card p-6">
+            <h3 className="mb-2 font-display text-lg font-bold text-foreground">📋 Direct Publish Mode</h3>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Paste pre-written article/MCQ/flashcard content and I’ll do minimal formatting for clean publishing.
+            </p>
+
+            <div className="mb-4 grid gap-4 md:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground">Content Type</label>
+                <select
+                  value={directType}
+                  onChange={(e) => setDirectType(e.target.value as DirectType)}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
+                >
+                  <option value="article">📄 Article</option>
+                  <option value="mcqs">✅ MCQs</option>
+                  <option value="flashcards">🃏 Flashcards</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground">Unit/Category</label>
+                <select
+                  value={directCategory}
+                  onChange={(e) => setDirectCategory(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
+                >
+                  <option value="">Auto-detect</option>
+                  {UNIT_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground">Title (optional)</label>
+                <Input value={directTitle} onChange={(e) => setDirectTitle(e.target.value)} placeholder="Custom title" />
+              </div>
+            </div>
+
+            <Textarea
+              value={directContent}
+              onChange={(e) => setDirectContent(e.target.value)}
+              placeholder={directType === "article" ? "Paste article markdown/plain text" : directType === "mcqs" ? "Paste MCQs JSON or Q1 + A) B) C) D) format" : "Paste flashcards JSON or Q:/A: format"}
+              className="mb-4 min-h-[180px]"
+            />
+
+            <div className="mb-4 flex flex-wrap gap-3">
+              <Button onClick={handleFormatDirect} variant="outline">Format & Preview</Button>
+              <Button onClick={() => handleDirectSave(false)} variant="outline">Save Draft</Button>
+              <Button onClick={() => handleDirectSave(true)}>Direct Publish</Button>
+            </div>
+
+            {directPreviewArticle && (
+              <div className="rounded-lg border border-border bg-secondary/30 p-4">
+                <p className="font-medium text-foreground">{directPreviewArticle.title}</p>
+                <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{directPreviewArticle.content.slice(0, 500)}...</p>
+              </div>
+            )}
+
+            {directPreviewMcqs && (
+              <div className="rounded-lg border border-border bg-secondary/30 p-4">
+                <p className="mb-2 font-medium text-foreground">Parsed MCQs: {directPreviewMcqs.length}</p>
+                {directPreviewMcqs.slice(0, 2).map((q, i) => (
+                  <p key={i} className="text-sm text-muted-foreground">{i + 1}. {q.question}</p>
+                ))}
+              </div>
+            )}
+
+            {directPreviewCards && (
+              <div className="rounded-lg border border-border bg-secondary/30 p-4">
+                <p className="mb-2 font-medium text-foreground">Parsed Flashcards: {directPreviewCards.length}</p>
+                {directPreviewCards.slice(0, 2).map((c, i) => (
+                  <p key={i} className="text-sm text-muted-foreground">Q: {c.question}</p>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
