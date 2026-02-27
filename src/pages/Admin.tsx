@@ -42,6 +42,11 @@ export default function Admin() {
   const [cardCount, setCardCount] = useState(20);
   const [mcqCount, setMcqCount] = useState(15);
 
+  // Batch generation checkboxes
+  const [genArticle, setGenArticle] = useState(true);
+  const [genFlashcards, setGenFlashcards] = useState(true);
+  const [genMcqs, setGenMcqs] = useState(true);
+
   // Direct publish mode
   const [directType, setDirectType] = useState<DirectType>("article");
   const [directTitle, setDirectTitle] = useState("");
