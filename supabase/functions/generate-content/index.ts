@@ -32,8 +32,8 @@ async function callAI(messages: any[], geminiKey?: string): Promise<string> {
   const prompt = systemMsg + "\n\n" + userMsg;
 
   const MAX_RETRIES = 2;
-  const MODELS = ["gemini-2.5-flash", "gemini-1.5-flash"];
-  const REQUEST_TIMEOUT_MS = 25000;
+  const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
+  const REQUEST_TIMEOUT_MS = 35000;
 
   for (let modelIdx = 0; modelIdx < MODELS.length; modelIdx++) {
     const model = MODELS[modelIdx];
@@ -77,6 +77,11 @@ async function callAI(messages: any[], geminiKey?: string): Promise<string> {
             continue;
           }
           break; // move to next model quickly
+        }
+
+        if (response.status === 404) {
+          console.warn(`Model not available (${model}), trying next model...`);
+          break;
         }
 
         console.error("Gemini API error:", response.status, errText.substring(0, 300));
