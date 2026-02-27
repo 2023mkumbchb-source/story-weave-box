@@ -1104,9 +1104,11 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
   const handleSave = async () => {
     setSaving(true);
     try {
-      await saveSetting("gemini_api_key", localGeminiKey);
-      setGeminiKey(localGeminiKey);  // Update parent state
-      toast({ title: "API key saved!" });
+      const normalized = localGeminiKey.trim();
+      await saveSetting("gemini_api_key", normalized);
+      setGeminiKey(normalized);
+      setLocalGeminiKey(normalized);
+      toast({ title: "Gemini API key saved!" });
     } catch (err: any) {
       toast({ title: "Failed to save", description: err.message, variant: "destructive" });
     } finally {
