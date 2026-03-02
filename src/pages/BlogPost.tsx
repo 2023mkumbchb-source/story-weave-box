@@ -29,6 +29,8 @@ function Inline({ text }: { text: string }) {
 
 function ReadingProgress() {
   const [pct, setPct] = useState(0);
+  const [expanded, setExpanded] = useState(false);
+
   useEffect(() => {
     const fn = () => {
       const d = document.documentElement;
@@ -39,7 +41,7 @@ function ReadingProgress() {
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  // Color: red → amber → green as progress increases
+  // Color: red → amber → green
   const color =
     pct < 30 ? "#ef4444"
     : pct < 60 ? "#f59e0b"
@@ -47,39 +49,79 @@ function ReadingProgress() {
     : "#16a34a";
 
   const label =
-    pct < 5 ? "Start"
-    : pct > 95 ? "Done ✓"
+    pct < 2 ? "Start"
+    : pct > 97 ? "Done ✓"
     : `${Math.round(pct)}%`;
+
+  // SVG circle progress
+  const R = 18;
+  const CIRC = 2 * Math.PI * R;
+  const dash = (pct / 100) * CIRC;
 
   return (
     <>
-      {/* Top bar */}
+      {/* Thin top bar */}
       <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-transparent">
-        <div className="h-full transition-all duration-100" style={{ width: `${pct}%`, background: color }} />
+        <div className="h-full transition-all duration-150" style={{ width: `${pct}%`, background: color }} />
       </div>
-      {/* Right-side pill tab */}
-      <div
-        className="fixed right-0 top-1/2 z-50 -translate-y-1/2 flex flex-col items-center"
-        style={{ pointerEvents: "none" }}
+
+      {/* Right-side circle button */}
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="fixed right-4 top-1/2 z-50 -translate-y-1/2 flex flex-col items-center gap-2 focus:outline-none"
+        aria-label="Reading progress"
       >
-        {/* Track */}
-        <div
-          className="relative rounded-full overflow-hidden"
-          style={{ width: "6px", height: "120px", background: "hsl(var(--border))" }}
-        >
+        {/* Circle with SVG arc */}
+        <div className="relative flex items-center justify-center transition-all duration-300"
+          style={{ width: expanded ? 56 : 40, height: expanded ? 56 : 40 }}>
+          <svg
+            style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}
+            width={expanded ? 56 : 40}
+            height={expanded ? 56 : 40}
+            viewBox={expanded ? "0 0 56 56" : "0 0 40 40"}
+          >
+            {/* Background ring */}
+            <circle
+              cx={expanded ? 28 : 20}
+              cy={expanded ? 28 : 20}
+              r={expanded ? 24 : R}
+              fill="hsl(var(--card))"
+              stroke="hsl(var(--border))"
+              strokeWidth={expanded ? 3 : 2.5}
+            />
+            {/* Progress arc */}
+            <circle
+              cx={expanded ? 28 : 20}
+              cy={expanded ? 28 : 20}
+              r={expanded ? 24 : R}
+              fill="none"
+              stroke={color}
+              strokeWidth={expanded ? 3 : 2.5}
+              strokeDasharray={`${(pct / 100) * (2 * Math.PI * (expanded ? 24 : R))} ${2 * Math.PI * (expanded ? 24 : R)}`}
+              strokeLinecap="round"
+              style={{ transition: "stroke-dasharray 0.3s ease, stroke 0.3s ease" }}
+            />
+          </svg>
+          {/* Inner label */}
+          <span
+            className="relative font-bold transition-all duration-300"
+            style={{
+              fontSize: expanded ? "11px" : "9px",
+              color: expanded ? color : "hsl(var(--foreground))",
+              lineHeight: 1,
+            }}
+          >
+            {expanded ? label : Math.round(pct) + "%"}
+          </span>
+        </div>
+        {/* Collapsed dot indicator (only when not expanded) */}
+        {!expanded && (
           <div
-            className="absolute bottom-0 left-0 right-0 rounded-full transition-all duration-200"
-            style={{ height: `${pct}%`, background: color }}
+            className="rounded-full transition-all duration-300"
+            style={{ width: 6, height: 6, background: color, opacity: 0.8 }}
           />
-        </div>
-        {/* Label pill */}
-        <div
-          className="mt-2 rounded-full px-2 py-1 text-[10px] font-bold text-white transition-all duration-200"
-          style={{ background: color, minWidth: "36px", textAlign: "center" }}
-        >
-          {label}
-        </div>
-      </div>
+        )}
+      </button>
     </>
   );
 }
@@ -257,13 +299,18 @@ function preprocessContent(raw: string): string {
 
     // Inline bullet run: "Label: - item1 - item2 - item3" (2+ splits)
     if (!t.startsWith("- ") && !t.startsWith("#") && !t.startsWith("|")) {
-      const splitPoints = [...t.matchAll(/ - (?=[A-Z*\d"(])/g)];
+      // Count all " - " occurrences; for long runs (HIGH-YIELD) items may start lowercase
+      const allDashes = [...t.matchAll(/ - /g)];
+      const capDashes = [...t.matchAll(/ - (?=[A-Z*\d"(])/g)];
+      // If 5+ total dashes it's a long bullet run — split on all of them
+      const splitPoints = allDashes.length >= 5 ? allDashes : capDashes;
       if (splitPoints.length >= 2) {
         const firstIdx = splitPoints[0].index!;
         const prefix = t.slice(0, firstIdx).replace(/[⭐:\s]+$/, "").trim();
         if (prefix) out.push(`### ${prefix}`);
+        const splitter = allDashes.length >= 5 ? / - / : / - (?=[A-Z*\d"(])/;
         t.slice(firstIdx + 3)
-          .split(/ - (?=[A-Z*\d"(])/)
+          .split(splitter)
           .map(b => b.trim()).filter(Boolean)
           .forEach(b => out.push(`- ${b}`));
         continue;
