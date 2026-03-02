@@ -183,36 +183,22 @@ function ArticleContent({ content }: { content: string }) {
   lines.forEach((line, i) => {
     const t = line.trim();
 
-    // ── Tables ──
+    // ── FIX 1: Table detection ────────────────────────────────────────────────
     if (t.startsWith("|")) { flushList(); tableBuf.push(t); return; }
     else if (tableBuf.length) flushTable();
 
-    // ── Empty line ──
-    if (!t) { flushList(); return; }
-
-    // ── Skip horizontal rules (--- dividers) ──
+    // ── FIX 2: Skip horizontal rules (--- dividers) ───────────────────────────
     if (t === "---" || t === "***" || t === "___") { flushList(); return; }
 
-    // ── Skip bare standalone numbers (CMS section index artifacts like "1", "2", "3") ──
+    // ── FIX 3: Skip bare standalone numbers (CMS section index artifacts) ─────
     if (/^\d+$/.test(t)) { flushList(); return; }
 
-    // ── Skip TOC artifact lines that end with a bare number+period (e.g. "Some Topic 3.") ──
-    // Only skip if the line has no heading marker AND ends with " N." pattern
-    if (/\s\d+\.$/.test(t) && !/^#{1,6}\s/.test(t) && !t.includes("→")) {
-      flushList();
-      return;
-    }
+    if (!t) { flushList(); return; }
 
-    // ── Headings: ## or # → main section heading ──
+    // Headings: #/## as section heading, ###-###### as subsection heading
     if (/^#{1,2}\s+/.test(t)) {
       flushList();
-      const heading = t
-        .replace(/^#{1,2}\s+/, "")
-        .replace(/\*+/g, "")
-        .replace(/\s*⭐+/g, "")
-        .replace(/^\d+\.\s*/, "")
-        .trim();
-
+      const heading = t.replace(/^#{1,2}\s+/, "").replace(/\*+/g, "").replace(/\s*⭐+/g, "").replace(/^\d+\.\s*/, "").trim();
       if (heading.toLowerCase().includes("practice")) { inPractice = true; return; }
       flushPractice(); inPractice = false;
       _sec++;
@@ -233,7 +219,6 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
-    // ── Subheadings: ### to ###### ──
     if (/^#{3,6}\s+/.test(t)) {
       flushList();
       const txt = t.replace(/^#{3,6}\s+/, "").replace(/\*+/g, "").replace(/\s*⭐+/g, "").trim();
@@ -245,37 +230,20 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
-    // ── Blockquote lines ("> ...") ──
-    if (t.startsWith("> ")) {
+    // Q→A
+    const qa = t.match(/^(\d+)\.\s(.+?)\s*→\s*(.+)$/);
+    if (qa) {
       flushList();
-      els.push(
-        <div key={`bq-${i}`} className="my-4 pl-4 border-l-4 border-primary/40 rounded-sm">
-          <p className="text-[16px] italic text-foreground/70 leading-relaxed">
-            <Inline text={t.slice(2)} />
-          </p>
+      if (inPractice) pqs.push({ number: qa[1], question: qa[2], answer: qa[3] });
+      else els.push(
+        <div key={`qa-${i}`} className="mb-4 rounded-2xl border border-border bg-card p-5">
+          <p className="text-[17px] font-medium text-foreground">{qa[1]}. <Inline text={qa[2]} /></p>
+          <p className="mt-2 text-[17px] text-primary font-semibold">→ <Inline text={qa[3]} /></p>
         </div>
       );
       return;
     }
 
-    // ── Q→A lines ──
-    const qa = t.match(/^(\d+)\.\s(.+?)\s*→\s*(.+)$/);
-    if (qa) {
-      flushList();
-      if (inPractice) {
-        pqs.push({ number: qa[1], question: qa[2], answer: qa[3] });
-      } else {
-        els.push(
-          <div key={`qa-${i}`} className="mb-4 rounded-2xl border border-border bg-card p-5">
-            <p className="text-[17px] font-medium text-foreground">{qa[1]}. <Inline text={qa[2]} /></p>
-            <p className="mt-2 text-[17px] text-primary font-semibold">→ <Inline text={qa[3]} /></p>
-          </div>
-        );
-      }
-      return;
-    }
-
-    // ── Practice Q without arrow (question on its own line, answer on next) ──
     if (inPractice && /^\d+\.\s/.test(t) && !t.includes("→")) {
       const next = lines[i + 1]?.trim() ?? "";
       pqs.push({
@@ -287,7 +255,7 @@ function ArticleContent({ content }: { content: string }) {
     }
     if (inPractice && t.startsWith("→")) return;
 
-    // ── Bullet list (- item) ──
+    // Bullet
     if (t.startsWith("- ")) {
       if (!listBuf || listBuf.type !== "ul") { flushList(); listBuf = { type: "ul", items: [] }; }
       listBuf.items.push(
@@ -304,7 +272,7 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
-    // ── Numbered list (1. item) — only outside practice mode ──
+    // Numbered list
     if (/^\d+\.\s/.test(t) && !t.includes("→") && !inPractice) {
       if (!listBuf || listBuf.type !== "ol") { flushList(); listBuf = { type: "ol", items: [] }; }
       const num = t.match(/^(\d+)/)?.[1] ?? "";
@@ -331,7 +299,24 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
-    // ── Paragraph fallback ──
+    // ── FIX 4: Skip TOC artifact lines ending with a bare number + period ─────
+    // e.g. "Oesophageal Squamous Cell Carcinoma (SCC) 3."
+    if (/\s\d+\.$/.test(t)) { flushList(); return; }
+
+    // ── FIX 5: Blockquote lines starting with > ───────────────────────────────
+    if (t.startsWith("> ")) {
+      flushList();
+      els.push(
+        <div key={`bq-${i}`} className="my-4 pl-4 border-l-4 border-primary/40 rounded-sm">
+          <p className="text-[16px] italic text-foreground/70 leading-relaxed">
+            <Inline text={t.slice(2)} />
+          </p>
+        </div>
+      );
+      return;
+    }
+
+    // Paragraph fallback
     flushList();
     const paragraphText = t.replace(/^#+\s*/, "");
     els.push(
