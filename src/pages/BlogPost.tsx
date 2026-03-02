@@ -130,7 +130,7 @@ function splitInlineTable(s: string): string[] {
     .filter(r => r.startsWith("|") && r.endsWith("|"));
 }
 
-const META_HEADING = /^(summary|key points|detailed notes|master quick-reference table|tumours covered)/i;
+const META_HEADING = /^(summary|key points|detailed notes)/i;
 
 function preprocessContent(raw: string): string {
   const out: string[] = [];
@@ -151,6 +151,16 @@ function preprocessContent(raw: string): string {
       if (/^key points$/i.test(heading)) { inKeyPoints = true; continue; }
       if (inKeyPoints) inKeyPoints = false;
       if (META_HEADING.test(heading)) continue;
+      // Heading with inline numbered list: "## TUMOURS COVERED: 1. X 2. Y 3. Z ..."
+      if (/:\s+1\.\s/.test(heading)) {
+        const colonIdx = heading.indexOf(": ");
+        const labelOnly = heading.slice(0, colonIdx).trim();
+        const listPart = heading.slice(colonIdx + 2).trim();
+        const hashes = t.match(/^(#{1,2})/)?.[1] ?? "##";
+        if (labelOnly) out.push(`${hashes} ${labelOnly}`);
+        listPart.split(/(?=\d+\.\s)/).map((s: string) => s.trim()).filter(Boolean).forEach((item: string) => out.push(item));
+        continue;
+      }
       // Heading with inline table
       if (heading.includes("|---") || heading.includes("| ---")) {
         const pipeIdx = heading.search(/ \|/);
