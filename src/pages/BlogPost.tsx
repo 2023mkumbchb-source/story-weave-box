@@ -53,31 +53,60 @@ function ReadingProgress() {
         <div className="h-full transition-all duration-150" style={{ width: `${pct}%`, background: color }} />
       </div>
 
-      {/* Invisible tap zone — just a tiny translucent sliver on the right edge */}
+      {/* Progress circle button — always visible, right edge */}
       <button
         onClick={() => setExpanded(e => !e)}
-        className="fixed right-0 top-1/2 z-50 -translate-y-1/2 focus:outline-none flex items-center justify-end"
+        className="fixed z-50 focus:outline-none"
         aria-label="Reading progress"
-        style={{ width: 28, height: 64, background: "transparent", border: "none", padding: 0 }}
+        style={{
+          right: 12,
+          top: "50%",
+          transform: "translateY(-50%)",
+          background: "transparent",
+          border: "none",
+          padding: 0,
+          width: 44,
+          height: 44,
+        }}
       >
-        {/* Truly invisible tap zone — no visual at all when collapsed */}
-        {!expanded && (
-          <div style={{ width: 28, height: 64 }} />
-        )}
-        {expanded && (
-          <div className="relative flex items-center justify-center mr-1"
-            style={{ width: 52, height: 52 }}>
-            <svg style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}
-              width={52} height={52} viewBox="0 0 52 52">
-              <circle cx={26} cy={26} r={R} fill="hsl(var(--card))" stroke="hsl(var(--border))" strokeWidth={2.5} />
-              <circle cx={26} cy={26} r={R} fill="none" stroke={color} strokeWidth={2.5}
-                strokeDasharray={`${(pct / 100) * CIRC} ${CIRC}`}
-                strokeLinecap="round"
-                style={{ transition: "stroke-dasharray 0.3s ease, stroke 0.3s ease" }} />
-            </svg>
-            <span className="relative font-bold text-[11px]" style={{ color }}>{label}</span>
-          </div>
-        )}
+        <div className="relative flex items-center justify-center" style={{ width: 44, height: 44 }}>
+          <svg
+            style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}
+            width={44} height={44} viewBox="0 0 44 44"
+          >
+            {/* Background ring */}
+            <circle
+              cx={22} cy={22} r={17}
+              fill="hsl(var(--background) / 0.6)"
+              stroke={color}
+              strokeWidth={2}
+              opacity={0.3}
+            />
+            {/* Progress arc */}
+            <circle
+              cx={22} cy={22} r={17}
+              fill="none"
+              stroke={color}
+              strokeWidth={3}
+              strokeDasharray={`${(pct / 100) * (2 * Math.PI * 17)} ${2 * Math.PI * 17}`}
+              strokeLinecap="round"
+              style={{ transition: "stroke-dasharray 0.3s ease, stroke 0.3s ease" }}
+            />
+          </svg>
+          {/* Always show % — larger + bolder when expanded */}
+          <span
+            className="relative font-bold"
+            style={{
+              fontSize: expanded ? "11px" : "9px",
+              color: color,
+              opacity: expanded ? 1 : 0.7,
+              transition: "font-size 0.2s, opacity 0.2s",
+              lineHeight: 1,
+            }}
+          >
+            {label}
+          </span>
+        </div>
       </button>
     </>
   );
