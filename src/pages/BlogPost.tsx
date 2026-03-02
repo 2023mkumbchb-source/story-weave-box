@@ -9,7 +9,6 @@ import { getArticleById, getRelatedContent, getCategoryDisplayName, type Article
 import { Button } from "@/components/ui/button";
 import { markArticleVisited } from "@/lib/progress-store";
 
-// ── Inline renderer ───────────────────────────────────────────────────────────
 function Inline({ text }: { text: string }) {
   const hasStar = text.includes("⭐");
   const cleaned = text.replace(/⭐+/g, "").trim();
@@ -28,7 +27,6 @@ function Inline({ text }: { text: string }) {
   );
 }
 
-// ── Reading progress ──────────────────────────────────────────────────────────
 function ReadingProgress() {
   const [w, setW] = useState(0);
   useEffect(() => {
@@ -47,28 +45,25 @@ function ReadingProgress() {
   );
 }
 
-// ── Table ─────────────────────────────────────────────────────────────────────
 function TableBlock({ lines }: { lines: string[] }) {
-  const isSep = (l: string) => /^\|[-:\s|]+\|$/.test(l.trim());
-  const parse = (l: string) =>
-    l.trim().split("|").map((c) => c.trim()).filter((_, i, a) => i > 0 && i < a.length - 1);
+  const isSep = (l: string) => /^\|[\s\-:|]+\|$/.test(l.trim());
+  const parseRow = (l: string) =>
+    l.trim().split("|").map(c => c.trim()).filter((_, i, a) => i > 0 && i < a.length - 1);
 
-  const data = lines.filter((l) => !isSep(l));
-  if (data.length < 2) return null;
-
-  const [hLine, ...bLines] = data;
-  const headers = parse(hLine);
-  const rows = bLines.map(parse);
-  const minWidth = Math.max(560, headers.length * 180);
+  const dataLines = lines.filter(l => !isSep(l));
+  if (dataLines.length < 2) return null;
+  const [headerLine, ...bodyLines] = dataLines;
+  const headers = parseRow(headerLine);
+  const rows = bodyLines.map(parseRow);
 
   return (
     <div className="my-5 overflow-hidden rounded-xl border border-border">
       <div className="w-full overflow-x-auto">
-        <table className="w-full min-w-[560px] border-collapse" style={{ minWidth }}>
+        <table className="w-full border-collapse" style={{ minWidth: Math.max(480, headers.length * 160) }}>
           <thead>
             <tr className="border-b border-border bg-primary/10">
               {headers.map((h, i) => (
-                <th key={i} className="px-3 py-3 text-left text-sm font-bold text-foreground align-top">
+                <th key={i} className="px-4 py-3 text-left text-sm font-bold text-foreground align-top">
                   <Inline text={h} />
                 </th>
               ))}
@@ -76,10 +71,10 @@ function TableBlock({ lines }: { lines: string[] }) {
           </thead>
           <tbody>
             {rows.map((row, ri) => (
-              <tr key={ri} className="border-b border-border/60 last:border-0">
+              <tr key={ri} className={`border-b border-border/60 last:border-0 ${ri % 2 === 1 ? "bg-muted/20" : ""}`}>
                 {headers.map((_, ci) => (
-                  <td key={ci} className="px-3 py-3 text-sm leading-relaxed text-foreground/85 align-top">
-                    {row[ci] ? <Inline text={row[ci]} /> : null}
+                  <td key={ci} className="px-4 py-3 text-sm leading-relaxed text-foreground/85 align-top">
+                    {row[ci] != null ? <Inline text={row[ci]} /> : null}
                   </td>
                 ))}
               </tr>
@@ -91,7 +86,6 @@ function TableBlock({ lines }: { lines: string[] }) {
   );
 }
 
-// ── Practice accordion ────────────────────────────────────────────────────────
 function PracticeQuestion({ number, question, answer }: {
   number: string; question: string; answer: string;
 }) {
@@ -112,19 +106,10 @@ function PracticeQuestion({ number, question, answer }: {
       </button>
       <AnimatePresence initial={false}>
         {open && (
-          <motion.div
-            key="a"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            className="overflow-hidden"
-          >
+          <motion.div key="a" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18 }} className="overflow-hidden">
             <div className="px-4 py-4 border-t border-border bg-primary/5 flex gap-3">
               <span className="text-primary font-bold text-[17px] shrink-0 mt-0.5">→</span>
-              <p className="text-[17px] text-foreground/90 leading-relaxed">
-                <Inline text={answer} />
-              </p>
+              <p className="text-[17px] text-foreground/90 leading-relaxed"><Inline text={answer} /></p>
             </div>
           </motion.div>
         )}
@@ -133,111 +118,129 @@ function PracticeQuestion({ number, question, answer }: {
   );
 }
 
-// ── Pre-process raw content before rendering ──────────────────────────────────
-function preprocessContent(raw: string): string {
-  const inputLines = raw.split("\n");
-  const result: string[] = [];
-
-  // ── Pass 1: skip the entire "## Key Points" block (it's a duplicate TOC) ──
-  let inKeyPoints = false;
-  const pass1: string[] = [];
-  for (const line of inputLines) {
-    const t = line.trim();
-    if (/^#{1,2}\s+key points/i.test(t)) { inKeyPoints = true; continue; }
-    if (inKeyPoints && /^#{1,2}\s/.test(t) && !/^#{1,2}\s+key points/i.test(t)) inKeyPoints = false;
-    if (!inKeyPoints) pass1.push(line);
-  }
-
-  // ── Pass 2: transform each line ──
-  for (const line of pass1) {
-    const t = line.trim();
-
-    // Pass through empty lines and table rows unchanged
-    if (!t || t.startsWith("|")) { result.push(line); continue; }
-
-    // Skip bare horizontal rules
-    if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) { result.push(""); continue; }
-
-    // Skip bare standalone numbers (CMS artifacts)
-    if (/^\d+$/.test(t)) continue;
-
-    // Skip TOC-style lines: bullet items ending with "N." (e.g. "- Some Topic 3.")
-    if (/^-\s.+\s\d+\.$/.test(t)) continue;
-
-    // ── "## HEADING: 1. X 2. Y ..." — heading with inline numbered list ──
-    // e.g. "## TUMOURS COVERED: 1. Oesophageal Adenocarcinoma 2. ..."
-    const headingWithList = t.match(/^(#{1,3})\s+(.+?):\s+(1\.\s.+)$/);
-    if (headingWithList) {
-      const [, hashes, label, listPart] = headingWithList;
-      result.push(`${hashes} ${label}`);
-      const items = listPart.split(/(?=\d+\.\s)/).map(s => s.trim()).filter(Boolean);
-      for (const item of items) result.push(item);
-      continue;
-    }
-
-    // ── "### HEADING - bullet1 - bullet2 ..." — subheading with inline bullets ──
-    // e.g. "### Clinical Features — Both Oesophageal Tumours - Dysphagia → ..."
-    if (/^#{3,6}\s/.test(t)) {
-      const headText = t.replace(/^#{3,6}\s+/, "");
-      const dashIdx = headText.search(/ - [A-Z]/);
-      if (dashIdx !== -1) {
-        const label = headText.slice(0, dashIdx).trim();
-        const rest = headText.slice(dashIdx);
-        result.push(`### ${label}`);
-        const parts = rest.split(/ (?=- )/).map(s => s.trim()).filter(Boolean);
-        for (const p of parts) result.push(p);
-        continue;
-      }
-      result.push(line);
-      continue;
-    }
-
-    // ── "## HEADING" lines that are just section titles (no list) — pass through ──
-    if (/^#{1,2}\s/.test(t)) { result.push(line); continue; }
-
-    // ── "Label: - bullet1 - bullet2 ..." inline bullet runs ──
-    // e.g. "Morphology: - **Location:** Distal 1/3 - **Gross:** ... - **Microscopy:** ..."
-    if (t.includes(" - ") && !t.startsWith("- ")) {
-      // Check if it looks like an inline bullet sequence (multiple " - " groups)
-      const segments = t.split(/ (?=- )/).filter(s => s.startsWith("- ") || !s.includes(" - "));
-      if (segments.length >= 2) {
-        // First segment might be a label
-        const first = segments[0];
-        if (!first.startsWith("- ")) {
-          // It's a label, possibly with ": - " after
-          const labelOnly = first.replace(/:\s*$/, "").trim();
-          if (labelOnly) result.push(`### ${labelOnly}`);
-          for (const seg of segments.slice(1)) result.push(seg.trim());
-        } else {
-          for (const seg of segments) result.push(seg.trim());
-        }
-        continue;
-      }
-      // Single "Label: - item" pattern
-      if (t.includes(": - ")) {
-        const idx = t.indexOf(": - ");
-        const label = t.slice(0, idx).trim();
-        const bullet = "- " + t.slice(idx + 4).trim();
-        if (label) result.push(`### ${label}`);
-        result.push(bullet);
-        continue;
-      }
-    }
-
-    // ── Lonely label lines ending with ":" that have no content (e.g. "Pathogenesis:") ──
-    // Render as a subtle subheading rather than an ugly paragraph
-    if (/^[A-Z][^|→\n]{2,40}:$/.test(t) && !t.startsWith("-")) {
-      result.push(`### ${t.slice(0, -1)}`);
-      continue;
-    }
-
-    result.push(line);
-  }
-
-  return result.join("\n");
+// Split a compact inline table string into individual row strings.
+// Input: "| A | B | |---|---| | C | D |"
+// Output: ["| A | B |", "|---|---|", "| C | D |"]
+function splitInlineTable(s: string): string[] {
+  if (!s.includes("|---") && !s.includes("| ---")) return [];
+  return s
+    .replace(/\|\s*\|/g, "|\n|")
+    .split("\n")
+    .map(r => r.trim())
+    .filter(r => r.startsWith("|") && r.endsWith("|"));
 }
 
-// ── Article content renderer ──────────────────────────────────────────────────
+const META_HEADING = /^(summary|key points|detailed notes|master quick-reference table|tumours covered)/i;
+
+function preprocessContent(raw: string): string {
+  const out: string[] = [];
+  let inKeyPoints = false;
+
+  for (const line of raw.split("\n")) {
+    const t = line.trim();
+
+    if (!t) { out.push(""); continue; }
+    if (/^[-*_]{3,}$/.test(t)) { out.push(""); continue; }
+    if (/^\d+$/.test(t)) continue;
+    // Skip TOC lines like "- Some Topic 3." or "Some Topic 3."
+    if (/^-?\s*.+\s\d+\.$/.test(t) && !t.includes("→") && !t.startsWith("|")) continue;
+
+    // ## / # headings
+    if (/^#{1,2}\s/.test(t)) {
+      const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").trim();
+      if (/^key points$/i.test(heading)) { inKeyPoints = true; continue; }
+      if (inKeyPoints) inKeyPoints = false;
+      if (META_HEADING.test(heading)) continue;
+      // Heading with inline table
+      if (heading.includes("|---") || heading.includes("| ---")) {
+        const pipeIdx = heading.search(/ \|/);
+        if (pipeIdx !== -1) {
+          const headOnly = heading.slice(0, pipeIdx).trim();
+          const hashes = t.match(/^(#{1,2})/)?.[1] ?? "##";
+          if (headOnly) out.push(`${hashes} ${headOnly}`);
+          splitInlineTable(heading.slice(pipeIdx).trim()).forEach(r => out.push(r));
+          continue;
+        }
+      }
+      out.push(line);
+      continue;
+    }
+
+    if (inKeyPoints) continue;
+
+    // ### – ###### subheadings
+    if (/^#{3,6}\s/.test(t)) {
+      const hashes = t.match(/^(#{3,6})/)?.[1] ?? "###";
+      const headText = t.replace(/^#{3,6}\s+/, "");
+      // Subheading with inline table
+      if (headText.includes("|---") || headText.includes("| ---")) {
+        const pipeIdx = headText.search(/ \|/);
+        if (pipeIdx !== -1) {
+          const headOnly = headText.slice(0, pipeIdx).replace(/⭐+/g, "").trim();
+          if (headOnly) out.push(`${hashes} ${headOnly}`);
+          splitInlineTable(headText.slice(pipeIdx).trim()).forEach(r => out.push(r));
+          continue;
+        }
+      }
+      // Subheading with inline bullets
+      const bulletSplit = headText.search(/ - (?=[A-Z*\d"(])/);
+      if (bulletSplit !== -1) {
+        const headOnly = headText.slice(0, bulletSplit).replace(/⭐+/g, "").trim();
+        if (headOnly) out.push(`${hashes} ${headOnly}`);
+        headText.slice(bulletSplit + 3)
+          .split(/ - (?=[A-Z*\d"(])/)
+          .map(b => b.trim()).filter(Boolean)
+          .forEach(b => out.push(`- ${b}`));
+        continue;
+      }
+      out.push(line);
+      continue;
+    }
+
+    // Plain line with inline table
+    if (!t.startsWith("|") && (t.includes("|---") || t.includes("| ---"))) {
+      const pipeIdx = t.indexOf("| ");
+      const prefix = t.slice(0, pipeIdx).replace(/[⭐:*\s]+$/, "").trim();
+      if (prefix) out.push(`### ${prefix}`);
+      splitInlineTable(t.slice(pipeIdx).trim()).forEach(r => out.push(r));
+      continue;
+    }
+
+    // Inline bullet run: "Label: - item1 - item2 - item3" (2+ splits)
+    if (!t.startsWith("- ") && !t.startsWith("#") && !t.startsWith("|")) {
+      const splitPoints = [...t.matchAll(/ - (?=[A-Z*\d"(])/g)];
+      if (splitPoints.length >= 2) {
+        const firstIdx = splitPoints[0].index!;
+        const prefix = t.slice(0, firstIdx).replace(/[⭐:\s]+$/, "").trim();
+        if (prefix) out.push(`### ${prefix}`);
+        t.slice(firstIdx + 3)
+          .split(/ - (?=[A-Z*\d"(])/)
+          .map(b => b.trim()).filter(Boolean)
+          .forEach(b => out.push(`- ${b}`));
+        continue;
+      }
+      // Single "Label: - item"
+      if (t.includes(": - ")) {
+        const idx = t.indexOf(": - ");
+        const prefix = t.slice(0, idx).replace(/⭐+/g, "").trim();
+        if (prefix) out.push(`### ${prefix}`);
+        out.push("- " + t.slice(idx + 4).trim());
+        continue;
+      }
+    }
+
+    // Lonely label ending with ":" → subheading
+    if (/^[A-Z][^|\n]{2,60}:$/.test(t) && !t.startsWith("-") && !t.startsWith("#")) {
+      out.push(`### ${t.slice(0, -1).trim()}`);
+      continue;
+    }
+
+    out.push(line);
+  }
+
+  return out.join("\n");
+}
+
 let _sec = 0;
 
 function ArticleContent({ content }: { content: string }) {
@@ -251,20 +254,13 @@ function ArticleContent({ content }: { content: string }) {
 
   const flushList = () => {
     if (!listBuf) return;
-    els.push(
-      <div key={`list-${els.length}`} className="mb-5 space-y-3">
-        {listBuf.items}
-      </div>
-    );
+    els.push(<div key={`list-${els.length}`} className="mb-5 space-y-3">{listBuf.items}</div>);
     listBuf = null;
   };
-
   const flushTable = () => {
-    if (tableBuf.length >= 2)
-      els.push(<TableBlock key={`tbl-${els.length}`} lines={tableBuf} />);
+    if (tableBuf.length >= 2) els.push(<TableBlock key={`tbl-${els.length}`} lines={[...tableBuf]} />);
     tableBuf = [];
   };
-
   const flushPractice = () => {
     if (!pqs.length) return;
     els.push(
@@ -275,9 +271,7 @@ function ArticleContent({ content }: { content: string }) {
           <span className="ml-auto text-[12px] text-muted-foreground italic">tap to reveal</span>
         </div>
         <div className="space-y-3">
-          {pqs.map((q, k) => (
-            <PracticeQuestion key={k} number={q.number} question={q.question} answer={q.answer} />
-          ))}
+          {pqs.map((q, k) => <PracticeQuestion key={k} number={q.number} question={q.question} answer={q.answer} />)}
         </div>
       </div>
     );
@@ -287,49 +281,36 @@ function ArticleContent({ content }: { content: string }) {
   lines.forEach((line, i) => {
     const t = line.trim();
 
-    // ── Tables ──
     if (t.startsWith("|")) { flushList(); tableBuf.push(t); return; }
     else if (tableBuf.length) flushTable();
 
-    // ── Empty line ──
     if (!t) { flushList(); return; }
 
-    // ── Skip horizontal rules (--- dividers) ──
-    if (t === "---" || t === "***" || t === "___") { flushList(); return; }
-
-    // ── Skip bare standalone numbers (CMS section index artifacts like "1", "2", "3") ──
-    if (/^\d+$/.test(t)) { flushList(); return; }
-
-    // ── Skip TOC artifact lines that end with a bare number+period (e.g. "Some Topic 3.") ──
-    // Only skip if the line has no heading marker AND ends with " N." pattern
-    if (/\s\d+\.$/.test(t) && !/^#{1,6}\s/.test(t) && !t.includes("→")) {
+    if (t.startsWith("> ")) {
       flushList();
+      els.push(
+        <div key={`bq-${i}`} className="my-4 pl-4 border-l-4 border-primary/40 rounded-sm bg-primary/5 py-2 pr-3">
+          <p className="text-[16px] italic text-foreground/75 leading-relaxed"><Inline text={t.slice(2)} /></p>
+        </div>
+      );
       return;
     }
 
-    // ── Headings: ## or # → main section heading ──
-    if (/^#{1,2}\s+/.test(t)) {
+    if (/^#{1,2}\s/.test(t)) {
       flushList();
       const heading = t
-        .replace(/^#{1,2}\s+/, "")
-        .replace(/\*+/g, "")
-        .replace(/\s*⭐+/g, "")
-        .replace(/^\d+\.\s*/, "")
-        .trim();
-
+        .replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "")
+        .replace(/^\d+\.\s*/, "").replace(/^[IVXLC]+\.\s+/, "").trim();
       if (heading.toLowerCase().includes("practice")) { inPractice = true; return; }
       flushPractice(); inPractice = false;
       _sec++;
-      const n = _sec;
       els.push(
         <div key={`h2-${i}`} className="mt-12 mb-6">
           <div className="flex items-center gap-4 mb-4">
             <div className="shrink-0 flex items-center justify-center rounded-full border-2 border-primary/50 text-primary font-bold text-[16px] w-[46px] h-[46px] bg-primary/10">
-              {n}
+              {_sec}
             </div>
-            <h2 className="font-bold text-[22px] sm:text-[26px] text-foreground leading-tight">
-              {heading}
-            </h2>
+            <h2 className="font-bold text-[22px] sm:text-[26px] text-foreground leading-tight">{heading}</h2>
           </div>
           <div className="border-b border-border" />
         </div>
@@ -337,147 +318,72 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
-    // ── Subheadings: ### to ###### ──
-    if (/^#{3,6}\s+/.test(t)) {
+    if (/^#{3,6}\s/.test(t)) {
       flushList();
-      const txt = t.replace(/^#{3,6}\s+/, "").replace(/\*+/g, "").replace(/\s*⭐+/g, "").trim();
-      els.push(
-        <h3 key={`h3-${i}`} className="mt-6 mb-3 font-bold text-[18px] sm:text-[19px] text-foreground leading-snug">
-          {txt}
-        </h3>
-      );
+      const txt = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").trim();
+      els.push(<h3 key={`h3-${i}`} className="mt-6 mb-3 font-bold text-[18px] sm:text-[19px] text-foreground leading-snug">{txt}</h3>);
       return;
     }
 
-    // ── Blockquote lines ("> ...") ──
-    if (t.startsWith("> ")) {
+    const qa = t.match(/^(\d+)\.\s(.+?)\s*→\s*(.+)$/);
+    if (qa) {
       flushList();
-      els.push(
-        <div key={`bq-${i}`} className="my-4 pl-4 border-l-4 border-primary/40 rounded-sm">
-          <p className="text-[16px] italic text-foreground/70 leading-relaxed">
-            <Inline text={t.slice(2)} />
-          </p>
+      if (inPractice) pqs.push({ number: qa[1], question: qa[2], answer: qa[3] });
+      else els.push(
+        <div key={`qa-${i}`} className="mb-4 rounded-2xl border border-border bg-card p-5">
+          <p className="text-[17px] font-medium text-foreground">{qa[1]}. <Inline text={qa[2]} /></p>
+          <p className="mt-2 text-[17px] text-primary font-semibold">→ <Inline text={qa[3]} /></p>
         </div>
       );
       return;
     }
 
-    // ── Q→A lines ──
-    const qa = t.match(/^(\d+)\.\s(.+?)\s*→\s*(.+)$/);
-    if (qa) {
-      flushList();
-      if (inPractice) {
-        pqs.push({ number: qa[1], question: qa[2], answer: qa[3] });
-      } else {
-        els.push(
-          <div key={`qa-${i}`} className="mb-4 rounded-2xl border border-border bg-card p-5">
-            <p className="text-[17px] font-medium text-foreground">{qa[1]}. <Inline text={qa[2]} /></p>
-            <p className="mt-2 text-[17px] text-primary font-semibold">→ <Inline text={qa[3]} /></p>
-          </div>
-        );
-      }
-      return;
-    }
-
-    // ── Practice Q without arrow (question on its own line, answer on next) ──
     if (inPractice && /^\d+\.\s/.test(t) && !t.includes("→")) {
       const next = lines[i + 1]?.trim() ?? "";
-      pqs.push({
-        number: t.match(/^(\d+)/)?.[1] ?? "",
-        question: t.replace(/^\d+\.\s/, ""),
-        answer: next.startsWith("→") ? next.slice(1).trim() : "",
-      });
+      pqs.push({ number: t.match(/^(\d+)/)?.[1] ?? "", question: t.replace(/^\d+\.\s/, ""), answer: next.startsWith("→") ? next.slice(1).trim() : "" });
       return;
     }
     if (inPractice && t.startsWith("→")) return;
 
-    // ── Bullet list (- item) ──
     if (t.startsWith("- ")) {
       if (!listBuf || listBuf.type !== "ul") { flushList(); listBuf = { type: "ul", items: [] }; }
       listBuf.items.push(
         <div key={`li-${i}`} className="flex items-start gap-3">
-          <div
-            className="rounded-full bg-primary shrink-0"
-            style={{ width: "9px", height: "9px", minWidth: "9px", marginTop: "9px" }}
-          />
-          <span className="text-[17px] text-foreground/90 leading-relaxed flex-1">
-            <Inline text={t.slice(2)} />
-          </span>
+          <div className="rounded-full bg-primary shrink-0" style={{ width: "9px", height: "9px", minWidth: "9px", marginTop: "9px" }} />
+          <span className="text-[17px] text-foreground/90 leading-relaxed flex-1"><Inline text={t.slice(2)} /></span>
         </div>
       );
       return;
     }
 
-    // ── Numbered list (1. item) — only outside practice mode ──
     if (/^\d+\.\s/.test(t) && !t.includes("→") && !inPractice) {
       if (!listBuf || listBuf.type !== "ol") { flushList(); listBuf = { type: "ol", items: [] }; }
       const num = t.match(/^(\d+)/)?.[1] ?? "";
       listBuf.items.push(
         <div key={`ol-${i}`} className="flex items-start gap-3">
-          <div
-            className="shrink-0 flex items-center justify-center rounded-full border border-primary/50"
-            style={{
-              width: "28px", height: "28px", minWidth: "28px",
-              marginTop: "1px",
-              background: "hsl(var(--primary) / 0.08)",
-              color: "hsl(var(--primary))",
-              fontSize: "13px",
-              fontWeight: "600",
-            }}
-          >
+          <div className="shrink-0 flex items-center justify-center rounded-full border border-primary/50"
+            style={{ width: "28px", height: "28px", minWidth: "28px", marginTop: "1px", background: "hsl(var(--primary) / 0.08)", color: "hsl(var(--primary))", fontSize: "13px", fontWeight: "600" }}>
             {num}
           </div>
-          <span className="text-[17px] text-foreground/90 leading-relaxed flex-1">
-            <Inline text={t.replace(/^\d+\.\s/, "")} />
-          </span>
+          <span className="text-[17px] text-foreground/90 leading-relaxed flex-1"><Inline text={t.replace(/^\d+\.\s/, "")} /></span>
         </div>
       );
       return;
     }
 
-    // ── Roman numeral section headers (e.g. "I. OESOPHAGUS", "II. STOMACH") ──
-    if (/^(I{1,3}|IV|V?I{0,3}|IX|X{0,3})\.\s+[A-Z]/.test(t)) {
-      flushList(); flushPractice(); inPractice = false;
-      _sec++;
-      const n = _sec;
-      els.push(
-        <div key={`roman-${i}`} className="mt-12 mb-6">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="shrink-0 flex items-center justify-center rounded-full border-2 border-primary/50 text-primary font-bold text-[16px] w-[46px] h-[46px] bg-primary/10">
-              {n}
-            </div>
-            <h2 className="font-bold text-[22px] sm:text-[26px] text-foreground leading-tight">
-              {t.replace(/^[IVXLC]+\.\s*/, "")}
-            </h2>
-          </div>
-          <div className="border-b border-border" />
-        </div>
-      );
-      return;
-    }
-
-    // ── Paragraph fallback ──
     flushList();
-    const paragraphText = t.replace(/^#+\s*/, "");
-    els.push(
-      <p key={`p-${i}`} className="mb-4 text-[17px] leading-relaxed text-foreground/85">
-        <Inline text={paragraphText} />
-      </p>
-    );
+    els.push(<p key={`p-${i}`} className="mb-4 text-[17px] leading-relaxed text-foreground/85"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
   });
 
   flushList(); flushTable(); flushPractice();
   return <div>{els}</div>;
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
 export default function BlogPost() {
   const { id } = useParams();
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
-  const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; mcqs: any[] }>({
-    articles: [], flashcards: [], mcqs: [],
-  });
+  const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; mcqs: any[] }>({ articles: [], flashcards: [], mcqs: [] });
 
   useEffect(() => {
     if (id) {
@@ -491,24 +397,15 @@ export default function BlogPost() {
     }
   }, [id]);
 
-  if (loading) return (
-    <div className="flex items-center justify-center py-20">
-      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-    </div>
-  );
-
+  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   if (!article) return (
     <div className="mx-auto max-w-3xl px-6 py-20 text-center">
       <h1 className="mb-4 font-bold text-3xl text-foreground">Article not found</h1>
-      <Button asChild variant="outline">
-        <Link to="/blog"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Blog</Link>
-      </Button>
+      <Button asChild variant="outline"><Link to="/blog"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Blog</Link></Button>
     </div>
   );
 
-  const date = new Date(article.created_at).toLocaleDateString("en-US", {
-    year: "numeric", month: "long", day: "numeric",
-  });
+  const date = new Date(article.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const unitName = getCategoryDisplayName(article.category);
   const hasRelated = related.flashcards.length > 0 || related.mcqs.length > 0;
 
@@ -516,45 +413,24 @@ export default function BlogPost() {
     <>
       <ReadingProgress />
       <div className="mx-auto max-w-3xl px-5 sm:px-6 py-8 sm:py-12">
-
-        {/* Back */}
-        <Link
-          to="/blog"
-          className="inline-flex items-center gap-2 text-[15px] text-muted-foreground hover:text-foreground transition-colors mb-10"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Blog
+        <Link to="/blog" className="inline-flex items-center gap-2 text-[15px] text-muted-foreground hover:text-foreground transition-colors mb-10">
+          <ArrowLeft className="h-4 w-4" /> Back to Blog
         </Link>
-
-        {/* Meta */}
         <div className="flex flex-wrap items-center gap-2 mb-4 text-[15px] text-muted-foreground">
           <Calendar className="h-4 w-4" />
           <span>{date}</span>
-          {unitName && unitName !== "Uncategorized" && (
-            <>
-              <span className="mx-1">·</span>
-              <span className="font-bold uppercase tracking-wider text-foreground/70">{unitName}</span>
-            </>
-          )}
+          {unitName && unitName !== "Uncategorized" && (<><span className="mx-1">·</span><span className="font-bold uppercase tracking-wider text-foreground/70">{unitName}</span></>)}
         </div>
-
-        {/* Title */}
         <h1 className="mb-10 font-bold text-[28px] sm:text-[36px] leading-tight text-foreground">
           {article.title.replace(/^#+\s*/, "")}
         </h1>
-
-        {/* Body */}
         <ArticleContent content={article.content} />
-
-        {/* Continue learning */}
         {hasRelated && (
           <div className="mt-14 rounded-2xl border border-border bg-card overflow-hidden">
             <div className="px-5 py-4 border-b border-border flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
               <h3 className="font-semibold text-[17px] text-foreground">Continue Learning</h3>
-              {unitName && unitName !== "Uncategorized" && (
-                <span className="ml-auto text-[13px] text-muted-foreground">{unitName}</span>
-              )}
+              {unitName && unitName !== "Uncategorized" && <span className="ml-auto text-[13px] text-muted-foreground">{unitName}</span>}
             </div>
             <div className="p-5 space-y-5">
               {related.flashcards.length > 0 && (
@@ -562,11 +438,8 @@ export default function BlogPost() {
                   <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Flashcards</p>
                   <div className="space-y-2">
                     {related.flashcards.map((f: any) => (
-                      <Link key={f.id} to={`/flashcards/${f.id}`}
-                        className="flex items-center gap-4 rounded-xl border border-border bg-background p-4 hover:border-primary/40 hover:bg-primary/5 active:scale-[0.98] transition-all">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10">
-                          <GraduationCap className="h-5 w-5 text-amber-500" />
-                        </div>
+                      <Link key={f.id} to={`/flashcards/${f.id}`} className="flex items-center gap-4 rounded-xl border border-border bg-background p-4 hover:border-primary/40 hover:bg-primary/5 active:scale-[0.98] transition-all">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10"><GraduationCap className="h-5 w-5 text-amber-500" /></div>
                         <div className="min-w-0 flex-1">
                           <p className="text-[16px] font-medium text-foreground truncate">{f.title}</p>
                           <p className="text-[13px] text-muted-foreground">{(f.cards as any[])?.length || 0} cards</p>
@@ -582,11 +455,8 @@ export default function BlogPost() {
                   <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">MCQ Quizzes</p>
                   <div className="space-y-2">
                     {related.mcqs.map((m: any) => (
-                      <Link key={m.id} to={`/mcqs/${m.id}`}
-                        className="flex items-center gap-4 rounded-xl border border-border bg-background p-4 hover:border-primary/40 hover:bg-primary/5 active:scale-[0.98] transition-all">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10">
-                          <ListChecks className="h-5 w-5 text-emerald-500" />
-                        </div>
+                      <Link key={m.id} to={`/mcqs/${m.id}`} className="flex items-center gap-4 rounded-xl border border-border bg-background p-4 hover:border-primary/40 hover:bg-primary/5 active:scale-[0.98] transition-all">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10"><ListChecks className="h-5 w-5 text-emerald-500" /></div>
                         <div className="min-w-0 flex-1">
                           <p className="text-[16px] font-medium text-foreground truncate">{m.title}</p>
                           <p className="text-[13px] text-muted-foreground">{(m.questions as any[])?.length || 0} questions</p>
@@ -600,7 +470,6 @@ export default function BlogPost() {
             </div>
           </div>
         )}
-
         <div className="h-12" />
       </div>
     </>
