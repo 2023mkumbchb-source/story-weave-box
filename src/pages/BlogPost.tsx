@@ -133,12 +133,77 @@ function PracticeQuestion({ number, question, answer }: {
   );
 }
 
+// ── Pre-process: expand inline bullet sequences onto separate lines ───────────
+// Handles lines like: "Label: - item one - item two - item three"
+// and also: "- item one - item two - item three" (bullet run on one line)
+// Splits them so each "- item" becomes its own line.
+function preprocessContent(raw: string): string {
+  const result: string[] = [];
+
+  for (const line of raw.split("\n")) {
+    const t = line.trim();
+
+    // Skip empty, tables, headings — pass through unchanged
+    if (!t || t.startsWith("|") || /^#{1,6}\s/.test(t) || /^\d+$/.test(t)) {
+      result.push(line);
+      continue;
+    }
+
+    // Handle "LABEL: 1. X 2. Y 3. Z ..." mega-lines (like TUMOURS COVERED)
+    // Detect: text followed by " 1. " then more numbered items
+    if (/:\s+1\.\s/.test(t) && /\s\d+\.\s/.test(t)) {
+      const colonIdx = t.indexOf(": ");
+      const label = t.slice(0, colonIdx).trim();
+      const rest = t.slice(colonIdx + 2).trim();
+      if (label) result.push(`### ${label}`);
+      // Split on " N. " boundaries
+      const items = rest.split(/(?=\d+\.\s)/).map(s => s.trim()).filter(Boolean);
+      for (const item of items) result.push(item);
+      continue;
+    }
+
+    // Detect lines that contain multiple " - " separated bullet segments
+    const bulletCount = (t.match(/(?<!\w) - /g) || []).length;
+
+    if (bulletCount >= 2 || (t.includes(": - ") && t.indexOf(" - ", t.indexOf(": - ") + 3) !== -1)) {
+      const firstBulletIdx = t.indexOf(" - ");
+      const hasLabel = firstBulletIdx > 0 && !t.startsWith("- ");
+
+      if (hasLabel) {
+        const label = t.slice(0, firstBulletIdx).replace(/:$/, "").trim();
+        if (label) result.push(`### ${label}`);
+        const rest = t.slice(firstBulletIdx);
+        const parts = rest.split(/ (?=- )/).map(s => s.trim()).filter(Boolean);
+        for (const p of parts) result.push(p);
+      } else {
+        const parts = t.split(/ (?=- )/).map(s => s.trim()).filter(Boolean);
+        for (const p of parts) result.push(p);
+      }
+      continue;
+    }
+
+    // Lines like "Label: - single item" (only one bullet) — split into label + bullet
+    if (t.includes(": - ") && !t.startsWith("- ")) {
+      const colonDashIdx = t.indexOf(": - ");
+      const label = t.slice(0, colonDashIdx).trim();
+      const bullet = "- " + t.slice(colonDashIdx + 4).trim();
+      if (label) result.push(`### ${label}`);
+      result.push(bullet);
+      continue;
+    }
+
+    result.push(line);
+  }
+
+  return result.join("\n");
+}
+
 // ── Article content renderer ──────────────────────────────────────────────────
 let _sec = 0;
 
 function ArticleContent({ content }: { content: string }) {
   _sec = 0;
-  const lines = content.split("\n");
+  const lines = preprocessContent(content).split("\n");
   const els: React.ReactNode[] = [];
   let listBuf: { type: "ul" | "ol"; items: React.ReactNode[] } | null = null;
   let inPractice = false;
@@ -183,36 +248,36 @@ function ArticleContent({ content }: { content: string }) {
   lines.forEach((line, i) => {
     const t = line.trim();
 
-    // ── FIX 1: Table detection ────────────────────────────────────────────────
+    // ── Tables ──
     if (t.startsWith("|")) { flushList(); tableBuf.push(t); return; }
     else if (tableBuf.length) flushTable();
 
-    // ── FIX 2: Skip horizontal rules (--- dividers) ───────────────────────────
-    if (t === "---" || t === "***" || t === "___") { flushList(); return; }
-
-    // ── FIX 3: Skip bare standalone numbers (CMS section index artifacts) ─────
-    if (/^\d+$/.test(t)) { flushList(); return; }
-
+    // ── Empty line ──
     if (!t) { flushList(); return; }
 
-    // ── FIX 3b: Skip CMS TOC label lines — short lines (≤6 words) that appear
-    // right after a bare number line and duplicate headings already in content.
-    // Detects lines like "Summary", "Key Points", "Detailed Notes", "High-Yield Exam Facts",
-    // "MASTER QUICK-REFERENCE TABLE", "TUMOURS COVERED" intro block, etc.
-    // Strategy: if previous non-empty trimmed line was a bare number, skip this line.
-    {
-      let prevNonEmpty = "";
-      for (let k = i - 1; k >= 0; k--) {
-        const pk = lines[k].trim();
-        if (pk) { prevNonEmpty = pk; break; }
-      }
-      if (/^\d+$/.test(prevNonEmpty)) { flushList(); return; }
+    // ── Skip horizontal rules (--- dividers) ──
+    if (t === "---" || t === "***" || t === "___") { flushList(); return; }
+
+    // ── Skip bare standalone numbers (CMS section index artifacts like "1", "2", "3") ──
+    if (/^\d+$/.test(t)) { flushList(); return; }
+
+    // ── Skip TOC artifact lines that end with a bare number+period (e.g. "Some Topic 3.") ──
+    // Only skip if the line has no heading marker AND ends with " N." pattern
+    if (/\s\d+\.$/.test(t) && !/^#{1,6}\s/.test(t) && !t.includes("→")) {
+      flushList();
+      return;
     }
 
-    // Headings: #/## as section heading, ###-###### as subsection heading
+    // ── Headings: ## or # → main section heading ──
     if (/^#{1,2}\s+/.test(t)) {
       flushList();
-      const heading = t.replace(/^#{1,2}\s+/, "").replace(/\*+/g, "").replace(/\s*⭐+/g, "").replace(/^\d+\.\s*/, "").trim();
+      const heading = t
+        .replace(/^#{1,2}\s+/, "")
+        .replace(/\*+/g, "")
+        .replace(/\s*⭐+/g, "")
+        .replace(/^\d+\.\s*/, "")
+        .trim();
+
       if (heading.toLowerCase().includes("practice")) { inPractice = true; return; }
       flushPractice(); inPractice = false;
       _sec++;
@@ -233,6 +298,7 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
+    // ── Subheadings: ### to ###### ──
     if (/^#{3,6}\s+/.test(t)) {
       flushList();
       const txt = t.replace(/^#{3,6}\s+/, "").replace(/\*+/g, "").replace(/\s*⭐+/g, "").trim();
@@ -244,20 +310,37 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
-    // Q→A
-    const qa = t.match(/^(\d+)\.\s(.+?)\s*→\s*(.+)$/);
-    if (qa) {
+    // ── Blockquote lines ("> ...") ──
+    if (t.startsWith("> ")) {
       flushList();
-      if (inPractice) pqs.push({ number: qa[1], question: qa[2], answer: qa[3] });
-      else els.push(
-        <div key={`qa-${i}`} className="mb-4 rounded-2xl border border-border bg-card p-5">
-          <p className="text-[17px] font-medium text-foreground">{qa[1]}. <Inline text={qa[2]} /></p>
-          <p className="mt-2 text-[17px] text-primary font-semibold">→ <Inline text={qa[3]} /></p>
+      els.push(
+        <div key={`bq-${i}`} className="my-4 pl-4 border-l-4 border-primary/40 rounded-sm">
+          <p className="text-[16px] italic text-foreground/70 leading-relaxed">
+            <Inline text={t.slice(2)} />
+          </p>
         </div>
       );
       return;
     }
 
+    // ── Q→A lines ──
+    const qa = t.match(/^(\d+)\.\s(.+?)\s*→\s*(.+)$/);
+    if (qa) {
+      flushList();
+      if (inPractice) {
+        pqs.push({ number: qa[1], question: qa[2], answer: qa[3] });
+      } else {
+        els.push(
+          <div key={`qa-${i}`} className="mb-4 rounded-2xl border border-border bg-card p-5">
+            <p className="text-[17px] font-medium text-foreground">{qa[1]}. <Inline text={qa[2]} /></p>
+            <p className="mt-2 text-[17px] text-primary font-semibold">→ <Inline text={qa[3]} /></p>
+          </div>
+        );
+      }
+      return;
+    }
+
+    // ── Practice Q without arrow (question on its own line, answer on next) ──
     if (inPractice && /^\d+\.\s/.test(t) && !t.includes("→")) {
       const next = lines[i + 1]?.trim() ?? "";
       pqs.push({
@@ -269,7 +352,7 @@ function ArticleContent({ content }: { content: string }) {
     }
     if (inPractice && t.startsWith("→")) return;
 
-    // Bullet
+    // ── Bullet list (- item) ──
     if (t.startsWith("- ")) {
       if (!listBuf || listBuf.type !== "ul") { flushList(); listBuf = { type: "ul", items: [] }; }
       listBuf.items.push(
@@ -286,7 +369,7 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
-    // Numbered list
+    // ── Numbered list (1. item) — only outside practice mode ──
     if (/^\d+\.\s/.test(t) && !t.includes("→") && !inPractice) {
       if (!listBuf || listBuf.type !== "ol") { flushList(); listBuf = { type: "ol", items: [] }; }
       const num = t.match(/^(\d+)/)?.[1] ?? "";
@@ -313,24 +396,28 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
-    // ── FIX 4: Skip TOC artifact lines ending with a bare number + period ─────
-    // e.g. "Oesophageal Squamous Cell Carcinoma (SCC) 3."
-    if (/\s\d+\.$/.test(t)) { flushList(); return; }
-
-    // ── FIX 5: Blockquote lines starting with > ───────────────────────────────
-    if (t.startsWith("> ")) {
-      flushList();
+    // ── Roman numeral section headers (e.g. "I. OESOPHAGUS", "II. STOMACH") ──
+    if (/^(I{1,3}|IV|V?I{0,3}|IX|X{0,3})\.\s+[A-Z]/.test(t)) {
+      flushList(); flushPractice(); inPractice = false;
+      _sec++;
+      const n = _sec;
       els.push(
-        <div key={`bq-${i}`} className="my-4 pl-4 border-l-4 border-primary/40 rounded-sm">
-          <p className="text-[16px] italic text-foreground/70 leading-relaxed">
-            <Inline text={t.slice(2)} />
-          </p>
+        <div key={`roman-${i}`} className="mt-12 mb-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="shrink-0 flex items-center justify-center rounded-full border-2 border-primary/50 text-primary font-bold text-[16px] w-[46px] h-[46px] bg-primary/10">
+              {n}
+            </div>
+            <h2 className="font-bold text-[22px] sm:text-[26px] text-foreground leading-tight">
+              {t.replace(/^[IVXLC]+\.\s*/, "")}
+            </h2>
+          </div>
+          <div className="border-b border-border" />
         </div>
       );
       return;
     }
 
-    // Paragraph fallback
+    // ── Paragraph fallback ──
     flushList();
     const paragraphText = t.replace(/^#+\s*/, "");
     els.push(
