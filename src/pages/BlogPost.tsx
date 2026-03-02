@@ -481,6 +481,10 @@ export default function BlogPost() {
   const [loading, setLoading] = useState(true);
   const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; mcqs: any[] }>({ articles: [], flashcards: [], mcqs: [] });
 
+  // ── Scroll position persistence ──────────────────────────────────────────
+  // Save scroll position to localStorage on scroll, restore after article loads
+  const scrollKey = `scroll:${id}`;
+
   useEffect(() => {
     if (id) {
       getArticleById(id).then((a) => {
@@ -492,6 +496,35 @@ export default function BlogPost() {
       }).finally(() => setLoading(false));
     }
   }, [id]);
+
+  // Restore scroll position after content loads
+  useEffect(() => {
+    if (loading) return;
+    const saved = localStorage.getItem(scrollKey);
+    if (saved) {
+      const y = parseInt(saved, 10);
+      // Use requestAnimationFrame to wait for DOM paint
+      const restore = () => window.scrollTo({ top: y, behavior: "instant" });
+      requestAnimationFrame(() => requestAnimationFrame(restore));
+    }
+  }, [loading, scrollKey]);
+
+  // Save scroll position continuously while reading
+  useEffect(() => {
+    if (loading) return;
+    let ticking = false;
+    const onScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          localStorage.setItem(scrollKey, String(window.scrollY));
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [loading, scrollKey]);
 
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   if (!article) return (
