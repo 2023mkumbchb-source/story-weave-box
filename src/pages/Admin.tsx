@@ -52,6 +52,7 @@ export default function Admin() {
   const [directTitle, setDirectTitle] = useState("");
   const [directContent, setDirectContent] = useState("");
   const [directCategory, setDirectCategory] = useState("");
+  const [directTargetCount, setDirectTargetCount] = useState(20);
   const [directPreviewArticle, setDirectPreviewArticle] = useState<{ title: string; content: string } | null>(null);
   const [directPreviewCards, setDirectPreviewCards] = useState<{ question: string; answer: string }[] | null>(null);
   const [directPreviewMcqs, setDirectPreviewMcqs] = useState<{ question: string; options: string[]; correct_answer: number; explanation?: string }[] | null>(null);
