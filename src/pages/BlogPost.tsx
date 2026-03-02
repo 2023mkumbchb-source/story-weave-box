@@ -60,16 +60,9 @@ function ReadingProgress() {
         aria-label="Reading progress"
         style={{ width: 28, height: 64, background: "transparent", border: "none", padding: 0 }}
       >
-        {/* Barely-visible tab — just a thin colored sliver on the edge */}
+        {/* Truly invisible tap zone — no visual at all when collapsed */}
         {!expanded && (
-          <div style={{
-            width: 3,
-            height: 32,
-            borderRadius: "3px 0 0 3px",
-            background: color,
-            opacity: 0.35,
-            transition: "opacity 0.2s, background 0.3s",
-          }} />
+          <div style={{ width: 28, height: 64 }} />
         )}
         {expanded && (
           <div className="relative flex items-center justify-center mr-1"
