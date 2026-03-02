@@ -466,7 +466,7 @@ export default function McqViewer({ questions, title, setId, category }: Props) 
           <div className="mb-4 rounded-2xl border border-border bg-card p-5 sm:p-6"
             style={{ boxShadow: "var(--shadow-elevated)" }}>
             <span className="mb-3 block text-xs font-medium uppercase tracking-wider text-primary">Question</span>
-            <p className="text-base sm:text-lg font-medium text-foreground leading-relaxed">{q?.question}</p>
+            <p className="text-base sm:text-lg font-medium text-foreground leading-relaxed break-words">{q?.question}</p>
           </div>
 
           {/* Options */}
@@ -474,11 +474,11 @@ export default function McqViewer({ questions, title, setId, category }: Props) 
             {q?.options.map((opt, i) => (
               <motion.button key={i} onClick={() => handleSelect(i)}
                 whileTap={!revealed ? { scale: 0.98 } : {}}
-                className={`w-full rounded-xl border p-3 sm:p-4 text-left text-sm sm:text-base font-medium transition-colors flex items-center gap-3 ${getOptionStyle(i)}`}>
+                className={`w-full rounded-xl border p-3 sm:p-4 text-left text-sm sm:text-base font-medium transition-colors flex items-start gap-3 ${getOptionStyle(i)}`}>
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
                   {String.fromCharCode(65 + i)}
                 </span>
-                <span className="flex-1">{opt}</span>
+                <span className="flex-1 break-words">{opt}</span>
                 {revealed && i === q.correct_answer && <Check className="h-5 w-5 text-green-500 shrink-0" />}
                 {wrongAttempts.has(i) && <X className="h-5 w-5 text-destructive shrink-0" />}
               </motion.button>
@@ -665,14 +665,14 @@ function MiniQuiz({ set, startIndex = 0, onDone }: { set: any; startIndex?: numb
         </p>
         <span className="text-[10px] text-muted-foreground">{score.correct}/{score.total}</span>
       </div>
-      <p className="text-xs font-medium text-foreground leading-snug mb-2">{q.question}</p>
+      <p className="text-xs font-medium text-foreground leading-snug mb-2 break-words">{q.question}</p>
       <div className="space-y-1 mb-2">
         {(q.options ?? []).map((opt: string, i: number) => {
           const isCorrect = revealed && i === q.correct_answer;
           const isWrong = wrong.has(i);
           return (
             <button key={i} onClick={() => handleSelect(i)}
-              className={`w-full text-left rounded-md px-2.5 py-1.5 text-xs font-medium border transition-colors flex items-center gap-2 ${
+              className={`w-full text-left rounded-md px-2.5 py-1.5 text-xs font-medium border transition-colors flex items-start gap-2 ${
                 isCorrect ? "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400"
                 : isWrong ? "border-destructive/40 bg-destructive/10 text-destructive line-through opacity-60"
                 : "border-border bg-background hover:border-primary/40 hover:bg-primary/5 cursor-pointer"
@@ -680,7 +680,7 @@ function MiniQuiz({ set, startIndex = 0, onDone }: { set: any; startIndex?: numb
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold">
                 {String.fromCharCode(65 + i)}
               </span>
-              <span className="flex-1">{opt}</span>
+              <span className="flex-1 break-words">{opt}</span>
               {isCorrect && <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />}
               {isWrong && <X className="h-3.5 w-3.5 text-destructive shrink-0" />}
             </button>

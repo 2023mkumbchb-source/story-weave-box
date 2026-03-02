@@ -48,61 +48,46 @@ function ReadingProgress() {
 }
 
 // ── Table ─────────────────────────────────────────────────────────────────────
-// Full width, no horizontal scroll — columns share width evenly
-// Matches mobile screenshots: dark header row, thin dividers, rounded border
+// Mobile-safe: horizontal scroll when needed, no content overlap
 function TableBlock({ lines }: { lines: string[] }) {
   const isSep = (l: string) => /^\|[-:\s|]+\|$/.test(l.trim());
   const parse = (l: string) =>
-    l.trim().split("|").map(c => c.trim()).filter((_, i, a) => i > 0 && i < a.length - 1);
+    l.trim().split("|").map((c) => c.trim()).filter((_, i, a) => i > 0 && i < a.length - 1);
 
-  const data = lines.filter(l => !isSep(l));
+  const data = lines.filter((l) => !isSep(l));
   if (data.length < 2) return null;
+
   const [hLine, ...bLines] = data;
   const headers = parse(hLine);
   const rows = bLines.map(parse);
-  const colPct = Math.floor(100 / headers.length);
+  const minWidth = Math.max(560, headers.length * 180);
 
   return (
-    <div className="my-5 w-full rounded-xl border border-border overflow-hidden">
-      <table className="w-full border-collapse table-fixed">
-        <colgroup>
-          {headers.map((_, i) => (
-            <col key={i} style={{ width: `${colPct}%` }} />
-          ))}
-        </colgroup>
-        <thead>
-          <tr
-            className="border-b border-border"
-            style={{ background: "hsl(var(--primary) / 0.1)" }}
-          >
-            {headers.map((h, i) => (
-              <th
-                key={i}
-                className="px-3 py-3 text-left text-[14px] font-bold text-foreground align-top"
-              >
-                <Inline text={h} />
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, ri) => (
-            <tr
-              key={ri}
-              className="border-b border-border/60 last:border-0"
-            >
-              {headers.map((_, ci) => (
-                <td
-                  key={ci}
-                  className="px-3 py-3 text-[15px] leading-snug text-foreground/85 align-top"
-                >
-                  {row[ci] ? <Inline text={row[ci]} /> : null}
-                </td>
+    <div className="my-5 overflow-hidden rounded-xl border border-border">
+      <div className="w-full overflow-x-auto">
+        <table className="w-full min-w-[560px] border-collapse" style={{ minWidth }}>
+          <thead>
+            <tr className="border-b border-border bg-primary/10">
+              {headers.map((h, i) => (
+                <th key={i} className="px-3 py-3 text-left text-sm font-bold text-foreground align-top">
+                  <Inline text={h} />
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row, ri) => (
+              <tr key={ri} className="border-b border-border/60 last:border-0">
+                {headers.map((_, ci) => (
+                  <td key={ci} className="px-3 py-3 text-sm leading-relaxed text-foreground/85 align-top">
+                    {row[ci] ? <Inline text={row[ci]} /> : null}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -204,28 +189,22 @@ function ArticleContent({ content }: { content: string }) {
 
     if (!t) { flushList(); return; }
 
-    // ## H2 — outlined circle badge + large uppercase title + bottom border
-    if (t.startsWith("## ")) {
+    // Headings: accept #/## as section heading and ###-###### as subsection heading
+    if (/^#{1,2}\s+/.test(t)) {
       flushList();
-      if (t.toLowerCase().includes("practice")) { inPractice = true; return; }
+      const heading = t.replace(/^#{1,2}\s+/, "").replace(/\*+/g, "").replace(/\s*⭐+/g, "").replace(/^\d+\.\s*/, "").trim();
+      if (heading.toLowerCase().includes("practice")) { inPractice = true; return; }
       flushPractice(); inPractice = false;
       _sec++;
       const n = _sec;
-      const txt = t.slice(3).replace(/\*+/g, "").replace(/\s*⭐+/g, "").replace(/^\d+\.\s*/, "").trim();
       els.push(
         <div key={`h2-${i}`} className="mt-12 mb-6">
           <div className="flex items-center gap-4 mb-4">
-            <div
-              className="shrink-0 flex items-center justify-center rounded-full border-2 border-primary/50 text-primary font-bold text-[16px]"
-              style={{
-                width: "46px", height: "46px", minWidth: "46px",
-                background: "hsl(var(--primary) / 0.1)",
-              }}
-            >
+            <div className="shrink-0 flex items-center justify-center rounded-full border-2 border-primary/50 text-primary font-bold text-[16px] w-[46px] h-[46px] bg-primary/10">
               {n}
             </div>
-            <h2 className="font-bold text-[22px] sm:text-[26px] uppercase tracking-wide text-foreground leading-tight">
-              {txt}
+            <h2 className="font-bold text-[22px] sm:text-[26px] text-foreground leading-tight">
+              {heading}
             </h2>
           </div>
           <div className="border-b border-border" />
@@ -234,11 +213,9 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
-    // ### H3 — bold text ONLY, no dot, no line — just like the screenshots show
-    // "Structural Units", "Liver Functions", "Mechanisms in Cirrhosis" etc. are all bold with NO dot
-    if (t.startsWith("### ")) {
+    if (/^#{3,6}\s+/.test(t)) {
       flushList();
-      const txt = t.slice(4).replace(/\*+/g, "").replace(/\s*⭐+/g, "").trim();
+      const txt = t.replace(/^#{3,6}\s+/, "").replace(/\*+/g, "").replace(/\s*⭐+/g, "").trim();
       els.push(
         <h3 key={`h3-${i}`} className="mt-6 mb-3 font-bold text-[18px] sm:text-[19px] text-foreground leading-snug">
           {txt}
@@ -318,9 +295,10 @@ function ArticleContent({ content }: { content: string }) {
 
     // Paragraph
     flushList();
+    const paragraphText = t.replace(/^#+\s*/, "");
     els.push(
       <p key={`p-${i}`} className="mb-4 text-[17px] leading-relaxed text-foreground/85">
-        <Inline text={t} />
+        <Inline text={paragraphText} />
       </p>
     );
   });
@@ -398,8 +376,8 @@ export default function BlogPost() {
         </div>
 
         {/* Title */}
-        <h1 className="mb-10 font-bold text-[28px] sm:text-[36px] leading-tight text-foreground uppercase tracking-wide">
-          {article.title}
+        <h1 className="mb-10 font-bold text-[28px] sm:text-[36px] leading-tight text-foreground">
+          {article.title.replace(/^#+\s*/, "")}
         </h1>
 
         {/* Body */}

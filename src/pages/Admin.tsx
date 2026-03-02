@@ -52,6 +52,7 @@ export default function Admin() {
   const [directTitle, setDirectTitle] = useState("");
   const [directContent, setDirectContent] = useState("");
   const [directCategory, setDirectCategory] = useState("");
+  const [directTargetCount, setDirectTargetCount] = useState(20);
   const [directPreviewArticle, setDirectPreviewArticle] = useState<{ title: string; content: string } | null>(null);
   const [directPreviewCards, setDirectPreviewCards] = useState<{ question: string; answer: string }[] | null>(null);
   const [directPreviewMcqs, setDirectPreviewMcqs] = useState<{ question: string; options: string[]; correct_answer: number; explanation?: string }[] | null>(null);
@@ -110,56 +111,131 @@ export default function Admin() {
     return data?.category || "Uncategorized";
   };
 
+  const clampRequestedCount = (n: number) => Math.min(Math.max(Math.floor(n || 0), 5), 100);
+
+  const inferContentTitle = (raw: string, fallback: string) => {
+    const first = raw
+      .split("\n")
+      .map((line) => line.trim())
+      .find((line) => line.length > 0);
+
+    const cleaned = (first || fallback)
+      .replace(/^#+\s*/, "")
+      .replace(/^(Q\d+[:.)-]?|\d+[.)-]?|Question\s*\d*[:.)-]?)\s*/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return cleaned.slice(0, 90) || fallback;
+  };
+
+  const buildSetTitle = (prefix: "MCQ" | "Flashcards", raw: string, selectedCategory?: string) => {
+    const cat = selectedCategory && selectedCategory !== "Uncategorized"
+      ? getCategoryDisplayName(selectedCategory)
+      : inferContentTitle(raw, "Core Concepts");
+    return `${prefix}: ${cat}`;
+  };
+
   const parseDirectMcqs = (raw: string) => {
     const trimmed = raw.trim();
+    const normalizeQuestion = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+    const toMcq = (item: any) => {
+      if (!item?.question) return null;
+      const question = String(item.question)
+        .replace(/^(Q\d+[:.)-]?|\d+[.)-]?|Question\s*\d*[:.)-]?)\s*/i, "")
+        .trim();
+
+      const options = Array.isArray(item.options)
+        ? item.options.slice(0, 4).map((o: any) => String(o).replace(/^[A-D][\).:\-]?\s*/i, "").trim())
+        : [];
+
+      if (!question || options.length < 4) return null;
+
+      let correct_answer = 0;
+      if (Number.isInteger(item.correct_answer)) {
+        correct_answer = Math.min(Math.max(item.correct_answer, 0), 3);
+      } else if (Number.isInteger(item.correctIndex)) {
+        correct_answer = Math.min(Math.max(item.correctIndex, 0), 3);
+      } else if (typeof item.answer === "string") {
+        const answerText = item.answer.trim().toUpperCase();
+        if (/^[A-D]$/.test(answerText)) correct_answer = answerText.charCodeAt(0) - 65;
+        if (/^[1-4]$/.test(answerText)) correct_answer = Number(answerText) - 1;
+      }
+
+      return {
+        question,
+        options,
+        correct_answer,
+        explanation: item.explanation ? String(item.explanation).trim() : undefined,
+      };
+    };
+
     try {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) {
-        return parsed
-          .filter((q) => q?.question && Array.isArray(q?.options) && q.options.length >= 4)
-          .map((q) => ({
-            question: String(q.question).trim(),
-            options: q.options.slice(0, 4).map((o: string) => String(o).trim()),
-            correct_answer: Number.isInteger(q.correct_answer) ? Math.min(Math.max(q.correct_answer, 0), 3) : 0,
-            explanation: q.explanation ? String(q.explanation).trim() : undefined,
-          }));
+        const cleaned = parsed.map(toMcq).filter(Boolean) as { question: string; options: string[]; correct_answer: number; explanation?: string }[];
+        const uniq = new Map<string, (typeof cleaned)[number]>();
+        cleaned.forEach((q) => {
+          const key = normalizeQuestion(q.question);
+          if (!uniq.has(key)) uniq.set(key, q);
+        });
+        return Array.from(uniq.values());
       }
     } catch {}
 
-    const blocks = trimmed.split(/\n\s*\n(?=(?:Q\d+|\d+\.|Question))/i).filter(Boolean);
+    const blocks = trimmed
+      .split(/\n\s*\n(?=\s*(?:Q?\d+[\).:-]|Question\s*\d*[:.)-]?))/i)
+      .map((b) => b.trim())
+      .filter(Boolean);
+
     const parsed = blocks
       .map((block) => {
         const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
-        if (lines.length < 5) return null;
+        if (!lines.length) return null;
 
-        const question = lines[0].replace(/^(Q\d+[:.)-]?|\d+[.)-]?|Question\s*\d*[:.)-]?)\s*/i, "").trim();
+        const questionLine = lines.find((l) => !/^[A-D][\).:\-]?\s+/i.test(l) && !/^(Answer|Correct|Explanation|Rationale)\s*[:\-]/i.test(l));
+        if (!questionLine) return null;
+
+        const question = questionLine.replace(/^(Q\d+[:.)-]?|\d+[.)-]?|Question\s*\d*[:.)-]?)\s*/i, "").trim();
         const options = lines
-          .filter((l) => /^[A-D][\).:-]\s+/i.test(l))
-          .map((l) => l.replace(/^[A-D][\).:-]\s+/i, "").trim())
+          .filter((l) => /^[A-D][\).:\-]?\s+/i.test(l))
+          .map((l) => l.replace(/^[A-D][\).:\-]?\s+/i, "").trim())
           .slice(0, 4);
 
         if (!question || options.length < 4) return null;
 
-        const answerLine = lines.find((l) => /^Answer\s*[:\-]/i.test(l));
-        const explanationLine = lines.find((l) => /^Explanation\s*[:\-]/i.test(l));
+        const answerLine = lines.find((l) => /^(Answer|Correct)\s*[:\-]/i.test(l));
         let correct_answer = 0;
-
         if (answerLine) {
-          const val = answerLine.replace(/^Answer\s*[:\-]\s*/i, "").trim().toUpperCase();
-          if (/^[A-D]$/.test(val)) correct_answer = val.charCodeAt(0) - 65;
-          if (/^[1-4]$/.test(val)) correct_answer = Number(val) - 1;
+          const answer = answerLine.replace(/^(Answer|Correct)\s*[:\-]\s*/i, "").trim();
+          const upper = answer.toUpperCase();
+          if (/^[A-D]$/.test(upper)) correct_answer = upper.charCodeAt(0) - 65;
+          else if (/^[1-4]$/.test(answer)) correct_answer = Number(answer) - 1;
+          else {
+            const optIndex = options.findIndex((opt) => opt.toLowerCase() === answer.toLowerCase());
+            if (optIndex >= 0) correct_answer = optIndex;
+          }
         }
 
-        return {
-          question,
-          options,
-          correct_answer,
-          explanation: explanationLine ? explanationLine.replace(/^Explanation\s*[:\-]\s*/i, "").trim() : undefined,
-        };
+        const explanationStart = lines.findIndex((l) => /^(Explanation|Rationale)\s*[:\-]/i.test(l));
+        const explanation = explanationStart >= 0
+          ? lines
+              .slice(explanationStart)
+              .join(" ")
+              .replace(/^(Explanation|Rationale)\s*[:\-]\s*/i, "")
+              .trim()
+          : undefined;
+
+        return { question, options, correct_answer, explanation };
       })
       .filter(Boolean) as { question: string; options: string[]; correct_answer: number; explanation?: string }[];
 
-    return parsed;
+    const uniq = new Map<string, (typeof parsed)[number]>();
+    parsed.forEach((q) => {
+      const key = normalizeQuestion(q.question);
+      if (!uniq.has(key)) uniq.set(key, q);
+    });
+    return Array.from(uniq.values());
   };
 
   const parseDirectFlashcards = (raw: string) => {
@@ -167,9 +243,16 @@ export default function Admin() {
     try {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) {
-        return parsed
-          .filter((c) => c?.question && c?.answer)
-          .map((c) => ({ question: String(c.question).trim(), answer: String(c.answer).trim() }));
+        const uniq = new Map<string, { question: string; answer: string }>();
+        parsed.forEach((c) => {
+          if (!c?.question || !c?.answer) return;
+          const question = String(c.question).trim();
+          const answer = String(c.answer).trim();
+          if (!question || !answer) return;
+          const key = question.toLowerCase().replace(/\s+/g, " ");
+          if (!uniq.has(key)) uniq.set(key, { question, answer });
+        });
+        return Array.from(uniq.values());
       }
     } catch {}
 
@@ -190,24 +273,71 @@ export default function Admin() {
       })
       .filter(Boolean) as { question: string; answer: string }[];
 
-    return pairs;
+    const uniq = new Map<string, { question: string; answer: string }>();
+    pairs.forEach((item) => {
+      const key = item.question.toLowerCase().replace(/\s+/g, " ");
+      if (!uniq.has(key)) uniq.set(key, item);
+    });
+    return Array.from(uniq.values());
   };
 
   const parseDirectArticle = (raw: string) => {
-    const clean = raw.trim();
-    const lines = clean.split("\n").map((l) => l.trim());
-    const firstNonEmpty = lines.find((l) => l.length > 0) || "Article";
-    const inferredTitle = firstNonEmpty.replace(/^#+\s*/, "").replace(/\*+/g, "").trim();
+    const clean = raw.replace(/```[\s\S]*?```/g, "").trim();
+    const inferredTitle = inferContentTitle(clean, "Study Notes");
     const title = directTitle.trim() || inferredTitle;
 
-    if (/^##\s+/m.test(clean)) {
-      return { title, content: clean };
+    let body = clean
+      .replace(/^#\s+/gm, "## ")
+      .replace(/^\*\*(.+)\*\*$/gm, "$1")
+      .trim();
+
+    if (body.toLowerCase().startsWith(inferredTitle.toLowerCase())) {
+      body = body.slice(inferredTitle.length).trim();
     }
 
-    const paragraphs = clean.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
-    const summary = paragraphs.slice(0, 2).join(" ") || "Study summary.";
-    const detailed = paragraphs.slice(2).join("\n\n") || paragraphs.join("\n\n");
-    const content = `## Summary\n${summary}\n\n## Detailed Notes\n${detailed}`;
+    const hasSummary = /^##\s+Summary\b/im.test(body);
+    const hasKeyPoints = /^##\s+Key Points\b/im.test(body);
+    const hasDetailed = /^##\s+Detailed Notes\b/im.test(body);
+    const hasPractice = /^##\s+Practice Questions\b/im.test(body);
+
+    if (hasSummary && hasKeyPoints && hasDetailed && hasPractice) {
+      return { title, content: body };
+    }
+
+    const paragraphs = body
+      .split(/\n\s*\n/)
+      .map((p) => p.replace(/\s+/g, " ").trim())
+      .filter(Boolean);
+
+    const summary = paragraphs[0] || "High-yield summary pending from source notes.";
+    const keyPoints = paragraphs
+      .flatMap((p) => p.split(/(?<=[.!?])\s+/))
+      .map((s) => s.trim())
+      .filter((s) => s.length > 30)
+      .slice(0, 6)
+      .map((s) => `- ${s}`);
+
+    const detailed = paragraphs.slice(1).join("\n\n") || summary;
+    const practice = [
+      `1. What is the core clinical concept behind ${title}? → Identify the mechanism, pattern, and practical implication for patient care.`,
+      `2. Which findings best support ${title} in a clinical scenario? → Focus on high-yield signs, labs, and context clues.`,
+      `3. What is the most common exam trap in ${title}? → Distinguish similar conditions using key differentiators.`,
+      `4. What is the first-line management principle for ${title}? → State the priority intervention and rationale.`,
+    ];
+
+    const content = [
+      "## Summary",
+      summary,
+      "",
+      "## Key Points",
+      ...(keyPoints.length ? keyPoints : ["- Add key points from your source content."]),
+      "",
+      "## Detailed Notes",
+      detailed,
+      "",
+      "## Practice Questions",
+      ...practice,
+    ].join("\n");
 
     return { title, content };
   };
@@ -223,21 +353,26 @@ export default function Admin() {
         setDirectPreviewArticle(parseDirectArticle(directContent));
         setDirectPreviewCards(null);
         setDirectPreviewMcqs(null);
+        toast({ title: "Article formatted and ready" });
       } else if (directType === "mcqs") {
         const parsed = parseDirectMcqs(directContent);
-        if (!parsed.length) throw new Error("Could not parse MCQs. Paste JSON or Q/A option format.");
-        setDirectPreviewMcqs(parsed);
+        const target = clampRequestedCount(directTargetCount);
+        const limited = parsed.slice(0, target);
+        if (!limited.length) throw new Error("Could not parse MCQs. Paste JSON or Q/A option format.");
+        setDirectPreviewMcqs(limited);
         setDirectPreviewArticle(null);
         setDirectPreviewCards(null);
+        toast({ title: `Formatted ${limited.length} MCQs` });
       } else {
         const parsed = parseDirectFlashcards(directContent);
-        if (!parsed.length) throw new Error("Could not parse flashcards. Paste JSON or Q/A format.");
-        setDirectPreviewCards(parsed);
+        const target = clampRequestedCount(directTargetCount);
+        const limited = parsed.slice(0, target);
+        if (!limited.length) throw new Error("Could not parse flashcards. Paste JSON or Q/A format.");
+        setDirectPreviewCards(limited);
         setDirectPreviewArticle(null);
         setDirectPreviewMcqs(null);
+        toast({ title: `Formatted ${limited.length} flashcards` });
       }
-
-      toast({ title: "Formatted and ready to publish" });
     } catch (err: any) {
       toast({ title: "Format error", description: err.message, variant: "destructive" });
     }
@@ -263,7 +398,7 @@ export default function Admin() {
         });
       } else if (directPreviewMcqs) {
         await saveMcqSet({
-          title: directTitle.trim() || `MCQ: ${directContent.slice(0, 50)}...`,
+          title: directTitle.trim() || buildSetTitle("MCQ", directContent, finalCategory),
           questions: directPreviewMcqs,
           created_at: new Date().toISOString(),
           published: publish,
@@ -272,7 +407,7 @@ export default function Admin() {
         });
       } else if (directPreviewCards) {
         await saveFlashcardSet({
-          title: directTitle.trim() || `Flashcards: ${directContent.slice(0, 50)}...`,
+          title: directTitle.trim() || buildSetTitle("Flashcards", directContent, finalCategory),
           cards: directPreviewCards,
           created_at: new Date().toISOString(),
           published: publish,
@@ -313,13 +448,13 @@ export default function Admin() {
       } else if (type === "mcqs") {
         const questions = await generateMcqs(notes, mcqCount);
         setPreviewMcqs(questions);
-        setPreviewTitle(`MCQ: ${notes.slice(0, 50)}...`);
+        setPreviewTitle(buildSetTitle("MCQ", notes, category));
         setPreviewArticle(null);
         setPreviewCards(null);
       } else {
         const cards = await generateFlashcards(notes, cardCount);
         setPreviewCards(cards);
-        setPreviewTitle(`Flashcards: ${notes.slice(0, 50)}...`);
+        setPreviewTitle(buildSetTitle("Flashcards", notes, category));
         setPreviewArticle(null);
         setPreviewMcqs(null);
       }
@@ -373,7 +508,7 @@ export default function Admin() {
       setBatchArticle(articleResult);
       setBatchCards(flashcardResult);
       setBatchMcqs(mcqResult);
-      setBatchTitle(articleResult?.title || notes.slice(0, 60));
+      setBatchTitle(articleResult?.title || inferContentTitle(notes, "Study Notes"));
 
       toast({ title: "Content generated! Review and publish below." });
     } catch (err: any) {
@@ -423,7 +558,7 @@ export default function Admin() {
       }
       if (batchCards) {
         saves.push(saveFlashcardSet({
-          title: `Flashcards: ${batchTitle}`,
+          title: buildSetTitle("Flashcards", batchTitle || notes, cat),
           cards: batchCards,
           created_at: new Date().toISOString(),
           published: true,
@@ -433,7 +568,7 @@ export default function Admin() {
       }
       if (batchMcqs) {
         saves.push(saveMcqSet({
-          title: `MCQ: ${batchTitle}`,
+          title: buildSetTitle("MCQ", batchTitle || notes, cat),
           questions: batchMcqs,
           created_at: new Date().toISOString(),
           published: true,
@@ -551,27 +686,58 @@ export default function Admin() {
           </div>
 
           {/* Count selectors */}
-          <div className="mb-4 flex flex-wrap items-center gap-6">
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-foreground">Flashcards:</label>
-              <div className="flex gap-1">
-                {[10, 20, 30, 40, 50].map((n) => (
-                  <button key={n} onClick={() => setCardCount(n)}
-                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                      cardCount === n ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
-                    }`}>{n}</button>
-                ))}
+          <div className="mb-4 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-lg border border-border bg-card p-3">
+              <label className="mb-2 block text-sm font-medium text-foreground">Flashcards (5-100)</label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={5}
+                  max={100}
+                  value={cardCount}
+                  onChange={(e) => setCardCount(clampRequestedCount(Number(e.target.value) || 20))}
+                  className="w-24"
+                />
+                <div className="flex flex-wrap gap-1">
+                  {[10, 20, 30, 50, 80, 100].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => setCardCount(n)}
+                      className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                        cardCount === n ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-foreground">MCQs:</label>
-              <div className="flex gap-1">
-                {[10, 15, 20, 30].map((n) => (
-                  <button key={n} onClick={() => setMcqCount(n)}
-                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                      mcqCount === n ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
-                    }`}>{n}</button>
-                ))}
+
+            <div className="rounded-lg border border-border bg-card p-3">
+              <label className="mb-2 block text-sm font-medium text-foreground">MCQs (5-100)</label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={5}
+                  max={100}
+                  value={mcqCount}
+                  onChange={(e) => setMcqCount(clampRequestedCount(Number(e.target.value) || 15))}
+                  className="w-24"
+                />
+                <div className="flex flex-wrap gap-1">
+                  {[10, 15, 20, 30, 50, 80, 100].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => setMcqCount(n)}
+                      className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                        mcqCount === n ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -763,7 +929,7 @@ export default function Admin() {
               Paste pre-written article/MCQ/flashcard content and I’ll do minimal formatting for clean publishing.
             </p>
 
-            <div className="mb-4 grid gap-4 md:grid-cols-3">
+            <div className="mb-4 grid gap-4 md:grid-cols-4">
               <div>
                 <label className="mb-1 block text-sm font-medium text-foreground">Content Type</label>
                 <select
@@ -794,6 +960,23 @@ export default function Admin() {
               <div>
                 <label className="mb-1 block text-sm font-medium text-foreground">Title (optional)</label>
                 <Input value={directTitle} onChange={(e) => setDirectTitle(e.target.value)} placeholder="Custom title" />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground">
+                  {directType === "article" ? "Preview" : "Target count"}
+                </label>
+                {directType === "article" ? (
+                  <div className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-muted-foreground">Auto format</div>
+                ) : (
+                  <Input
+                    type="number"
+                    min={5}
+                    max={100}
+                    value={directTargetCount}
+                    onChange={(e) => setDirectTargetCount(clampRequestedCount(Number(e.target.value) || 20))}
+                  />
+                )}
               </div>
             </div>
 
