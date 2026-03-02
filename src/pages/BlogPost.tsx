@@ -53,57 +53,32 @@ function ReadingProgress() {
         <div className="h-full transition-all duration-150" style={{ width: `${pct}%`, background: color }} />
       </div>
 
-      {/* Progress circle button — always visible, right edge */}
+      {/* Progress circle — bottom right, always fully visible */}
       <button
         onClick={() => setExpanded(e => !e)}
-        className="fixed z-50 focus:outline-none"
+        className="fixed bottom-6 right-6 z-50 focus:outline-none"
         aria-label="Reading progress"
-        style={{
-          right: 12,
-          top: "50%",
-          transform: "translateY(-50%)",
-          background: "transparent",
-          border: "none",
-          padding: 0,
-          width: 44,
-          height: 44,
-        }}
+        style={{ background: "transparent", border: "none", padding: 0 }}
       >
-        <div className="relative flex items-center justify-center" style={{ width: 44, height: 44 }}>
+        <div className="relative flex items-center justify-center" style={{ width: 52, height: 52 }}>
           <svg
             style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}
-            width={44} height={44} viewBox="0 0 44 44"
+            width={52} height={52} viewBox="0 0 52 52"
           >
-            {/* Background ring */}
-            <circle
-              cx={22} cy={22} r={17}
-              fill="hsl(var(--background) / 0.6)"
-              stroke={color}
-              strokeWidth={2}
-              opacity={0.3}
-            />
+            {/* Solid background circle */}
+            <circle cx={26} cy={26} r={22} fill="hsl(var(--card))" stroke="hsl(var(--border))" strokeWidth={1.5} />
             {/* Progress arc */}
             <circle
-              cx={22} cy={22} r={17}
+              cx={26} cy={26} r={22}
               fill="none"
               stroke={color}
-              strokeWidth={3}
-              strokeDasharray={`${(pct / 100) * (2 * Math.PI * 17)} ${2 * Math.PI * 17}`}
+              strokeWidth={4}
+              strokeDasharray={`${(pct / 100) * (2 * Math.PI * 22)} ${2 * Math.PI * 22}`}
               strokeLinecap="round"
               style={{ transition: "stroke-dasharray 0.3s ease, stroke 0.3s ease" }}
             />
           </svg>
-          {/* Always show % — larger + bolder when expanded */}
-          <span
-            className="relative font-bold"
-            style={{
-              fontSize: expanded ? "11px" : "9px",
-              color: color,
-              opacity: expanded ? 1 : 0.7,
-              transition: "font-size 0.2s, opacity 0.2s",
-              lineHeight: 1,
-            }}
-          >
+          <span className="relative font-bold text-[11px]" style={{ color, lineHeight: 1 }}>
             {label}
           </span>
         </div>
