@@ -53,34 +53,54 @@ function ReadingProgress() {
         <div className="h-full transition-all duration-150" style={{ width: `${pct}%`, background: color }} />
       </div>
 
-      {/* Progress circle — bottom right, always fully visible */}
+      {/* Bottom-right progress button:
+           collapsed = tiny 10px dot, barely there
+           expanded  = full 56px opaque circle with arc + label */}
       <button
         onClick={() => setExpanded(e => !e)}
         className="fixed bottom-6 right-6 z-50 focus:outline-none"
         aria-label="Reading progress"
-        style={{ background: "transparent", border: "none", padding: 0 }}
+        style={{ background: "transparent", border: "none", padding: 0, lineHeight: 0 }}
       >
-        <div className="relative flex items-center justify-center" style={{ width: 52, height: 52 }}>
+        {/* Collapsed: tiny dot */}
+        <div style={{
+          position: "absolute",
+          bottom: 0, right: 0,
+          width: 10, height: 10,
+          borderRadius: "50%",
+          background: color,
+          opacity: expanded ? 0 : 0.35,
+          transition: "opacity 0.25s",
+          pointerEvents: "none",
+        }} />
+
+        {/* Expanded: full opaque circle */}
+        <div style={{
+          width: 56, height: 56,
+          opacity: expanded ? 1 : 0,
+          transform: expanded ? "scale(1)" : "scale(0.3)",
+          transition: "opacity 0.25s, transform 0.25s",
+          pointerEvents: expanded ? "auto" : "none",
+          position: "relative",
+        }}>
           <svg
             style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}
-            width={52} height={52} viewBox="0 0 52 52"
+            width={56} height={56} viewBox="0 0 56 56"
           >
-            {/* Solid background circle */}
-            <circle cx={26} cy={26} r={22} fill="hsl(var(--card))" stroke="hsl(var(--border))" strokeWidth={1.5} />
-            {/* Progress arc */}
+            <circle cx={28} cy={28} r={23} fill="hsl(var(--card))" stroke="hsl(var(--border))" strokeWidth={1.5} />
             <circle
-              cx={26} cy={26} r={22}
-              fill="none"
-              stroke={color}
-              strokeWidth={4}
-              strokeDasharray={`${(pct / 100) * (2 * Math.PI * 22)} ${2 * Math.PI * 22}`}
+              cx={28} cy={28} r={23}
+              fill="none" stroke={color} strokeWidth={4}
+              strokeDasharray={`${(pct / 100) * (2 * Math.PI * 23)} ${2 * Math.PI * 23}`}
               strokeLinecap="round"
               style={{ transition: "stroke-dasharray 0.3s ease, stroke 0.3s ease" }}
             />
           </svg>
-          <span className="relative font-bold text-[11px]" style={{ color, lineHeight: 1 }}>
-            {label}
-          </span>
+          <span style={{
+            position: "absolute", inset: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontWeight: "700", fontSize: "12px", color, lineHeight: 1,
+          }}>{label}</span>
         </div>
       </button>
     </>
