@@ -41,22 +41,10 @@ function ReadingProgress() {
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  // Color: red → amber → green
-  const color =
-    pct < 30 ? "#ef4444"
-    : pct < 60 ? "#f59e0b"
-    : pct < 90 ? "#22c55e"
-    : "#16a34a";
-
-  const label =
-    pct < 2 ? "Start"
-    : pct > 97 ? "Done ✓"
-    : `${Math.round(pct)}%`;
-
-  // SVG circle progress
-  const R = 18;
+  const color = pct < 30 ? "#ef4444" : pct < 60 ? "#f59e0b" : pct < 90 ? "#22c55e" : "#16a34a";
+  const label = pct < 2 ? "Start" : pct > 97 ? "Done ✓" : `${Math.round(pct)}%`;
+  const R = 20;
   const CIRC = 2 * Math.PI * R;
-  const dash = (pct / 100) * CIRC;
 
   return (
     <>
@@ -65,61 +53,37 @@ function ReadingProgress() {
         <div className="h-full transition-all duration-150" style={{ width: `${pct}%`, background: color }} />
       </div>
 
-      {/* Right-side circle button */}
+      {/* Invisible tap zone — just a tiny translucent sliver on the right edge */}
       <button
         onClick={() => setExpanded(e => !e)}
-        className="fixed right-4 top-1/2 z-50 -translate-y-1/2 flex flex-col items-center gap-2 focus:outline-none"
+        className="fixed right-0 top-1/2 z-50 -translate-y-1/2 focus:outline-none flex items-center justify-end"
         aria-label="Reading progress"
+        style={{ width: 28, height: 64, background: "transparent", border: "none", padding: 0 }}
       >
-        {/* Circle with SVG arc */}
-        <div className="relative flex items-center justify-center transition-all duration-300"
-          style={{ width: expanded ? 56 : 40, height: expanded ? 56 : 40 }}>
-          <svg
-            style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}
-            width={expanded ? 56 : 40}
-            height={expanded ? 56 : 40}
-            viewBox={expanded ? "0 0 56 56" : "0 0 40 40"}
-          >
-            {/* Background ring */}
-            <circle
-              cx={expanded ? 28 : 20}
-              cy={expanded ? 28 : 20}
-              r={expanded ? 24 : R}
-              fill="hsl(var(--card))"
-              stroke="hsl(var(--border))"
-              strokeWidth={expanded ? 3 : 2.5}
-            />
-            {/* Progress arc */}
-            <circle
-              cx={expanded ? 28 : 20}
-              cy={expanded ? 28 : 20}
-              r={expanded ? 24 : R}
-              fill="none"
-              stroke={color}
-              strokeWidth={expanded ? 3 : 2.5}
-              strokeDasharray={`${(pct / 100) * (2 * Math.PI * (expanded ? 24 : R))} ${2 * Math.PI * (expanded ? 24 : R)}`}
-              strokeLinecap="round"
-              style={{ transition: "stroke-dasharray 0.3s ease, stroke 0.3s ease" }}
-            />
-          </svg>
-          {/* Inner label */}
-          <span
-            className="relative font-bold transition-all duration-300"
-            style={{
-              fontSize: expanded ? "11px" : "9px",
-              color: expanded ? color : "hsl(var(--foreground))",
-              lineHeight: 1,
-            }}
-          >
-            {expanded ? label : Math.round(pct) + "%"}
-          </span>
-        </div>
-        {/* Collapsed dot indicator (only when not expanded) */}
+        {/* Barely-visible tab — just a thin colored sliver on the edge */}
         {!expanded && (
-          <div
-            className="rounded-full transition-all duration-300"
-            style={{ width: 6, height: 6, background: color, opacity: 0.8 }}
-          />
+          <div style={{
+            width: 3,
+            height: 32,
+            borderRadius: "3px 0 0 3px",
+            background: color,
+            opacity: 0.35,
+            transition: "opacity 0.2s, background 0.3s",
+          }} />
+        )}
+        {expanded && (
+          <div className="relative flex items-center justify-center mr-1"
+            style={{ width: 52, height: 52 }}>
+            <svg style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}
+              width={52} height={52} viewBox="0 0 52 52">
+              <circle cx={26} cy={26} r={R} fill="hsl(var(--card))" stroke="hsl(var(--border))" strokeWidth={2.5} />
+              <circle cx={26} cy={26} r={R} fill="none" stroke={color} strokeWidth={2.5}
+                strokeDasharray={`${(pct / 100) * CIRC} ${CIRC}`}
+                strokeLinecap="round"
+                style={{ transition: "stroke-dasharray 0.3s ease, stroke 0.3s ease" }} />
+            </svg>
+            <span className="relative font-bold text-[11px]" style={{ color }}>{label}</span>
+          </div>
         )}
       </button>
     </>
@@ -225,6 +189,25 @@ function preprocessContent(raw: string): string {
     if (/^\d+$/.test(t)) continue;
     // Skip TOC lines like "- Some Topic 3." or "Some Topic 3."
     if (/^-?\s*.+\s\d+\.$/.test(t) && !t.includes("→") && !t.startsWith("|")) continue;
+
+    // Lines starting with | that are a compact inline table (all rows on one line)
+    // e.g. "| A | B | |---|---| | C | D |" — split into proper rows
+    if (t.startsWith("|") && (t.includes("|---") || t.includes("| ---"))) {
+      splitInlineTable(t).forEach(r => out.push(r));
+      continue;
+    }
+
+    // Lines starting with "- " that contain MULTIPLE inline bullet items joined by " - "
+    // e.g. HIGH-YIELD: "- Barrett oesophagus = X - Adenocarcinoma progression = Y - ..."
+    if (t.startsWith("- ") && !t.startsWith("#") && !t.startsWith("|")) {
+      const allDashes = [...t.matchAll(/ - /g)];
+      if (allDashes.length >= 3) {
+        // Split the whole line on " - " and emit each chunk as its own "- item" line
+        const parts = t.slice(2).split(" - ").map((s: string) => s.trim()).filter(Boolean);
+        parts.forEach((p: string) => out.push(`- ${p}`));
+        continue;
+      }
+    }
 
     // ## / # headings
     if (/^#{1,2}\s/.test(t)) {
