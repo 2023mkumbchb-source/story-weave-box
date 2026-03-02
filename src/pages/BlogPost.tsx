@@ -28,20 +28,59 @@ function Inline({ text }: { text: string }) {
 }
 
 function ReadingProgress() {
-  const [w, setW] = useState(0);
+  const [pct, setPct] = useState(0);
   useEffect(() => {
     const fn = () => {
       const d = document.documentElement;
       const total = d.scrollHeight - d.clientHeight;
-      setW(total > 0 ? (d.scrollTop / total) * 100 : 0);
+      setPct(total > 0 ? (d.scrollTop / total) * 100 : 0);
     };
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
   }, []);
+
+  // Color: red → amber → green as progress increases
+  const color =
+    pct < 30 ? "#ef4444"
+    : pct < 60 ? "#f59e0b"
+    : pct < 90 ? "#22c55e"
+    : "#16a34a";
+
+  const label =
+    pct < 5 ? "Start"
+    : pct > 95 ? "Done ✓"
+    : `${Math.round(pct)}%`;
+
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-transparent">
-      <div className="h-full bg-primary transition-all duration-100" style={{ width: `${w}%` }} />
-    </div>
+    <>
+      {/* Top bar */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-transparent">
+        <div className="h-full transition-all duration-100" style={{ width: `${pct}%`, background: color }} />
+      </div>
+      {/* Right-side pill tab */}
+      <div
+        className="fixed right-0 top-1/2 z-50 -translate-y-1/2 flex flex-col items-center"
+        style={{ pointerEvents: "none" }}
+      >
+        {/* Track */}
+        <div
+          className="relative rounded-full overflow-hidden"
+          style={{ width: "6px", height: "120px", background: "hsl(var(--border))" }}
+        >
+          <div
+            className="absolute bottom-0 left-0 right-0 rounded-full transition-all duration-200"
+            style={{ height: `${pct}%`, background: color }}
+          />
+        </div>
+        {/* Label pill */}
+        <div
+          className="mt-2 rounded-full px-2 py-1 text-[10px] font-bold text-white transition-all duration-200"
+          style={{ background: color, minWidth: "36px", textAlign: "center" }}
+        >
+          {label}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -158,7 +197,7 @@ function preprocessContent(raw: string): string {
         const listPart = heading.slice(colonIdx + 2).trim();
         const hashes = t.match(/^(#{1,2})/)?.[1] ?? "##";
         if (labelOnly) out.push(`${hashes} ${labelOnly}`);
-        listPart.split(/(?=\d+\.\s)/).map((s: string) => s.trim()).filter(Boolean).forEach((item: string) => out.push(item));
+        listPart.split(/(?=(?:^|\s)\d+\.\s)/).map((s: string) => s.trim()).filter(Boolean).forEach((item: string) => out.push(item));
         continue;
       }
       // Heading with inline table
