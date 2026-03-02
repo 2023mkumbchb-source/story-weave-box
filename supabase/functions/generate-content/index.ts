@@ -18,6 +18,118 @@ const UNIT_CATEGORIES = [
   "Cardiovascular System Pathology",
 ];
 
+function cleanHeading(text: string): string {
+  return text
+    .replace(/^#+\s*/, "")
+    .replace(/^\*+|\*+$/g, "")
+    .replace(/^"|"$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeArticleOutput(raw: string): { title: string; content: string } {
+  const cleaned = raw.replace(/```[\s\S]*?```/g, "").trim();
+  const lines = cleaned.split("\n");
+
+  const firstNonEmpty = lines.find((l) => l.trim().length > 0) ?? "Study Article";
+  const title = cleanHeading(firstNonEmpty) || "Study Article";
+
+  const bodyStart = lines[0]?.trim() === firstNonEmpty.trim() ? 1 : 0;
+  let body = lines.slice(bodyStart).join("\n").trim();
+  body = body.replace(/^#\s+/gm, "## ").trim();
+
+  const hasSummary = /^##\s+Summary\b/im.test(body);
+  const hasKeyPoints = /^##\s+Key Points\b/im.test(body);
+  const hasDetailed = /^##\s+Detailed Notes\b/im.test(body);
+  const hasPractice = /^##\s+Practice Questions\b/im.test(body);
+
+  if (hasSummary && hasKeyPoints && hasDetailed && hasPractice) {
+    return { title, content: body };
+  }
+
+  const paragraphs = body
+    .split(/\n\s*\n/)
+    .map((p) => p.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+
+  const summary = paragraphs[0] || "High-yield summary not provided.";
+  const keyPoints = paragraphs
+    .flatMap((p) => p.split(/(?<=[.!?])\s+/))
+    .map((s) => s.trim())
+    .filter((s) => s.length > 25)
+    .slice(0, 8)
+    .map((s) => `- ${s}`);
+
+  const detailed = paragraphs.slice(1).join("\n\n") || summary;
+  const practiceQuestions = [
+    `1. What is the core mechanism of ${title}? → Explain the key pathological or physiological process.`,
+    `2. Which finding most strongly supports ${title} clinically? → Identify the highest-yield clue.`,
+    `3. What is a common differential diagnosis for ${title}? → Contrast the differentiating features.`,
+    `4. Which lab or investigation best confirms ${title}? → State the best first test and why.`,
+    `5. What is the first-line management principle in ${title}? → Give the priority step and rationale.`,
+    `6. Which complication is most exam-relevant for ${title}? → Name it and how to recognize it early.`,
+    `7. What is a frequent exam trap in ${title}? → Clarify the misconception and correct concept.`,
+    `8. How would ${title} present in a classic vignette? → Summarize hallmark presentation cues.`,
+  ];
+
+  const content = [
+    "## Summary",
+    summary,
+    "",
+    "## Key Points",
+    ...(keyPoints.length ? keyPoints : ["- Add high-yield points for this topic."]),
+    "",
+    "## Detailed Notes",
+    detailed,
+    "",
+    "## Practice Questions",
+    ...practiceQuestions,
+  ].join("\n");
+
+  return { title, content };
+}
+
+function parseAndNormalizeMcqs(raw: string, expectedCount: number) {
+  const jsonMatch = raw.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) throw new Error("Failed to parse MCQs from AI response");
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  if (!Array.isArray(parsed)) throw new Error("MCQ response was not an array");
+
+  const cleaned = parsed
+    .map((item: any) => {
+      if (!item?.question || !Array.isArray(item?.options) || item.options.length < 4) return null;
+      const question = String(item.question).replace(/\s+/g, " ").trim();
+      const options = item.options.slice(0, 4).map((o: any) => String(o).replace(/\s+/g, " ").trim());
+      const correct_answer = Number.isInteger(item.correct_answer)
+        ? Math.min(Math.max(item.correct_answer, 0), 3)
+        : 0;
+      const explanation = item.explanation ? String(item.explanation).trim() : "";
+      if (!question) return null;
+      return { question, options, correct_answer, explanation };
+    })
+    .filter(Boolean);
+
+  const unique: any[] = [];
+  const seen = new Set<string>();
+  for (const q of cleaned) {
+    const key = q.question.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(q);
+    }
+  }
+
+  if (unique.length < expectedCount) {
+    for (const q of cleaned) {
+      if (unique.length >= expectedCount) break;
+      unique.push(q);
+    }
+  }
+
+  return unique.slice(0, expectedCount);
+}
+
 async function callAI(messages: any[], geminiKey?: string): Promise<string> {
   const apiKey = (geminiKey && geminiKey.length > 0) ? geminiKey : Deno.env.get("GEMINI_API_KEY");
   
@@ -115,7 +227,7 @@ serve(async (req) => {
 
   try {
     const { notes, type, count = 20, geminiKey } = await req.json();
-    const cardCount = Math.min(Math.max(Number(count) || 20, 5), 50);
+    const cardCount = Math.min(Math.max(Number(count) || 20, 5), 100);
 
     if (!notes || typeof notes !== "string") {
       throw new Error("Invalid input: notes must be a non-empty string");
@@ -136,44 +248,54 @@ serve(async (req) => {
 
     let systemPrompt: string;
     if (type === "article") {
-      systemPrompt = `You are a medical education expert. Convert notes into a clean, exam-focused study article with strict formatting.
+      systemPrompt = `You are a medical education expert. Convert notes into a clinically useful, exam-focused study article with strict markdown formatting.
 
-IMPORTANT FORMATTING RULES:
-- Return plain markdown only
+STRICT OUTPUT FORMAT:
+- Return markdown only
 - First line MUST be the title only (no #, no bullets, no asterisks)
-- Use headings exactly: ## Summary, ## Key Points, ## Detailed Notes, ## Practice Questions
-- In Key Points, use bullet lines like: - **Term**: explanation
-- Keep sentences concise and readable
+- Then include these exact sections in this order:
+  ## Summary
+  ## Key Points
+  ## Detailed Notes
+  ## Practice Questions
+- In Key Points, use bullet format: - **Term**: concise explanation
+- In Practice Questions, include at least 8 clinically-oriented Q→A lines in this exact style:
+  1. Question? → Answer
 - Do not output code fences
 
-CONTENT RULES:
-- Expand beyond raw notes with commonly tested exam facts
-- Keep total length around 500-900 words for reliability
-- In Practice Questions, include at least 8 high-yield Q→A lines
-
-Output template:
-TITLE
-
-## Summary
-...
-
-## Key Points
-- **...**: ...
-
-## Detailed Notes
-### ...
-...
-
-## Practice Questions
-1. ... → ...` ;
+QUALITY RULES:
+- Write concise, clear, exam-ready language
+- Include clinically relevant patterns, not just definitions
+- Add high-yield differentiators and common exam traps
+- Keep output around 600-1000 words
+- Title must be specific and professional (avoid vague titles like "Notes" or "Overview")`;
     } else if (type === "mcqs") {
-      systemPrompt = `You are a medical exam question writer. Create EXACTLY ${cardCount} high-quality exam-style MCQ questions. Focus on questions that are commonly asked in medical exams. Include questions from commonly tested topics in this medical unit, not just from the notes provided. Each question MUST have exactly 4 options, one correct answer, AND a clear 1-2 sentence explanation of why the correct answer is right and key differentiators.
+      systemPrompt = `You are a senior medical exam question writer. Create EXACTLY ${cardCount} high-quality, clinically-oriented MCQs.
 
-Return ONLY a valid JSON array: [{"question": "...", "options": ["A", "B", "C", "D"], "correct_answer": 0, "explanation": "Brief explanation."}]
+REQUIREMENTS:
+- Return ONLY a valid JSON array
+- Schema per item:
+  {"question": "...", "options": ["A", "B", "C", "D"], "correct_answer": 0, "explanation": "..."}
+- correct_answer is 0-based index
+- Exactly 4 options per question
+- Include a clear 1-2 sentence explanation
+- Questions must be vignette-style or clinically applied where appropriate
+- Mix difficulty levels (basic recall + applied reasoning)
+- Avoid duplicate or near-duplicate question stems
+- Avoid repeating the same concept in different wording
+- No markdown, no code blocks, no extra keys, no prose outside JSON
 
-The correct_answer is the 0-based index. No markdown, no code blocks - just the raw JSON array with exactly ${cardCount} items. Include commonly asked exam-style questions for this medical topic. Mix difficulty levels. Test understanding and clinical application, not just memorization.`;
+QUALITY FOCUS:
+- Emphasize diagnosis, mechanisms, interpretation, and management principles
+- Include common exam distractors with meaningful differentiators`;
     } else {
-      systemPrompt = `You are a medical education expert creating flashcards. Create EXACTLY ${cardCount} flashcards covering the notes AND commonly tested topics in this medical unit. Go beyond the provided notes to include "must know" concepts students need. Return ONLY a valid JSON array: [{"question": "...", "answer": "..."}]. No markdown, no code blocks - just the raw JSON array with exactly ${cardCount} items.`;
+      systemPrompt = `You are a medical education expert creating flashcards. Create EXACTLY ${cardCount} high-yield flashcards covering the notes and commonly tested concepts in this medical unit.
+
+Return ONLY a valid JSON array: [{"question": "...", "answer": "..."}].
+- Keep cards concise but concept-rich
+- Prefer clinically meaningful wording
+- Avoid duplicate or near-duplicate cards
+- No markdown, no code blocks - only raw JSON array with exactly ${cardCount} items.`;
     }
 
     const messages = [
@@ -192,18 +314,18 @@ The correct_answer is the 0-based index. No markdown, no code blocks - just the 
 
     let result;
     if (type === "article") {
-      const lines = text.trim().split("\n");
-      const title = lines[0].replace(/^#+\s*/, "").replace(/\*+/g, "").trim();
-      const content = lines.slice(1).join("\n").trim();
-      result = { title, content };
+      result = normalizeArticleOutput(text);
     } else if (type === "mcqs") {
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) throw new Error("Failed to parse MCQs from AI response");
-      result = JSON.parse(jsonMatch[0]);
+      result = parseAndNormalizeMcqs(text, cardCount);
     } else {
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (!jsonMatch) throw new Error("Failed to parse flashcards from AI response");
-      result = JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (!Array.isArray(parsed)) throw new Error("Failed to parse flashcards from AI response");
+      result = parsed
+        .filter((item: any) => item?.question && item?.answer)
+        .map((item: any) => ({ question: String(item.question).trim(), answer: String(item.answer).trim() }))
+        .slice(0, cardCount);
     }
 
     return new Response(JSON.stringify(result), {
