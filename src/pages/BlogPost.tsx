@@ -48,7 +48,6 @@ function ReadingProgress() {
 }
 
 // ── Table ─────────────────────────────────────────────────────────────────────
-// Mobile-safe: horizontal scroll when needed, no content overlap
 function TableBlock({ lines }: { lines: string[] }) {
   const isSep = (l: string) => /^\|[-:\s|]+\|$/.test(l.trim());
   const parse = (l: string) =>
@@ -184,15 +183,36 @@ function ArticleContent({ content }: { content: string }) {
   lines.forEach((line, i) => {
     const t = line.trim();
 
+    // ── Tables ──
     if (t.startsWith("|")) { flushList(); tableBuf.push(t); return; }
     else if (tableBuf.length) flushTable();
 
+    // ── Empty line ──
     if (!t) { flushList(); return; }
 
-    // Headings: accept #/## as section heading and ###-###### as subsection heading
+    // ── Skip horizontal rules (--- dividers) ──
+    if (t === "---" || t === "***" || t === "___") { flushList(); return; }
+
+    // ── Skip bare standalone numbers (CMS section index artifacts like "1", "2", "3") ──
+    if (/^\d+$/.test(t)) { flushList(); return; }
+
+    // ── Skip TOC artifact lines that end with a bare number+period (e.g. "Some Topic 3.") ──
+    // Only skip if the line has no heading marker AND ends with " N." pattern
+    if (/\s\d+\.$/.test(t) && !/^#{1,6}\s/.test(t) && !t.includes("→")) {
+      flushList();
+      return;
+    }
+
+    // ── Headings: ## or # → main section heading ──
     if (/^#{1,2}\s+/.test(t)) {
       flushList();
-      const heading = t.replace(/^#{1,2}\s+/, "").replace(/\*+/g, "").replace(/\s*⭐+/g, "").replace(/^\d+\.\s*/, "").trim();
+      const heading = t
+        .replace(/^#{1,2}\s+/, "")
+        .replace(/\*+/g, "")
+        .replace(/\s*⭐+/g, "")
+        .replace(/^\d+\.\s*/, "")
+        .trim();
+
       if (heading.toLowerCase().includes("practice")) { inPractice = true; return; }
       flushPractice(); inPractice = false;
       _sec++;
@@ -213,6 +233,7 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
+    // ── Subheadings: ### to ###### ──
     if (/^#{3,6}\s+/.test(t)) {
       flushList();
       const txt = t.replace(/^#{3,6}\s+/, "").replace(/\*+/g, "").replace(/\s*⭐+/g, "").trim();
@@ -224,20 +245,37 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
-    // Q→A
-    const qa = t.match(/^(\d+)\.\s(.+?)\s*→\s*(.+)$/);
-    if (qa) {
+    // ── Blockquote lines ("> ...") ──
+    if (t.startsWith("> ")) {
       flushList();
-      if (inPractice) pqs.push({ number: qa[1], question: qa[2], answer: qa[3] });
-      else els.push(
-        <div key={`qa-${i}`} className="mb-4 rounded-2xl border border-border bg-card p-5">
-          <p className="text-[17px] font-medium text-foreground">{qa[1]}. <Inline text={qa[2]} /></p>
-          <p className="mt-2 text-[17px] text-primary font-semibold">→ <Inline text={qa[3]} /></p>
+      els.push(
+        <div key={`bq-${i}`} className="my-4 pl-4 border-l-4 border-primary/40 rounded-sm">
+          <p className="text-[16px] italic text-foreground/70 leading-relaxed">
+            <Inline text={t.slice(2)} />
+          </p>
         </div>
       );
       return;
     }
 
+    // ── Q→A lines ──
+    const qa = t.match(/^(\d+)\.\s(.+?)\s*→\s*(.+)$/);
+    if (qa) {
+      flushList();
+      if (inPractice) {
+        pqs.push({ number: qa[1], question: qa[2], answer: qa[3] });
+      } else {
+        els.push(
+          <div key={`qa-${i}`} className="mb-4 rounded-2xl border border-border bg-card p-5">
+            <p className="text-[17px] font-medium text-foreground">{qa[1]}. <Inline text={qa[2]} /></p>
+            <p className="mt-2 text-[17px] text-primary font-semibold">→ <Inline text={qa[3]} /></p>
+          </div>
+        );
+      }
+      return;
+    }
+
+    // ── Practice Q without arrow (question on its own line, answer on next) ──
     if (inPractice && /^\d+\.\s/.test(t) && !t.includes("→")) {
       const next = lines[i + 1]?.trim() ?? "";
       pqs.push({
@@ -249,7 +287,7 @@ function ArticleContent({ content }: { content: string }) {
     }
     if (inPractice && t.startsWith("→")) return;
 
-    // Bullet — filled blue circle dot, matches screenshots
+    // ── Bullet list (- item) ──
     if (t.startsWith("- ")) {
       if (!listBuf || listBuf.type !== "ul") { flushList(); listBuf = { type: "ul", items: [] }; }
       listBuf.items.push(
@@ -266,7 +304,7 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
-    // Numbered list — outlined circle badge matching screenshots
+    // ── Numbered list (1. item) — only outside practice mode ──
     if (/^\d+\.\s/.test(t) && !t.includes("→") && !inPractice) {
       if (!listBuf || listBuf.type !== "ol") { flushList(); listBuf = { type: "ol", items: [] }; }
       const num = t.match(/^(\d+)/)?.[1] ?? "";
@@ -293,7 +331,7 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
-    // Paragraph
+    // ── Paragraph fallback ──
     flushList();
     const paragraphText = t.replace(/^#+\s*/, "");
     els.push(
