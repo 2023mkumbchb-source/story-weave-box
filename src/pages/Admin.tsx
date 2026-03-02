@@ -929,7 +929,7 @@ export default function Admin() {
               Paste pre-written article/MCQ/flashcard content and I’ll do minimal formatting for clean publishing.
             </p>
 
-            <div className="mb-4 grid gap-4 md:grid-cols-3">
+            <div className="mb-4 grid gap-4 md:grid-cols-4">
               <div>
                 <label className="mb-1 block text-sm font-medium text-foreground">Content Type</label>
                 <select
@@ -960,6 +960,23 @@ export default function Admin() {
               <div>
                 <label className="mb-1 block text-sm font-medium text-foreground">Title (optional)</label>
                 <Input value={directTitle} onChange={(e) => setDirectTitle(e.target.value)} placeholder="Custom title" />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground">
+                  {directType === "article" ? "Preview" : "Target count"}
+                </label>
+                {directType === "article" ? (
+                  <div className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-muted-foreground">Auto format</div>
+                ) : (
+                  <Input
+                    type="number"
+                    min={5}
+                    max={100}
+                    value={directTargetCount}
+                    onChange={(e) => setDirectTargetCount(clampRequestedCount(Number(e.target.value) || 20))}
+                  />
+                )}
               </div>
             </div>
 
