@@ -195,6 +195,20 @@ function ArticleContent({ content }: { content: string }) {
 
     if (!t) { flushList(); return; }
 
+    // ── FIX 3b: Skip CMS TOC label lines — short lines (≤6 words) that appear
+    // right after a bare number line and duplicate headings already in content.
+    // Detects lines like "Summary", "Key Points", "Detailed Notes", "High-Yield Exam Facts",
+    // "MASTER QUICK-REFERENCE TABLE", "TUMOURS COVERED" intro block, etc.
+    // Strategy: if previous non-empty trimmed line was a bare number, skip this line.
+    {
+      let prevNonEmpty = "";
+      for (let k = i - 1; k >= 0; k--) {
+        const pk = lines[k].trim();
+        if (pk) { prevNonEmpty = pk; break; }
+      }
+      if (/^\d+$/.test(prevNonEmpty)) { flushList(); return; }
+    }
+
     // Headings: #/## as section heading, ###-###### as subsection heading
     if (/^#{1,2}\s+/.test(t)) {
       flushList();
