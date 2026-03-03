@@ -332,10 +332,12 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
   };
 
   const getOptionStyle = (i: number) => {
-    if (revealed && i === q.correct_answer)
+    if (!hideAnswers && revealed && i === q.correct_answer)
       return "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400";
     if (wrongAttempts.has(i))
-      return "border-destructive/50 bg-destructive/10 text-destructive line-through opacity-60";
+      return hideAnswers
+        ? "border-primary/50 bg-primary/10 text-primary"
+        : "border-destructive/50 bg-destructive/10 text-destructive line-through opacity-60";
     return "border-border bg-card hover:border-primary/50 hover:bg-primary/5 cursor-pointer";
   };
 
