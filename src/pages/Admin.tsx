@@ -404,6 +404,7 @@ export default function Admin() {
           published: publish,
           original_notes: directContent,
           category: finalCategory,
+          access_password: "",
         });
       } else if (directPreviewCards) {
         await saveFlashcardSet({
@@ -574,6 +575,7 @@ export default function Admin() {
           published: true,
           original_notes: notes,
           category: cat,
+          access_password: "",
         }));
       }
       await Promise.all(saves);
@@ -619,6 +621,7 @@ export default function Admin() {
           published: publish,
           original_notes: notes,
           category: cat,
+          access_password: "",
         });
       }
       toast({ title: publish ? "Published!" : "Draft saved!" });
