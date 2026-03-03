@@ -28,6 +28,7 @@ export interface McqSet {
   published: boolean;
   original_notes: string;
   category: string;
+  access_password: string;
 }
 
 const ADMIN_PASSWORD = "Davis";
@@ -233,6 +234,7 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
         published: set.published,
         original_notes: set.original_notes,
         category: set.category,
+        access_password: set.access_password || "",
       })
       .eq("id", set.id)
       .select()
@@ -248,6 +250,7 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
         published: set.published,
         original_notes: set.original_notes,
         category: set.category,
+        access_password: set.access_password || "",
       })
       .select()
       .single();
