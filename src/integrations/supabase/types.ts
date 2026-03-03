@@ -97,6 +97,7 @@ export type Database = {
       }
       mcq_sets: {
         Row: {
+          access_password: string
           category: string
           created_at: string
           id: string
@@ -106,6 +107,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          access_password?: string
           category?: string
           created_at?: string
           id?: string
@@ -115,6 +117,7 @@ export type Database = {
           title: string
         }
         Update: {
+          access_password?: string
           category?: string
           created_at?: string
           id?: string

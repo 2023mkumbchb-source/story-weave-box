@@ -26,6 +26,7 @@ interface Props {
   title: string;
   setId?: string;
   category?: string;
+  hideAnswers?: boolean;
 }
 interface AttemptRecord {
   date: string;
@@ -99,7 +100,7 @@ function extractKeywords(text: string): string[] {
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
-export default function McqViewer({ questions, title, setId, category }: Props) {
+export default function McqViewer({ questions, title, setId, category, hideAnswers = false }: Props) {
   // Restore order + current from localStorage if available
   const [order, setOrder] = useState<number[]>(() => {
     if (setId) {
@@ -263,6 +264,12 @@ export default function McqViewer({ questions, title, setId, category }: Props) 
   // ── Answer handling ────────────────────────────────────────────────────────
   const handleSelect = (optionIndex: number) => {
     if (revealed) return;
+    if (hideAnswers) {
+      // In hideAnswers mode, just mark the selected option but don't reveal correct answer
+      const newWrong = new Set(wrongAttempts).add(optionIndex);
+      setWrongAttempts(newWrong);
+      return;
+    }
     if (optionIndex === q.correct_answer) {
       setRevealed(true);
       setRelated(null);
@@ -325,10 +332,12 @@ export default function McqViewer({ questions, title, setId, category }: Props) 
   };
 
   const getOptionStyle = (i: number) => {
-    if (revealed && i === q.correct_answer)
+    if (!hideAnswers && revealed && i === q.correct_answer)
       return "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400";
     if (wrongAttempts.has(i))
-      return "border-destructive/50 bg-destructive/10 text-destructive line-through opacity-60";
+      return hideAnswers
+        ? "border-primary/50 bg-primary/10 text-primary"
+        : "border-destructive/50 bg-destructive/10 text-destructive line-through opacity-60";
     return "border-border bg-card hover:border-primary/50 hover:bg-primary/5 cursor-pointer";
   };
 

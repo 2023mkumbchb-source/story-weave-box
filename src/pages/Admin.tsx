@@ -348,33 +348,85 @@ export default function Admin() {
       return;
     }
 
+    setLoading(true);
+    setLoadingType("direct");
     try {
       if (directType === "article") {
-        setDirectPreviewArticle(parseDirectArticle(directContent));
+        // Use Gemini to reformat the article to match site format
+        const { data, error } = await supabase.functions.invoke('generate-content', {
+          body: { notes: directContent, type: 'direct-article', geminiKey, title: directTitle.trim() },
+        });
+        if (error) throw new Error(error.message);
+        if (data?.error) throw new Error(data.error);
+        setDirectPreviewArticle({ title: data.title, content: data.content });
         setDirectPreviewCards(null);
         setDirectPreviewMcqs(null);
-        toast({ title: "Article formatted and ready" });
+        toast({ title: "Article formatted by Gemini ✓" });
       } else if (directType === "mcqs") {
-        const parsed = parseDirectMcqs(directContent);
-        const target = clampRequestedCount(directTargetCount);
-        const limited = parsed.slice(0, target);
-        if (!limited.length) throw new Error("Could not parse MCQs. Paste JSON or Q/A option format.");
-        setDirectPreviewMcqs(limited);
+        // Use Gemini to reformat MCQs
+        const { data, error } = await supabase.functions.invoke('generate-content', {
+          body: { notes: directContent, type: 'direct-mcqs', geminiKey, count: clampRequestedCount(directTargetCount) },
+        });
+        if (error) throw new Error(error.message);
+        if (data?.error) throw new Error(data.error);
+        if (!Array.isArray(data) || data.length === 0) {
+          // Fallback to local parsing
+          const parsed = parseDirectMcqs(directContent);
+          const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
+          if (!limited.length) throw new Error("Could not parse MCQs.");
+          setDirectPreviewMcqs(limited);
+        } else {
+          setDirectPreviewMcqs(data);
+        }
         setDirectPreviewArticle(null);
         setDirectPreviewCards(null);
-        toast({ title: `Formatted ${limited.length} MCQs` });
+        toast({ title: `Formatted MCQs via Gemini ✓` });
       } else {
-        const parsed = parseDirectFlashcards(directContent);
-        const target = clampRequestedCount(directTargetCount);
-        const limited = parsed.slice(0, target);
-        if (!limited.length) throw new Error("Could not parse flashcards. Paste JSON or Q/A format.");
-        setDirectPreviewCards(limited);
+        // Use Gemini to reformat flashcards
+        const { data, error } = await supabase.functions.invoke('generate-content', {
+          body: { notes: directContent, type: 'direct-flashcards', geminiKey, count: clampRequestedCount(directTargetCount) },
+        });
+        if (error) throw new Error(error.message);
+        if (data?.error) throw new Error(data.error);
+        if (!Array.isArray(data) || data.length === 0) {
+          const parsed = parseDirectFlashcards(directContent);
+          const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
+          if (!limited.length) throw new Error("Could not parse flashcards.");
+          setDirectPreviewCards(limited);
+        } else {
+          setDirectPreviewCards(data);
+        }
         setDirectPreviewArticle(null);
         setDirectPreviewMcqs(null);
-        toast({ title: `Formatted ${limited.length} flashcards` });
+        toast({ title: `Formatted flashcards via Gemini ✓` });
       }
     } catch (err: any) {
-      toast({ title: "Format error", description: err.message, variant: "destructive" });
+      toast({ title: "Gemini format failed, using local parsing", description: err.message, variant: "destructive" });
+      // Fallback to local parsing
+      try {
+        if (directType === "article") {
+          setDirectPreviewArticle(parseDirectArticle(directContent));
+          setDirectPreviewCards(null);
+          setDirectPreviewMcqs(null);
+        } else if (directType === "mcqs") {
+          const parsed = parseDirectMcqs(directContent);
+          const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
+          if (!limited.length) throw new Error("Could not parse MCQs.");
+          setDirectPreviewMcqs(limited);
+          setDirectPreviewArticle(null);
+          setDirectPreviewCards(null);
+        } else {
+          const parsed = parseDirectFlashcards(directContent);
+          const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
+          if (!limited.length) throw new Error("Could not parse flashcards.");
+          setDirectPreviewCards(limited);
+          setDirectPreviewArticle(null);
+          setDirectPreviewMcqs(null);
+        }
+      } catch {}
+    } finally {
+      setLoading(false);
+      setLoadingType(null);
     }
   };
 
@@ -404,6 +456,7 @@ export default function Admin() {
           published: publish,
           original_notes: directContent,
           category: finalCategory,
+          access_password: "",
         });
       } else if (directPreviewCards) {
         await saveFlashcardSet({
@@ -574,6 +627,7 @@ export default function Admin() {
           published: true,
           original_notes: notes,
           category: cat,
+          access_password: "",
         }));
       }
       await Promise.all(saves);
@@ -619,6 +673,7 @@ export default function Admin() {
           published: publish,
           original_notes: notes,
           category: cat,
+          access_password: "",
         });
       }
       toast({ title: publish ? "Published!" : "Draft saved!" });
@@ -1176,6 +1231,8 @@ function McqsList() {
   const [sets, setSets] = useState<McqSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<McqSet | null>(null);
+  const [passwordSetId, setPasswordSetId] = useState<string | null>(null);
+  const [passwordValue, setPasswordValue] = useState("");
   const { toast } = useToast();
 
   const refresh = () => { getMcqSets().then(setSets).finally(() => setLoading(false)); };
@@ -1189,6 +1246,20 @@ function McqsList() {
     setEditing(null);
     refresh();
     toast({ title: "Updated!" });
+  };
+
+  const handleSetPassword = async (s: McqSet) => {
+    await saveMcqSet({ ...s, access_password: passwordValue.trim() });
+    setPasswordSetId(null);
+    setPasswordValue("");
+    refresh();
+    toast({ title: passwordValue.trim() ? "Password set! Quiz answers are now locked." : "Password removed. Answers are visible to all." });
+  };
+
+  const handleRemovePassword = async (s: McqSet) => {
+    await saveMcqSet({ ...s, access_password: "" });
+    refresh();
+    toast({ title: "Password removed" });
   };
 
   const updateQuestion = (i: number, field: string, value: any) => {
@@ -1251,19 +1322,55 @@ function McqsList() {
   return (
     <div className="space-y-3">
       {sets.map((s) => (
-        <div key={s.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
-          <div className="min-w-0 flex-1">
-            <h4 className="font-medium text-foreground truncate">{s.title}</h4>
-            <p className="text-xs text-muted-foreground">
-              {s.category !== "Uncategorized" && <span className="text-primary">{getCategoryDisplayName(s.category)} · </span>}
-              {s.questions.length} questions · {new Date(s.created_at).toLocaleDateString()} · {s.published ? "Published" : "Draft"}
-            </p>
+        <div key={s.id} className="rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium text-foreground truncate">{s.title}</h4>
+                {s.access_password && s.access_password !== "" && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    <Key className="h-2.5 w-2.5" /> Locked
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {s.category !== "Uncategorized" && <span className="text-primary">{getCategoryDisplayName(s.category)} · </span>}
+                {s.questions.length} questions · {new Date(s.created_at).toLocaleDateString()} · {s.published ? "Published" : "Draft"}
+              </p>
+            </div>
+            <div className="flex gap-1 ml-2 flex-wrap justify-end">
+              <Button size="sm" variant="ghost" onClick={() => { setPasswordSetId(passwordSetId === s.id ? null : s.id); setPasswordValue(s.access_password || ""); }} title="Set password">
+                <Key className="h-4 w-4" />
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setEditing(s)}><Pencil className="h-4 w-4" /></Button>
+              <Button size="sm" variant="ghost" onClick={() => togglePublish(s)}>{s.published ? "Unpublish" : "Publish"}</Button>
+              <Button size="sm" variant="ghost" onClick={() => handleDelete(s.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+            </div>
           </div>
-          <div className="flex gap-2 ml-2">
-            <Button size="sm" variant="ghost" onClick={() => setEditing(s)}><Pencil className="h-4 w-4" /></Button>
-            <Button size="sm" variant="ghost" onClick={() => togglePublish(s)}>{s.published ? "Unpublish" : "Publish"}</Button>
-            <Button size="sm" variant="ghost" onClick={() => handleDelete(s.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
-          </div>
+
+          {/* Password setting inline */}
+          {passwordSetId === s.id && (
+            <div className="mt-3 pt-3 border-t border-border">
+              <p className="text-xs font-medium text-foreground mb-2">🔒 Set Password (leave empty to remove)</p>
+              <div className="flex gap-2">
+                <Input
+                  type="text"
+                  placeholder="Enter password for this quiz"
+                  value={passwordValue}
+                  onChange={(e) => setPasswordValue(e.target.value)}
+                  className="flex-1 text-sm"
+                />
+                <Button size="sm" onClick={() => handleSetPassword(s)} className="gap-1">
+                  <Save className="h-3 w-3" /> Save
+                </Button>
+                {s.access_password && s.access_password !== "" && (
+                  <Button size="sm" variant="destructive" onClick={() => handleRemovePassword(s)} className="gap-1">
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -1273,13 +1380,19 @@ function McqsList() {
 // --- Settings Panel ---
 function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }) {
   const [localGeminiKey, setLocalGeminiKey] = useState("");
+  const [examPassword, setExamPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [generatingExam, setGeneratingExam] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    getSetting("gemini_api_key").then((v) => {
-      setLocalGeminiKey(v || "");
+    Promise.all([
+      getSetting("gemini_api_key"),
+      getSetting("exam_password"),
+    ]).then(([key, pwd]) => {
+      setLocalGeminiKey(key || "");
+      setExamPassword(pwd || "");
       setLoading(false);
     });
   }, []);
@@ -1294,9 +1407,29 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
       toast({ title: "Gemini API key saved!" });
     } catch (err: any) {
       toast({ title: "Failed to save", description: err.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
+  };
+
+  const handleSaveExamPassword = async () => {
+    setSaving(true);
+    try {
+      await saveSetting("exam_password", examPassword.trim());
+      toast({ title: examPassword.trim() ? "Exam password saved!" : "Exam password removed" });
+    } catch (err: any) {
+      toast({ title: "Failed to save", description: err.message, variant: "destructive" });
+    } finally { setSaving(false); }
+  };
+
+  const handleGenerateExam = async () => {
+    setGeneratingExam(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-exam');
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      toast({ title: `Exam generated! ${data.mcq_count} MCQs, ${data.saq_count} SAQs, ${data.laq_count} LAQs` });
+    } catch (err: any) {
+      toast({ title: "Exam generation failed", description: err.message, variant: "destructive" });
+    } finally { setGeneratingExam(false); }
   };
 
   if (loading) return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
@@ -1304,28 +1437,42 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
   return (
     <div className="max-w-lg space-y-6">
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Google Gemini API (Gemini-only mode)</h3>
+        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Google Gemini API</h3>
         <p className="mb-4 text-sm text-muted-foreground">
-          This project uses Gemini only for AI generation. Enter your Gemini API key from{" "}
+          Enter your Gemini API key from{" "}
           <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google AI Studio</a>.
         </p>
-
         <div className="flex gap-2">
-          <Input
-            type="password"
-            placeholder="Enter your Gemini API key"
-            value={localGeminiKey}
-            onChange={(e) => setLocalGeminiKey(e.target.value)}
-            className="flex-1"
-          />
+          <Input type="password" placeholder="Enter your Gemini API key" value={localGeminiKey} onChange={(e) => setLocalGeminiKey(e.target.value)} className="flex-1" />
           <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2">
-            <Key className="h-3 w-3" />
-            {saving ? "Saving..." : "Save"}
+            <Key className="h-3 w-3" /> {saving ? "Saving..." : "Save"}
           </Button>
         </div>
-        {localGeminiKey && (
-          <p className="mt-2 text-xs text-primary">✓ API key configured</p>
-        )}
+        {localGeminiKey && <p className="mt-2 text-xs text-primary">✓ API key configured</p>}
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-6">
+        <h3 className="mb-2 font-display text-lg font-bold text-foreground">🔒 Default Exam Password</h3>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Set a default password for auto-generated weekly exams. Leave empty for no password.
+        </p>
+        <div className="flex gap-2">
+          <Input type="text" placeholder="Default exam password" value={examPassword} onChange={(e) => setExamPassword(e.target.value)} className="flex-1" />
+          <Button onClick={handleSaveExamPassword} disabled={saving} size="sm" className="gap-2">
+            <Save className="h-3 w-3" /> Save
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-primary/30 bg-primary/5 p-6">
+        <h3 className="mb-2 font-display text-lg font-bold text-foreground">📝 Weekly Exam Generator</h3>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Generates a comprehensive exam from all published content: 60 MCQs + SAQs + LAQs. Auto-runs every Friday at midnight.
+        </p>
+        <Button onClick={handleGenerateExam} disabled={generatingExam} className="gap-2">
+          {generatingExam && <Loader2 className="h-4 w-4 animate-spin" />}
+          {generatingExam ? "Generating Exam..." : "Generate Exam Now"}
+        </Button>
       </div>
     </div>
   );
