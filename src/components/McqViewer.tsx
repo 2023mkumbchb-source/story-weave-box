@@ -26,6 +26,7 @@ interface Props {
   title: string;
   setId?: string;
   category?: string;
+  hideAnswers?: boolean;
 }
 interface AttemptRecord {
   date: string;
