@@ -264,6 +264,12 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
   // ── Answer handling ────────────────────────────────────────────────────────
   const handleSelect = (optionIndex: number) => {
     if (revealed) return;
+    if (hideAnswers) {
+      // In hideAnswers mode, just mark the selected option but don't reveal correct answer
+      const newWrong = new Set(wrongAttempts).add(optionIndex);
+      setWrongAttempts(newWrong);
+      return;
+    }
     if (optionIndex === q.correct_answer) {
       setRevealed(true);
       setRelated(null);
