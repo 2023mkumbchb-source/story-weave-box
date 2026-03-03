@@ -1380,13 +1380,19 @@ function McqsList() {
 // --- Settings Panel ---
 function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }) {
   const [localGeminiKey, setLocalGeminiKey] = useState("");
+  const [examPassword, setExamPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [generatingExam, setGeneratingExam] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    getSetting("gemini_api_key").then((v) => {
-      setLocalGeminiKey(v || "");
+    Promise.all([
+      getSetting("gemini_api_key"),
+      getSetting("exam_password"),
+    ]).then(([key, pwd]) => {
+      setLocalGeminiKey(key || "");
+      setExamPassword(pwd || "");
       setLoading(false);
     });
   }, []);
@@ -1401,9 +1407,29 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
       toast({ title: "Gemini API key saved!" });
     } catch (err: any) {
       toast({ title: "Failed to save", description: err.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
+  };
+
+  const handleSaveExamPassword = async () => {
+    setSaving(true);
+    try {
+      await saveSetting("exam_password", examPassword.trim());
+      toast({ title: examPassword.trim() ? "Exam password saved!" : "Exam password removed" });
+    } catch (err: any) {
+      toast({ title: "Failed to save", description: err.message, variant: "destructive" });
+    } finally { setSaving(false); }
+  };
+
+  const handleGenerateExam = async () => {
+    setGeneratingExam(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-exam');
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      toast({ title: `Exam generated! ${data.mcq_count} MCQs, ${data.saq_count} SAQs, ${data.laq_count} LAQs` });
+    } catch (err: any) {
+      toast({ title: "Exam generation failed", description: err.message, variant: "destructive" });
+    } finally { setGeneratingExam(false); }
   };
 
   if (loading) return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
@@ -1411,28 +1437,42 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
   return (
     <div className="max-w-lg space-y-6">
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Google Gemini API (Gemini-only mode)</h3>
+        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Google Gemini API</h3>
         <p className="mb-4 text-sm text-muted-foreground">
-          This project uses Gemini only for AI generation. Enter your Gemini API key from{" "}
+          Enter your Gemini API key from{" "}
           <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google AI Studio</a>.
         </p>
-
         <div className="flex gap-2">
-          <Input
-            type="password"
-            placeholder="Enter your Gemini API key"
-            value={localGeminiKey}
-            onChange={(e) => setLocalGeminiKey(e.target.value)}
-            className="flex-1"
-          />
+          <Input type="password" placeholder="Enter your Gemini API key" value={localGeminiKey} onChange={(e) => setLocalGeminiKey(e.target.value)} className="flex-1" />
           <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2">
-            <Key className="h-3 w-3" />
-            {saving ? "Saving..." : "Save"}
+            <Key className="h-3 w-3" /> {saving ? "Saving..." : "Save"}
           </Button>
         </div>
-        {localGeminiKey && (
-          <p className="mt-2 text-xs text-primary">✓ API key configured</p>
-        )}
+        {localGeminiKey && <p className="mt-2 text-xs text-primary">✓ API key configured</p>}
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-6">
+        <h3 className="mb-2 font-display text-lg font-bold text-foreground">🔒 Default Exam Password</h3>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Set a default password for auto-generated weekly exams. Leave empty for no password.
+        </p>
+        <div className="flex gap-2">
+          <Input type="text" placeholder="Default exam password" value={examPassword} onChange={(e) => setExamPassword(e.target.value)} className="flex-1" />
+          <Button onClick={handleSaveExamPassword} disabled={saving} size="sm" className="gap-2">
+            <Save className="h-3 w-3" /> Save
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-primary/30 bg-primary/5 p-6">
+        <h3 className="mb-2 font-display text-lg font-bold text-foreground">📝 Weekly Exam Generator</h3>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Generates a comprehensive exam from all published content: 60 MCQs + SAQs + LAQs. Auto-runs every Friday at midnight.
+        </p>
+        <Button onClick={handleGenerateExam} disabled={generatingExam} className="gap-2">
+          {generatingExam && <Loader2 className="h-4 w-4 animate-spin" />}
+          {generatingExam ? "Generating Exam..." : "Generate Exam Now"}
+        </Button>
       </div>
     </div>
   );
