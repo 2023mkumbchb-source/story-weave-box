@@ -348,33 +348,85 @@ export default function Admin() {
       return;
     }
 
+    setLoading(true);
+    setLoadingType("direct");
     try {
       if (directType === "article") {
-        setDirectPreviewArticle(parseDirectArticle(directContent));
+        // Use Gemini to reformat the article to match site format
+        const { data, error } = await supabase.functions.invoke('generate-content', {
+          body: { notes: directContent, type: 'direct-article', geminiKey, title: directTitle.trim() },
+        });
+        if (error) throw new Error(error.message);
+        if (data?.error) throw new Error(data.error);
+        setDirectPreviewArticle({ title: data.title, content: data.content });
         setDirectPreviewCards(null);
         setDirectPreviewMcqs(null);
-        toast({ title: "Article formatted and ready" });
+        toast({ title: "Article formatted by Gemini ✓" });
       } else if (directType === "mcqs") {
-        const parsed = parseDirectMcqs(directContent);
-        const target = clampRequestedCount(directTargetCount);
-        const limited = parsed.slice(0, target);
-        if (!limited.length) throw new Error("Could not parse MCQs. Paste JSON or Q/A option format.");
-        setDirectPreviewMcqs(limited);
+        // Use Gemini to reformat MCQs
+        const { data, error } = await supabase.functions.invoke('generate-content', {
+          body: { notes: directContent, type: 'direct-mcqs', geminiKey, count: clampRequestedCount(directTargetCount) },
+        });
+        if (error) throw new Error(error.message);
+        if (data?.error) throw new Error(data.error);
+        if (!Array.isArray(data) || data.length === 0) {
+          // Fallback to local parsing
+          const parsed = parseDirectMcqs(directContent);
+          const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
+          if (!limited.length) throw new Error("Could not parse MCQs.");
+          setDirectPreviewMcqs(limited);
+        } else {
+          setDirectPreviewMcqs(data);
+        }
         setDirectPreviewArticle(null);
         setDirectPreviewCards(null);
-        toast({ title: `Formatted ${limited.length} MCQs` });
+        toast({ title: `Formatted MCQs via Gemini ✓` });
       } else {
-        const parsed = parseDirectFlashcards(directContent);
-        const target = clampRequestedCount(directTargetCount);
-        const limited = parsed.slice(0, target);
-        if (!limited.length) throw new Error("Could not parse flashcards. Paste JSON or Q/A format.");
-        setDirectPreviewCards(limited);
+        // Use Gemini to reformat flashcards
+        const { data, error } = await supabase.functions.invoke('generate-content', {
+          body: { notes: directContent, type: 'direct-flashcards', geminiKey, count: clampRequestedCount(directTargetCount) },
+        });
+        if (error) throw new Error(error.message);
+        if (data?.error) throw new Error(data.error);
+        if (!Array.isArray(data) || data.length === 0) {
+          const parsed = parseDirectFlashcards(directContent);
+          const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
+          if (!limited.length) throw new Error("Could not parse flashcards.");
+          setDirectPreviewCards(limited);
+        } else {
+          setDirectPreviewCards(data);
+        }
         setDirectPreviewArticle(null);
         setDirectPreviewMcqs(null);
-        toast({ title: `Formatted ${limited.length} flashcards` });
+        toast({ title: `Formatted flashcards via Gemini ✓` });
       }
     } catch (err: any) {
-      toast({ title: "Format error", description: err.message, variant: "destructive" });
+      toast({ title: "Gemini format failed, using local parsing", description: err.message, variant: "destructive" });
+      // Fallback to local parsing
+      try {
+        if (directType === "article") {
+          setDirectPreviewArticle(parseDirectArticle(directContent));
+          setDirectPreviewCards(null);
+          setDirectPreviewMcqs(null);
+        } else if (directType === "mcqs") {
+          const parsed = parseDirectMcqs(directContent);
+          const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
+          if (!limited.length) throw new Error("Could not parse MCQs.");
+          setDirectPreviewMcqs(limited);
+          setDirectPreviewArticle(null);
+          setDirectPreviewCards(null);
+        } else {
+          const parsed = parseDirectFlashcards(directContent);
+          const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
+          if (!limited.length) throw new Error("Could not parse flashcards.");
+          setDirectPreviewCards(limited);
+          setDirectPreviewArticle(null);
+          setDirectPreviewMcqs(null);
+        }
+      } catch {}
+    } finally {
+      setLoading(false);
+      setLoadingType(null);
     }
   };
 
