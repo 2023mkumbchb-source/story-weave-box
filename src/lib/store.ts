@@ -8,6 +8,7 @@ export interface Article {
   published: boolean;
   original_notes: string;
   category: string;
+  is_raw?: boolean;
 }
 
 export interface FlashcardSet {
@@ -18,6 +19,7 @@ export interface FlashcardSet {
   published: boolean;
   original_notes: string;
   category: string;
+  is_raw?: boolean;
 }
 
 export interface McqSet {
@@ -29,6 +31,7 @@ export interface McqSet {
   original_notes: string;
   category: string;
   access_password: string;
+  is_raw?: boolean;
 }
 
 const ADMIN_PASSWORD = "Davis";
@@ -51,7 +54,6 @@ export const UNIT_CATEGORIES = [
   "Cardiovascular System Pathology",
 ];
 
-// Helper to get display name from category (strips code prefix if present)
 export function getCategoryDisplayName(category: string): string {
   if (!category || category === "Uncategorized") return category;
   const parts = category.split(":");
@@ -89,16 +91,19 @@ export async function getArticleById(id: string): Promise<Article | null> {
 }
 
 export async function saveArticle(article: Omit<Article, "id"> & { id?: string }): Promise<Article> {
+  const payload = {
+    title: article.title,
+    content: article.content,
+    published: article.published,
+    original_notes: article.original_notes,
+    category: article.category,
+    is_raw: article.is_raw ?? false,
+  };
+
   if (article.id) {
     const { data, error } = await supabase
       .from("articles")
-      .update({
-        title: article.title,
-        content: article.content,
-        published: article.published,
-        original_notes: article.original_notes,
-        category: article.category,
-      })
+      .update(payload)
       .eq("id", article.id)
       .select()
       .single();
@@ -107,13 +112,7 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
   } else {
     const { data, error } = await supabase
       .from("articles")
-      .insert({
-        title: article.title,
-        content: article.content,
-        published: article.published,
-        original_notes: article.original_notes,
-        category: article.category,
-      })
+      .insert(payload)
       .select()
       .single();
     if (error) throw error;
@@ -157,16 +156,19 @@ export async function getFlashcardSetById(id: string): Promise<FlashcardSet | nu
 }
 
 export async function saveFlashcardSet(set: Omit<FlashcardSet, "id"> & { id?: string }): Promise<FlashcardSet> {
+  const payload = {
+    title: set.title,
+    cards: set.cards as any,
+    published: set.published,
+    original_notes: set.original_notes,
+    category: set.category,
+    is_raw: set.is_raw ?? false,
+  };
+
   if (set.id) {
     const { data, error } = await supabase
       .from("flashcard_sets")
-      .update({
-        title: set.title,
-        cards: set.cards as any,
-        published: set.published,
-        original_notes: set.original_notes,
-        category: set.category,
-      })
+      .update(payload)
       .eq("id", set.id)
       .select()
       .single();
@@ -175,13 +177,7 @@ export async function saveFlashcardSet(set: Omit<FlashcardSet, "id"> & { id?: st
   } else {
     const { data, error } = await supabase
       .from("flashcard_sets")
-      .insert({
-        title: set.title,
-        cards: set.cards as any,
-        published: set.published,
-        original_notes: set.original_notes,
-        category: set.category,
-      })
+      .insert(payload)
       .select()
       .single();
     if (error) throw error;
@@ -225,17 +221,20 @@ export async function getMcqSetById(id: string): Promise<McqSet | null> {
 }
 
 export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Promise<McqSet> {
+  const payload = {
+    title: set.title,
+    questions: set.questions as any,
+    published: set.published,
+    original_notes: set.original_notes,
+    category: set.category,
+    access_password: set.access_password || "",
+    is_raw: set.is_raw ?? false,
+  };
+
   if (set.id) {
     const { data, error } = await supabase
       .from("mcq_sets")
-      .update({
-        title: set.title,
-        questions: set.questions as any,
-        published: set.published,
-        original_notes: set.original_notes,
-        category: set.category,
-        access_password: set.access_password || "",
-      })
+      .update(payload)
       .eq("id", set.id)
       .select()
       .single();
@@ -244,14 +243,7 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
   } else {
     const { data, error } = await supabase
       .from("mcq_sets")
-      .insert({
-        title: set.title,
-        questions: set.questions as any,
-        published: set.published,
-        original_notes: set.original_notes,
-        category: set.category,
-        access_password: set.access_password || "",
-      })
+      .insert(payload)
       .select()
       .single();
     if (error) throw error;
@@ -264,7 +256,7 @@ export async function deleteMcqSet(id: string) {
   if (error) throw error;
 }
 
-// Related content by category - only same category
+// Related content by category
 export async function getRelatedContent(category: string, excludeArticleId?: string) {
   const [{ data: articles }, { data: flashcards }, { data: mcqs }] = await Promise.all([
     supabase.from("articles").select("id, title, category").eq("published", true).eq("category", category),
@@ -278,7 +270,6 @@ export async function getRelatedContent(category: string, excludeArticleId?: str
   };
 }
 
-// All categories across all content types
 export async function getAllCategories(): Promise<{ name: string; articles: number; flashcards: number; mcqs: number }[]> {
   const [{ data: articles }, { data: flashcards }, { data: mcqs }] = await Promise.all([
     supabase.from("articles").select("category").eq("published", true),
@@ -322,35 +313,27 @@ export async function getCategories(): Promise<{ name: string; count: number }[]
   return Object.entries(counts).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
 }
 
-// App Settings
 export async function getSetting(key: string): Promise<string> {
   const { data, error } = await supabase
     .from("app_settings")
     .select("value")
     .eq("key", key)
     .maybeSingle();
-
   if (error) {
-    console.error(`Failed to load setting \"${key}\":`, error.message);
+    console.error(`Failed to load setting "${key}":`, error.message);
     return "";
   }
-
   return data?.value || "";
 }
 
 export async function saveSetting(key: string, value: string): Promise<void> {
   const normalized = value.trim();
-
   const { data: existing, error: existingError } = await supabase
     .from("app_settings")
     .select("id")
     .eq("key", key)
     .maybeSingle();
-
-  if (existingError) {
-    throw existingError;
-  }
-
+  if (existingError) throw existingError;
   if (existing) {
     const { error } = await supabase.from("app_settings").update({ value: normalized }).eq("key", key);
     if (error) throw error;
