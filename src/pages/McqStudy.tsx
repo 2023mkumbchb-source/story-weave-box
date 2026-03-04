@@ -65,80 +65,72 @@ export default function McqStudy() {
 
   if (examMode) {
     return (
-      /* overflow-x-hidden here prevents exam mode drag from creating horizontal scroll */
-      <div className="w-full overflow-x-hidden">
-        <div className="mx-auto max-w-3xl px-3 sm:px-6 py-8 sm:py-12 pb-20">
-          <ExamMode
-            questions={set.questions}
-            title={set.title}
-            setId={set.id}
-            hideAnswers={hideAnswers}
-            onExit={() => setExamMode(false)}
-          />
-        </div>
+      <div className="mx-auto max-w-3xl px-5 sm:px-6 py-10 sm:py-12 pb-20">
+        <ExamMode
+          questions={set.questions}
+          title={set.title}
+          setId={set.id}
+          hideAnswers={hideAnswers}
+          onExit={() => setExamMode(false)}
+        />
       </div>
     );
   }
 
   return (
-    /* overflow-x-hidden prevents framer-motion drag from creating a horizontal scrollbar */
-    <div className="w-full overflow-x-hidden">
-      <div className="mx-auto max-w-3xl px-3 sm:px-6 py-8 sm:py-12 pb-20">
+    <div className="mx-auto max-w-3xl px-5 sm:px-6 py-10 sm:py-12 pb-20">
+      <div className="flex items-center justify-between mb-4">
+        <Button asChild variant="ghost" size="sm" className="gap-2 text-muted-foreground -ml-1">
+          <Link to="/mcqs"><ArrowLeft className="h-4 w-4" /> Back to MCQs</Link>
+        </Button>
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => setExamMode(true)}>
+          <ListChecks className="h-4 w-4" /> Exam Mode
+        </Button>
+      </div>
 
-        {/* Top bar */}
-        <div className="flex items-center justify-between mb-4">
-          <Button asChild variant="ghost" size="sm" className="gap-2 text-muted-foreground -ml-1">
-            <Link to="/mcqs"><ArrowLeft className="h-4 w-4" /> Back to MCQs</Link>
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => setExamMode(true)}>
-            <ListChecks className="h-4 w-4" /> Exam Mode
-          </Button>
+      {unitName && unitName !== "Uncategorized" && (
+        <div className="mb-6 text-center">
+          <span className="inline-block rounded-full bg-primary/10 px-4 py-1 text-sm font-medium text-primary">
+            {unitName}
+          </span>
         </div>
+      )}
 
-        {unitName && unitName !== "Uncategorized" && (
-          <div className="mb-4 text-center">
-            <span className="inline-block rounded-full bg-primary/10 px-4 py-1 text-sm font-medium text-primary">
-              {unitName}
-            </span>
-          </div>
-        )}
-
-        {isLocked && (
-          <div className="mb-6 rounded-2xl border-2 border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 p-5 text-center">
-            <Lock className="mx-auto mb-3 h-7 w-7 text-amber-600 dark:text-amber-400" />
-            <h3 className="mb-2 font-display text-base font-bold text-foreground">Password Protected</h3>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Enter the password to view answers and explanations.
-            </p>
-            <div className="flex items-center justify-center gap-2 max-w-xs mx-auto">
-              <Input
-                type="password"
-                placeholder="Enter password"
-                value={passwordInput}
-                onChange={(e) => { setPasswordInput(e.target.value); setPasswordError(false); }}
-                onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
-                className={passwordError ? "border-destructive" : ""}
-              />
-              <Button onClick={handleUnlock} size="sm" className="gap-2 shrink-0">
-                <Unlock className="h-4 w-4" /> Unlock
-              </Button>
-            </div>
-            {passwordError && <p className="mt-2 text-sm text-destructive font-medium">Wrong password</p>}
-            <p className="mt-3 text-xs text-muted-foreground">Or continue without unlocking — answers will be hidden</p>
-            <Button variant="ghost" size="sm" className="mt-2" onClick={() => setPasswordUnlocked(false)}>
-              Continue without password →
+      {isLocked && (
+        <div className="mb-6 rounded-2xl border-2 border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 p-6 text-center">
+          <Lock className="mx-auto mb-3 h-8 w-8 text-amber-600 dark:text-amber-400" />
+          <h3 className="mb-2 font-display text-lg font-bold text-foreground">Password Protected</h3>
+          <p className="mb-4 text-sm text-muted-foreground">
+            This quiz is locked. Enter the password to view answers and explanations.
+          </p>
+          <div className="flex items-center justify-center gap-2 max-w-xs mx-auto">
+            <Input
+              type="password"
+              placeholder="Enter password"
+              value={passwordInput}
+              onChange={(e) => { setPasswordInput(e.target.value); setPasswordError(false); }}
+              onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
+              className={passwordError ? "border-destructive" : ""}
+            />
+            <Button onClick={handleUnlock} size="sm" className="gap-2 shrink-0">
+              <Unlock className="h-4 w-4" /> Unlock
             </Button>
           </div>
-        )}
+          {passwordError && <p className="mt-2 text-sm text-destructive font-medium">Wrong password</p>}
+          <p className="mt-3 text-xs text-muted-foreground">Or continue without unlocking — answers will be hidden</p>
+          <Button variant="ghost" size="sm" className="mt-2" onClick={() => setPasswordUnlocked(false)}>
+            Continue without password →
+          </Button>
+        </div>
+      )}
 
-        <McqViewer
-          questions={set.questions}
-          title={set.title}
-          setId={set.id}
-          category={set.category}
-          hideAnswers={hideAnswers}
-        />
-      </div>
+      <McqViewer
+        questions={set.questions}
+        title={set.title}
+        setId={set.id}
+        category={set.category}
+        hideAnswers={hideAnswers}
+      />
     </div>
   );
 }
