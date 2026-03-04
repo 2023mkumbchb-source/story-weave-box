@@ -1043,9 +1043,12 @@ export default function Admin() {
             />
 
             <div className="mb-4 flex flex-wrap gap-3">
-              <Button onClick={handleFormatDirect} variant="outline">Format & Preview</Button>
-              <Button onClick={() => handleDirectSave(false)} variant="outline">Save Draft</Button>
-              <Button onClick={() => handleDirectSave(true)}>Direct Publish</Button>
+              <Button onClick={handleFormatDirect} variant="outline" disabled={loading} className="gap-2">
+                {loading && loadingType === "direct" && <Loader2 className="h-4 w-4 animate-spin" />}
+                {loading && loadingType === "direct" ? "Formatting with Gemini..." : "✨ Format with Gemini"}
+              </Button>
+              <Button onClick={() => handleDirectSave(false)} variant="outline" disabled={loading}>Save Draft</Button>
+              <Button onClick={() => handleDirectSave(true)} disabled={loading}>Direct Publish</Button>
             </div>
 
             {directPreviewArticle && (
