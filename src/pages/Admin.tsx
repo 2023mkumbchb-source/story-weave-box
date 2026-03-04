@@ -712,9 +712,9 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
   const refresh = async () => {
     setLoading(true);
     const [arts, flashcards, mcqs] = await Promise.all([getArticles(), getFlashcardSets(), getMcqSets()]);
-    setArticles(arts.filter((a: any) => a.is_raw));
-    setFlashcardSets(flashcards.filter((f: any) => f.is_raw));
-    setMcqSets(mcqs.filter((m: any) => m.is_raw));
+    setArticles(arts.filter((a: any) => a.is_raw === true));
+    setFlashcardSets(flashcards.filter((f: any) => f.is_raw === true));
+    setMcqSets(mcqs.filter((m: any) => m.is_raw === true));
     setLoading(false);
   };
 
@@ -927,7 +927,7 @@ function ArticlesList() {
   const [editing, setEditing] = useState<Article | null>(null);
   const { toast } = useToast();
 
-  const refresh = () => { getArticles().then((arts) => setArticles(arts.filter((a: any) => !a.is_raw))).finally(() => setLoading(false)); };
+  const refresh = () => { getArticles().then((arts) => setArticles(arts.filter((a: any) => a.is_raw !== true))).finally(() => setLoading(false)); };
   useEffect(() => { refresh(); }, []);
 
   const handleDelete = async (id: string) => { await deleteArticle(id); refresh(); toast({ title: "Deleted" }); };
@@ -987,7 +987,7 @@ function FlashcardsList() {
   const [editing, setEditing] = useState<FlashcardSet | null>(null);
   const { toast } = useToast();
 
-  const refresh = () => { getFlashcardSets().then((s) => setSets(s.filter((f: any) => !f.is_raw))).finally(() => setLoading(false)); };
+  const refresh = () => { getFlashcardSets().then((s) => setSets(s.filter((f: any) => f.is_raw !== true))).finally(() => setLoading(false)); };
   useEffect(() => { refresh(); }, []);
 
   const handleDelete = async (id: string) => { await deleteFlashcardSet(id); refresh(); toast({ title: "Deleted" }); };
@@ -1059,7 +1059,7 @@ function McqsList() {
   const [passwordValue, setPasswordValue] = useState("");
   const { toast } = useToast();
 
-  const refresh = () => { getMcqSets().then((s) => setSets(s.filter((m: any) => !m.is_raw))).finally(() => setLoading(false)); };
+  const refresh = () => { getMcqSets().then((s) => setSets(s.filter((m: any) => m.is_raw !== true))).finally(() => setLoading(false)); };
   useEffect(() => { refresh(); }, []);
 
   const handleDelete = async (id: string) => { await deleteMcqSet(id); refresh(); toast({ title: "Deleted" }); };
