@@ -779,9 +779,21 @@ export default function Admin() {
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
+  if (authLoading) {
+    return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
-      <h1 className="mb-6 font-display text-3xl font-bold text-foreground">Dashboard</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="font-display text-3xl font-bold text-foreground">Dashboard</h1>
+        <div className="flex items-center gap-3">
+          {user && <span className="text-xs text-muted-foreground hidden sm:inline">{user.email}</span>}
+          <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate("/"); }} className="gap-2 text-muted-foreground">
+            <LogOut className="h-4 w-4" /> Logout
+          </Button>
+        </div>
+      </div>
 
       <div className="mb-8 flex gap-1 rounded-xl border border-border bg-secondary/50 p-1 overflow-x-auto">
         {tabs.map((t) => (
