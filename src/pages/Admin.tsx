@@ -306,9 +306,7 @@ export default function Admin() {
 
   const handleDirectSave = async (publish: boolean) => {
     try {
-      let cat = directCategory;
-      if (!cat) { cat = await autoCategorizе(directContent); setDirectCategory(cat); }
-      const finalCategory = cat || "Uncategorized";
+      const finalCategory = directCategory || "Uncategorized";
       if (directPreviewArticle) {
         await saveArticle({ title: directPreviewArticle.title, content: directPreviewArticle.content, created_at: new Date().toISOString(), published: publish, original_notes: directContent, category: finalCategory });
       } else if (directPreviewMcqs) {
