@@ -6,34 +6,35 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-async function callGemini(prompt: string): Promise<string> {
-  const apiKey = Deno.env.get("GEMINI_API_KEY");
-  if (!apiKey) throw new Error("GEMINI_API_KEY not set");
+async function callLovableAI(prompt: string): Promise<string> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) throw new Error("LOVABLE_API_KEY not set");
 
-  const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
-  for (const model of MODELS) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 45000);
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-          signal: controller.signal,
-        }
-      );
-      clearTimeout(timeout);
-      if (response.ok) {
-        const data = await response.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      }
-      if (response.status === 429) continue;
-      await response.text();
-    } catch { continue; }
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: "You are a senior medical exam writer. Return ONLY valid JSON, no markdown or code blocks." },
+        { role: "user", content: prompt },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    console.error("Lovable AI error:", response.status, text);
+    if (response.status === 429) throw new Error("Rate limited - please try again later");
+    if (response.status === 402) throw new Error("AI credits exhausted - please add credits");
+    throw new Error(`AI error: ${response.status}`);
   }
-  throw new Error("Gemini unavailable");
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || "";
 }
 
 serve(async (req) => {
@@ -44,7 +45,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get all published MCQ sets to extract content
+    // Get all published MCQ sets
     const { data: mcqSets } = await supabase
       .from("mcq_sets")
       .select("title, questions, category")
@@ -61,14 +62,23 @@ serve(async (req) => {
       });
     }
 
-    // Gather all categories and sample content
+    // Get wrong answers to prioritize
+    const { data: wrongAnswers } = await supabase
+      .from("user_answers")
+      .select("question_text, correct_answer")
+      .eq("is_correct", false)
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    const weakTopics = (wrongAnswers || []).map((a: any) => a.question_text).slice(0, 30);
+
+    // Gather categories and sample content
     const allCategories = new Set<string>();
     const contentSummary: string[] = [];
 
     (mcqSets || []).forEach((s: any) => {
       if (s.category) allCategories.add(s.category);
       const qs = s.questions as any[];
-      // Sample some questions for context
       qs.slice(0, 3).forEach((q: any) => {
         contentSummary.push(`[MCQ - ${s.category}] ${q.question}`);
       });
@@ -81,12 +91,16 @@ serve(async (req) => {
 
     const categories = [...allCategories].filter(c => c !== "Uncategorized");
     const contextStr = contentSummary.slice(0, 50).join("\n");
+    const weakStr = weakTopics.length > 0
+      ? `\n\nPRIORITIZE these topics the student struggles with:\n${weakTopics.join("\n")}`
+      : "";
 
-    // Generate 60 MCQs
-    const mcqPrompt = `You are a senior medical exam writer. Generate EXACTLY 60 high-quality MCQs for a comprehensive weekly exam covering these medical units: ${categories.join(", ")}.
+    // Generate MCQs
+    const mcqPrompt = `Generate EXACTLY 60 high-quality MCQs for a comprehensive weekly exam covering: ${categories.join(", ")}.
 
-Here is sample content from the study materials:
+Sample content:
 ${contextStr}
+${weakStr}
 
 REQUIREMENTS:
 - Return ONLY a valid JSON array
@@ -94,12 +108,10 @@ REQUIREMENTS:
 - correct_answer is 0-based index
 - Mix all categories evenly
 - Prioritize challenging, clinically-applied vignette-style questions
-- Focus on commonly tested exam topics
-- Include tricky distractors that test deep understanding
-- No duplicates
-- No markdown, no code blocks`;
+- Include tricky distractors
+- No duplicates`;
 
-    const mcqText = await callGemini(mcqPrompt);
+    const mcqText = await callLovableAI(mcqPrompt);
     const mcqMatch = mcqText.match(/\[[\s\S]*\]/);
     let examMcqs: any[] = [];
     if (mcqMatch) {
@@ -116,23 +128,18 @@ REQUIREMENTS:
     }
 
     // Generate SAQs and LAQs
-    const essayPrompt = `You are a senior medical exam writer. Generate exam questions for a comprehensive weekly exam.
-
-Units covered: ${categories.join(", ")}
+    const essayPrompt = `Generate exam questions for a comprehensive weekly exam.
+Units: ${categories.join(", ")}
+${weakStr}
 
 Generate:
-1. SECTION B - 8 Short Answer Questions (SAQs): Each should require 2-4 sentence answers on key concepts.
-2. SECTION C - 4 Long Answer Questions (LAQs): Each should require detailed essay-style answers (pathophysiology, diagnosis, management).
+1. SECTION B - 8 Short Answer Questions (SAQs): 2-4 sentence answers
+2. SECTION C - 4 Long Answer Questions (LAQs): detailed essay-style
 
 Return ONLY valid JSON:
-{
-  "saqs": [{"question": "...", "model_answer": "...", "marks": 5}],
-  "laqs": [{"question": "...", "model_answer": "...", "marks": 15}]
-}
+{"saqs": [{"question": "...", "model_answer": "...", "marks": 5}], "laqs": [{"question": "...", "model_answer": "...", "marks": 15}]}`;
 
-Focus on clinically relevant, exam-worthy topics. No markdown, no code blocks.`;
-
-    const essayText = await callGemini(essayPrompt);
+    const essayText = await callLovableAI(essayPrompt);
     let saqs: any[] = [];
     let laqs: any[] = [];
     try {
@@ -144,7 +151,7 @@ Focus on clinically relevant, exam-worthy topics. No markdown, no code blocks.`;
       }
     } catch {}
 
-    // Get default exam password
+    // Get exam password
     const { data: passwordSetting } = await supabase
       .from("app_settings")
       .select("value")
@@ -152,11 +159,9 @@ Focus on clinically relevant, exam-worthy topics. No markdown, no code blocks.`;
       .maybeSingle();
     const examPassword = passwordSetting?.value || "";
 
-    // Save the exam as a special MCQ set with exam metadata
     const now = new Date();
     const examTitle = `Weekly Exam - ${now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
 
-    // Save MCQ section
     if (examMcqs.length > 0) {
       await supabase.from("mcq_sets").insert({
         title: `${examTitle} (Section A: MCQs)`,

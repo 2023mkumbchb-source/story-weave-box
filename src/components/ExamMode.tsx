@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Check, X, Lightbulb, Trophy, AlertCircle, Clock } from "lucide-react";
+import { Check, X, Lightbulb, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trackAnswer } from "@/lib/answer-tracker";
 
@@ -19,6 +19,16 @@ interface Props {
   onExit: () => void;
 }
 
+function ExamTimer({ startTime }: { startTime: number }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const sec = Math.floor((Date.now() - startTime) / 1000);
+  return <span>{Math.floor(sec / 60)}:{String(sec % 60).padStart(2, "0")}</span>;
+}
+
 export default function ExamMode({ questions, title, setId, hideAnswers = false, onExit }: Props) {
   const [answers, setAnswers] = useState<Map<number, number>>(new Map());
   const [submitted, setSubmitted] = useState(false);
@@ -26,20 +36,15 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
 
   const selectAnswer = (qIdx: number, optIdx: number) => {
     if (submitted) return;
-    setAnswers((prev) => {
-      const next = new Map(prev);
-      next.set(qIdx, optIdx);
-      return next;
-    });
+    setAnswers((prev) => new Map(prev).set(qIdx, optIdx));
   };
 
   const handleSubmit = async () => {
     setSubmitted(true);
-    // Track answers for logged-in users
     if (setId) {
       for (const [qIdx, selectedOpt] of answers.entries()) {
         const q = questions[qIdx];
-        await trackAnswer({
+        trackAnswer({
           mcq_set_id: setId,
           question_index: qIdx,
           question_text: q.question,
@@ -67,7 +72,6 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
 
     return (
       <div className="mx-auto max-w-3xl space-y-6 pb-12">
-        {/* Score summary */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           className={`rounded-2xl border ${grade.bg} p-6 text-center`}>
           <div className="text-5xl mb-3">{grade.emoji}</div>
@@ -93,7 +97,6 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
           </div>
         </motion.div>
 
-        {/* All questions with results */}
         <div className="space-y-4">
           {questions.map((q, qi) => {
             const selected = answers.get(qi);
@@ -109,12 +112,9 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
                   <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                     !wasAnswered ? "bg-muted-foreground/20 text-muted-foreground" :
                     isCorrect ? "bg-green-500/20 text-green-600" : "bg-destructive/20 text-destructive"
-                  }`}>
-                    {qi + 1}
-                  </span>
+                  }`}>{qi + 1}</span>
                   <p className="text-sm font-medium text-foreground leading-relaxed">{q.question}</p>
                 </div>
-
                 <div className="space-y-1.5 ml-10">
                   {q.options.map((opt, oi) => {
                     const isSelected = selected === oi;
@@ -122,7 +122,6 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
                     let style = "border-border bg-card";
                     if (isCorrectOpt && !hideAnswers) style = "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400";
                     else if (isSelected && !isCorrectOpt) style = "border-destructive/50 bg-destructive/10 text-destructive";
-
                     return (
                       <div key={oi} className={`flex items-start gap-2 rounded-lg border p-2.5 text-sm ${style}`}>
                         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold">
@@ -135,7 +134,6 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
                     );
                   })}
                 </div>
-
                 {q.explanation && !hideAnswers && (
                   <div className="mt-2 ml-10 rounded-lg border border-primary/20 bg-primary/5 p-3 flex gap-2">
                     <Lightbulb className="h-4 w-4 text-primary shrink-0 mt-0.5" />
@@ -146,20 +144,16 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
             );
           })}
         </div>
-
-        <div className="flex gap-3">
-          <Button onClick={onExit} className="flex-1">← Back to Quiz</Button>
-        </div>
+        <Button onClick={onExit} className="w-full">← Back to Quiz</Button>
       </div>
     );
   }
 
-  // Pre-submission exam view
   return (
-    <div className="mx-auto max-w-3xl space-y-4 pb-12">
+    <div className="mx-auto max-w-3xl space-y-4 pb-20">
       <div className="sticky top-0 z-10 rounded-xl border border-border bg-card/95 backdrop-blur p-3 flex items-center justify-between">
         <div>
-          <h2 className="font-display text-lg font-bold text-foreground">{title}</h2>
+          <h2 className="font-display text-lg font-bold text-foreground truncate">{title}</h2>
           <p className="text-xs text-muted-foreground">{answered}/{total} answered</p>
         </div>
         <div className="flex items-center gap-3">
@@ -167,8 +161,9 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
             <Clock className="h-3 w-3" />
             <ExamTimer startTime={startTime} />
           </div>
+          <Button size="sm" onClick={onExit} variant="ghost">Exit</Button>
           <Button size="sm" onClick={handleSubmit} disabled={answered === 0}>
-            Submit Exam ({answered}/{total})
+            Submit ({answered}/{total})
           </Button>
         </div>
       </div>
@@ -190,7 +185,6 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
               </span>
               <p className="text-sm font-medium text-foreground leading-relaxed">{q.question}</p>
             </div>
-
             <div className="space-y-1.5 ml-10">
               {q.options.map((opt, oi) => (
                 <button key={oi} onClick={() => selectAnswer(qi, oi)}
@@ -201,9 +195,7 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
                   }`}>
                   <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold ${
                     selected === oi ? "border-primary bg-primary text-primary-foreground" : ""
-                  }`}>
-                    {String.fromCharCode(65 + oi)}
-                  </span>
+                  }`}>{String.fromCharCode(65 + oi)}</span>
                   <span className="flex-1">{opt}</span>
                 </button>
               ))}
@@ -213,41 +205,10 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
       })}
 
       <div className="sticky bottom-4 flex justify-center">
-        <Button size="lg" onClick={handleSubmit} disabled={answered === 0}
-          className="gap-2 shadow-lg">
+        <Button size="lg" onClick={handleSubmit} disabled={answered === 0} className="gap-2 shadow-lg">
           Submit Exam ({answered}/{total})
         </Button>
       </div>
     </div>
   );
-}
-
-function ExamTimer({ startTime }: { startTime: number }) {
-  const [elapsed, setElapsed] = useState(0);
-  
-  useState(() => {
-    const timer = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startTime) / 1000));
-    }, 1000);
-    return () => clearInterval(timer);
-  });
-
-  // Use effect for the timer
-  import { useEffect } from "react";
-  
-  return null; // Will fix below
-}
-
-// Proper timer component
-function ExamTimerDisplay({ startTime }: { startTime: number }) {
-  const [, setTick] = useState(0);
-  
-  // Force re-render every second
-  useState(() => {
-    const id = setInterval(() => setTick(t => t + 1), 1000);
-    return () => clearInterval(id);
-  });
-
-  const sec = Math.floor((Date.now() - startTime) / 1000);
-  return <span>{Math.floor(sec / 60)}:{String(sec % 60).padStart(2, "0")}</span>;
 }
