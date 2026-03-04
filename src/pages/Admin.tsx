@@ -23,18 +23,20 @@ type DirectType = "article" | "mcqs" | "flashcards";
 export default function Admin() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, isAdmin, loading: authLoading, signOut } = useAuth();
   const [geminiKey, setGeminiKey] = useState("");
 
   useEffect(() => {
-    if (sessionStorage.getItem("learninghub_auth") !== "true") {
+    if (!authLoading && !user) {
       navigate("/login");
     }
-    // Load Gemini key once on mount
     getSetting("gemini_api_key").then((key) => {
-      console.log("Loaded Gemini key:", key ? "YES" : "NO");
       setGeminiKey(key || "");
     });
-  }, [navigate]);
+  }, [navigate, user, authLoading]);
+
+  // Publishing progress state
+  const [publishProgress, setPublishProgress] = useState<{ current: number; total: number; label: string } | null>(null);
 
   const [tab, setTab] = useState<Tab>("create");
   const [notes, setNotes] = useState("");
