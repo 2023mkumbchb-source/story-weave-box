@@ -1136,13 +1136,27 @@ export default function Admin() {
               className="mb-4 min-h-[180px]"
             />
 
+            {publishProgress && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-muted-foreground">{publishProgress.label}</span>
+                  <span className="text-xs font-medium text-primary">{Math.round((publishProgress.current / publishProgress.total) * 100)}%</span>
+                </div>
+                <Progress value={(publishProgress.current / publishProgress.total) * 100} className="h-2" />
+              </div>
+            )}
+
             <div className="mb-4 flex flex-wrap gap-3">
               <Button onClick={handleFormatDirect} variant="outline" disabled={loading} className="gap-2">
                 {loading && loadingType === "direct" && <Loader2 className="h-4 w-4 animate-spin" />}
                 {loading && loadingType === "direct" ? "Formatting with Gemini..." : "✨ Format with Gemini"}
               </Button>
+              <Button onClick={() => handleDirectPublishRaw(true)} disabled={loading} variant="default" className="gap-2">
+                {loading && loadingType === "direct-raw" && <Loader2 className="h-4 w-4 animate-spin" />}
+                {loading && loadingType === "direct-raw" ? "Publishing..." : "⚡ Direct Publish (No AI)"}
+              </Button>
               <Button onClick={() => handleDirectSave(false)} variant="outline" disabled={loading}>Save Draft</Button>
-              <Button onClick={() => handleDirectSave(true)} disabled={loading}>Direct Publish</Button>
+              <Button onClick={() => handleDirectSave(true)} variant="secondary" disabled={loading}>Publish (Formatted)</Button>
             </div>
 
             {directPreviewArticle && (
