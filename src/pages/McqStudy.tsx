@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Loader2, Lock, Unlock } from "lucide-react";
+import { ArrowLeft, Loader2, Lock, Unlock, ListChecks } from "lucide-react";
 import { getMcqSetById, getCategoryDisplayName, type McqSet } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import McqViewer from "@/components/McqViewer";
+import ExamMode from "@/components/ExamMode";
 import { markMcqVisited } from "@/lib/progress-store";
 
 export default function McqStudy() {
@@ -14,6 +15,7 @@ export default function McqStudy() {
   const [passwordUnlocked, setPasswordUnlocked] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordError, setPasswordError] = useState(false);
+  const [examMode, setExamMode] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -21,7 +23,6 @@ export default function McqStudy() {
         .then((s) => {
           setSet(s);
           if (s) markMcqVisited(s.id);
-          // If no password set, auto-unlock
           if (s && (!s.access_password || s.access_password === "")) {
             setPasswordUnlocked(true);
           }
@@ -52,9 +53,7 @@ export default function McqStudy() {
       <div className="mx-auto max-w-3xl px-6 py-20 text-center">
         <h1 className="mb-4 font-display text-3xl font-bold text-foreground">Set not found</h1>
         <Button asChild variant="outline">
-          <Link to="/mcqs">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to MCQs
-          </Link>
+          <Link to="/mcqs"><ArrowLeft className="mr-2 h-4 w-4" /> Back to MCQs</Link>
         </Button>
       </div>
     );
@@ -62,14 +61,33 @@ export default function McqStudy() {
 
   const unitName = getCategoryDisplayName(set.category);
   const isLocked = set.access_password && set.access_password !== "" && !passwordUnlocked;
+  const hideAnswers = !!(set.access_password && set.access_password !== "" && !passwordUnlocked);
+
+  if (examMode) {
+    return (
+      <div className="mx-auto max-w-3xl px-5 sm:px-6 py-10 sm:py-12 pb-20">
+        <ExamMode
+          questions={set.questions}
+          title={set.title}
+          setId={set.id}
+          hideAnswers={hideAnswers}
+          onExit={() => setExamMode(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-5 sm:px-6 py-10 sm:py-12 pb-20">
-      <Button asChild variant="ghost" size="sm" className="mb-4 gap-2 text-muted-foreground -ml-1">
-        <Link to="/mcqs">
-          <ArrowLeft className="h-4 w-4" /> Back to MCQs
-        </Link>
-      </Button>
+      <div className="flex items-center justify-between mb-4">
+        <Button asChild variant="ghost" size="sm" className="gap-2 text-muted-foreground -ml-1">
+          <Link to="/mcqs"><ArrowLeft className="h-4 w-4" /> Back to MCQs</Link>
+        </Button>
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => setExamMode(true)}>
+          <ListChecks className="h-4 w-4" /> Exam Mode
+        </Button>
+      </div>
+
       {unitName && unitName !== "Uncategorized" && (
         <div className="mb-6 text-center">
           <span className="inline-block rounded-full bg-primary/10 px-4 py-1 text-sm font-medium text-primary">
@@ -78,14 +96,12 @@ export default function McqStudy() {
         </div>
       )}
 
-      {/* Password gate for locked MCQ sets */}
       {isLocked && (
         <div className="mb-6 rounded-2xl border-2 border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 p-6 text-center">
           <Lock className="mx-auto mb-3 h-8 w-8 text-amber-600 dark:text-amber-400" />
           <h3 className="mb-2 font-display text-lg font-bold text-foreground">Password Protected</h3>
           <p className="mb-4 text-sm text-muted-foreground">
             This quiz is locked. Enter the password to view answers and explanations.
-            You can still attempt questions without the password.
           </p>
           <div className="flex items-center justify-center gap-2 max-w-xs mx-auto">
             <Input
@@ -100,18 +116,9 @@ export default function McqStudy() {
               <Unlock className="h-4 w-4" /> Unlock
             </Button>
           </div>
-          {passwordError && (
-            <p className="mt-2 text-sm text-destructive font-medium">Wrong password</p>
-          )}
-          <p className="mt-3 text-xs text-muted-foreground">
-            Or continue without unlocking — answers will be hidden
-          </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mt-2"
-            onClick={() => setPasswordUnlocked(false)}
-          >
+          {passwordError && <p className="mt-2 text-sm text-destructive font-medium">Wrong password</p>}
+          <p className="mt-3 text-xs text-muted-foreground">Or continue without unlocking — answers will be hidden</p>
+          <Button variant="ghost" size="sm" className="mt-2" onClick={() => setPasswordUnlocked(false)}>
             Continue without password →
           </Button>
         </div>
@@ -122,7 +129,7 @@ export default function McqStudy() {
         title={set.title}
         setId={set.id}
         category={set.category}
-        hideAnswers={!!(set.access_password && set.access_password !== "" && !passwordUnlocked)}
+        hideAnswers={hideAnswers}
       />
     </div>
   );

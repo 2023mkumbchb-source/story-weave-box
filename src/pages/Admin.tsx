@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw } from "lucide-react";
+import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -21,18 +23,20 @@ type DirectType = "article" | "mcqs" | "flashcards";
 export default function Admin() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, isAdmin, loading: authLoading, signOut } = useAuth();
   const [geminiKey, setGeminiKey] = useState("");
 
   useEffect(() => {
-    if (sessionStorage.getItem("learninghub_auth") !== "true") {
+    if (!authLoading && !user) {
       navigate("/login");
     }
-    // Load Gemini key once on mount
     getSetting("gemini_api_key").then((key) => {
-      console.log("Loaded Gemini key:", key ? "YES" : "NO");
       setGeminiKey(key || "");
     });
-  }, [navigate]);
+  }, [navigate, user, authLoading]);
+
+  // Publishing progress state
+  const [publishProgress, setPublishProgress] = useState<{ current: number; total: number; label: string } | null>(null);
 
   const [tab, setTab] = useState<Tab>("create");
   const [notes, setNotes] = useState("");
@@ -430,14 +434,88 @@ export default function Admin() {
     }
   };
 
-  const handleDirectSave = async (publish: boolean) => {
+  const handleDirectPublishRaw = async (publish: boolean) => {
+    if (!directContent.trim()) {
+      toast({ title: "Paste content first", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    setLoadingType("direct-raw");
+    setPublishProgress({ current: 0, total: 3, label: "Parsing content..." });
     try {
       let cat = directCategory;
       if (!cat) {
+        setPublishProgress({ current: 1, total: 3, label: "Auto-detecting category..." });
         cat = await autoCategorizе(directContent);
         setDirectCategory(cat);
       }
       const finalCategory = cat || "Uncategorized";
+      setPublishProgress({ current: 2, total: 3, label: "Saving..." });
+
+      if (directType === "article") {
+        const parsed = parseDirectArticle(directContent);
+        await saveArticle({
+          title: directTitle.trim() || parsed.title,
+          content: parsed.content,
+          created_at: new Date().toISOString(),
+          published: publish,
+          original_notes: directContent,
+          category: finalCategory,
+        });
+      } else if (directType === "mcqs") {
+        const parsed = parseDirectMcqs(directContent);
+        const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
+        if (!limited.length) throw new Error("Could not parse MCQs from content.");
+        await saveMcqSet({
+          title: directTitle.trim() || buildSetTitle("MCQ", directContent, finalCategory),
+          questions: limited,
+          created_at: new Date().toISOString(),
+          published: publish,
+          original_notes: directContent,
+          category: finalCategory,
+          access_password: "",
+        });
+      } else {
+        const parsed = parseDirectFlashcards(directContent);
+        const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
+        if (!limited.length) throw new Error("Could not parse flashcards from content.");
+        await saveFlashcardSet({
+          title: directTitle.trim() || buildSetTitle("Flashcards", directContent, finalCategory),
+          cards: limited,
+          created_at: new Date().toISOString(),
+          published: publish,
+          original_notes: directContent,
+          category: finalCategory,
+        });
+      }
+
+      setPublishProgress({ current: 3, total: 3, label: "Done!" });
+      toast({ title: publish ? "Published directly!" : "Draft saved!" });
+      setDirectContent("");
+      setDirectTitle("");
+      setDirectPreviewArticle(null);
+      setDirectPreviewCards(null);
+      setDirectPreviewMcqs(null);
+    } catch (err: any) {
+      toast({ title: "Save failed", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+      setLoadingType(null);
+      setTimeout(() => setPublishProgress(null), 2000);
+    }
+  };
+
+  const handleDirectSave = async (publish: boolean) => {
+    try {
+      setPublishProgress({ current: 0, total: 3, label: "Preparing..." });
+      let cat = directCategory;
+      if (!cat) {
+        setPublishProgress({ current: 1, total: 3, label: "Auto-detecting category..." });
+        cat = await autoCategorizе(directContent);
+        setDirectCategory(cat);
+      }
+      const finalCategory = cat || "Uncategorized";
+      setPublishProgress({ current: 2, total: 3, label: "Saving to database..." });
 
       if (directPreviewArticle) {
         await saveArticle({
@@ -468,10 +546,12 @@ export default function Admin() {
           category: finalCategory,
         });
       } else {
-        toast({ title: "No direct preview yet", description: "Click Format & Preview first.", variant: "destructive" });
+        toast({ title: "No preview yet", description: "Format with Gemini first, or use Direct Publish.", variant: "destructive" });
+        setPublishProgress(null);
         return;
       }
 
+      setPublishProgress({ current: 3, total: 3, label: "Done!" });
       toast({ title: publish ? "Published!" : "Draft saved!" });
       setDirectContent("");
       setDirectTitle("");
@@ -480,6 +560,8 @@ export default function Admin() {
       setDirectPreviewMcqs(null);
     } catch (err: any) {
       toast({ title: "Save failed", description: err.message, variant: "destructive" });
+    } finally {
+      setTimeout(() => setPublishProgress(null), 2000);
     }
   };
 
@@ -697,9 +779,21 @@ export default function Admin() {
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
+  if (authLoading) {
+    return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
-      <h1 className="mb-6 font-display text-3xl font-bold text-foreground">Dashboard</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="font-display text-3xl font-bold text-foreground">Dashboard</h1>
+        <div className="flex items-center gap-3">
+          {user && <span className="text-xs text-muted-foreground hidden sm:inline">{user.email}</span>}
+          <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate("/"); }} className="gap-2 text-muted-foreground">
+            <LogOut className="h-4 w-4" /> Logout
+          </Button>
+        </div>
+      </div>
 
       <div className="mb-8 flex gap-1 rounded-xl border border-border bg-secondary/50 p-1 overflow-x-auto">
         {tabs.map((t) => (
@@ -1042,13 +1136,27 @@ export default function Admin() {
               className="mb-4 min-h-[180px]"
             />
 
+            {publishProgress && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-muted-foreground">{publishProgress.label}</span>
+                  <span className="text-xs font-medium text-primary">{Math.round((publishProgress.current / publishProgress.total) * 100)}%</span>
+                </div>
+                <Progress value={(publishProgress.current / publishProgress.total) * 100} className="h-2" />
+              </div>
+            )}
+
             <div className="mb-4 flex flex-wrap gap-3">
               <Button onClick={handleFormatDirect} variant="outline" disabled={loading} className="gap-2">
                 {loading && loadingType === "direct" && <Loader2 className="h-4 w-4 animate-spin" />}
                 {loading && loadingType === "direct" ? "Formatting with Gemini..." : "✨ Format with Gemini"}
               </Button>
+              <Button onClick={() => handleDirectPublishRaw(true)} disabled={loading} variant="default" className="gap-2">
+                {loading && loadingType === "direct-raw" && <Loader2 className="h-4 w-4 animate-spin" />}
+                {loading && loadingType === "direct-raw" ? "Publishing..." : "⚡ Direct Publish (No AI)"}
+              </Button>
               <Button onClick={() => handleDirectSave(false)} variant="outline" disabled={loading}>Save Draft</Button>
-              <Button onClick={() => handleDirectSave(true)} disabled={loading}>Direct Publish</Button>
+              <Button onClick={() => handleDirectSave(true)} variant="secondary" disabled={loading}>Publish (Formatted)</Button>
             </div>
 
             {directPreviewArticle && (
