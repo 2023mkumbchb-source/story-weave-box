@@ -453,8 +453,9 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
   const hasRelated = related && (related.articles.length > 0 || related.flashcards.length > 0 || related.mcqs.length > 0);
 
   return (
-    /* Full-width on mobile, max-w-2xl on larger screens, no horizontal overflow */
-    <div className="w-full max-w-2xl mx-auto px-3 overflow-x-hidden">
+    /* Outer shell clips the framer-motion drag bleed */
+    <div className="w-full overflow-x-hidden">
+    <div className="w-full max-w-2xl mx-auto px-3">
 
       {/* Title — clamp to 2 lines on mobile */}
       <h2 className="mb-1.5 text-center font-display text-lg sm:text-2xl font-bold text-foreground line-clamp-2 leading-tight">
@@ -481,9 +482,9 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
           style={{ x: dragX, opacity: dragOpacity }}
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.7}
+          dragElastic={0.4}
           onDragEnd={handleDragEnd}
-          className="touch-pan-y"
+          className="touch-pan-y w-full"
         >
           {/* Question card */}
           <div
@@ -671,6 +672,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
         </Button>
       </div>
     </div>
+    </div> {/* end overflow-x-hidden outer shell */}
   );
 }
 
