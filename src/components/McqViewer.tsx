@@ -63,7 +63,6 @@ function loadProgress(setId: string, questionCount: number): ProgressState | nul
     const raw = localStorage.getItem(PROGRESS_KEY + setId);
     if (!raw) return null;
     const p: ProgressState = JSON.parse(raw);
-    // Validate — stale if question count changed
     if (
       typeof p.current !== "number" ||
       !Array.isArray(p.order) ||
@@ -101,7 +100,6 @@ function extractKeywords(text: string): string[] {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 export default function McqViewer({ questions, title, setId, category, hideAnswers = false }: Props) {
-  // Restore order + current from localStorage if available
   const [order, setOrder] = useState<number[]>(() => {
     if (setId) {
       const saved = loadProgress(setId, questions.length);
@@ -143,7 +141,6 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
   const qIndex = order[current];
   const q = questions[qIndex];
 
-  // Load all site content once
   useEffect(() => {
     Promise.all([fetchArticles(), fetchFlashcards(), fetchMcqs()])
       .then(([a, f, m]) => {
@@ -154,13 +151,11 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
       }).catch(() => setSiteLoaded(true));
   }, []);
 
-  // ── Persist progress whenever current or order changes ─────────────────────
   useEffect(() => {
     if (!setId || finished) return;
     saveProgress(setId, current, order);
   }, [current, order, setId, finished]);
 
-  // ── Keyword search ──────────────────────────────────────────────────────────
   function findRelated(clickedOptionText: string, correctOptionText: string, questionText: string, allOptions: string[]): RelatedResult {
     const fullText = [questionText, clickedOptionText, ...allOptions].join(" ");
     let keywords = extractKeywords(fullText);
@@ -217,7 +212,6 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
     return { articles, flashcards, mcqs };
   }
 
-  // ── Navigation ─────────────────────────────────────────────────────────────
   const clearPanel = () => {
     setWrongAttempts(new Set());
     setRevealed(false);
@@ -233,7 +227,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
       clearPanel();
     } else {
       setFinished(true);
-      if (setId) clearProgress(setId); // done — remove saved spot
+      if (setId) clearProgress(setId);
     }
   }, [current, order.length, setId]);
 
@@ -244,7 +238,6 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
     }
   }, [current]);
 
-  // ── Save history on finish ──────────────────────────────────────────────────
   useEffect(() => {
     if (!finished || !setId) return;
     const pct = score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0;
@@ -261,11 +254,9 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
     setHistory(updated);
   }, [finished]); // eslint-disable-line
 
-  // ── Answer handling ────────────────────────────────────────────────────────
   const handleSelect = (optionIndex: number) => {
     if (revealed) return;
     if (hideAnswers) {
-      // In hideAnswers mode, just mark the selected option but don't reveal correct answer
       const newWrong = new Set(wrongAttempts).add(optionIndex);
       setWrongAttempts(newWrong);
       return;
@@ -351,30 +342,31 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
     :             { label: "Keep going", color: "text-amber-500",  bg: "border-amber-500/20 bg-amber-500/5", emoji: "📚" };
 
     return (
-      <div className="mx-auto max-w-2xl px-2 pb-12 space-y-5">
+      <div className="mx-auto max-w-2xl px-3 pb-12 space-y-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className={`rounded-2xl border ${grade.bg} p-6 text-center`}>
-          <div className="text-5xl mb-3">{grade.emoji}</div>
-          <h2 className="font-display text-2xl font-bold text-foreground mb-1">{grade.label}</h2>
-          <p className="text-sm text-muted-foreground mb-6 truncate">{title}</p>
-          <div className="flex items-center justify-center gap-6 sm:gap-10 mb-5">
-            <div>
-              <p className={`text-4xl font-bold ${grade.color}`}>{pct}%</p>
-              <p className="text-xs text-muted-foreground mt-1">Score</p>
+          className={`rounded-2xl border ${grade.bg} p-5 text-center`}>
+          <div className="text-4xl mb-2">{grade.emoji}</div>
+          <h2 className="font-display text-xl font-bold text-foreground mb-1">{grade.label}</h2>
+          <p className="text-xs text-muted-foreground mb-5 truncate px-2">{title}</p>
+
+          {/* Score row — 3 equal columns, no overflow */}
+          <div className="grid grid-cols-3 gap-2 mb-5">
+            <div className="flex flex-col items-center">
+              <p className={`text-3xl font-bold ${grade.color}`}>{pct}%</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Score</p>
             </div>
-            <div className="w-px h-10 bg-border" />
-            <div>
-              <p className="text-4xl font-bold text-foreground">{score.correct}/{score.total}</p>
-              <p className="text-xs text-muted-foreground mt-1">Correct</p>
+            <div className="flex flex-col items-center border-x border-border">
+              <p className="text-3xl font-bold text-foreground">{score.correct}/{score.total}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Correct</p>
             </div>
-            <div className="w-px h-10 bg-border" />
-            <div>
-              <p className="text-4xl font-bold text-foreground">
+            <div className="flex flex-col items-center">
+              <p className="text-3xl font-bold text-foreground">
                 {Math.floor(dur / 60)}:{String(dur % 60).padStart(2, "0")}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">Time</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Time</p>
             </div>
           </div>
+
           <div className="h-2 w-full rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
             <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
           </div>
@@ -383,13 +375,13 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
         {failed.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
             className="rounded-2xl border border-destructive/20 bg-destructive/5 overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 border-b border-destructive/10">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-destructive/10">
               <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
               <p className="text-sm font-bold text-destructive">Review These ({failed.length})</p>
             </div>
             <div className="divide-y divide-destructive/10">
               {failed.map((f, i) => (
-                <div key={i} className="px-5 py-3">
+                <div key={i} className="px-4 py-3">
                   <p className="text-sm text-foreground leading-snug mb-1">{f.question}</p>
                   <p className="text-xs font-semibold text-green-600 dark:text-green-400">✓ {f.correctAnswer}</p>
                 </div>
@@ -401,7 +393,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
         {history.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
             className="rounded-2xl border border-border bg-card overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 border-b border-border">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
               <Trophy className="h-4 w-4 text-primary shrink-0" />
               <p className="text-sm font-bold text-foreground">All Attempts</p>
               <span className="ml-auto text-xs text-muted-foreground">{history.length} total</span>
@@ -409,7 +401,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
             <div className="divide-y divide-border">
               {history.slice(0, 10).map((rec, i) => {
                 const d = new Date(rec.date);
-                const label = d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+                const label = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
                 const time  = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
                 const barColor   = rec.pct >= 80 ? "bg-green-500" : rec.pct >= 60 ? "bg-blue-500" : "bg-amber-500";
                 const badgeColor = rec.pct >= 80
@@ -417,13 +409,15 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
                   : rec.pct >= 60 ? "bg-blue-500/15 text-blue-600 dark:text-blue-400"
                   : "bg-amber-500/15 text-amber-600 dark:text-amber-400";
                 return (
-                  <div key={i} className={`px-5 py-3 ${i === 0 ? "bg-primary/5" : ""}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2 flex-wrap">
+                  <div key={i} className={`px-4 py-3 ${i === 0 ? "bg-primary/5" : ""}`}>
+                    <div className="flex items-center justify-between mb-1.5 gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                         <span className="text-sm font-semibold text-foreground">{rec.score}/{rec.total}</span>
                         <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${badgeColor}`}>{rec.pct}%</span>
                         {i === 0 && <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Latest</span>}
-                        {rec.failedQuestions.length > 0 && <span className="text-[10px] text-destructive">{rec.failedQuestions.length} missed</span>}
+                        {rec.failedQuestions.length > 0 && (
+                          <span className="text-[10px] text-destructive">{rec.failedQuestions.length} missed</span>
+                        )}
                       </div>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                         <Clock className="h-3 w-3" />
@@ -434,7 +428,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
                     <div className="h-1 w-full rounded-full bg-secondary overflow-hidden">
                       <div className={`h-full rounded-full ${barColor}`} style={{ width: `${rec.pct}%` }} />
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground sm:hidden">{label} {time}</p>
+                    <p className="mt-1 text-[10px] text-muted-foreground sm:hidden">{label} {time}</p>
                   </div>
                 );
               })}
@@ -442,9 +436,14 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
           </motion.div>
         )}
 
+        {/* Action buttons — stack on very small screens */}
         <div className="flex gap-3">
-          <Button onClick={reset} className="flex-1 gap-2"><RotateCcw className="h-4 w-4" /> Try Again</Button>
-          <Button onClick={shuffle} variant="outline" className="flex-1 gap-2"><Shuffle className="h-4 w-4" /> Shuffle & Retry</Button>
+          <Button onClick={reset} className="flex-1 gap-2 min-h-[44px]">
+            <RotateCcw className="h-4 w-4" /> Try Again
+          </Button>
+          <Button onClick={shuffle} variant="outline" className="flex-1 gap-2 min-h-[44px]">
+            <Shuffle className="h-4 w-4" /> Shuffle
+          </Button>
         </div>
       </div>
     );
@@ -454,12 +453,27 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
   const hasRelated = related && (related.articles.length > 0 || related.flashcards.length > 0 || related.mcqs.length > 0);
 
   return (
-    <div className="mx-auto max-w-2xl px-2">
-      <h2 className="mb-2 text-center font-display text-xl sm:text-2xl font-bold text-foreground">{title}</h2>
-      <div className="mb-6 flex items-center justify-center gap-3 text-xs sm:text-sm text-muted-foreground">
-        <span>Question {current + 1} of {order.length}</span>
+    /* Full-width on mobile, max-w-2xl on larger screens, no horizontal overflow */
+    <div className="w-full max-w-2xl mx-auto px-3 overflow-x-hidden">
+
+      {/* Title — clamp to 2 lines on mobile */}
+      <h2 className="mb-1.5 text-center font-display text-lg sm:text-2xl font-bold text-foreground line-clamp-2 leading-tight">
+        {title}
+      </h2>
+
+      {/* Progress info row — single line, compact */}
+      <div className="mb-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+        <span className="whitespace-nowrap">Q {current + 1}/{order.length}</span>
         <span>·</span>
-        <span>Score: {score.correct}/{score.total}</span>
+        <span className="whitespace-nowrap">Score: {score.correct}/{score.total}</span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="mb-4 h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+        <div
+          className="h-full rounded-full bg-primary transition-all duration-300"
+          style={{ width: `${((current + 1) / order.length) * 100}%` }}
+        />
       </div>
 
       <div key={qIndex}>
@@ -471,72 +485,91 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
           onDragEnd={handleDragEnd}
           className="touch-pan-y"
         >
-          {/* Question */}
-          <div className="mb-4 rounded-2xl border border-border bg-card p-5 sm:p-6"
-            style={{ boxShadow: "var(--shadow-elevated)" }}>
-            <span className="mb-3 block text-xs font-medium uppercase tracking-wider text-primary">Question</span>
-            <p className="text-base sm:text-lg font-medium text-foreground leading-relaxed break-words">{q?.question}</p>
+          {/* Question card */}
+          <div
+            className="mb-3 rounded-2xl border border-border bg-card p-4 sm:p-6"
+            style={{ boxShadow: "var(--shadow-elevated)" }}
+          >
+            <span className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-primary">
+              Question {current + 1}
+            </span>
+            <p className="text-sm sm:text-lg font-medium text-foreground leading-relaxed break-words">
+              {q?.question}
+            </p>
           </div>
 
           {/* Options */}
-          <div className="space-y-2 mb-4">
+          <div className="space-y-2 mb-3">
             {q?.options.map((opt, i) => (
-              <motion.button key={i} onClick={() => handleSelect(i)}
+              <motion.button
+                key={i}
+                onClick={() => handleSelect(i)}
                 whileTap={!revealed ? { scale: 0.98 } : {}}
-                className={`w-full rounded-xl border p-3 sm:p-4 text-left text-sm sm:text-base font-medium transition-colors flex items-start gap-3 ${getOptionStyle(i)}`}>
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
+                className={`w-full rounded-xl border p-3 sm:p-4 text-left text-sm font-medium transition-colors flex items-start gap-2.5 min-h-[48px] ${getOptionStyle(i)}`}
+              >
+                {/* Letter badge — fixed size so it never shrinks */}
+                <span className="flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-full border text-[11px] font-bold">
                   {String.fromCharCode(65 + i)}
                 </span>
-                <span className="flex-1 break-words">{opt}</span>
-                {revealed && i === q.correct_answer && <Check className="h-5 w-5 text-green-500 shrink-0" />}
-                {wrongAttempts.has(i) && <X className="h-5 w-5 text-destructive shrink-0" />}
+                <span className="flex-1 break-words leading-snug">{opt}</span>
+                {revealed && i === q.correct_answer && (
+                  <Check className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+                )}
+                {wrongAttempts.has(i) && (
+                  <X className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                )}
               </motion.button>
             ))}
           </div>
 
           {/* Wrong feedback */}
           {!revealed && wrongAttempts.size > 0 && (
-            <p className="mb-3 text-center text-sm text-destructive font-medium">Wrong — try again!</p>
+            <p className="mb-3 text-center text-xs text-destructive font-medium">Wrong — try again!</p>
           )}
 
           {/* Correct + explanation */}
           {revealed && (
-            <div className="mb-4 space-y-3">
+            <div className="mb-3 space-y-2">
               <p className="text-center text-sm font-semibold text-green-600 dark:text-green-400">
                 {wrongAttempts.size === 0 ? "🎉 Correct on first try!" : "✅ Correct!"}
               </p>
               {q?.explanation && (
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex gap-3">
-                  <Lightbulb className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <p className="text-sm text-foreground leading-relaxed">{q.explanation}</p>
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 sm:p-4 flex gap-2.5">
+                  <Lightbulb className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <p className="text-xs sm:text-sm text-foreground leading-relaxed">{q.explanation}</p>
                 </div>
               )}
             </div>
           )}
 
-          {/* Related panel */}
+          {/* Related study material panel */}
           {!revealed && hasRelated && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              className="mb-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-amber-200 dark:border-amber-800">
-                <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 overflow-hidden"
+            >
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-amber-200 dark:border-amber-800">
+                <Lightbulb className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
                     Related Study Material
                   </p>
                   {relatedKeywords.length > 0 && (
                     <p className="text-[10px] text-amber-600 dark:text-amber-400 truncate">
-                      keywords: {relatedKeywords.join(", ")}
+                      {relatedKeywords.join(", ")}
                     </p>
                   )}
                 </div>
-                <button onClick={() => { setRelated(null); setMiniQuizSet(null); setInlineArticle(null); setInlineFlashcard(null); }}
-                  className="ml-2 text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 transition-colors shrink-0">
+                <button
+                  onClick={() => { setRelated(null); setMiniQuizSet(null); setInlineArticle(null); setInlineFlashcard(null); }}
+                  className="ml-1 text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 transition-colors shrink-0 p-1"
+                >
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
 
-              <div className="p-3 space-y-2">
+              <div className="p-2.5 space-y-2">
                 {related.mcqs.map(({ set: m, startIndex }) => {
                   const isOpen = miniQuizSet?.set?.id === m.id;
                   return (
@@ -546,14 +579,15 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
                           setMiniQuizSet(isOpen ? null : { set: m, startIndex });
                           setInlineArticle(null); setInlineFlashcard(null);
                         }}
-                        className="w-full flex items-center gap-3 rounded-lg border border-amber-200 dark:border-amber-800/60 bg-white dark:bg-amber-950/60 px-3 py-2.5 hover:border-green-400 dark:hover:border-green-600 transition-colors group text-left">
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-green-500/10">
-                          <ListChecks className="h-3.5 w-3.5 text-green-500" />
+                        className="w-full flex items-center gap-2.5 rounded-lg border border-amber-200 dark:border-amber-800/60 bg-white dark:bg-amber-950/60 px-3 py-2 hover:border-green-400 dark:hover:border-green-600 transition-colors group text-left min-h-[44px]"
+                      >
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-green-500/10">
+                          <ListChecks className="h-3 w-3 text-green-500" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-medium text-foreground truncate group-hover:text-primary transition-colors">{m.title}</p>
                           <p className="text-[10px] text-muted-foreground">
-                            {(m.questions as any[])?.length || 0} questions · opens at Q{startIndex + 1} · tap to try
+                            {(m.questions as any[])?.length || 0} Qs · Q{startIndex + 1}
                           </p>
                         </div>
                         {isOpen ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
@@ -567,13 +601,14 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
                   <div key={f.id}>
                     <button
                       onClick={() => { setInlineFlashcard(inlineFlashcard?.id === f.id ? null : f); setMiniQuizSet(null); setInlineArticle(null); }}
-                      className="w-full flex items-center gap-3 rounded-lg border border-amber-200 dark:border-amber-800/60 bg-white dark:bg-amber-950/60 px-3 py-2.5 hover:border-amber-400 dark:hover:border-amber-600 transition-colors group text-left">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-amber-500/10">
-                        <GraduationCap className="h-3.5 w-3.5 text-amber-500" />
+                      className="w-full flex items-center gap-2.5 rounded-lg border border-amber-200 dark:border-amber-800/60 bg-white dark:bg-amber-950/60 px-3 py-2 hover:border-amber-400 dark:hover:border-amber-600 transition-colors group text-left min-h-[44px]"
+                    >
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber-500/10">
+                        <GraduationCap className="h-3 w-3 text-amber-500" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-foreground truncate group-hover:text-primary transition-colors">{f.title}</p>
-                        <p className="text-[10px] text-muted-foreground">{(f.cards as any[])?.length || 0} cards · tap to study inline</p>
+                        <p className="text-[10px] text-muted-foreground">{(f.cards as any[])?.length || 0} cards</p>
                       </div>
                       {inlineFlashcard?.id === f.id ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
                     </button>
@@ -585,13 +620,14 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
                   <div key={a.id}>
                     <button
                       onClick={() => { setInlineArticle(inlineArticle?.id === a.id ? null : a); setMiniQuizSet(null); setInlineFlashcard(null); }}
-                      className="w-full flex items-center gap-3 rounded-lg border border-amber-200 dark:border-amber-800/60 bg-white dark:bg-amber-950/60 px-3 py-2.5 hover:border-blue-400 dark:hover:border-blue-600 transition-colors group text-left">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-blue-500/10">
-                        <BookOpen className="h-3.5 w-3.5 text-blue-500" />
+                      className="w-full flex items-center gap-2.5 rounded-lg border border-amber-200 dark:border-amber-800/60 bg-white dark:bg-amber-950/60 px-3 py-2 hover:border-blue-400 dark:hover:border-blue-600 transition-colors group text-left min-h-[44px]"
+                    >
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-500/10">
+                        <BookOpen className="h-3 w-3 text-blue-500" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-foreground truncate group-hover:text-primary transition-colors">{a.title}</p>
-                        <p className="text-[10px] text-muted-foreground">Article · tap to read inline</p>
+                        <p className="text-[10px] text-muted-foreground">Article</p>
                       </div>
                       {inlineArticle?.id === a.id ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
                     </button>
@@ -604,18 +640,35 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
         </motion.div>
       </div>
 
-      <p className="mb-4 text-center text-xs text-muted-foreground sm:hidden">← Swipe to navigate →</p>
+      {/* Swipe hint — mobile only */}
+      <p className="mb-3 text-center text-[10px] text-muted-foreground sm:hidden">← swipe to navigate →</p>
 
-      <div className="flex items-center justify-center gap-2 sm:gap-3">
-        <Button variant="outline" size="icon" onClick={goPrev} disabled={current === 0}><ChevronLeft className="h-4 w-4" /></Button>
-        <Button variant="outline" size="icon" onClick={shuffle}><Shuffle className="h-4 w-4" /></Button>
-        <Button variant="outline" size="icon" onClick={reset}><RotateCcw className="h-4 w-4" /></Button>
-        <Button variant="outline" size="icon" onClick={goNext} disabled={current === order.length - 1}><ChevronRight className="h-4 w-4" /></Button>
-      </div>
-
-      <div className="mt-4 h-1 w-full rounded-full bg-secondary">
-        <div className="h-full rounded-full bg-primary transition-all duration-300"
-          style={{ width: `${((current + 1) / order.length) * 100}%` }} />
+      {/* Navigation — large touch targets, evenly spaced */}
+      <div className="flex items-center justify-center gap-2">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={goPrev}
+          disabled={current === 0}
+          className="h-11 w-11 rounded-xl"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+        <Button variant="outline" size="icon" onClick={shuffle} className="h-11 w-11 rounded-xl">
+          <Shuffle className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="icon" onClick={reset} className="h-11 w-11 rounded-xl">
+          <RotateCcw className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={goNext}
+          disabled={current === order.length - 1}
+          className="h-11 w-11 rounded-xl"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </Button>
       </div>
     </div>
   );
@@ -669,7 +722,7 @@ function MiniQuiz({ set, startIndex = 0, onDone }: { set: any; startIndex?: numb
         <p className="text-[10px] font-bold uppercase tracking-wider text-green-700 dark:text-green-400">
           Quiz · Q{idx + 1}/{questions.length}
           {idx === startIndex && startIndex > 0 && (
-            <span className="ml-1 normal-case font-normal text-green-600 dark:text-green-500">(jumped to best match)</span>
+            <span className="ml-1 normal-case font-normal text-green-600 dark:text-green-500">(best match)</span>
           )}
         </p>
         <span className="text-[10px] text-muted-foreground">{score.correct}/{score.total}</span>
@@ -681,7 +734,7 @@ function MiniQuiz({ set, startIndex = 0, onDone }: { set: any; startIndex?: numb
           const isWrong = wrong.has(i);
           return (
             <button key={i} onClick={() => handleSelect(i)}
-              className={`w-full text-left rounded-md px-2.5 py-1.5 text-xs font-medium border transition-colors flex items-start gap-2 ${
+              className={`w-full text-left rounded-md px-2.5 py-2 text-xs font-medium border transition-colors flex items-start gap-2 min-h-[40px] ${
                 isCorrect ? "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400"
                 : isWrong ? "border-destructive/40 bg-destructive/10 text-destructive line-through opacity-60"
                 : "border-border bg-background hover:border-primary/40 hover:bg-primary/5 cursor-pointer"
@@ -689,7 +742,7 @@ function MiniQuiz({ set, startIndex = 0, onDone }: { set: any; startIndex?: numb
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold">
                 {String.fromCharCode(65 + i)}
               </span>
-              <span className="flex-1 break-words">{opt}</span>
+              <span className="flex-1 break-words leading-snug">{opt}</span>
               {isCorrect && <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />}
               {isWrong && <X className="h-3.5 w-3.5 text-destructive shrink-0" />}
             </button>
@@ -699,7 +752,7 @@ function MiniQuiz({ set, startIndex = 0, onDone }: { set: any; startIndex?: numb
       {revealed && (
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-semibold text-green-600 dark:text-green-400">{wrong.size === 0 ? "🎉 First try!" : "✅ Correct!"}</p>
-          <button onClick={handleNext} className="text-xs font-semibold text-primary hover:underline">
+          <button onClick={handleNext} className="text-xs font-semibold text-primary hover:underline min-h-[36px] px-2">
             {idx < questions.length - 1 ? "Next →" : "Finish →"}
           </button>
         </div>
@@ -726,26 +779,33 @@ function InlineFlashcards({ set, onDone }: { set: any; onDone: () => void }) {
         <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
           Flashcards · {idx + 1}/{cards.length}
         </p>
-        <button onClick={onDone} className="text-[10px] text-primary font-medium hover:underline">Done</button>
+        <button onClick={onDone} className="text-[10px] text-primary font-medium hover:underline px-2 py-1">Done</button>
       </div>
       <button onClick={() => setFlipped((f) => !f)}
-        className="w-full rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-amber-950/40 p-3 text-left min-h-[60px] flex flex-col justify-center transition-colors hover:border-amber-400">
+        className="w-full rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-amber-950/40 p-3 text-left min-h-[64px] flex flex-col justify-center transition-colors hover:border-amber-400 active:scale-[0.99]">
         <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-1">
           {flipped ? "Answer" : "Question — tap to flip"}
         </p>
         <p className="text-xs font-medium text-foreground leading-snug">{flipped ? back : front}</p>
       </button>
       <div className="flex gap-2 mt-2">
-        <button onClick={() => { setIdx((i) => Math.max(0, i - 1)); setFlipped(false); }} disabled={idx === 0}
-          className="flex-1 rounded-md border border-border bg-background py-1.5 text-xs font-medium text-muted-foreground disabled:opacity-40 hover:text-foreground transition-colors">
+        <button
+          onClick={() => { setIdx((i) => Math.max(0, i - 1)); setFlipped(false); }}
+          disabled={idx === 0}
+          className="flex-1 rounded-md border border-border bg-background py-2 text-xs font-medium text-muted-foreground disabled:opacity-40 hover:text-foreground transition-colors min-h-[40px]"
+        >
           ← Prev
         </button>
-        <button onClick={() => setFlipped((f) => !f)}
-          className="flex-1 rounded-md bg-primary/10 border border-primary/20 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors">
+        <button
+          onClick={() => setFlipped((f) => !f)}
+          className="flex-1 rounded-md bg-primary/10 border border-primary/20 py-2 text-xs font-medium text-primary hover:bg-primary/20 transition-colors min-h-[40px]"
+        >
           Flip
         </button>
-        <button onClick={() => { if (idx < cards.length - 1) { setIdx((i) => i + 1); setFlipped(false); } else onDone(); }}
-          className="flex-1 rounded-md border border-border bg-background py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+        <button
+          onClick={() => { if (idx < cards.length - 1) { setIdx((i) => i + 1); setFlipped(false); } else onDone(); }}
+          className="flex-1 rounded-md border border-border bg-background py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors min-h-[40px]"
+        >
           {idx < cards.length - 1 ? "Next →" : "Done ✓"}
         </button>
       </div>
@@ -763,7 +823,7 @@ function InlineArticle({ article, onDone }: { article: any; onDone: () => void }
       className="mt-1 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20 p-3">
       <div className="flex items-center justify-between mb-2">
         <p className="text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">Article Preview</p>
-        <button onClick={onDone} className="text-[10px] text-primary font-medium hover:underline">Close</button>
+        <button onClick={onDone} className="text-[10px] text-primary font-medium hover:underline px-2 py-1">Close</button>
       </div>
       <p className="text-xs font-semibold text-foreground mb-2 leading-snug">{article.title}</p>
       <div className="max-h-48 overflow-y-auto">
@@ -771,7 +831,7 @@ function InlineArticle({ article, onDone }: { article: any; onDone: () => void }
       </div>
       {content.length > 600 && (
         <Link to={`/blog/${article.id}`} target="_blank"
-          className="mt-2 block text-center text-xs font-semibold text-primary hover:underline">
+          className="mt-2 block text-center text-xs font-semibold text-primary hover:underline py-1">
           Read full article →
         </Link>
       )}
