@@ -434,14 +434,88 @@ export default function Admin() {
     }
   };
 
-  const handleDirectSave = async (publish: boolean) => {
+  const handleDirectPublishRaw = async (publish: boolean) => {
+    if (!directContent.trim()) {
+      toast({ title: "Paste content first", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    setLoadingType("direct-raw");
+    setPublishProgress({ current: 0, total: 3, label: "Parsing content..." });
     try {
       let cat = directCategory;
       if (!cat) {
+        setPublishProgress({ current: 1, total: 3, label: "Auto-detecting category..." });
         cat = await autoCategorizе(directContent);
         setDirectCategory(cat);
       }
       const finalCategory = cat || "Uncategorized";
+      setPublishProgress({ current: 2, total: 3, label: "Saving..." });
+
+      if (directType === "article") {
+        const parsed = parseDirectArticle(directContent);
+        await saveArticle({
+          title: directTitle.trim() || parsed.title,
+          content: parsed.content,
+          created_at: new Date().toISOString(),
+          published: publish,
+          original_notes: directContent,
+          category: finalCategory,
+        });
+      } else if (directType === "mcqs") {
+        const parsed = parseDirectMcqs(directContent);
+        const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
+        if (!limited.length) throw new Error("Could not parse MCQs from content.");
+        await saveMcqSet({
+          title: directTitle.trim() || buildSetTitle("MCQ", directContent, finalCategory),
+          questions: limited,
+          created_at: new Date().toISOString(),
+          published: publish,
+          original_notes: directContent,
+          category: finalCategory,
+          access_password: "",
+        });
+      } else {
+        const parsed = parseDirectFlashcards(directContent);
+        const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
+        if (!limited.length) throw new Error("Could not parse flashcards from content.");
+        await saveFlashcardSet({
+          title: directTitle.trim() || buildSetTitle("Flashcards", directContent, finalCategory),
+          cards: limited,
+          created_at: new Date().toISOString(),
+          published: publish,
+          original_notes: directContent,
+          category: finalCategory,
+        });
+      }
+
+      setPublishProgress({ current: 3, total: 3, label: "Done!" });
+      toast({ title: publish ? "Published directly!" : "Draft saved!" });
+      setDirectContent("");
+      setDirectTitle("");
+      setDirectPreviewArticle(null);
+      setDirectPreviewCards(null);
+      setDirectPreviewMcqs(null);
+    } catch (err: any) {
+      toast({ title: "Save failed", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+      setLoadingType(null);
+      setTimeout(() => setPublishProgress(null), 2000);
+    }
+  };
+
+  const handleDirectSave = async (publish: boolean) => {
+    try {
+      setPublishProgress({ current: 0, total: 3, label: "Preparing..." });
+      let cat = directCategory;
+      if (!cat) {
+        setPublishProgress({ current: 1, total: 3, label: "Auto-detecting category..." });
+        cat = await autoCategorizе(directContent);
+        setDirectCategory(cat);
+      }
+      const finalCategory = cat || "Uncategorized";
+      setPublishProgress({ current: 2, total: 3, label: "Saving to database..." });
 
       if (directPreviewArticle) {
         await saveArticle({
@@ -472,10 +546,12 @@ export default function Admin() {
           category: finalCategory,
         });
       } else {
-        toast({ title: "No direct preview yet", description: "Click Format & Preview first.", variant: "destructive" });
+        toast({ title: "No preview yet", description: "Format with Gemini first, or use Direct Publish.", variant: "destructive" });
+        setPublishProgress(null);
         return;
       }
 
+      setPublishProgress({ current: 3, total: 3, label: "Done!" });
       toast({ title: publish ? "Published!" : "Draft saved!" });
       setDirectContent("");
       setDirectTitle("");
@@ -484,6 +560,8 @@ export default function Admin() {
       setDirectPreviewMcqs(null);
     } catch (err: any) {
       toast({ title: "Save failed", description: err.message, variant: "destructive" });
+    } finally {
+      setTimeout(() => setPublishProgress(null), 2000);
     }
   };
 
