@@ -1,38 +1,29 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Lock, UserPlus, LogIn } from "lucide-react";
+import { Lock, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
+const ADMIN_PASSWORD = "Davis";
+
 export default function Login() {
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signIn, signUp } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    try {
-      if (isSignUp) {
-        await signUp(email, password);
-        toast({ title: "Account created!", description: "Check your email to verify, then log in." });
-        setIsSignUp(false);
-      } else {
-        await signIn(email, password);
-        toast({ title: "Logged in!" });
-        navigate("/admin");
-      }
-    } catch (err: any) {
-      toast({ title: isSignUp ? "Sign up failed" : "Login failed", description: err.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
+    if (password === ADMIN_PASSWORD) {
+      sessionStorage.setItem("learninghub_auth", "true");
+      toast({ title: "Logged in!" });
+      navigate("/admin");
+    } else {
+      toast({ title: "Incorrect password", variant: "destructive" });
     }
+    setLoading(false);
   };
 
   return (
@@ -46,20 +37,11 @@ export default function Login() {
           <Lock className="h-7 w-7" />
         </div>
         <h1 className="mb-2 text-center font-display text-2xl font-bold text-foreground">
-          {isSignUp ? "Create Account" : "Admin Login"}
+          Admin Login
         </h1>
         <p className="mb-6 text-center text-sm text-muted-foreground">
-          {isSignUp ? "Sign up for an admin account" : "Sign in to access the dashboard"}
+          Enter your password to access the dashboard
         </p>
-
-        <Input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="mb-3"
-          required
-        />
         <Input
           type="password"
           placeholder="Password"
@@ -67,20 +49,10 @@ export default function Login() {
           onChange={(e) => setPassword(e.target.value)}
           className="mb-4"
           required
-          minLength={6}
         />
         <Button type="submit" className="w-full gap-2" disabled={loading}>
-          {loading ? "..." : isSignUp ? <><UserPlus className="h-4 w-4" /> Sign Up</> : <><LogIn className="h-4 w-4" /> Sign In</>}
+          <LogIn className="h-4 w-4" /> Sign In
         </Button>
-
-        <button
-          type="button"
-          onClick={() => setIsSignUp(!isSignUp)}
-          className="mt-4 block w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {isSignUp ? "Already have an account? Sign in" : "Need an account? Sign up"}
-        </button>
-
         <div className="mt-4 text-center">
           <Link to="/" className="text-xs text-primary hover:underline">← Continue as guest</Link>
         </div>
