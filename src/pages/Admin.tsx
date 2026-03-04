@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, LogOut } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,17 +22,16 @@ type DirectType = "article" | "mcqs" | "flashcards";
 export default function Admin() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, isAdmin, loading: authLoading, signOut } = useAuth();
   const [geminiKey, setGeminiKey] = useState("");
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (sessionStorage.getItem("learninghub_auth") !== "true") {
       navigate("/login");
     }
     getSetting("gemini_api_key").then((key) => {
       setGeminiKey(key || "");
     });
-  }, [navigate, user, authLoading]);
+  }, [navigate]);
 
   // Publishing progress state
   const [publishProgress, setPublishProgress] = useState<{ current: number; total: number; label: string } | null>(null);
@@ -77,7 +75,6 @@ export default function Admin() {
 
   // ===== Inline functions with geminiKey support =====
   const generateArticle = async (notesInput: string): Promise<{ title: string; content: string }> => {
-    console.log("generateArticle called, geminiKey present:", !!geminiKey);
     const { data, error } = await supabase.functions.invoke('generate-content', {
       body: { notes: notesInput, type: 'article', geminiKey },
     });
@@ -87,7 +84,6 @@ export default function Admin() {
   };
 
   const generateFlashcards = async (notesInput: string, count: number = 20): Promise<{ question: string; answer: string }[]> => {
-    console.log("generateFlashcards called, geminiKey present:", !!geminiKey);
     const { data, error } = await supabase.functions.invoke('generate-content', {
       body: { notes: notesInput, type: 'flashcards', count, geminiKey },
     });
@@ -97,7 +93,6 @@ export default function Admin() {
   };
 
   const generateMcqs = async (notesInput: string, count: number = 15): Promise<{ question: string; options: string[]; correct_answer: number; explanation?: string }[]> => {
-    console.log("generateMcqs called, geminiKey present:", !!geminiKey);
     const { data, error } = await supabase.functions.invoke('generate-content', {
       body: { notes: notesInput, type: 'mcqs', count, geminiKey },
     });
@@ -107,7 +102,6 @@ export default function Admin() {
   };
 
   const autoCategorizе = async (notesInput: string): Promise<string> => {
-    console.log("autoCategorizе called, geminiKey present:", !!geminiKey);
     const { data, error } = await supabase.functions.invoke('generate-content', {
       body: { notes: notesInput, type: 'categorize', geminiKey },
     });
@@ -356,7 +350,6 @@ export default function Admin() {
     setLoadingType("direct");
     try {
       if (directType === "article") {
-        // Use Gemini to reformat the article to match site format
         const { data, error } = await supabase.functions.invoke('generate-content', {
           body: { notes: directContent, type: 'direct-article', geminiKey, title: directTitle.trim() },
         });
@@ -367,14 +360,12 @@ export default function Admin() {
         setDirectPreviewMcqs(null);
         toast({ title: "Article formatted by Gemini ✓" });
       } else if (directType === "mcqs") {
-        // Use Gemini to reformat MCQs
         const { data, error } = await supabase.functions.invoke('generate-content', {
           body: { notes: directContent, type: 'direct-mcqs', geminiKey, count: clampRequestedCount(directTargetCount) },
         });
         if (error) throw new Error(error.message);
         if (data?.error) throw new Error(data.error);
         if (!Array.isArray(data) || data.length === 0) {
-          // Fallback to local parsing
           const parsed = parseDirectMcqs(directContent);
           const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
           if (!limited.length) throw new Error("Could not parse MCQs.");
@@ -386,7 +377,6 @@ export default function Admin() {
         setDirectPreviewCards(null);
         toast({ title: `Formatted MCQs via Gemini ✓` });
       } else {
-        // Use Gemini to reformat flashcards
         const { data, error } = await supabase.functions.invoke('generate-content', {
           body: { notes: directContent, type: 'direct-flashcards', geminiKey, count: clampRequestedCount(directTargetCount) },
         });
@@ -406,7 +396,6 @@ export default function Admin() {
       }
     } catch (err: any) {
       toast({ title: "Gemini format failed, using local parsing", description: err.message, variant: "destructive" });
-      // Fallback to local parsing
       try {
         if (directType === "article") {
           setDirectPreviewArticle(parseDirectArticle(directContent));
@@ -639,7 +628,7 @@ export default function Admin() {
       else promises.push(Promise.resolve(null));
 
       const [articleResult, flashcardResult, mcqResult] = await Promise.all(promises);
-      
+
       setBatchArticle(articleResult);
       setBatchCards(flashcardResult);
       setBatchMcqs(mcqResult);
@@ -779,21 +768,9 @@ export default function Admin() {
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
-  if (authLoading) {
-    return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
-  }
-
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-display text-3xl font-bold text-foreground">Dashboard</h1>
-        <div className="flex items-center gap-3">
-          {user && <span className="text-xs text-muted-foreground hidden sm:inline">{user.email}</span>}
-          <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate("/"); }} className="gap-2 text-muted-foreground">
-            <LogOut className="h-4 w-4" /> Logout
-          </Button>
-        </div>
-      </div>
+      <h1 className="mb-6 font-display text-3xl font-bold text-foreground">Dashboard</h1>
 
       <div className="mb-8 flex gap-1 rounded-xl border border-border bg-secondary/50 p-1 overflow-x-auto">
         {tabs.map((t) => (
@@ -819,7 +796,6 @@ export default function Admin() {
             className="mb-4 min-h-[200px] resize-y"
           />
 
-          {/* Category selector */}
           <div className="mb-4">
             <label className="mb-2 block text-sm font-medium text-foreground">Unit/Category</label>
             <select
@@ -834,7 +810,6 @@ export default function Admin() {
             </select>
           </div>
 
-          {/* Count selectors */}
           <div className="mb-4 grid gap-4 sm:grid-cols-2">
             <div className="rounded-lg border border-border bg-card p-3">
               <label className="mb-2 block text-sm font-medium text-foreground">Flashcards (5-100)</label>
@@ -891,7 +866,6 @@ export default function Admin() {
             </div>
           </div>
 
-          {/* Generate All - batch */}
           <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-4">
             <div className="mb-3 flex items-center gap-2">
               <Zap className="h-5 w-5 text-primary" />
@@ -918,7 +892,6 @@ export default function Admin() {
             </Button>
           </div>
 
-          {/* Batch Preview */}
           {hasBatchPreview && (
             <div className="mb-8 space-y-4 rounded-xl border-2 border-primary/40 bg-primary/5 p-6">
               <div className="flex items-center justify-between">
@@ -985,7 +958,6 @@ export default function Admin() {
             </div>
           )}
 
-          {/* Individual generation buttons */}
           <div className="mb-8 flex flex-wrap gap-3">
             <Button onClick={() => handleGenerate("article")} disabled={loading} className="gap-2" variant="outline">
               {loading && loadingType === "article" && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -1001,7 +973,6 @@ export default function Admin() {
             </Button>
           </div>
 
-          {/* Individual Previews */}
           {previewArticle && (
             <div className="rounded-xl border border-border bg-card p-6">
               <div className="mb-4 flex items-center justify-between">
@@ -1075,7 +1046,7 @@ export default function Admin() {
           <div className="mt-8 rounded-xl border border-border bg-card p-6">
             <h3 className="mb-2 font-display text-lg font-bold text-foreground">📋 Direct Publish Mode</h3>
             <p className="mb-4 text-sm text-muted-foreground">
-              Paste pre-written article/MCQ/flashcard content and I’ll do minimal formatting for clean publishing.
+              Paste pre-written article/MCQ/flashcard content and I'll do minimal formatting for clean publishing.
             </p>
 
             <div className="mb-4 grid gap-4 md:grid-cols-4">
@@ -1459,7 +1430,6 @@ function McqsList() {
             </div>
           </div>
 
-          {/* Password setting inline */}
           {passwordSetId === s.id && (
             <div className="mt-3 pt-3 border-t border-border">
               <p className="text-xs font-medium text-foreground mb-2">🔒 Set Password (leave empty to remove)</p>
