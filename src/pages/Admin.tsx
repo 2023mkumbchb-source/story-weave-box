@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -28,13 +27,12 @@ export default function Admin() {
     if (sessionStorage.getItem("learninghub_auth") !== "true") {
       navigate("/login");
     }
+    // Load Gemini key once on mount
     getSetting("gemini_api_key").then((key) => {
+      console.log("Loaded Gemini key:", key ? "YES" : "NO");
       setGeminiKey(key || "");
     });
   }, [navigate]);
-
-  // Publishing progress state
-  const [publishProgress, setPublishProgress] = useState<{ current: number; total: number; label: string } | null>(null);
 
   const [tab, setTab] = useState<Tab>("create");
   const [notes, setNotes] = useState("");
@@ -75,6 +73,7 @@ export default function Admin() {
 
   // ===== Inline functions with geminiKey support =====
   const generateArticle = async (notesInput: string): Promise<{ title: string; content: string }> => {
+    console.log("generateArticle called, geminiKey present:", !!geminiKey);
     const { data, error } = await supabase.functions.invoke('generate-content', {
       body: { notes: notesInput, type: 'article', geminiKey },
     });
@@ -84,6 +83,7 @@ export default function Admin() {
   };
 
   const generateFlashcards = async (notesInput: string, count: number = 20): Promise<{ question: string; answer: string }[]> => {
+    console.log("generateFlashcards called, geminiKey present:", !!geminiKey);
     const { data, error } = await supabase.functions.invoke('generate-content', {
       body: { notes: notesInput, type: 'flashcards', count, geminiKey },
     });
@@ -93,6 +93,7 @@ export default function Admin() {
   };
 
   const generateMcqs = async (notesInput: string, count: number = 15): Promise<{ question: string; options: string[]; correct_answer: number; explanation?: string }[]> => {
+    console.log("generateMcqs called, geminiKey present:", !!geminiKey);
     const { data, error } = await supabase.functions.invoke('generate-content', {
       body: { notes: notesInput, type: 'mcqs', count, geminiKey },
     });
@@ -102,6 +103,7 @@ export default function Admin() {
   };
 
   const autoCategorizе = async (notesInput: string): Promise<string> => {
+    console.log("autoCategorizе called, geminiKey present:", !!geminiKey);
     const { data, error } = await supabase.functions.invoke('generate-content', {
       body: { notes: notesInput, type: 'categorize', geminiKey },
     });
@@ -350,6 +352,7 @@ export default function Admin() {
     setLoadingType("direct");
     try {
       if (directType === "article") {
+        // Use Gemini to reformat the article to match site format
         const { data, error } = await supabase.functions.invoke('generate-content', {
           body: { notes: directContent, type: 'direct-article', geminiKey, title: directTitle.trim() },
         });
@@ -360,12 +363,14 @@ export default function Admin() {
         setDirectPreviewMcqs(null);
         toast({ title: "Article formatted by Gemini ✓" });
       } else if (directType === "mcqs") {
+        // Use Gemini to reformat MCQs
         const { data, error } = await supabase.functions.invoke('generate-content', {
           body: { notes: directContent, type: 'direct-mcqs', geminiKey, count: clampRequestedCount(directTargetCount) },
         });
         if (error) throw new Error(error.message);
         if (data?.error) throw new Error(data.error);
         if (!Array.isArray(data) || data.length === 0) {
+          // Fallback to local parsing
           const parsed = parseDirectMcqs(directContent);
           const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
           if (!limited.length) throw new Error("Could not parse MCQs.");
@@ -377,6 +382,7 @@ export default function Admin() {
         setDirectPreviewCards(null);
         toast({ title: `Formatted MCQs via Gemini ✓` });
       } else {
+        // Use Gemini to reformat flashcards
         const { data, error } = await supabase.functions.invoke('generate-content', {
           body: { notes: directContent, type: 'direct-flashcards', geminiKey, count: clampRequestedCount(directTargetCount) },
         });
@@ -396,6 +402,7 @@ export default function Admin() {
       }
     } catch (err: any) {
       toast({ title: "Gemini format failed, using local parsing", description: err.message, variant: "destructive" });
+      // Fallback to local parsing
       try {
         if (directType === "article") {
           setDirectPreviewArticle(parseDirectArticle(directContent));
@@ -423,88 +430,14 @@ export default function Admin() {
     }
   };
 
-  const handleDirectPublishRaw = async (publish: boolean) => {
-    if (!directContent.trim()) {
-      toast({ title: "Paste content first", variant: "destructive" });
-      return;
-    }
-    setLoading(true);
-    setLoadingType("direct-raw");
-    setPublishProgress({ current: 0, total: 3, label: "Parsing content..." });
-    try {
-      let cat = directCategory;
-      if (!cat) {
-        setPublishProgress({ current: 1, total: 3, label: "Auto-detecting category..." });
-        cat = await autoCategorizе(directContent);
-        setDirectCategory(cat);
-      }
-      const finalCategory = cat || "Uncategorized";
-      setPublishProgress({ current: 2, total: 3, label: "Saving..." });
-
-      if (directType === "article") {
-        const parsed = parseDirectArticle(directContent);
-        await saveArticle({
-          title: directTitle.trim() || parsed.title,
-          content: parsed.content,
-          created_at: new Date().toISOString(),
-          published: publish,
-          original_notes: directContent,
-          category: finalCategory,
-        });
-      } else if (directType === "mcqs") {
-        const parsed = parseDirectMcqs(directContent);
-        const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
-        if (!limited.length) throw new Error("Could not parse MCQs from content.");
-        await saveMcqSet({
-          title: directTitle.trim() || buildSetTitle("MCQ", directContent, finalCategory),
-          questions: limited,
-          created_at: new Date().toISOString(),
-          published: publish,
-          original_notes: directContent,
-          category: finalCategory,
-          access_password: "",
-        });
-      } else {
-        const parsed = parseDirectFlashcards(directContent);
-        const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
-        if (!limited.length) throw new Error("Could not parse flashcards from content.");
-        await saveFlashcardSet({
-          title: directTitle.trim() || buildSetTitle("Flashcards", directContent, finalCategory),
-          cards: limited,
-          created_at: new Date().toISOString(),
-          published: publish,
-          original_notes: directContent,
-          category: finalCategory,
-        });
-      }
-
-      setPublishProgress({ current: 3, total: 3, label: "Done!" });
-      toast({ title: publish ? "Published directly!" : "Draft saved!" });
-      setDirectContent("");
-      setDirectTitle("");
-      setDirectPreviewArticle(null);
-      setDirectPreviewCards(null);
-      setDirectPreviewMcqs(null);
-    } catch (err: any) {
-      toast({ title: "Save failed", description: err.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
-      setLoadingType(null);
-      setTimeout(() => setPublishProgress(null), 2000);
-    }
-  };
-
   const handleDirectSave = async (publish: boolean) => {
     try {
-      setPublishProgress({ current: 0, total: 3, label: "Preparing..." });
       let cat = directCategory;
       if (!cat) {
-        setPublishProgress({ current: 1, total: 3, label: "Auto-detecting category..." });
         cat = await autoCategorizе(directContent);
         setDirectCategory(cat);
       }
       const finalCategory = cat || "Uncategorized";
-      setPublishProgress({ current: 2, total: 3, label: "Saving to database..." });
 
       if (directPreviewArticle) {
         await saveArticle({
@@ -535,12 +468,10 @@ export default function Admin() {
           category: finalCategory,
         });
       } else {
-        toast({ title: "No preview yet", description: "Format with Gemini first, or use Direct Publish.", variant: "destructive" });
-        setPublishProgress(null);
+        toast({ title: "No direct preview yet", description: "Click Format & Preview first.", variant: "destructive" });
         return;
       }
 
-      setPublishProgress({ current: 3, total: 3, label: "Done!" });
       toast({ title: publish ? "Published!" : "Draft saved!" });
       setDirectContent("");
       setDirectTitle("");
@@ -549,8 +480,6 @@ export default function Admin() {
       setDirectPreviewMcqs(null);
     } catch (err: any) {
       toast({ title: "Save failed", description: err.message, variant: "destructive" });
-    } finally {
-      setTimeout(() => setPublishProgress(null), 2000);
     }
   };
 
@@ -628,7 +557,7 @@ export default function Admin() {
       else promises.push(Promise.resolve(null));
 
       const [articleResult, flashcardResult, mcqResult] = await Promise.all(promises);
-
+      
       setBatchArticle(articleResult);
       setBatchCards(flashcardResult);
       setBatchMcqs(mcqResult);
@@ -796,6 +725,7 @@ export default function Admin() {
             className="mb-4 min-h-[200px] resize-y"
           />
 
+          {/* Category selector */}
           <div className="mb-4">
             <label className="mb-2 block text-sm font-medium text-foreground">Unit/Category</label>
             <select
@@ -810,6 +740,7 @@ export default function Admin() {
             </select>
           </div>
 
+          {/* Count selectors */}
           <div className="mb-4 grid gap-4 sm:grid-cols-2">
             <div className="rounded-lg border border-border bg-card p-3">
               <label className="mb-2 block text-sm font-medium text-foreground">Flashcards (5-100)</label>
@@ -866,6 +797,7 @@ export default function Admin() {
             </div>
           </div>
 
+          {/* Generate All - batch */}
           <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-4">
             <div className="mb-3 flex items-center gap-2">
               <Zap className="h-5 w-5 text-primary" />
@@ -892,6 +824,7 @@ export default function Admin() {
             </Button>
           </div>
 
+          {/* Batch Preview */}
           {hasBatchPreview && (
             <div className="mb-8 space-y-4 rounded-xl border-2 border-primary/40 bg-primary/5 p-6">
               <div className="flex items-center justify-between">
@@ -958,6 +891,7 @@ export default function Admin() {
             </div>
           )}
 
+          {/* Individual generation buttons */}
           <div className="mb-8 flex flex-wrap gap-3">
             <Button onClick={() => handleGenerate("article")} disabled={loading} className="gap-2" variant="outline">
               {loading && loadingType === "article" && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -973,6 +907,7 @@ export default function Admin() {
             </Button>
           </div>
 
+          {/* Individual Previews */}
           {previewArticle && (
             <div className="rounded-xl border border-border bg-card p-6">
               <div className="mb-4 flex items-center justify-between">
@@ -1046,7 +981,7 @@ export default function Admin() {
           <div className="mt-8 rounded-xl border border-border bg-card p-6">
             <h3 className="mb-2 font-display text-lg font-bold text-foreground">📋 Direct Publish Mode</h3>
             <p className="mb-4 text-sm text-muted-foreground">
-              Paste pre-written article/MCQ/flashcard content and I'll do minimal formatting for clean publishing.
+              Paste pre-written article/MCQ/flashcard content and I’ll do minimal formatting for clean publishing.
             </p>
 
             <div className="mb-4 grid gap-4 md:grid-cols-4">
@@ -1107,27 +1042,10 @@ export default function Admin() {
               className="mb-4 min-h-[180px]"
             />
 
-            {publishProgress && (
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-muted-foreground">{publishProgress.label}</span>
-                  <span className="text-xs font-medium text-primary">{Math.round((publishProgress.current / publishProgress.total) * 100)}%</span>
-                </div>
-                <Progress value={(publishProgress.current / publishProgress.total) * 100} className="h-2" />
-              </div>
-            )}
-
             <div className="mb-4 flex flex-wrap gap-3">
-              <Button onClick={handleFormatDirect} variant="outline" disabled={loading} className="gap-2">
-                {loading && loadingType === "direct" && <Loader2 className="h-4 w-4 animate-spin" />}
-                {loading && loadingType === "direct" ? "Formatting with Gemini..." : "✨ Format with Gemini"}
-              </Button>
-              <Button onClick={() => handleDirectPublishRaw(true)} disabled={loading} variant="default" className="gap-2">
-                {loading && loadingType === "direct-raw" && <Loader2 className="h-4 w-4 animate-spin" />}
-                {loading && loadingType === "direct-raw" ? "Publishing..." : "⚡ Direct Publish (No AI)"}
-              </Button>
-              <Button onClick={() => handleDirectSave(false)} variant="outline" disabled={loading}>Save Draft</Button>
-              <Button onClick={() => handleDirectSave(true)} variant="secondary" disabled={loading}>Publish (Formatted)</Button>
+              <Button onClick={handleFormatDirect} variant="outline">Format & Preview</Button>
+              <Button onClick={() => handleDirectSave(false)} variant="outline">Save Draft</Button>
+              <Button onClick={() => handleDirectSave(true)}>Direct Publish</Button>
             </div>
 
             {directPreviewArticle && (
@@ -1430,6 +1348,7 @@ function McqsList() {
             </div>
           </div>
 
+          {/* Password setting inline */}
           {passwordSetId === s.id && (
             <div className="mt-3 pt-3 border-t border-border">
               <p className="text-xs font-medium text-foreground mb-2">🔒 Set Password (leave empty to remove)</p>
