@@ -207,7 +207,10 @@ export default function Admin() {
     setLoading(true);
     setLoadingType("direct-raw");
     try {
-      const finalCategory = directCategory || "Uncategorized";
+      let finalCategory = directCategory;
+      if (!finalCategory) {
+        try { finalCategory = await autoCategorizе(directContent); } catch { finalCategory = "Uncategorized"; }
+      }
 
       if (directType === "article") {
         const lines = directContent.trim().split("\n");
@@ -328,17 +331,22 @@ export default function Admin() {
     if (!notes.trim()) { toast({ title: "Please enter some notes", variant: "destructive" }); return; }
     setLoading(true); setLoadingType(type);
     try {
+      // Auto-categorize first if not set
+      let cat = category;
+      if (!cat) {
+        cat = await autoCategorizе(notes);
+        setCategory(cat);
+      }
       if (type === "article") {
         const result = await generateArticle(notes);
         setPreviewArticle(result); setPreviewTitle(result.title); setPreviewContent(result.content); setPreviewCards(null); setPreviewMcqs(null);
       } else if (type === "mcqs") {
         const questions = await generateMcqs(notes, mcqCount);
-        setPreviewMcqs(questions); setPreviewTitle(buildSetTitle("MCQ", notes, category)); setPreviewArticle(null); setPreviewCards(null);
+        setPreviewMcqs(questions); setPreviewTitle(buildSetTitle("MCQ", notes, cat)); setPreviewArticle(null); setPreviewCards(null);
       } else {
         const cards = await generateFlashcards(notes, cardCount);
-        setPreviewCards(cards); setPreviewTitle(buildSetTitle("Flashcards", notes, category)); setPreviewArticle(null); setPreviewMcqs(null);
+        setPreviewCards(cards); setPreviewTitle(buildSetTitle("Flashcards", notes, cat)); setPreviewArticle(null); setPreviewMcqs(null);
       }
-      if (!category) { const autoCategory = await autoCategorizе(notes); setCategory(autoCategory); }
       toast({ title: "Content generated!" });
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
