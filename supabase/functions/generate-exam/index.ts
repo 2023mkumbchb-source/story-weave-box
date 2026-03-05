@@ -17,7 +17,7 @@ async function callLovableAI(prompt: string): Promise<string> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3-flash-preview",
       messages: [
         { role: "system", content: "You are a senior medical exam writer. Return ONLY valid JSON, no markdown or code blocks." },
         { role: "user", content: prompt },
@@ -28,13 +28,50 @@ async function callLovableAI(prompt: string): Promise<string> {
   if (!response.ok) {
     const text = await response.text();
     console.error("Lovable AI error:", response.status, text);
-    if (response.status === 429) throw new Error("Rate limited - please try again later");
-    if (response.status === 402) throw new Error("AI credits exhausted - please add credits");
-    throw new Error(`AI error: ${response.status}`);
+    if (response.status === 429) throw new Error("LOVABLE_RATE_LIMIT");
+    if (response.status === 402) throw new Error("LOVABLE_CREDITS");
+    throw new Error(`LOVABLE_FAIL:${response.status}`);
   }
 
   const data = await response.json();
   return data.choices?.[0]?.message?.content || "";
+}
+
+async function callGeminiFallback(prompt: string): Promise<string> {
+  const geminiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!geminiKey) throw new Error("No GEMINI_API_KEY fallback available");
+
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
+  for (const model of models) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: `You are a senior medical exam writer. Return ONLY valid JSON, no markdown or code blocks.\n\n${prompt}` }] }],
+          }),
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      }
+    } catch (e) {
+      console.error(`Gemini fallback ${model} failed:`, e);
+    }
+  }
+  throw new Error("Both Lovable AI and Gemini fallback failed");
+}
+
+async function generateWithFallback(prompt: string): Promise<string> {
+  try {
+    return await callLovableAI(prompt);
+  } catch (e: any) {
+    console.warn("Lovable AI failed, falling back to Gemini:", e.message);
+    return await callGeminiFallback(prompt);
+  }
 }
 
 serve(async (req) => {
@@ -45,7 +82,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get all published MCQ sets
     const { data: mcqSets } = await supabase
       .from("mcq_sets")
       .select("title, questions, category")
@@ -72,7 +108,6 @@ serve(async (req) => {
 
     const weakTopics = (wrongAnswers || []).map((a: any) => a.question_text).slice(0, 30);
 
-    // Gather categories and sample content
     const allCategories = new Set<string>();
     const contentSummary: string[] = [];
 
@@ -111,7 +146,7 @@ REQUIREMENTS:
 - Include tricky distractors
 - No duplicates`;
 
-    const mcqText = await callLovableAI(mcqPrompt);
+    const mcqText = await generateWithFallback(mcqPrompt);
     const mcqMatch = mcqText.match(/\[[\s\S]*\]/);
     let examMcqs: any[] = [];
     if (mcqMatch) {
@@ -139,7 +174,7 @@ Generate:
 Return ONLY valid JSON:
 {"saqs": [{"question": "...", "model_answer": "...", "marks": 5}], "laqs": [{"question": "...", "model_answer": "...", "marks": 15}]}`;
 
-    const essayText = await callLovableAI(essayPrompt);
+    const essayText = await generateWithFallback(essayPrompt);
     let saqs: any[] = [];
     let laqs: any[] = [];
     try {

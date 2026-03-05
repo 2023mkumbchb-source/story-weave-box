@@ -41,6 +41,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          is_raw: boolean | null
           original_notes: string
           published: boolean
           title: string
@@ -50,6 +51,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          is_raw?: boolean | null
           original_notes?: string
           published?: boolean
           title: string
@@ -59,6 +61,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          is_raw?: boolean | null
           original_notes?: string
           published?: boolean
           title?: string
@@ -71,6 +74,7 @@ export type Database = {
           category: string
           created_at: string
           id: string
+          is_raw: boolean | null
           original_notes: string
           published: boolean
           title: string
@@ -80,6 +84,7 @@ export type Database = {
           category?: string
           created_at?: string
           id?: string
+          is_raw?: boolean | null
           original_notes?: string
           published?: boolean
           title: string
@@ -89,6 +94,7 @@ export type Database = {
           category?: string
           created_at?: string
           id?: string
+          is_raw?: boolean | null
           original_notes?: string
           published?: boolean
           title?: string
@@ -101,6 +107,7 @@ export type Database = {
           category: string
           created_at: string
           id: string
+          is_raw: boolean | null
           original_notes: string
           published: boolean
           questions: Json
@@ -111,6 +118,7 @@ export type Database = {
           category?: string
           created_at?: string
           id?: string
+          is_raw?: boolean | null
           original_notes?: string
           published?: boolean
           questions?: Json
@@ -121,6 +129,7 @@ export type Database = {
           category?: string
           created_at?: string
           id?: string
+          is_raw?: boolean | null
           original_notes?: string
           published?: boolean
           questions?: Json
