@@ -216,7 +216,7 @@ export default function Mcqs() {
 
                       {/* First question snippet */}
                       {snippet && (
-                        <p className="mb-3 text-xs text-muted-foreground line-clamp-2 leading-relaxed border-l-2 border-primary/20 pl-2">
+                        <p className="mb-3 text-xs text-muted-foreground line-clamp-3 leading-relaxed border-l-2 border-primary/20 pl-2">
                           {snippet}
                         </p>
                       )}
