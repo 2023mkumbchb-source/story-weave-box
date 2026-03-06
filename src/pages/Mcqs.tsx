@@ -106,7 +106,7 @@ export default function Mcqs() {
         )}
       </div>
 
-      {/* Category tabs — hidden while searching */}
+      {/* Category tabs */}
       {!isSearching && (
         <CategoryTabs
           categories={categories}
@@ -187,32 +187,48 @@ export default function Mcqs() {
             </div>
           ) : (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((s, i) => (
-                <motion.div key={s.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                  <Link to={`/mcqs/${s.id}`}
-                    className="group relative block rounded-xl border border-border bg-card p-6 transition-shadow hover:[box-shadow:var(--shadow-card-hover)] h-full"
-                    style={{ boxShadow: "var(--shadow-card)" }}>
-                    {visitedIds.has(s.id) && (
-                      <div className="absolute top-3 right-3"><ContinueBadge /></div>
-                    )}
-                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-accent/20 text-accent">
-                      <ListChecks className="h-5 w-5" />
-                    </div>
-                    {s.category && s.category !== "Uncategorized" && (
-                      <span className="mb-2 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                        {getCategoryDisplayName(s.category)}
-                      </span>
-                    )}
-                    <h3 className="mb-3 font-display text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                      {s.title}
-                    </h3>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><Layers className="h-3 w-3" /> {s.questions.length} questions</span>
-                      <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(s.created_at).toLocaleDateString()}</span>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
+              {filtered.map((s, i) => {
+                // First question as snippet
+                const firstQ = (s.questions as any[])[0];
+                const snippet = firstQ?.question ?? firstQ?.text ?? null;
+
+                return (
+                  <motion.div key={s.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                    <Link
+                      to={`/mcqs/${s.id}`}
+                      className="group relative flex flex-col rounded-xl border border-border bg-card p-6 transition-shadow hover:[box-shadow:var(--shadow-card-hover)] h-full"
+                      style={{ boxShadow: "var(--shadow-card)" }}
+                    >
+                      {visitedIds.has(s.id) && (
+                        <div className="absolute top-3 right-3"><ContinueBadge /></div>
+                      )}
+                      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-accent/20 text-accent">
+                        <ListChecks className="h-5 w-5" />
+                      </div>
+                      {s.category && s.category !== "Uncategorized" && (
+                        <span className="mb-2 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                          {getCategoryDisplayName(s.category)}
+                        </span>
+                      )}
+                      <h3 className="mb-2 font-display text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                        {s.title}
+                      </h3>
+
+                      {/* First question snippet */}
+                      {snippet && (
+                        <p className="mb-3 text-xs text-muted-foreground line-clamp-2 leading-relaxed border-l-2 border-primary/20 pl-2">
+                          {snippet}
+                        </p>
+                      )}
+
+                      <div className="mt-auto flex items-center gap-4 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1"><Layers className="h-3 w-3" /> {s.questions.length} questions</span>
+                        <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(s.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </Link>
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </>
