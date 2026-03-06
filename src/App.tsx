@@ -14,6 +14,9 @@ import Flashcards from "./pages/Flashcards";
 import FlashcardStudy from "./pages/FlashcardStudy";
 import Mcqs from "./pages/Mcqs";
 import McqStudy from "./pages/McqStudy";
+import Exams from "./pages/Exams";
+import Essays from "./pages/Essays";
+import EssayStudy from "./pages/EssayStudy";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
@@ -37,6 +40,9 @@ const App = () => (
               <Route path="/flashcards/:id" element={<FlashcardStudy />} />
               <Route path="/mcqs" element={<Mcqs />} />
               <Route path="/mcqs/:id" element={<McqStudy />} />
+              <Route path="/exams" element={<Exams />} />
+              <Route path="/essays" element={<Essays />} />
+              <Route path="/essays/:id" element={<EssayStudy />} />
               <Route path="/login" element={<Login />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<NotFound />} />
