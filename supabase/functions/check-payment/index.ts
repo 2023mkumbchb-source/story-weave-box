@@ -2,89 +2,41 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-function extractMpesaCode(input: string): string {
-  const cleanInput = (input || "").trim().toUpperCase();
-  if (!cleanInput) return "";
-
-  if (/^[A-Z0-9]{8,12}$/.test(cleanInput)) return cleanInput;
-
-  const patterns = [
-    /\b([A-Z]{2,4}[A-Z0-9]{6,10})\b/,
-    /transaction\s+([A-Z0-9]{8,12})/i,
-    /code\s*:?\s*([A-Z0-9]{8,12})/i,
-    /\b([A-Z][A-Z0-9]{8,11})\b/,
-  ];
-
-  for (const pattern of patterns) {
-    const match = cleanInput.match(pattern);
-    if (match?.[1]) return match[1];
-  }
-
-  return cleanInput;
-}
-
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) throw new Error("Supabase credentials not configured");
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) throw new Error('Supabase credentials not configured');
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const url = new URL(req.url);
+    const transactionId = url.searchParams.get('transaction_id') || '';
 
-    let rawInput = url.searchParams.get("transaction_id") || url.searchParams.get("mpesa_code") || "";
-
-    if (!rawInput && req.method !== "GET") {
-      const rawBody = await req.text();
-      if (rawBody) {
-        try {
-          const body = JSON.parse(rawBody);
-          rawInput = body?.transaction_id || body?.mpesa_code || "";
-        } catch {
-          rawInput = rawBody;
-        }
-      }
-    }
-
-    if (!rawInput) {
+    if (!transactionId) {
       return new Response(
-        JSON.stringify({ success: false, error: "Transaction ID required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: 'Transaction ID required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const normalized = extractMpesaCode(rawInput);
-
-    // 1) Try internal reference first
-    let { data: payment, error } = await supabase
-      .from("payments")
-      .select("*")
-      .eq("transaction_id", normalized)
-      .maybeSingle();
-
-    // 2) Fallback to M-Pesa receipt code lookup
-    if (error || !payment) {
-      const result = await supabase
-        .from("payments")
-        .select("*")
-        .eq("mpesa_code", normalized)
-        .maybeSingle();
-      payment = result.data;
-      error = result.error;
-    }
+    const { data: payment, error } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('transaction_id', transactionId)
+      .single();
 
     if (error || !payment) {
       return new Response(
-        JSON.stringify({ success: false, error: "Payment not found", status: "not_found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: 'Payment not found', status: 'not_found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -93,17 +45,16 @@ serve(async (req) => {
         success: true,
         status: payment.payment_status,
         mpesa_code: payment.mpesa_code,
-        amount: Number(payment.amount || 0),
-        transaction_id: payment.transaction_id,
+        amount: payment.amount,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {
-    console.error("Error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error('Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ success: false, error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

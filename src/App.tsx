@@ -15,7 +15,6 @@ import FlashcardStudy from "./pages/FlashcardStudy";
 import Mcqs from "./pages/Mcqs";
 import McqStudy from "./pages/McqStudy";
 import Exams from "./pages/Exams";
-import ExamStart from "./pages/ExamStart";
 import Essays from "./pages/Essays";
 import EssayStudy from "./pages/EssayStudy";
 import Login from "./pages/Login";
@@ -42,7 +41,6 @@ const App = () => (
               <Route path="/mcqs" element={<Mcqs />} />
               <Route path="/mcqs/:id" element={<McqStudy />} />
               <Route path="/exams" element={<Exams />} />
-              <Route path="/exams/:id/start" element={<ExamStart />} />
               <Route path="/essays" element={<Essays />} />
               <Route path="/essays/:id" element={<EssayStudy />} />
               <Route path="/login" element={<Login />} />
