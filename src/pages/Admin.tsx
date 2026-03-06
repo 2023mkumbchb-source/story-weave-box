@@ -100,34 +100,6 @@ export default function Admin() {
     return data?.category || "Uncategorized";
   };
 
-  const ensureEssayForArticle = async (article: { id: string; title: string; category: string; content: string; original_notes?: string }) => {
-    const source = (article.original_notes || article.content || "").trim();
-    if (!source) return;
-
-    const { data, error } = await supabase.functions.invoke('generate-content', {
-      body: { notes: source, type: 'essay-qa', geminiKey, title: article.title },
-    });
-    if (error || data?.error) throw new Error(error?.message || data?.error || 'Failed to generate essay questions');
-
-    const payload = {
-      title: article.title,
-      category: article.category || 'Uncategorized',
-      article_id: article.id,
-      short_answer_questions: (data?.saqs || []) as any,
-      long_answer_questions: (data?.laqs || []) as any,
-      published: true,
-    };
-
-    const { data: existing } = await supabase.from('essays').select('id').eq('article_id', article.id).maybeSingle();
-    if (existing?.id) {
-      const { error: updateError } = await supabase.from('essays').update(payload).eq('id', existing.id);
-      if (updateError) throw updateError;
-    } else {
-      const { error: insertError } = await supabase.from('essays').insert(payload);
-      if (insertError) throw insertError;
-    }
-  };
-
   const clampRequestedCount = (n: number) => Math.min(Math.max(Math.floor(n || 0), 5), 100);
 
   const inferContentTitle = (raw: string, fallback: string) => {
@@ -243,7 +215,7 @@ export default function Admin() {
       if (directType === "article") {
         const lines = directContent.trim().split("\n");
         const title = directTitle.trim() || lines[0]?.replace(/^#+\s*/, "").trim() || "Untitled";
-        const savedArticle = await saveArticle({
+        await saveArticle({
           title,
           content: directContent,
           created_at: new Date().toISOString(),
@@ -252,7 +224,6 @@ export default function Admin() {
           category: finalCategory,
           is_raw: true,
         } as any);
-        try { await ensureEssayForArticle(savedArticle as any); } catch {}
       } else if (directType === "mcqs") {
         const parsed = parseDirectMcqs(directContent);
         const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
@@ -340,10 +311,7 @@ export default function Admin() {
     try {
       const finalCategory = directCategory || "Uncategorized";
       if (directPreviewArticle) {
-        const savedArticle = await saveArticle({ title: directPreviewArticle.title, content: directPreviewArticle.content, created_at: new Date().toISOString(), published: publish, original_notes: directContent, category: finalCategory });
-        if (publish) {
-          try { await ensureEssayForArticle(savedArticle as any); } catch {}
-        }
+        await saveArticle({ title: directPreviewArticle.title, content: directPreviewArticle.content, created_at: new Date().toISOString(), published: publish, original_notes: directContent, category: finalCategory });
       } else if (directPreviewMcqs) {
         await saveMcqSet({ title: directTitle.trim() || buildSetTitle("MCQ", directContent, finalCategory), questions: directPreviewMcqs, created_at: new Date().toISOString(), published: publish, original_notes: directContent, category: finalCategory, access_password: "" });
       } else if (directPreviewCards) {
@@ -423,24 +391,11 @@ export default function Admin() {
     setLoading(true);
     try {
       const cat = batchCategory || category || "Uncategorized";
-
-      if (batchArticle) {
-        const savedArticle = await saveArticle({
-          title: batchArticle.title,
-          content: batchArticle.content,
-          created_at: new Date().toISOString(),
-          published: true,
-          original_notes: notes,
-          category: cat,
-        });
-        try { await ensureEssayForArticle(savedArticle as any); } catch {}
-      }
-
       const saves: Promise<any>[] = [];
+      if (batchArticle) saves.push(saveArticle({ title: batchArticle.title, content: batchArticle.content, created_at: new Date().toISOString(), published: true, original_notes: notes, category: cat }));
       if (batchCards) saves.push(saveFlashcardSet({ title: buildSetTitle("Flashcards", batchTitle || notes, cat), cards: batchCards, created_at: new Date().toISOString(), published: true, original_notes: notes, category: cat }));
       if (batchMcqs) saves.push(saveMcqSet({ title: buildSetTitle("MCQ", batchTitle || notes, cat), questions: batchMcqs, created_at: new Date().toISOString(), published: true, original_notes: notes, category: cat, access_password: "" }));
       await Promise.all(saves);
-
       toast({ title: "All content published!" });
       setBatchArticle(null); setBatchCards(null); setBatchMcqs(null); setNotes(""); setCategory("");
     } catch (err: any) {
@@ -451,12 +406,7 @@ export default function Admin() {
   const handleSave = async (publish: boolean) => {
     try {
       const cat = category || "Uncategorized";
-      if (previewArticle) {
-        const savedArticle = await saveArticle({ title: previewTitle, content: previewContent, created_at: new Date().toISOString(), published: publish, original_notes: notes, category: cat });
-        if (publish) {
-          try { await ensureEssayForArticle(savedArticle as any); } catch {}
-        }
-      }
+      if (previewArticle) await saveArticle({ title: previewTitle, content: previewContent, created_at: new Date().toISOString(), published: publish, original_notes: notes, category: cat });
       else if (previewCards) await saveFlashcardSet({ title: previewTitle, cards: previewCards, created_at: new Date().toISOString(), published: publish, original_notes: notes, category: cat });
       else if (previewMcqs) await saveMcqSet({ title: previewTitle, questions: previewMcqs, created_at: new Date().toISOString(), published: publish, original_notes: notes, category: cat, access_password: "" });
       toast({ title: publish ? "Published!" : "Draft saved!" });
