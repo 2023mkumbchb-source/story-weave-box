@@ -183,26 +183,6 @@ function splitInlineTable(s: string): string[] {
 
 const META_HEADING = /^(key points|detailed notes|summary)$/i;
 
-// ─── NEW HELPER ────────────────────────────────────────────────────────────
-// Returns true for lines that look like "fact lines" — plain text or italic-
-// only lines that should be rendered as bullets even without a leading "- ".
-// Excludes: headings, bullet lines, table lines, numbered items, blockquotes,
-// warning lines (⚠️), blank lines, and structural labels ending with ":".
-function isFactLine(t: string): boolean {
-  if (!t) return false;
-  if (t.startsWith("#")) return false;
-  if (t.startsWith("-")) return false;
-  if (t.startsWith("|")) return false;
-  if (t.startsWith(">")) return false;
-  if (/^\d+\./.test(t)) return false;
-  if (t.startsWith("⚠️") || t.startsWith("⚠")) return false;
-  // Lines that are purely italic (wrapped in * ... *) OR lines that
-  // start with a * italic span — these are the "fact" lines in the notes.
-  if (/^\*[^*]/.test(t)) return true;
-  // Also treat plain paragraph lines that sit after a ### heading as bullets.
-  // We signal this from outside via the `underSubheading` context flag.
-  return false;
-}
 
 function preprocessContent(raw: string): string {
   const out: string[] = [];
@@ -480,27 +460,38 @@ function ArticleContent({ content }: { content: string }) {
     }
 
     // ─── AUTO-BULLET LOGIC ──────────────────────────────────────────────────
-    // If the line is an italic fact line (*...*) OR we are directly under a
-    // ### subheading, treat it as a bullet instead of a bare paragraph.
-    const isItalicLine = /^\*[^*]/.test(t); // starts with a single * (not **)
-    // Lines ending with ":" are sub-labels/headings — never auto-bullet them
+    const isItalicLine = /^\*[^*]/.test(t);
     const isSubLabel = /^[A-Za-z*\s()–-]{2,60}:$/.test(t);
+
+    // Bold-only lines like **Pathogenesis:** → render as ### subheading
+    const boldLabelMatch = t.match(/^\*\*([^*]+)\*\*:?$/);
+    if (boldLabelMatch) {
+      flushList();
+      const labelText = boldLabelMatch[1].replace(/:$/, "").trim();
+      els.push(<h3 key={`bold-label-${i}`} className="mt-6 mb-3 font-bold text-[18px] sm:text-[19px] text-foreground leading-snug">{labelText}</h3>);
+      underSubheading = true;
+      return;
+    }
+
+    // Sub-labels ending with ":" → ### subheading
     if (isSubLabel) {
       flushList();
       underSubheading = false;
       els.push(<h3 key={`sublabel-${i}`} className="mt-6 mb-3 font-bold text-[18px] sm:text-[19px] text-foreground leading-snug"><Inline text={t.slice(0, -1)} /></h3>);
-      underSubheading = true; // lines after this sub-label are still bullets
+      underSubheading = true;
       return;
     }
+
     if (isItalicLine || underSubheading) {
-      // Don't auto-bullet structural lines like "⚠️ ..." — keep them as-is
+      // ⚠️ lines → styled amber callout box
       if (t.startsWith("⚠️") || t.startsWith("⚠")) {
         flushList();
-        underSubheading = false;
+        const warningText = t.replace(/^⚠️?\s*/, "").trim();
         els.push(
-          <p key={`warn-${i}`} className="mb-3 text-[16px] leading-relaxed text-foreground/85">
-            <Inline text={t} />
-          </p>
+          <div key={`warn-${i}`} className="my-3 flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/30 px-4 py-3">
+            <span className="text-amber-500 text-[16px] shrink-0 mt-0.5">⚠️</span>
+            <p className="text-[15px] leading-relaxed text-foreground/85"><Inline text={warningText} /></p>
+          </div>
         );
         return;
       }
@@ -511,6 +502,19 @@ function ArticleContent({ content }: { content: string }) {
 
     flushList();
     underSubheading = false;
+
+    // Standalone ⚠️ lines outside subheading context
+    if (t.startsWith("⚠️") || t.startsWith("⚠")) {
+      const warningText = t.replace(/^⚠️?\s*/, "").trim();
+      els.push(
+        <div key={`warn-p-${i}`} className="my-3 flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/30 px-4 py-3">
+          <span className="text-amber-500 text-[16px] shrink-0 mt-0.5">⚠️</span>
+          <p className="text-[15px] leading-relaxed text-foreground/85"><Inline text={warningText} /></p>
+        </div>
+      );
+      return;
+    }
+
     els.push(<p key={`p-${i}`} className="mb-4 text-[17px] leading-relaxed text-foreground/85"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
   });
 
