@@ -100,6 +100,34 @@ export default function Admin() {
     return data?.category || "Uncategorized";
   };
 
+  const ensureEssayForArticle = async (article: { id: string; title: string; category: string; content: string; original_notes?: string }) => {
+    const source = (article.original_notes || article.content || "").trim();
+    if (!source) return;
+
+    const { data, error } = await supabase.functions.invoke('generate-content', {
+      body: { notes: source, type: 'essay-qa', geminiKey, title: article.title },
+    });
+    if (error || data?.error) throw new Error(error?.message || data?.error || 'Failed to generate essay questions');
+
+    const payload = {
+      title: article.title,
+      category: article.category || 'Uncategorized',
+      article_id: article.id,
+      short_answer_questions: (data?.saqs || []) as any,
+      long_answer_questions: (data?.laqs || []) as any,
+      published: true,
+    };
+
+    const { data: existing } = await supabase.from('essays').select('id').eq('article_id', article.id).maybeSingle();
+    if (existing?.id) {
+      const { error: updateError } = await supabase.from('essays').update(payload).eq('id', existing.id);
+      if (updateError) throw updateError;
+    } else {
+      const { error: insertError } = await supabase.from('essays').insert(payload);
+      if (insertError) throw insertError;
+    }
+  };
+
   const clampRequestedCount = (n: number) => Math.min(Math.max(Math.floor(n || 0), 5), 100);
 
   const inferContentTitle = (raw: string, fallback: string) => {
