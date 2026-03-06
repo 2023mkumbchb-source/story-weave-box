@@ -198,7 +198,6 @@ export default function Admin() {
     return Array.from(uniq.values());
   };
 
-  // ===== ⚡ INSTANT Direct Publish — zero delays, zero AI =====
   const handleDirectPublishRaw = async () => {
     if (!directContent.trim()) {
       toast({ title: "Paste content first", variant: "destructive" });
@@ -331,7 +330,6 @@ export default function Admin() {
     if (!notes.trim()) { toast({ title: "Please enter some notes", variant: "destructive" }); return; }
     setLoading(true); setLoadingType(type);
     try {
-      // Auto-categorize first if not set
       let cat = category;
       if (!cat) {
         cat = await autoCategorizе(notes);
@@ -816,7 +814,6 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
 
   return (
     <div>
-      {/* Header */}
       <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-5">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
@@ -928,7 +925,7 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
   );
 }
 
-// --- Articles List (formatted only) ---
+// --- Articles List ---
 function ArticlesList() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
@@ -988,7 +985,7 @@ function ArticlesList() {
   );
 }
 
-// --- Flashcards List (formatted only) ---
+// --- Flashcards List ---
 function FlashcardsList() {
   const [sets, setSets] = useState<FlashcardSet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1058,7 +1055,7 @@ function FlashcardsList() {
   );
 }
 
-// --- MCQs List (formatted only) ---
+// --- MCQs List ---
 function McqsList() {
   const [sets, setSets] = useState<McqSet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1110,7 +1107,25 @@ function McqsList() {
     return (
       <div className="rounded-xl border border-border bg-card p-6">
         <h3 className="mb-4 font-display text-lg font-bold text-foreground">Edit MCQ Set</h3>
-        <Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="mb-4 font-bold" placeholder="Title" />
+
+        {/* Title */}
+        <Input
+          value={editing.title}
+          onChange={(e) => setEditing({ ...editing, title: e.target.value })}
+          className="mb-3 font-bold"
+          placeholder="Title"
+        />
+
+        {/* ← Category selector */}
+        <select
+          value={editing.category}
+          onChange={(e) => setEditing({ ...editing, category: e.target.value })}
+          className="w-full mb-4 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
+        >
+          <option value="Uncategorized">Uncategorized</option>
+          {UNIT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+
         <div className="mb-4 max-h-[500px] overflow-y-auto space-y-3">
           {editing.questions.map((q, i) => (
             <div key={i} className="rounded-lg border border-border p-3 space-y-2">
