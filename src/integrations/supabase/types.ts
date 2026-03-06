@@ -68,6 +68,47 @@ export type Database = {
         }
         Relationships: []
       }
+      essays: {
+        Row: {
+          article_id: string | null
+          category: string
+          created_at: string
+          id: string
+          long_answer_questions: Json
+          published: boolean
+          short_answer_questions: Json
+          title: string
+        }
+        Insert: {
+          article_id?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          long_answer_questions?: Json
+          published?: boolean
+          short_answer_questions?: Json
+          title: string
+        }
+        Update: {
+          article_id?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          long_answer_questions?: Json
+          published?: boolean
+          short_answer_questions?: Json
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "essays_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flashcard_sets: {
         Row: {
           cards: Json
@@ -134,6 +175,51 @@ export type Database = {
           published?: boolean
           questions?: Json
           title?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          buyer_email: string | null
+          buyer_name: string | null
+          created_at: string
+          id: string
+          mpesa_code: string | null
+          package_type: string | null
+          payment_status: string
+          phone_number: string
+          project_id: string | null
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          buyer_email?: string | null
+          buyer_name?: string | null
+          created_at?: string
+          id?: string
+          mpesa_code?: string | null
+          package_type?: string | null
+          payment_status?: string
+          phone_number: string
+          project_id?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          buyer_email?: string | null
+          buyer_name?: string | null
+          created_at?: string
+          id?: string
+          mpesa_code?: string | null
+          package_type?: string | null
+          payment_status?: string
+          phone_number?: string
+          project_id?: string | null
+          transaction_id?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
