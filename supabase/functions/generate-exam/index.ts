@@ -6,6 +6,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function normalizeUnitName(category: string): string {
+  const raw = (category || "Uncategorized").trim();
+  const lower = raw.toLowerCase();
+
+  if (lower.includes("pharmacology")) return "Pharmacology";
+  if (lower.includes("pathology")) return "Pathology";
+  if (raw.startsWith("Weekly Exam")) return "Weekly Exam";
+  return raw;
+}
+
 async function callLovableAI(prompt: string): Promise<string> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY not set");
@@ -74,155 +84,147 @@ async function generateWithFallback(prompt: string): Promise<string> {
   }
 }
 
+function parseMcqs(raw: string) {
+  const match = raw.match(/\[[\s\S]*\]/);
+  if (!match) return [];
+  try {
+    const parsed = JSON.parse(match[0]);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((q: any) => q?.question && Array.isArray(q?.options) && q.options.length >= 4)
+      .map((q: any) => ({
+        question: String(q.question).trim(),
+        options: q.options.slice(0, 4).map((o: any) => String(o).trim()),
+        correct_answer: Number.isInteger(q.correct_answer) ? Math.min(Math.max(q.correct_answer, 0), 3) : 0,
+        explanation: q.explanation ? String(q.explanation).trim() : "",
+      }));
+  } catch {
+    return [];
+  }
+}
+
+function parseEssays(raw: string) {
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) return { saqs: [], laqs: [] };
+  try {
+    const parsed = JSON.parse(match[0]);
+    const saqs = Array.isArray(parsed?.saqs)
+      ? parsed.saqs
+          .filter((q: any) => q?.question && (q?.model_answer || q?.answer))
+          .map((q: any) => ({ question: String(q.question).trim(), answer: String(q.model_answer || q.answer).trim(), marks: 5 }))
+      : [];
+    const laqs = Array.isArray(parsed?.laqs)
+      ? parsed.laqs
+          .filter((q: any) => q?.question && (q?.model_answer || q?.answer))
+          .map((q: any) => ({ question: String(q.question).trim(), answer: String(q.model_answer || q.answer).trim(), marks: 20 }))
+      : [];
+    return { saqs, laqs };
+  } catch {
+    return { saqs: [], laqs: [] };
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const { data: mcqSets } = await supabase
-      .from("mcq_sets")
-      .select("title, questions, category")
-      .eq("published", true);
-
-    const { data: articles } = await supabase
-      .from("articles")
-      .select("title, content, category")
-      .eq("published", true);
+    const [{ data: mcqSets }, { data: articles }, { data: wrongAnswers }, { data: passwordSetting }] = await Promise.all([
+      supabase.from("mcq_sets").select("title, questions, category").eq("published", true),
+      supabase.from("articles").select("title, content, category").eq("published", true),
+      supabase.from("user_answers").select("question_text").eq("is_correct", false).order("created_at", { ascending: false }).limit(300),
+      supabase.from("app_settings").select("value").eq("key", "exam_password").maybeSingle(),
+    ]);
 
     if ((!mcqSets || mcqSets.length === 0) && (!articles || articles.length === 0)) {
       return new Response(JSON.stringify({ error: "No published content to generate exam from" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Get wrong answers to prioritize
-    const { data: wrongAnswers } = await supabase
-      .from("user_answers")
-      .select("question_text, correct_answer")
-      .eq("is_correct", false)
-      .order("created_at", { ascending: false })
-      .limit(200);
+    const byUnit = new Map<string, string[]>();
 
-    const weakTopics = (wrongAnswers || []).map((a: any) => a.question_text).slice(0, 30);
-
-    const allCategories = new Set<string>();
-    const contentSummary: string[] = [];
-
-    (mcqSets || []).forEach((s: any) => {
-      if (s.category) allCategories.add(s.category);
-      const qs = s.questions as any[];
-      qs.slice(0, 3).forEach((q: any) => {
-        contentSummary.push(`[MCQ - ${s.category}] ${q.question}`);
-      });
+    (mcqSets || []).forEach((set: any) => {
+      const unit = normalizeUnitName(set.category || "Uncategorized");
+      if (unit === "Weekly Exam" || unit === "Uncategorized") return;
+      if (!byUnit.has(unit)) byUnit.set(unit, []);
+      const arr = byUnit.get(unit)!;
+      const qs = Array.isArray(set.questions) ? set.questions : [];
+      qs.slice(0, 12).forEach((q: any) => arr.push(`[MCQ] ${q?.question || ""}`));
     });
 
-    (articles || []).forEach((a: any) => {
-      if (a.category) allCategories.add(a.category);
-      contentSummary.push(`[Article - ${a.category}] ${a.title}: ${(a.content || "").slice(0, 200)}`);
+    (articles || []).forEach((article: any) => {
+      const unit = normalizeUnitName(article.category || "Uncategorized");
+      if (unit === "Weekly Exam" || unit === "Uncategorized") return;
+      if (!byUnit.has(unit)) byUnit.set(unit, []);
+      byUnit.get(unit)!.push(`[Article] ${article.title}: ${(article.content || "").slice(0, 500)}`);
     });
 
-    const categories = [...allCategories].filter(c => c !== "Uncategorized");
-    const contextStr = contentSummary.slice(0, 50).join("\n");
-    const weakStr = weakTopics.length > 0
-      ? `\n\nPRIORITIZE these topics the student struggles with:\n${weakTopics.join("\n")}`
-      : "";
-
-    // Generate MCQs
-    const mcqPrompt = `Generate EXACTLY 60 high-quality MCQs for a comprehensive weekly exam covering: ${categories.join(", ")}.
-
-Sample content:
-${contextStr}
-${weakStr}
-
-REQUIREMENTS:
-- Return ONLY a valid JSON array
-- Schema: {"question": "...", "options": ["A", "B", "C", "D"], "correct_answer": 0, "explanation": "..."}
-- correct_answer is 0-based index
-- Mix all categories evenly
-- Prioritize challenging, clinically-applied vignette-style questions
-- Include tricky distractors
-- No duplicates`;
-
-    const mcqText = await generateWithFallback(mcqPrompt);
-    const mcqMatch = mcqText.match(/\[[\s\S]*\]/);
-    let examMcqs: any[] = [];
-    if (mcqMatch) {
-      try {
-        const parsed = JSON.parse(mcqMatch[0]);
-        examMcqs = parsed.filter((q: any) => q?.question && Array.isArray(q?.options) && q.options.length === 4)
-          .map((q: any) => ({
-            question: String(q.question).trim(),
-            options: q.options.map((o: any) => String(o).trim()),
-            correct_answer: Number.isInteger(q.correct_answer) ? Math.min(Math.max(q.correct_answer, 0), 3) : 0,
-            explanation: q.explanation ? String(q.explanation).trim() : "",
-          }));
-      } catch {}
-    }
-
-    // Generate SAQs and LAQs
-    const essayPrompt = `Generate exam questions for a comprehensive weekly exam.
-Units: ${categories.join(", ")}
-${weakStr}
-
-Generate:
-1. SECTION B - 8 Short Answer Questions (SAQs): 2-4 sentence answers
-2. SECTION C - 4 Long Answer Questions (LAQs): detailed essay-style
-
-Return ONLY valid JSON:
-{"saqs": [{"question": "...", "model_answer": "...", "marks": 5}], "laqs": [{"question": "...", "model_answer": "...", "marks": 15}]}`;
-
-    const essayText = await generateWithFallback(essayPrompt);
-    let saqs: any[] = [];
-    let laqs: any[] = [];
-    try {
-      const jsonMatch = essayText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        saqs = (parsed.saqs || []).filter((q: any) => q?.question);
-        laqs = (parsed.laqs || []).filter((q: any) => q?.question);
-      }
-    } catch {}
-
-    // Get exam password
-    const { data: passwordSetting } = await supabase
-      .from("app_settings")
-      .select("value")
-      .eq("key", "exam_password")
-      .maybeSingle();
+    const weakTopics = (wrongAnswers || []).map((a: any) => a.question_text).filter(Boolean).slice(0, 80);
     const examPassword = passwordSetting?.value || "";
-
     const now = new Date();
-    const examTitle = `Weekly Exam - ${now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
+    const dateText = now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
-    if (examMcqs.length > 0) {
-      await supabase.from("mcq_sets").insert({
-        title: `${examTitle} (Section A: MCQs)`,
-        questions: examMcqs,
+    const createdExams: any[] = [];
+
+    for (const [unit, snippets] of byUnit.entries()) {
+      if (snippets.length === 0) continue;
+
+      const context = snippets.slice(0, 80).join("\n");
+      const weakForUnit = weakTopics.filter((q) => q.toLowerCase().includes(unit.toLowerCase())).slice(0, 20);
+      const weakBlock = weakForUnit.length ? `\nPrioritize weak topics:\n${weakForUnit.join("\n")}` : "";
+
+      const mcqPrompt = `Create around 60 MCQs (minimum 45, maximum 75) for a ${unit} weekly medical exam.\n\nContent context:\n${context}${weakBlock}\n\nReturn ONLY valid JSON array with schema: {"question":"...","options":["A","B","C","D"],"correct_answer":0,"explanation":"..."}`;
+      const mcqText = await generateWithFallback(mcqPrompt);
+      const examMcqs = parseMcqs(mcqText);
+      if (examMcqs.length === 0) continue;
+
+      const essayPrompt = `Create written exam section for ${unit}. Return ONLY valid JSON:\n{"saqs":[{"question":"...","model_answer":"...","marks":5}],"laqs":[{"question":"...","model_answer":"...","marks":20}]}\n\nRules:\n- exactly 6 SAQs with 5 marks each (total 30)\n- exactly 1 LAQ with 20 marks`;
+      const essayText = await generateWithFallback(essayPrompt);
+      const { saqs, laqs } = parseEssays(essayText);
+
+      const examTitle = `Weekly ${unit} Exam - ${dateText}`;
+
+      const { data: inserted, error: insertError } = await supabase
+        .from("mcq_sets")
+        .insert({
+          title: `${examTitle} (Section A: MCQs)`,
+          questions: examMcqs,
+          published: true,
+          original_notes: JSON.stringify({ type: "weekly_exam", unit, saqs, laqs, generated_at: now.toISOString() }),
+          category: `Weekly Exam: ${unit}`,
+          access_password: examPassword,
+        })
+        .select("id, title")
+        .single();
+
+      if (insertError) {
+        console.error("Failed to insert exam for unit", unit, insertError.message);
+        continue;
+      }
+
+      await supabase.from("essays").insert({
+        title: `${examTitle} (Sections B & C)` ,
+        category: `Weekly Exam: ${unit}`,
+        short_answer_questions: saqs,
+        long_answer_questions: laqs,
         published: true,
-        original_notes: JSON.stringify({ type: "weekly_exam", saqs, laqs, generated_at: now.toISOString() }),
-        category: "Weekly Exam",
-        access_password: examPassword,
+        article_id: null,
       });
+
+      createdExams.push({ unit, exam_id: inserted.id, title: inserted.title, mcq_count: examMcqs.length, saq_count: saqs.length, laq_count: laqs.length });
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      title: examTitle,
-      mcq_count: examMcqs.length,
-      saq_count: saqs.length,
-      laq_count: laqs.length,
-      saqs,
-      laqs,
-    }), {
+    return new Response(JSON.stringify({ success: true, unit_count: createdExams.length, exams: createdExams }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("Exam generation error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
