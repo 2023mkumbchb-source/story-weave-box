@@ -181,7 +181,7 @@ function splitInlineTable(s: string): string[] {
     .filter(r => r.startsWith("|") && r.endsWith("|"));
 }
 
-const META_HEADING = /^(summary|key points|detailed notes)/i;
+const META_HEADING = /^(key points|detailed notes|summary)$/i;
 
 // ─── NEW HELPER ────────────────────────────────────────────────────────────
 // Returns true for lines that look like "fact lines" — plain text or italic-
