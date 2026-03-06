@@ -483,6 +483,15 @@ function ArticleContent({ content }: { content: string }) {
     // If the line is an italic fact line (*...*) OR we are directly under a
     // ### subheading, treat it as a bullet instead of a bare paragraph.
     const isItalicLine = /^\*[^*]/.test(t); // starts with a single * (not **)
+    // Lines ending with ":" are sub-labels/headings — never auto-bullet them
+    const isSubLabel = /^[A-Za-z*\s()–-]{2,60}:$/.test(t);
+    if (isSubLabel) {
+      flushList();
+      underSubheading = false;
+      els.push(<h3 key={`sublabel-${i}`} className="mt-6 mb-3 font-bold text-[18px] sm:text-[19px] text-foreground leading-snug"><Inline text={t.slice(0, -1)} /></h3>);
+      underSubheading = true; // lines after this sub-label are still bullets
+      return;
+    }
     if (isItalicLine || underSubheading) {
       // Don't auto-bullet structural lines like "⚠️ ..." — keep them as-is
       if (t.startsWith("⚠️") || t.startsWith("⚠")) {
