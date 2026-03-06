@@ -43,26 +43,19 @@ function ReadingProgress() {
 
   const color = pct < 30 ? "#ef4444" : pct < 60 ? "#f59e0b" : pct < 90 ? "#22c55e" : "#16a34a";
   const label = pct < 2 ? "Start" : pct > 97 ? "Done ✓" : `${Math.round(pct)}%`;
-  const R = 20;
-  const CIRC = 2 * Math.PI * R;
 
   return (
     <>
-      {/* Thin top bar */}
       <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-transparent">
         <div className="h-full transition-all duration-150" style={{ width: `${pct}%`, background: color }} />
       </div>
 
-      {/* Bottom-right progress button:
-           collapsed = tiny 10px dot, barely there
-           expanded  = full 56px opaque circle with arc + label */}
       <button
         onClick={() => setExpanded(e => !e)}
         className="fixed bottom-6 right-6 z-50 focus:outline-none"
         aria-label="Reading progress"
         style={{ background: "transparent", border: "none", padding: 0, lineHeight: 0 }}
       >
-        {/* Collapsed: tiny dot */}
         <div style={{
           position: "absolute",
           bottom: 0, right: 0,
@@ -74,7 +67,6 @@ function ReadingProgress() {
           pointerEvents: "none",
         }} />
 
-        {/* Expanded: full opaque circle */}
         <div style={{
           width: 56, height: 56,
           opacity: expanded ? 1 : 0,
@@ -180,9 +172,6 @@ function PracticeQuestion({ number, question, answer }: {
   );
 }
 
-// Split a compact inline table string into individual row strings.
-// Input: "| A | B | |---|---| | C | D |"
-// Output: ["| A | B |", "|---|---|", "| C | D |"]
 function splitInlineTable(s: string): string[] {
   if (!s.includes("|---") && !s.includes("| ---")) return [];
   return s
@@ -194,6 +183,27 @@ function splitInlineTable(s: string): string[] {
 
 const META_HEADING = /^(summary|key points|detailed notes)/i;
 
+// ─── NEW HELPER ────────────────────────────────────────────────────────────
+// Returns true for lines that look like "fact lines" — plain text or italic-
+// only lines that should be rendered as bullets even without a leading "- ".
+// Excludes: headings, bullet lines, table lines, numbered items, blockquotes,
+// warning lines (⚠️), blank lines, and structural labels ending with ":".
+function isFactLine(t: string): boolean {
+  if (!t) return false;
+  if (t.startsWith("#")) return false;
+  if (t.startsWith("-")) return false;
+  if (t.startsWith("|")) return false;
+  if (t.startsWith(">")) return false;
+  if (/^\d+\./.test(t)) return false;
+  if (t.startsWith("⚠️") || t.startsWith("⚠")) return false;
+  // Lines that are purely italic (wrapped in * ... *) OR lines that
+  // start with a * italic span — these are the "fact" lines in the notes.
+  if (/^\*[^*]/.test(t)) return true;
+  // Also treat plain paragraph lines that sit after a ### heading as bullets.
+  // We signal this from outside via the `underSubheading` context flag.
+  return false;
+}
+
 function preprocessContent(raw: string): string {
   const out: string[] = [];
   let inKeyPoints = false;
@@ -204,35 +214,27 @@ function preprocessContent(raw: string): string {
     if (!t) { out.push(""); continue; }
     if (/^[-*_]{3,}$/.test(t)) { out.push(""); continue; }
     if (/^\d+$/.test(t)) continue;
-    // Skip TOC lines like "- Some Topic 3." or "Some Topic 3."
     if (/^-?\s*.+\s\d+\.$/.test(t) && !t.includes("→") && !t.startsWith("|")) continue;
 
-    // Lines starting with | that are a compact inline table (all rows on one line)
-    // e.g. "| A | B | |---|---| | C | D |" — split into proper rows
     if (t.startsWith("|") && (t.includes("|---") || t.includes("| ---"))) {
       splitInlineTable(t).forEach(r => out.push(r));
       continue;
     }
 
-    // Lines starting with "- " that contain MULTIPLE inline bullet items joined by " - "
-    // e.g. HIGH-YIELD: "- Barrett oesophagus = X - Adenocarcinoma progression = Y - ..."
     if (t.startsWith("- ") && !t.startsWith("#") && !t.startsWith("|")) {
       const allDashes = [...t.matchAll(/ - /g)];
       if (allDashes.length >= 3) {
-        // Split the whole line on " - " and emit each chunk as its own "- item" line
         const parts = t.slice(2).split(" - ").map((s: string) => s.trim()).filter(Boolean);
         parts.forEach((p: string) => out.push(`- ${p}`));
         continue;
       }
     }
 
-    // ## / # headings
     if (/^#{1,2}\s/.test(t)) {
       const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").trim();
       if (/^key points$/i.test(heading)) { inKeyPoints = true; continue; }
       if (inKeyPoints) inKeyPoints = false;
       if (META_HEADING.test(heading)) continue;
-      // Heading with inline numbered list: "## TUMOURS COVERED: 1. X 2. Y 3. Z ..."
       if (/:\s+1\.\s/.test(heading)) {
         const colonIdx = heading.indexOf(": ");
         const labelOnly = heading.slice(0, colonIdx).trim();
@@ -242,7 +244,6 @@ function preprocessContent(raw: string): string {
         listPart.split(/(?=(?:^|\s)\d+\.\s)/).map((s: string) => s.trim()).filter(Boolean).forEach((item: string) => out.push(item));
         continue;
       }
-      // Heading with inline table
       if (heading.includes("|---") || heading.includes("| ---")) {
         const pipeIdx = heading.search(/ \|/);
         if (pipeIdx !== -1) {
@@ -259,11 +260,9 @@ function preprocessContent(raw: string): string {
 
     if (inKeyPoints) continue;
 
-    // ### – ###### subheadings
     if (/^#{3,6}\s/.test(t)) {
       const hashes = t.match(/^(#{3,6})/)?.[1] ?? "###";
       const headText = t.replace(/^#{3,6}\s+/, "");
-      // Subheading with inline table
       if (headText.includes("|---") || headText.includes("| ---")) {
         const pipeIdx = headText.search(/ \|/);
         if (pipeIdx !== -1) {
@@ -273,7 +272,6 @@ function preprocessContent(raw: string): string {
           continue;
         }
       }
-      // Subheading with inline bullets
       const bulletSplit = headText.search(/ - (?=[A-Z*\d"(])/);
       if (bulletSplit !== -1) {
         const headOnly = headText.slice(0, bulletSplit).replace(/⭐+/g, "").trim();
@@ -288,7 +286,6 @@ function preprocessContent(raw: string): string {
       continue;
     }
 
-    // Plain line with inline table
     if (!t.startsWith("|") && (t.includes("|---") || t.includes("| ---"))) {
       const pipeIdx = t.indexOf("| ");
       const prefix = t.slice(0, pipeIdx).replace(/[⭐:*\s]+$/, "").trim();
@@ -297,12 +294,9 @@ function preprocessContent(raw: string): string {
       continue;
     }
 
-    // Inline bullet run: "Label: - item1 - item2 - item3" (2+ splits)
     if (!t.startsWith("- ") && !t.startsWith("#") && !t.startsWith("|")) {
-      // Count all " - " occurrences; for long runs (HIGH-YIELD) items may start lowercase
       const allDashes = [...t.matchAll(/ - /g)];
       const capDashes = [...t.matchAll(/ - (?=[A-Z*\d"(])/g)];
-      // If 5+ total dashes it's a long bullet run — split on all of them
       const splitPoints = allDashes.length >= 5 ? allDashes : capDashes;
       if (splitPoints.length >= 2) {
         const firstIdx = splitPoints[0].index!;
@@ -315,7 +309,6 @@ function preprocessContent(raw: string): string {
           .forEach(b => out.push(`- ${b}`));
         continue;
       }
-      // Single "Label: - item"
       if (t.includes(": - ")) {
         const idx = t.indexOf(": - ");
         const prefix = t.slice(0, idx).replace(/⭐+/g, "").trim();
@@ -325,7 +318,6 @@ function preprocessContent(raw: string): string {
       }
     }
 
-    // Lonely label ending with ":" → subheading
     if (/^[A-Z][^|\n]{2,60}:$/.test(t) && !t.startsWith("-") && !t.startsWith("#")) {
       out.push(`### ${t.slice(0, -1).trim()}`);
       continue;
@@ -346,6 +338,7 @@ function ArticleContent({ content }: { content: string }) {
   let listBuf: { type: "ul" | "ol"; items: React.ReactNode[] } | null = null;
   let inPractice = false;
   let tableBuf: string[] = [];
+  let underSubheading = false; // ← NEW: track whether we're directly under a ### heading
   const pqs: { number: string; question: string; answer: string }[] = [];
 
   const flushList = () => {
@@ -374,16 +367,33 @@ function ArticleContent({ content }: { content: string }) {
     pqs.length = 0;
   };
 
+  // ─── Helper: render a line as a bullet item ─────────────────────────────
+  const pushBullet = (text: string, key: string) => {
+    if (!listBuf || listBuf.type !== "ul") { flushList(); listBuf = { type: "ul", items: [] }; }
+    listBuf.items.push(
+      <div key={key} className="flex items-start gap-3">
+        <div className="rounded-full bg-primary shrink-0" style={{ width: "9px", height: "9px", minWidth: "9px", marginTop: "9px" }} />
+        <span className="text-[17px] text-foreground/90 leading-relaxed flex-1"><Inline text={text} /></span>
+      </div>
+    );
+  };
+
   lines.forEach((line, i) => {
     const t = line.trim();
 
-    if (t.startsWith("|")) { flushList(); tableBuf.push(t); return; }
-    else if (tableBuf.length) flushTable();
+    if (t.startsWith("|")) { flushList(); tableBuf.push(t); underSubheading = false; return; }
+    else if (tableBuf.length) { flushTable(); }
 
-    if (!t) { flushList(); return; }
+    if (!t) {
+      // A blank line ends the "under subheading" auto-bullet zone
+      flushList();
+      underSubheading = false;
+      return;
+    }
 
     if (t.startsWith("> ")) {
       flushList();
+      underSubheading = false;
       els.push(
         <div key={`bq-${i}`} className="my-4 pl-4 border-l-4 border-primary/40 rounded-sm bg-primary/5 py-2 pr-3">
           <p className="text-[16px] italic text-foreground/75 leading-relaxed"><Inline text={t.slice(2)} /></p>
@@ -392,8 +402,10 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
+    // ## headings
     if (/^#{1,2}\s/.test(t)) {
       flushList();
+      underSubheading = false;
       const heading = t
         .replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "")
         .replace(/^\d+\.\s*/, "").replace(/^[IVXLC]+\.\s+/, "").trim();
@@ -414,16 +426,20 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
+    // ### subheadings — set underSubheading = true
     if (/^#{3,6}\s/.test(t)) {
       flushList();
+      underSubheading = true; // ← lines after this heading become auto-bullets
       const txt = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").trim();
       els.push(<h3 key={`h3-${i}`} className="mt-6 mb-3 font-bold text-[18px] sm:text-[19px] text-foreground leading-snug">{txt}</h3>);
       return;
     }
 
+    // Practice Q&A
     const qa = t.match(/^(\d+)\.\s(.+?)\s*→\s*(.+)$/);
     if (qa) {
       flushList();
+      underSubheading = false;
       if (inPractice) pqs.push({ number: qa[1], question: qa[2], answer: qa[3] });
       else els.push(
         <div key={`qa-${i}`} className="mb-4 rounded-2xl border border-border bg-card p-5">
@@ -441,17 +457,13 @@ function ArticleContent({ content }: { content: string }) {
     }
     if (inPractice && t.startsWith("→")) return;
 
+    // Explicit "- " bullet
     if (t.startsWith("- ")) {
-      if (!listBuf || listBuf.type !== "ul") { flushList(); listBuf = { type: "ul", items: [] }; }
-      listBuf.items.push(
-        <div key={`li-${i}`} className="flex items-start gap-3">
-          <div className="rounded-full bg-primary shrink-0" style={{ width: "9px", height: "9px", minWidth: "9px", marginTop: "9px" }} />
-          <span className="text-[17px] text-foreground/90 leading-relaxed flex-1"><Inline text={t.slice(2)} /></span>
-        </div>
-      );
+      pushBullet(t.slice(2), `li-${i}`);
       return;
     }
 
+    // Numbered list
     if (/^\d+\.\s/.test(t) && !t.includes("→") && !inPractice) {
       if (!listBuf || listBuf.type !== "ol") { flushList(); listBuf = { type: "ol", items: [] }; }
       const num = t.match(/^(\d+)/)?.[1] ?? "";
@@ -467,7 +479,29 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
+    // ─── AUTO-BULLET LOGIC ──────────────────────────────────────────────────
+    // If the line is an italic fact line (*...*) OR we are directly under a
+    // ### subheading, treat it as a bullet instead of a bare paragraph.
+    const isItalicLine = /^\*[^*]/.test(t); // starts with a single * (not **)
+    if (isItalicLine || underSubheading) {
+      // Don't auto-bullet structural lines like "⚠️ ..." — keep them as-is
+      if (t.startsWith("⚠️") || t.startsWith("⚠")) {
+        flushList();
+        underSubheading = false;
+        els.push(
+          <p key={`warn-${i}`} className="mb-3 text-[16px] leading-relaxed text-foreground/85">
+            <Inline text={t} />
+          </p>
+        );
+        return;
+      }
+      pushBullet(t, `auto-li-${i}`);
+      return;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     flushList();
+    underSubheading = false;
     els.push(<p key={`p-${i}`} className="mb-4 text-[17px] leading-relaxed text-foreground/85"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
   });
 
@@ -481,8 +515,6 @@ export default function BlogPost() {
   const [loading, setLoading] = useState(true);
   const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; mcqs: any[] }>({ articles: [], flashcards: [], mcqs: [] });
 
-  // ── Scroll position persistence ──────────────────────────────────────────
-  // Save scroll position to localStorage on scroll, restore after article loads
   const scrollKey = `scroll:${id}`;
 
   useEffect(() => {
@@ -497,19 +529,16 @@ export default function BlogPost() {
     }
   }, [id]);
 
-  // Restore scroll position after content loads
   useEffect(() => {
     if (loading) return;
     const saved = localStorage.getItem(scrollKey);
     if (saved) {
       const y = parseInt(saved, 10);
-      // Use requestAnimationFrame to wait for DOM paint
       const restore = () => window.scrollTo({ top: y, behavior: "instant" });
       requestAnimationFrame(() => requestAnimationFrame(restore));
     }
   }, [loading, scrollKey]);
 
-  // Save scroll position continuously while reading
   useEffect(() => {
     if (loading) return;
     let ticking = false;
