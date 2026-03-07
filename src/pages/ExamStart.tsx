@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Clock, Loader2, Shield, Trophy } from "lucide-react";
+import { ArrowLeft, Clock, Loader2, Shield, Trophy, User, GraduationCap, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import ExamMode from "@/components/ExamMode";
+import { UNIT_CATEGORIES } from "@/lib/store";
 
 interface ExamSet {
   id: string;
@@ -12,7 +14,34 @@ interface ExamSet {
   questions: { question: string; options: string[]; correct_answer: number; explanation?: string }[];
 }
 
+interface StudentInfo {
+  name: string;
+  university: string;
+  course: string;
+}
+
 const UNLOCKED_KEY = "unlocked_exams";
+
+const UNIVERSITIES = [
+  "University of Nairobi",
+  "Kenyatta University",
+  "Moi University",
+  "Jomo Kenyatta University of Agriculture and Technology",
+  "Egerton University",
+  "Maseno University",
+  "Mount Kenya University",
+  "Kabarak University",
+  "Daystar University",
+  "Strathmore University",
+  "KCA University",
+  "United States International University",
+  "Kenya Methodist University",
+  "Africa Nazarene University",
+  "Dedan Kimathi University",
+  "Masinde Muliro University",
+  "Technical University of Kenya",
+  "Other",
+];
 
 function sampleExam(): ExamSet {
   return {
@@ -42,27 +71,19 @@ export default function ExamStart() {
   const [exam, setExam] = useState<ExamSet | null>(null);
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
+  const [studentInfo, setStudentInfo] = useState<StudentInfo>({ name: "", university: "", course: "" });
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     const run = async () => {
-      if (!id) {
-        navigate("/exams");
-        return;
-      }
+      if (!id) { navigate("/exams"); return; }
 
       const unlockedRaw = localStorage.getItem(UNLOCKED_KEY);
       const unlocked = new Set<string>(unlockedRaw ? JSON.parse(unlockedRaw) : []);
       const isSample = id === "sample-exam";
-      if (!isSample && !unlocked.has(id)) {
-        navigate("/exams");
-        return;
-      }
+      if (!isSample && !unlocked.has(id)) { navigate("/exams"); return; }
 
-      if (isSample) {
-        setExam(sampleExam());
-        setLoading(false);
-        return;
-      }
+      if (isSample) { setExam(sampleExam()); setLoading(false); return; }
 
       const { data } = await supabase
         .from("mcq_sets")
@@ -71,15 +92,10 @@ export default function ExamStart() {
         .eq("published", true)
         .maybeSingle();
 
-      if (!data) {
-        navigate("/exams");
-        return;
-      }
-
+      if (!data) { navigate("/exams"); return; }
       setExam(data as unknown as ExamSet);
       setLoading(false);
     };
-
     run();
   }, [id, navigate]);
 
@@ -88,6 +104,17 @@ export default function ExamStart() {
     const fromCategory = exam.category?.replace(/^Weekly Exam\s*:?\s*/i, "").trim();
     return fromCategory && fromCategory !== "Weekly Exam" ? fromCategory : "General";
   }, [exam]);
+
+  // Timer: 1 min per MCQ question
+  const totalMinutes = useMemo(() => {
+    if (!exam) return 60;
+    return exam.questions.length; // 1 min per MCQ
+  }, [exam]);
+
+  const handleStartExam = () => {
+    if (!studentInfo.name.trim() || !studentInfo.university || !studentInfo.course) return;
+    setStarted(true);
+  };
 
   if (loading) {
     return (
@@ -105,6 +132,9 @@ export default function ExamStart() {
         questions={exam.questions}
         title={exam.title}
         setId={exam.id === "sample-exam" ? undefined : exam.id}
+        timeLimitMinutes={totalMinutes}
+        studentInfo={studentInfo}
+        unitName={unitName}
         onExit={() => setStarted(false)}
       />
     );
@@ -143,15 +173,78 @@ export default function ExamStart() {
             <p className="mb-2 flex items-center gap-2 text-foreground"><Shield className="h-4 w-4 text-primary" /> Exam rules</p>
             <ul className="list-disc space-y-1 pl-5">
               <li>Exam opens in full-screen mode.</li>
-              <li>Switching tabs may auto-submit the exam.</li>
-              <li>MCQs are auto-marked when you submit.</li>
+              <li>Switching tabs will auto-submit the exam.</li>
+              <li>Time limit: <strong className="text-foreground">{totalMinutes} minutes</strong> (auto-submits when time runs out).</li>
+              <li>Answers are hidden until you submit.</li>
+              <li>MCQs are auto-marked. SAQs & LAQs are graded separately.</li>
             </ul>
           </div>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button onClick={() => setStarted(true)} className="gap-2 sm:min-w-[220px]">Start Now</Button>
-            <p className="flex items-center gap-2 text-xs text-muted-foreground"><Clock className="h-3.5 w-3.5" /> Make sure your device is charged and stable.</p>
-          </div>
+          {/* Student Registration Form */}
+          {!showForm ? (
+            <div className="mt-6">
+              <Button onClick={() => setShowForm(true)} className="gap-2 sm:min-w-[220px]">
+                <User className="h-4 w-4" /> Register & Start Exam
+              </Button>
+              <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" /> Make sure your device is charged and stable.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-6 space-y-4 rounded-xl border border-primary/30 bg-primary/5 p-5">
+              <h3 className="flex items-center gap-2 font-display text-base font-bold text-foreground">
+                <GraduationCap className="h-5 w-5 text-primary" /> Student Information
+              </h3>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Full Name *</label>
+                <Input
+                  placeholder="Enter your full name"
+                  value={studentInfo.name}
+                  onChange={(e) => setStudentInfo({ ...studentInfo, name: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">University *</label>
+                <select
+                  value={studentInfo.university}
+                  onChange={(e) => setStudentInfo({ ...studentInfo, university: e.target.value })}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
+                >
+                  <option value="">Select university...</option>
+                  {UNIVERSITIES.map((u) => (
+                    <option key={u} value={u}>{u}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Course *</label>
+                <select
+                  value={studentInfo.course}
+                  onChange={(e) => setStudentInfo({ ...studentInfo, course: e.target.value })}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
+                >
+                  <option value="">Select course...</option>
+                  {UNIT_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  onClick={handleStartExam}
+                  disabled={!studentInfo.name.trim() || !studentInfo.university || !studentInfo.course}
+                  className="gap-2 flex-1"
+                >
+                  <BookOpen className="h-4 w-4" /> Start Exam Now
+                </Button>
+                <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

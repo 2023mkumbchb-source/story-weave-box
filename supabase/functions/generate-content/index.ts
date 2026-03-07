@@ -34,7 +34,7 @@ function compactWhitespace(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function clipNotesForModel(notes: string, maxChars = 18000): string {
+function clipNotesForModel(notes: string, maxChars = 28000): string {
   const clean = notes.trim();
   if (clean.length <= maxChars) return clean;
 
@@ -321,19 +321,33 @@ REQUIREMENTS:
       const messages = [
         {
           role: "system",
-          content: `You are a medical content formatter. Reformat (do not rewrite) into this exact markdown structure:
+          content: `You are a medical content formatter. Reformat (do not rewrite or shorten) the content into this exact markdown structure:
 
 Title only on first line (no #)
 ## Summary
+A concise 2-3 sentence overview.
+
 ## Key Points
+Use bullet points (- ) for key takeaways. Each point should be a full sentence.
+
 ## Detailed Notes
+Organize into clear subsections using ### headings.
+- Use paragraphs for explanations, NOT bullet lists for everything
+- Use bullet points only for actual lists
+- Preserve ALL tables in proper markdown format (| Header | Header |)
+- Preserve ALL content from the original - do NOT truncate or skip sections
+- Use **bold** for key terms
+
 ## Practice Questions
+8 clinical Q→A lines in format: 1. Question → Answer
 
 Rules:
-- Preserve medical accuracy and original meaning
-- Keep output markdown only
-- Keep clean headings and bullet formatting
-- No code fences`,
+- PRESERVE ALL original content including tables, diagrams descriptions, summaries
+- Keep medical accuracy
+- Output clean markdown only, no code fences
+- Do NOT convert paragraphs into bullet lists
+- Tables MUST be preserved in markdown table format
+- If there is a summary table at the end, include it under ### Summary Table`,
         },
         { role: "user", content: customTitle ? `Title: ${customTitle}\n\nContent:\n${safeNotes}` : safeNotes },
       ];
@@ -401,11 +415,12 @@ Rules:
 
 STRICT FORMAT:
 - Title only on first line
-- ## Summary
-- ## Key Points
-- ## Detailed Notes
-- ## Practice Questions
-- Include at least 8 clinically-oriented Q→A lines in Practice Questions
+- ## Summary (2-3 sentence overview)
+- ## Key Points (bullet list of key takeaways)
+- ## Detailed Notes (use ### subheadings, paragraphs for explanations, bullets only for real lists, preserve tables)
+- ## Practice Questions (at least 8 Q→A lines)
+- Use paragraphs for content, NOT bullet lists for everything
+- Keep tables in proper markdown format
 - No code fences`;
     } else if (type === "mcqs") {
       systemPrompt = `You are a senior medical exam writer. Create EXACTLY ${cardCount} clinically-oriented MCQs.

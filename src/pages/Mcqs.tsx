@@ -15,7 +15,10 @@ export default function Mcqs() {
   const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    getPublishedMcqSets().then(setSets).finally(() => setLoading(false));
+    getPublishedMcqSets().then((all) => {
+      // Filter out exam sets (Weekly Exam category)
+      setSets(all.filter((s) => !s.category?.toLowerCase().startsWith("weekly exam")));
+    }).finally(() => setLoading(false));
     setVisitedIds(getVisitedMcqIds());
   }, []);
 

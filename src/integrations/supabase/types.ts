@@ -40,6 +40,7 @@ export type Database = {
           category: string
           content: string
           created_at: string
+          deleted_at: string | null
           id: string
           is_raw: boolean | null
           original_notes: string
@@ -50,6 +51,7 @@ export type Database = {
           category?: string
           content?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_raw?: boolean | null
           original_notes?: string
@@ -60,6 +62,7 @@ export type Database = {
           category?: string
           content?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_raw?: boolean | null
           original_notes?: string
@@ -73,6 +76,7 @@ export type Database = {
           article_id: string | null
           category: string
           created_at: string
+          deleted_at: string | null
           id: string
           long_answer_questions: Json
           published: boolean
@@ -83,6 +87,7 @@ export type Database = {
           article_id?: string | null
           category?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           long_answer_questions?: Json
           published?: boolean
@@ -93,6 +98,7 @@ export type Database = {
           article_id?: string | null
           category?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           long_answer_questions?: Json
           published?: boolean
@@ -109,11 +115,63 @@ export type Database = {
           },
         ]
       }
+      exam_results: {
+        Row: {
+          course: string
+          created_at: string
+          exam_id: string
+          exam_title: string
+          id: string
+          laq_answers: Json
+          mcq_score: number
+          mcq_total: number
+          saq_answers: Json
+          student_name: string
+          submitted_at: string
+          time_taken_seconds: number
+          unit: string
+          university: string
+        }
+        Insert: {
+          course?: string
+          created_at?: string
+          exam_id: string
+          exam_title?: string
+          id?: string
+          laq_answers?: Json
+          mcq_score?: number
+          mcq_total?: number
+          saq_answers?: Json
+          student_name?: string
+          submitted_at?: string
+          time_taken_seconds?: number
+          unit?: string
+          university?: string
+        }
+        Update: {
+          course?: string
+          created_at?: string
+          exam_id?: string
+          exam_title?: string
+          id?: string
+          laq_answers?: Json
+          mcq_score?: number
+          mcq_total?: number
+          saq_answers?: Json
+          student_name?: string
+          submitted_at?: string
+          time_taken_seconds?: number
+          unit?: string
+          university?: string
+        }
+        Relationships: []
+      }
       flashcard_sets: {
         Row: {
           cards: Json
           category: string
           created_at: string
+          deleted_at: string | null
           id: string
           is_raw: boolean | null
           original_notes: string
@@ -124,6 +182,7 @@ export type Database = {
           cards?: Json
           category?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_raw?: boolean | null
           original_notes?: string
@@ -134,6 +193,7 @@ export type Database = {
           cards?: Json
           category?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_raw?: boolean | null
           original_notes?: string
@@ -147,6 +207,7 @@ export type Database = {
           access_password: string
           category: string
           created_at: string
+          deleted_at: string | null
           id: string
           is_raw: boolean | null
           original_notes: string
@@ -158,6 +219,7 @@ export type Database = {
           access_password?: string
           category?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_raw?: boolean | null
           original_notes?: string
@@ -169,6 +231,7 @@ export type Database = {
           access_password?: string
           category?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_raw?: boolean | null
           original_notes?: string
