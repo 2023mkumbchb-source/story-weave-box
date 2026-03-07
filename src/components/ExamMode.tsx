@@ -43,6 +43,8 @@ interface PersistedExam {
 }
 
 const storageKey = (id: string) => `exam_result_${id}`;
+// Key for saving student credentials across sessions
+const STUDENT_CREDS_KEY = "student_credentials";
 
 function saveToStorage(data: PersistedExam) {
   try { localStorage.setItem(storageKey(data.setId), JSON.stringify(data)); } catch {}
@@ -94,7 +96,7 @@ export default function ExamMode({
   const timeLimit = timeLimitMinutes ? timeLimitMinutes * 60 : undefined;
   const remaining = timeLimit ? Math.max(0, timeLimit - elapsed) : undefined;
 
-  // ── Check for previously submitted exam ──
+  // ── On mount: check if already submitted ──
   useEffect(() => {
     if (!setId) return;
     const saved = loadFromStorage(setId);
@@ -139,7 +141,7 @@ export default function ExamMode({
     return () => ["copy", "cut", "paste", "contextmenu"].forEach((ev) => document.removeEventListener(ev, block));
   }, []);
 
-  // ── No-select ──
+  // ── No-select style ──
   useEffect(() => {
     const s = document.createElement("style");
     s.id = "exam-no-select";
@@ -157,7 +159,6 @@ export default function ExamMode({
     const currentElapsed = Math.floor((now - startTime) / 1000);
     const correctCount = [...answers.entries()].filter(([qi, oi]) => questions[qi].correct_answer === oi).length;
 
-    // Persist so student can come back at midnight
     if (setId) {
       saveToStorage({
         setId,
@@ -172,6 +173,13 @@ export default function ExamMode({
       });
     }
 
+    // Save student credentials so they don't need to re-enter next time
+    if (studentInfo) {
+      try {
+        localStorage.setItem(STUDENT_CREDS_KEY, JSON.stringify(studentInfo));
+      } catch {}
+    }
+
     setSubmitted(true);
     setSubmitReason(reason);
     setSubmittedAt(now);
@@ -180,7 +188,6 @@ export default function ExamMode({
     setAnswersUnlocked(isAnswersUnlocked(now));
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
 
-    // Track per-question
     if (setId) {
       for (const [qIdx, selectedOpt] of answers.entries()) {
         const q = questions[qIdx];
@@ -188,7 +195,6 @@ export default function ExamMode({
       }
     }
 
-    // Save to DB
     if (studentInfo && setId) {
       try {
         await supabase.from("exam_results").insert({
@@ -227,7 +233,7 @@ export default function ExamMode({
   const correctCount = [...displayAnswers.entries()].filter(([qi, oi]) => questions[qi]?.correct_answer === oi).length;
   const pct = total > 0 ? Math.round((correctCount / total) * 100) : 0;
 
-  // No blinking — color only
+  // Color only — NO blinking/pulse classes anywhere
   const timeColor =
     remaining !== undefined
       ? remaining <= 60 ? "text-red-500 bg-red-500/10"
@@ -429,6 +435,7 @@ export default function ExamMode({
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {/* Timer — color only, no animation */}
             <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs sm:text-sm font-mono font-bold ${timeColor}`}>
               <Clock className="h-3 w-3" />
               {remaining !== undefined ? formatTime(remaining) : formatTime(elapsed)}
@@ -476,6 +483,7 @@ export default function ExamMode({
         })}
       </div>
 
+      {/* Bottom bar — NO blinking, NO animate-pulse */}
       <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-border bg-card/95 backdrop-blur px-3 sm:px-6 py-3">
         <div className="mx-auto max-w-2xl flex items-center justify-between gap-3">
           <p className="text-xs shrink-0">
@@ -493,4 +501,12 @@ export default function ExamMode({
       </div>
     </div>
   );
+}
+
+// ── Exported helper so ExamStart can pre-fill saved credentials ──────────────
+export function loadSavedCredentials(): { name: string; university: string; course: string } | null {
+  try {
+    const raw = localStorage.getItem("student_credentials");
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
 }
