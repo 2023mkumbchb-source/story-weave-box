@@ -260,7 +260,7 @@ export default function ExamMode({
               You will <strong className="text-foreground">not</strong> see answers — they are only available after midnight.
             </p>
             <div className="flex gap-3">
-              <Button variant="destructive" onClick={() => { setShowExitConfirm(false); onExit(); }} className="flex-1">Yes, Exit</Button>
+              <button onClick={() => { setShowExitConfirm(false); onExit(); }} style={{animation:"none",transition:"none"}} className="flex-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2.5">Yes, Exit</button>
               <Button variant="outline" onClick={() => setShowExitConfirm(false)} className="flex-1">Keep Going</Button>
             </div>
           </motion.div>
