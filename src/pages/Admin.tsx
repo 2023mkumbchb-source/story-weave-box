@@ -1249,13 +1249,12 @@ function ExamResultsTab() {
 </body>
 </html>`;
 
-    // base64 data URL preserves UTF-8 charset — blob URLs cause garbled emoji/special chars
-    const encoded = btoa(unescape(encodeURIComponent(html)));
-    const dataUrl = `data:text/html;charset=utf-8;base64,${encoded}`;
-    const win = window.open(dataUrl, "_blank");
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, "_blank");
     if (win) {
       win.addEventListener("load", () => {
-        setTimeout(() => win.print(), 500);
+        setTimeout(() => { win.print(); URL.revokeObjectURL(url); }, 400);
       });
     }
   };
