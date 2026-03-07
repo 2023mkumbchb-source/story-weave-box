@@ -15,7 +15,7 @@ import {
 } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 
-type Tab = "create" | "articles" | "flashcards" | "mcqs" | "raw" | "settings";
+type Tab = "create" | "articles" | "flashcards" | "mcqs" | "raw" | "exams" | "recycle" | "settings";
 type DirectType = "article" | "mcqs" | "flashcards";
 
 export default function Admin() {
@@ -421,7 +421,9 @@ export default function Admin() {
     { id: "articles", label: "Articles", icon: FileText },
     { id: "flashcards", label: "Flashcards", icon: Layers },
     { id: "mcqs", label: "MCQs", icon: ListChecks },
+    { id: "exams", label: "Exam Results", icon: ListChecks },
     { id: "raw", label: "Raw ⚠️", icon: AlertTriangle },
+    { id: "recycle", label: "Recycle Bin", icon: Trash2 },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -698,7 +700,9 @@ export default function Admin() {
       {tab === "articles" && <ArticlesList />}
       {tab === "flashcards" && <FlashcardsList />}
       {tab === "mcqs" && <McqsList />}
+      {tab === "exams" && <ExamResultsTab />}
       {tab === "raw" && <RawContentTab geminiKey={geminiKey} />}
+      {tab === "recycle" && <RecycleBinTab />}
       {tab === "settings" && <SettingsPanel setGeminiKey={setGeminiKey} />}
     </div>
   );
