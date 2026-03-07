@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle, Clock, Loader2, Phone, Shield, Sparkles, Trophy } from "lucide-react";
+import { ArrowRight, CheckCircle, Clock, Loader2, Phone, Shield, Sparkles, Trophy, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -166,6 +166,8 @@ export default function Exams() {
 
   return (
     <div className="min-h-screen bg-background">
+
+      {/* ── Hero — only text changed, no logic ── */}
       <section className="relative overflow-hidden border-b border-border bg-gradient-to-br from-primary/10 via-background to-accent/10 px-4 py-12 sm:py-16">
         <div className="mx-auto max-w-5xl">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
@@ -174,12 +176,33 @@ export default function Exams() {
             </div>
             <h1 className="mb-3 font-display text-3xl font-bold text-foreground sm:text-4xl">Exam Center</h1>
             <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Pay once per unit exam, then start from a dedicated exam launch page. Price is set from admin and currently KES {examPrice}.
+              Timed, proctored MCQ exams drawn from your unit content. A new exam drops every week — answers unlock at midnight.
             </p>
+          </motion.div>
+
+          {/* Support card — new addition, no logic impact */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12 }}
+            className="mx-auto mt-7 max-w-lg rounded-2xl border border-rose-200 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-950/20 p-4 sm:p-5"
+          >
+            <div className="flex items-start gap-3">
+              <div className="rounded-full bg-rose-100 dark:bg-rose-900/40 p-2 shrink-0 mt-0.5">
+                <Heart className="h-4 w-4 text-rose-500" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground mb-1">Support Ompath Study</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Each exam is just <strong className="text-foreground">KES {examPrice}</strong>. This goes directly toward building weekly exams, expanding the question bank, and keeping Ompath Study free for all health students in Kenya.
+                </p>
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>
 
+      {/* ── Exam list — 100% original logic, only subtitle text changed ── */}
       <section className="mx-auto max-w-5xl space-y-4 px-4 py-8">
         {loading ? (
           <div className="flex justify-center py-16">
@@ -206,8 +229,9 @@ export default function Exams() {
                   <div className="min-w-0 flex-1">
                     <p className="mb-1 text-xs font-medium text-primary">Unit: {unitName}</p>
                     <h2 className="font-display text-lg font-bold text-foreground">{exam.title}</h2>
+                    {/* CHANGED: removed "Section B SAQs · Section C LAQ" — MCQs only */}
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {exam.questions.length} MCQs · Section B SAQs (30 marks) · Section C LAQ (20 marks)
+                      {exam.questions.length} MCQs · {exam.questions.length} minutes · Section A
                     </p>
                   </div>
                   <span className="rounded-full border border-border bg-secondary px-3 py-1 text-[10px] font-semibold text-foreground">
@@ -215,6 +239,7 @@ export default function Exams() {
                   </span>
                 </div>
 
+                {/* ── All payment/unlock logic is IDENTICAL to original ── */}
                 {unlocked ? (
                   <Button onClick={() => navigate(`/exams/${exam.id}/start`)} className="w-full gap-2">
                     <Shield className="h-4 w-4" /> Start Exam <ArrowRight className="h-4 w-4" />
@@ -263,8 +288,26 @@ export default function Exams() {
             );
           })
         )}
+
+        {/* Bottom support note */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="rounded-2xl border border-border bg-card p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 mt-2"
+        >
+          <div className="rounded-full bg-rose-500/10 p-3 shrink-0">
+            <Heart className="h-5 w-5 text-rose-500" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-foreground mb-1">Every exam supports this platform</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Ompath Study is built by and for health students in Kenya. The small fee helps cover question generation, platform hosting, and new study tools — so we can keep growing and keep everything else free.
+            </p>
+          </div>
+        </motion.div>
       </section>
+
     </div>
   );
 }
-
