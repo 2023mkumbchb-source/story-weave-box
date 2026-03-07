@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Check, X, Lightbulb, Clock, AlertTriangle, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trackAnswer } from "@/lib/answer-tracker";
+import { supabase } from "@/integrations/supabase/client";
 
 interface McqQuestion {
   question: string;
@@ -11,11 +12,20 @@ interface McqQuestion {
   explanation?: string;
 }
 
+interface StudentInfo {
+  name: string;
+  university: string;
+  course: string;
+}
+
 interface Props {
   questions: McqQuestion[];
   title: string;
   setId?: string;
   hideAnswers?: boolean;
+  timeLimitMinutes?: number;
+  studentInfo?: StudentInfo;
+  unitName?: string;
   onExit: () => void;
 }
 
@@ -25,12 +35,19 @@ function formatTime(seconds: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-export default function ExamMode({ questions, title, setId, hideAnswers = false, onExit }: Props) {
+export default function ExamMode({
+  questions, title, setId, hideAnswers = false,
+  timeLimitMinutes, studentInfo, unitName,
+  onExit,
+}: Props) {
   const [answers, setAnswers] = useState<Map<number, number>>(new Map());
   const [submitted, setSubmitted] = useState(false);
   const [startTime] = useState(Date.now());
   const [elapsed, setElapsed] = useState(0);
   const [tabWarning, setTabWarning] = useState(false);
+
+  const timeLimit = timeLimitMinutes ? timeLimitMinutes * 60 : undefined;
+  const remaining = timeLimit ? Math.max(0, timeLimit - elapsed) : undefined;
 
   // Timer
   useEffect(() => {
@@ -46,19 +63,19 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
       el.requestFullscreen().catch(() => {});
     }
     return () => {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
-      }
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     };
   }, []);
 
-  // Tab switch detection - auto submit
+  // Submit handler
   const handleSubmit = useCallback(async () => {
     if (submitted) return;
     setSubmitted(true);
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
-    }
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+
+    const correctCount = [...answers.entries()].filter(([qi, oi]) => questions[qi].correct_answer === oi).length;
+
+    // Track individual answers
     if (setId) {
       for (const [qIdx, selectedOpt] of answers.entries()) {
         const q = questions[qIdx];
@@ -72,20 +89,42 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
         });
       }
     }
-  }, [submitted, answers, questions, setId]);
 
+    // Save exam result to DB
+    if (studentInfo && setId) {
+      try {
+        await supabase.from("exam_results").insert({
+          exam_id: setId,
+          exam_title: title,
+          unit: unitName || "General",
+          student_name: studentInfo.name,
+          university: studentInfo.university,
+          course: studentInfo.course,
+          mcq_score: correctCount,
+          mcq_total: questions.length,
+          time_taken_seconds: elapsed,
+        });
+      } catch (e) {
+        console.error("Failed to save exam result:", e);
+      }
+    }
+  }, [submitted, answers, questions, setId, studentInfo, title, unitName, elapsed]);
+
+  // Auto-submit when time runs out
+  useEffect(() => {
+    if (submitted || !timeLimit) return;
+    if (elapsed >= timeLimit) {
+      handleSubmit();
+    }
+  }, [elapsed, timeLimit, submitted, handleSubmit]);
+
+  // Tab switch detection - auto submit
   useEffect(() => {
     if (submitted) return;
     const handleVisChange = () => {
-      if (document.hidden) {
-        setTabWarning(true);
-        handleSubmit();
-      }
+      if (document.hidden) { setTabWarning(true); handleSubmit(); }
     };
-    const handleBlur = () => {
-      setTabWarning(true);
-      handleSubmit();
-    };
+    const handleBlur = () => { setTabWarning(true); handleSubmit(); };
     document.addEventListener("visibilitychange", handleVisChange);
     window.addEventListener("blur", handleBlur);
     return () => {
@@ -98,10 +137,7 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
   useEffect(() => {
     const style = document.createElement("style");
     style.id = "exam-no-select";
-    style.textContent = `
-      .exam-container { user-select: none; -webkit-user-select: none; }
-      .exam-container * { user-select: none; -webkit-user-select: none; }
-    `;
+    style.textContent = `.exam-container { user-select: none; -webkit-user-select: none; } .exam-container * { user-select: none; -webkit-user-select: none; }`;
     document.head.appendChild(style);
     return () => { style.remove(); };
   }, []);
@@ -118,7 +154,14 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
     : 0;
   const pct = submitted && total > 0 ? Math.round((correctCount / total) * 100) : 0;
 
-  // RESULTS SCREEN
+  // Time warning colors
+  const timeColor = remaining !== undefined
+    ? remaining <= 60 ? "text-destructive bg-destructive/10" :
+      remaining <= 300 ? "text-amber-500 bg-amber-500/10" :
+      "text-primary bg-primary/10"
+    : "text-primary bg-primary/10";
+
+  // RESULTS SCREEN - only show after submission
   if (submitted) {
     const grade =
       pct >= 80 ? { label: "Excellent!", color: "text-green-500", bg: "border-green-500/20 bg-green-500/5", emoji: "🏆" }
@@ -132,6 +175,13 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
             <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 flex items-center gap-2 text-sm text-destructive">
               <AlertTriangle className="h-4 w-4 shrink-0" />
               <span>Exam auto-submitted: you switched tabs or left the page.</span>
+            </div>
+          )}
+
+          {studentInfo && (
+            <div className="rounded-xl border border-border bg-card p-4 text-sm">
+              <p className="text-foreground font-medium">{studentInfo.name}</p>
+              <p className="text-muted-foreground text-xs">{studentInfo.university} · {studentInfo.course}</p>
             </div>
           )}
 
@@ -158,6 +208,7 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
             </div>
           </motion.div>
 
+          {/* Show answers ONLY after submission */}
           <div className="space-y-3">
             {questions.map((q, qi) => {
               const selected = answers.get(qi);
@@ -181,7 +232,7 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
                       const isSelected = selected === oi;
                       const isCorrectOpt = oi === q.correct_answer;
                       let style = "border-border bg-card";
-                      if (isCorrectOpt && !hideAnswers) style = "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400";
+                      if (isCorrectOpt) style = "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400";
                       else if (isSelected && !isCorrectOpt) style = "border-destructive/50 bg-destructive/10 text-destructive";
                       return (
                         <div key={oi} className={`flex items-start gap-1.5 rounded-lg border p-2 text-xs sm:text-sm ${style}`}>
@@ -189,13 +240,13 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
                             {String.fromCharCode(65 + oi)}
                           </span>
                           <span className="flex-1 break-words">{opt}</span>
-                          {isCorrectOpt && !hideAnswers && <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />}
+                          {isCorrectOpt && <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />}
                           {isSelected && !isCorrectOpt && <X className="h-3.5 w-3.5 text-destructive shrink-0" />}
                         </div>
                       );
                     })}
                   </div>
-                  {q.explanation && !hideAnswers && (
+                  {q.explanation && (
                     <div className="mt-2 ml-8 rounded-lg border border-primary/20 bg-primary/5 p-2 flex gap-1.5">
                       <Lightbulb className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
                       <p className="text-[10px] sm:text-xs text-foreground leading-relaxed break-words">{q.explanation}</p>
@@ -205,7 +256,7 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
               );
             })}
           </div>
-          <Button onClick={onExit} className="w-full">← Back to Quiz</Button>
+          <Button onClick={onExit} className="w-full">← Back to Exams</Button>
         </div>
       </div>
     );
@@ -219,12 +270,15 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
         <div className="mx-auto max-w-2xl flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
             <h2 className="font-display text-sm sm:text-base font-bold text-foreground truncate">{title}</h2>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">{answered}/{total} answered</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">
+              {answered}/{total} answered
+              {studentInfo && <> · {studentInfo.name}</>}
+            </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <div className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs sm:text-sm font-mono font-bold text-primary">
+            <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs sm:text-sm font-mono font-bold ${timeColor}`}>
               <Clock className="h-3 w-3" />
-              {formatTime(elapsed)}
+              {remaining !== undefined ? formatTime(remaining) : formatTime(elapsed)}
             </div>
             <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
               <Shield className="h-3 w-3" />
@@ -232,7 +286,6 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
             </div>
           </div>
         </div>
-        {/* Progress bar */}
         <div className="mx-auto max-w-2xl mt-1.5">
           <div className="h-1 w-full rounded-full bg-secondary">
             <div className="h-full rounded-full bg-primary transition-all duration-300"
@@ -241,7 +294,7 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
         </div>
       </div>
 
-      {/* Questions */}
+      {/* Questions - no answers shown during exam */}
       <div className="mx-auto max-w-2xl px-3 sm:px-6 py-4 pb-24 space-y-3">
         {questions.map((q, qi) => {
           const selected = answers.get(qi);
@@ -278,7 +331,11 @@ export default function ExamMode({ questions, title, setId, hideAnswers = false,
       {/* Sticky bottom submit */}
       <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-border bg-card/95 backdrop-blur px-3 sm:px-6 py-3">
         <div className="mx-auto max-w-2xl flex items-center justify-between gap-3">
-          <Button size="sm" onClick={onExit} variant="ghost" className="text-xs">Exit</Button>
+          <p className="text-xs text-muted-foreground">
+            {remaining !== undefined && remaining <= 120 && (
+              <span className="text-destructive font-medium animate-pulse">⚠ {formatTime(remaining)} remaining!</span>
+            )}
+          </p>
           <Button onClick={handleSubmit} disabled={answered === 0} className="gap-2 flex-1 max-w-xs">
             Submit Exam ({answered}/{total})
           </Button>
