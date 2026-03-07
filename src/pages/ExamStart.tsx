@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import ExamMode from "@/components/ExamMode";
-import { UNIT_CATEGORIES } from "@/lib/store";
 
 interface ExamSet {
   id: string;
@@ -40,6 +39,22 @@ const UNIVERSITIES = [
   "Dedan Kimathi University",
   "Masinde Muliro University",
   "Technical University of Kenya",
+  "Other",
+];
+
+// Health-related courses — what the student is studying
+const COURSES = [
+  "Medicine (MBChB)",
+  "Pharmacy (B.Pharm)",
+  "Nursing",
+  "Dental Surgery (BDS)",
+  "Clinical Medicine",
+  "Physiotherapy",
+  "Medical Laboratory Science",
+  "Nutrition and Dietetics",
+  "Public Health",
+  "Health Records & Information Management",
+  "Biomedical Science",
   "Other",
 ];
 
@@ -105,10 +120,10 @@ export default function ExamStart() {
     return fromCategory && fromCategory !== "Weekly Exam" ? fromCategory : "General";
   }, [exam]);
 
-  // Timer: 1 min per MCQ question
+  // 1 min per MCQ question
   const totalMinutes = useMemo(() => {
     if (!exam) return 60;
-    return exam.questions.length; // 1 min per MCQ
+    return exam.questions.length;
   }, [exam]);
 
   const handleStartExam = () => {
@@ -154,18 +169,11 @@ export default function ExamStart() {
           <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">{exam.title}</h1>
           <p className="mt-2 text-sm text-muted-foreground">Unit: {unitName}</p>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-border bg-card p-3">
-              <p className="text-xs text-muted-foreground">Section A</p>
-              <p className="text-sm font-semibold text-foreground">MCQs ({exam.questions.length} marks)</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-3">
-              <p className="text-xs text-muted-foreground">Section B</p>
-              <p className="text-sm font-semibold text-foreground">SAQs (30 marks)</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-3">
-              <p className="text-xs text-muted-foreground">Section C</p>
-              <p className="text-sm font-semibold text-foreground">LAQ (20 marks)</p>
+          {/* Single section — MCQs only */}
+          <div className="mt-5">
+            <div className="rounded-xl border border-border bg-card p-3 inline-block">
+              <p className="text-xs text-muted-foreground">Section A — MCQs</p>
+              <p className="text-sm font-semibold text-foreground">{exam.questions.length} questions · {totalMinutes} minutes</p>
             </div>
           </div>
 
@@ -173,10 +181,10 @@ export default function ExamStart() {
             <p className="mb-2 flex items-center gap-2 text-foreground"><Shield className="h-4 w-4 text-primary" /> Exam rules</p>
             <ul className="list-disc space-y-1 pl-5">
               <li>Exam opens in full-screen mode.</li>
-              <li>Switching tabs will auto-submit the exam.</li>
-              <li>Time limit: <strong className="text-foreground">{totalMinutes} minutes</strong> (auto-submits when time runs out).</li>
-              <li>Answers are hidden until you submit.</li>
-              <li>MCQs are auto-marked. SAQs & LAQs are graded separately.</li>
+              <li>Switching tabs will <strong className="text-foreground">auto-submit</strong> the exam.</li>
+              <li>Time limit: <strong className="text-foreground">{totalMinutes} minutes</strong> — auto-submits when time runs out.</li>
+              <li>Answers are hidden during the exam and only revealed after <strong className="text-foreground">midnight</strong>.</li>
+              <li>Copy, paste, and right-click are disabled.</li>
             </ul>
           </div>
 
@@ -226,8 +234,8 @@ export default function ExamStart() {
                   onChange={(e) => setStudentInfo({ ...studentInfo, course: e.target.value })}
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
                 >
-                  <option value="">Select course...</option>
-                  {UNIT_CATEGORIES.map((c) => (
+                  <option value="">Select your course...</option>
+                  {COURSES.map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
