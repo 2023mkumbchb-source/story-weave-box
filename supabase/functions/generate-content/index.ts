@@ -34,7 +34,7 @@ function compactWhitespace(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function clipNotesForModel(notes: string, maxChars = 18000): string {
+function clipNotesForModel(notes: string, maxChars = 28000): string {
   const clean = notes.trim();
   if (clean.length <= maxChars) return clean;
 
