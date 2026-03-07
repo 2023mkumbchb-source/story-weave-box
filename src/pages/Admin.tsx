@@ -1203,12 +1203,14 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
   const [examPrice, setExamPrice] = useState("5");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [generatingExam, setGeneratingExam] = useState(false);
+  const [examAward, setExamAward] = useState("1000");
   const { toast } = useToast();
 
+  const [generatingExam, setGeneratingExam] = useState(false);
+
   useEffect(() => {
-    Promise.all([getSetting("gemini_api_key"), getSetting("exam_password"), getSetting("exam_price")]).then(([key, pwd, price]) => {
-      setLocalGeminiKey(key || ""); setExamPassword(pwd || ""); setExamPrice(price || "5"); setLoading(false);
+    Promise.all([getSetting("gemini_api_key"), getSetting("exam_password"), getSetting("exam_price"), getSetting("exam_award")]).then(([key, pwd, price, award]) => {
+      setLocalGeminiKey(key || ""); setExamPassword(pwd || ""); setExamPrice(price || "5"); setExamAward(award || "1000"); setLoading(false);
     });
   }, []);
 
@@ -1278,6 +1280,15 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
         <div className="flex gap-2">
           <Input type="number" placeholder="5" value={examPrice} onChange={(e) => setExamPrice(e.target.value)} className="flex-1 max-w-[120px]" />
           <Button onClick={async () => { setSaving(true); try { await saveSetting("exam_price", examPrice); toast({ title: "Exam price saved!" }); } catch {} finally { setSaving(false); } }} disabled={saving} size="sm" className="gap-2"><Save className="h-3 w-3" /> Save</Button>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-6">
+        <h3 className="mb-2 font-display text-lg font-bold text-foreground">🏆 Exam Winner Award (KES)</h3>
+        <p className="mb-4 text-sm text-muted-foreground">Default prize for the top-scoring student per unit exam.</p>
+        <div className="flex gap-2">
+          <Input type="number" placeholder="1000" value={examAward} onChange={(e) => setExamAward(e.target.value)} className="flex-1 max-w-[120px]" />
+          <Button onClick={async () => { setSaving(true); try { await saveSetting("exam_award", examAward); toast({ title: "Exam award saved!" }); } catch {} finally { setSaving(false); } }} disabled={saving} size="sm" className="gap-2"><Save className="h-3 w-3" /> Save</Button>
         </div>
       </div>
 
