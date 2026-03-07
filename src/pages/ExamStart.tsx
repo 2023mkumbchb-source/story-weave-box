@@ -4,7 +4,7 @@ import { ArrowLeft, Clock, Loader2, Shield, Trophy, User, GraduationCap, BookOpe
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import ExamMode from "@/components/ExamMode";
+import ExamMode, { loadSavedCredentials } from "@/components/ExamMode";
 
 interface ExamSet {
   id: string;
@@ -83,7 +83,11 @@ export default function ExamStart() {
   const [exam, setExam] = useState<ExamSet | null>(null);
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
-  const [studentInfo, setStudentInfo] = useState<StudentInfo>({ name: "", university: "", course: "" });
+  const [studentInfo, setStudentInfo] = useState<StudentInfo>(() => {
+    const saved = loadSavedCredentials();
+    return saved ?? { name: "", university: "", course: "" };
+  });
+  const [credentialsRestored] = useState(() => !!loadSavedCredentials());
   const [showForm, setShowForm] = useState(false);
 
   // approved custom institutions fetched from DB
@@ -276,6 +280,12 @@ export default function ExamStart() {
               <h3 className="flex items-center gap-2 font-display text-base font-bold text-foreground">
                 <GraduationCap className="h-5 w-5 text-primary" /> Student Information
               </h3>
+
+              {credentialsRestored && (
+                <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary">
+                  Welcome back! Your details have been filled in from your last exam. Update if needed.
+                </div>
+              )}
 
               {/* Full Name */}
               <div>
