@@ -1292,3 +1292,259 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
     </div>
   );
 }
+
+// ===== EXAM RESULTS TAB =====
+function ExamResultsTab() {
+  const { toast } = useToast();
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedUnit, setSelectedUnit] = useState<string>("");
+
+  const refresh = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("exam_results").select("*").order("submitted_at", { ascending: false });
+    setResults(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { refresh(); }, []);
+
+  const units = [...new Set(results.map((r) => r.unit))].filter(Boolean);
+
+  const filtered = results.filter((r) => {
+    const matchesSearch = !searchQuery || r.student_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.university.toLowerCase().includes(searchQuery.toLowerCase()) || r.exam_title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesUnit = !selectedUnit || r.unit === selectedUnit;
+    return matchesSearch && matchesUnit;
+  });
+
+  const generatePDF = (unit: string) => {
+    const unitResults = results.filter((r) => r.unit === unit).sort((a, b) => (b.mcq_score / b.mcq_total) - (a.mcq_score / a.mcq_total));
+
+    let html = `<html><head><style>
+      body{font-family:Arial,sans-serif;padding:40px;color:#333}
+      h1{text-align:center;color:#1a1a2e;margin-bottom:5px}
+      h2{text-align:center;color:#666;font-size:14px;margin-bottom:30px}
+      table{width:100%;border-collapse:collapse;margin-top:20px}
+      th{background:#1a1a2e;color:white;padding:10px 8px;text-align:left;font-size:12px}
+      td{padding:8px;border-bottom:1px solid #ddd;font-size:12px}
+      tr:nth-child(even){background:#f8f8f8}
+      .rank-1{background:#fef3c7!important;font-weight:bold}
+      .rank-2{background:#e0f2fe!important}
+      .rank-3{background:#fce7f3!important}
+      .header{display:flex;justify-content:space-between;margin-bottom:20px}
+      .footer{margin-top:30px;text-align:center;font-size:10px;color:#999}
+    </style></head><body>
+    <h1>📝 ${unit} - Exam Results</h1>
+    <h2>Generated: ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</h2>
+    <table>
+      <thead><tr><th>#</th><th>Name</th><th>University</th><th>Course</th><th>Score</th><th>%</th><th>Time</th><th>Date</th></tr></thead>
+      <tbody>`;
+
+    unitResults.forEach((r, i) => {
+      const pct = r.mcq_total > 0 ? Math.round((r.mcq_score / r.mcq_total) * 100) : 0;
+      const mins = Math.floor(r.time_taken_seconds / 60);
+      const secs = r.time_taken_seconds % 60;
+      const rankClass = i === 0 ? "rank-1" : i === 1 ? "rank-2" : i === 2 ? "rank-3" : "";
+      html += `<tr class="${rankClass}"><td>${i + 1}</td><td>${r.student_name}</td><td>${r.university}</td><td>${r.course}</td>
+        <td>${r.mcq_score}/${r.mcq_total}</td><td>${pct}%</td><td>${mins}:${String(secs).padStart(2, "0")}</td>
+        <td>${new Date(r.submitted_at).toLocaleDateString()}</td></tr>`;
+    });
+
+    html += `</tbody></table>
+    <div class="footer">OmpathStud Exam Results · Confidential</div>
+    </body></html>`;
+
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const printWindow = window.open(url, "_blank");
+    if (printWindow) {
+      printWindow.onload = () => {
+        printWindow.print();
+        URL.revokeObjectURL(url);
+      };
+    }
+  };
+
+  if (loading) return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
+
+  return (
+    <div>
+      <div className="mb-6 flex flex-wrap gap-3 items-end">
+        <div className="flex-1 min-w-[200px]">
+          <label className="mb-1 block text-sm font-medium text-foreground">Search Results</label>
+          <Input placeholder="Search by name, university, exam..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-foreground">Filter Unit</label>
+          <select value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)}
+            className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground">
+            <option value="">All Units</option>
+            {units.map((u) => <option key={u} value={u}>{u}</option>)}
+          </select>
+        </div>
+        {selectedUnit && (
+          <Button onClick={() => generatePDF(selectedUnit)} variant="outline" className="gap-2">
+            📄 Download PDF ({selectedUnit})
+          </Button>
+        )}
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <p className="text-4xl mb-3">📝</p>
+          <p className="font-medium text-foreground">No exam results yet</p>
+          <p className="text-sm mt-1">Results will appear here after students submit exams.</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="px-3 py-2 text-left font-medium text-foreground">#</th>
+                <th className="px-3 py-2 text-left font-medium text-foreground">Name</th>
+                <th className="px-3 py-2 text-left font-medium text-foreground">University</th>
+                <th className="px-3 py-2 text-left font-medium text-foreground">Unit</th>
+                <th className="px-3 py-2 text-left font-medium text-foreground">Score</th>
+                <th className="px-3 py-2 text-left font-medium text-foreground">Time</th>
+                <th className="px-3 py-2 text-left font-medium text-foreground">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((r, i) => {
+                const pct = r.mcq_total > 0 ? Math.round((r.mcq_score / r.mcq_total) * 100) : 0;
+                const mins = Math.floor(r.time_taken_seconds / 60);
+                const secs = r.time_taken_seconds % 60;
+                return (
+                  <tr key={r.id} className="border-b border-border/60 hover:bg-muted/30">
+                    <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
+                    <td className="px-3 py-2 font-medium text-foreground">{r.student_name}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{r.university}</td>
+                    <td className="px-3 py-2"><span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{r.unit}</span></td>
+                    <td className="px-3 py-2">
+                      <span className={`font-bold ${pct >= 80 ? "text-green-600" : pct >= 60 ? "text-blue-600" : "text-amber-600"}`}>
+                        {r.mcq_score}/{r.mcq_total} ({pct}%)
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">{mins}:{String(secs).padStart(2, "0")}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{new Date(r.submitted_at).toLocaleDateString()}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Unit-wise PDF download buttons */}
+      {units.length > 0 && (
+        <div className="mt-6 rounded-xl border border-border bg-card p-5">
+          <h3 className="mb-3 font-display text-base font-bold text-foreground">📄 Download Results by Unit</h3>
+          <div className="flex flex-wrap gap-2">
+            {units.map((u) => (
+              <Button key={u} variant="outline" size="sm" onClick={() => generatePDF(u)} className="gap-1 text-xs">
+                📄 {u} ({results.filter((r) => r.unit === u).length} students)
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===== RECYCLE BIN TAB =====
+function RecycleBinTab() {
+  const { toast } = useToast();
+  const [items, setItems] = useState<{ type: string; id: string; title: string; deleted_at: string; category: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = async () => {
+    setLoading(true);
+    const [{ data: articles }, { data: flashcards }, { data: mcqs }] = await Promise.all([
+      supabase.from("articles").select("id, title, deleted_at, category").not("deleted_at", "is", null),
+      supabase.from("flashcard_sets").select("id, title, deleted_at, category").not("deleted_at", "is", null),
+      supabase.from("mcq_sets").select("id, title, deleted_at, category").not("deleted_at", "is", null),
+    ]);
+    const all = [
+      ...(articles || []).map((a: any) => ({ type: "article", ...a })),
+      ...(flashcards || []).map((f: any) => ({ type: "flashcards", ...f })),
+      ...(mcqs || []).map((m: any) => ({ type: "mcqs", ...m })),
+    ].sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
+    setItems(all);
+    setLoading(false);
+  };
+
+  useEffect(() => { refresh(); }, []);
+
+  const handleRestore = async (item: typeof items[0]) => {
+    const table = item.type === "article" ? "articles" : item.type === "flashcards" ? "flashcard_sets" : "mcq_sets";
+    await supabase.from(table).update({ deleted_at: null } as any).eq("id", item.id);
+    toast({ title: "Restored!" });
+    refresh();
+  };
+
+  const handlePermanentDelete = async (item: typeof items[0]) => {
+    const table = item.type === "article" ? "articles" : item.type === "flashcards" ? "flashcard_sets" : "mcq_sets";
+    await supabase.from(table).delete().eq("id", item.id);
+    toast({ title: "Permanently deleted" });
+    refresh();
+  };
+
+  const daysUntilPurge = (deleted_at: string) => {
+    const deletedDate = new Date(deleted_at);
+    const purgeDate = new Date(deletedDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    return Math.max(0, Math.ceil((purgeDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)));
+  };
+
+  if (loading) return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
+
+  return (
+    <div>
+      <div className="mb-6 rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <Trash2 className="h-5 w-5 text-muted-foreground" />
+          <h3 className="font-display text-lg font-bold text-foreground">Recycle Bin</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {items.length === 0 ? "Recycle bin is empty." : `${items.length} item(s) — auto-deleted after 7 days.`}
+        </p>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <p className="text-4xl mb-3">🗑️</p>
+          <p className="font-medium text-foreground">Nothing in the recycle bin</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {items.map((item) => (
+            <div key={item.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
+                    {item.type}
+                  </span>
+                  <h5 className="font-medium text-foreground truncate">{item.title}</h5>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {item.category} · Deleted {new Date(item.deleted_at).toLocaleDateString()} · <span className="text-destructive">{daysUntilPurge(item.deleted_at)} days until permanent deletion</span>
+                </p>
+              </div>
+              <div className="flex gap-2 ml-3 shrink-0">
+                <Button size="sm" variant="outline" onClick={() => handleRestore(item)} className="gap-1 text-xs">
+                  <RefreshCw className="h-3 w-3" /> Restore
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => handlePermanentDelete(item)} className="text-destructive text-xs">
+                  <Trash2 className="h-3 w-3" /> Delete
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
