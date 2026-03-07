@@ -65,6 +65,7 @@ export async function getArticles(): Promise<Article[]> {
   const { data, error } = await supabase
     .from("articles")
     .select("*")
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data || []) as Article[];
@@ -75,6 +76,7 @@ export async function getPublishedArticles(): Promise<Article[]> {
     .from("articles")
     .select("*")
     .eq("published", true)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data || []) as Article[];
@@ -121,7 +123,8 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
 }
 
 export async function deleteArticle(id: string) {
-  const { error } = await supabase.from("articles").delete().eq("id", id);
+  // Soft delete
+  const { error } = await supabase.from("articles").update({ deleted_at: new Date().toISOString() } as any).eq("id", id);
   if (error) throw error;
 }
 
@@ -130,6 +133,7 @@ export async function getFlashcardSets(): Promise<FlashcardSet[]> {
   const { data, error } = await supabase
     .from("flashcard_sets")
     .select("*")
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data || []) as unknown as FlashcardSet[];
@@ -140,6 +144,7 @@ export async function getPublishedFlashcardSets(): Promise<FlashcardSet[]> {
     .from("flashcard_sets")
     .select("*")
     .eq("published", true)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data || []) as unknown as FlashcardSet[];
@@ -186,7 +191,7 @@ export async function saveFlashcardSet(set: Omit<FlashcardSet, "id"> & { id?: st
 }
 
 export async function deleteFlashcardSet(id: string) {
-  const { error } = await supabase.from("flashcard_sets").delete().eq("id", id);
+  const { error } = await supabase.from("flashcard_sets").update({ deleted_at: new Date().toISOString() } as any).eq("id", id);
   if (error) throw error;
 }
 
@@ -195,6 +200,7 @@ export async function getMcqSets(): Promise<McqSet[]> {
   const { data, error } = await supabase
     .from("mcq_sets")
     .select("*")
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data || []) as unknown as McqSet[];
@@ -205,6 +211,7 @@ export async function getPublishedMcqSets(): Promise<McqSet[]> {
     .from("mcq_sets")
     .select("*")
     .eq("published", true)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data || []) as unknown as McqSet[];
@@ -252,7 +259,7 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
 }
 
 export async function deleteMcqSet(id: string) {
-  const { error } = await supabase.from("mcq_sets").delete().eq("id", id);
+  const { error } = await supabase.from("mcq_sets").update({ deleted_at: new Date().toISOString() } as any).eq("id", id);
   if (error) throw error;
 }
 
