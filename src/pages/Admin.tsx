@@ -199,75 +199,36 @@ export default function Admin() {
   };
 
   const handleDirectPublishRaw = async () => {
-    if (!directContent.trim()) {
-      toast({ title: "Paste content first", variant: "destructive" });
-      return;
-    }
-    setLoading(true);
-    setLoadingType("direct-raw");
+    if (!directContent.trim()) { toast({ title: "Paste content first", variant: "destructive" }); return; }
+    setLoading(true); setLoadingType("direct-raw");
     try {
       let finalCategory = directCategory;
-      if (!finalCategory) {
-        try { finalCategory = await autoCategorizе(directContent); } catch { finalCategory = "Uncategorized"; }
-      }
-
+      if (!finalCategory) { try { finalCategory = await autoCategorizе(directContent); } catch { finalCategory = "Uncategorized"; } }
       if (directType === "article") {
         const lines = directContent.trim().split("\n");
         const title = directTitle.trim() || lines[0]?.replace(/^#+\s*/, "").trim() || "Untitled";
-        await saveArticle({
-          title,
-          content: directContent,
-          created_at: new Date().toISOString(),
-          published: true,
-          original_notes: directContent,
-          category: finalCategory,
-          is_raw: true,
-        } as any);
+        await saveArticle({ title, content: directContent, created_at: new Date().toISOString(), published: true, original_notes: directContent, category: finalCategory, is_raw: true } as any);
       } else if (directType === "mcqs") {
         const parsed = parseDirectMcqs(directContent);
         const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
         if (!limited.length) throw new Error("Could not parse MCQs. Check format.");
-        await saveMcqSet({
-          title: directTitle.trim() || `MCQ Set – ${new Date().toLocaleDateString()}`,
-          questions: limited,
-          created_at: new Date().toISOString(),
-          published: true,
-          original_notes: directContent,
-          category: finalCategory,
-          access_password: "",
-          is_raw: true,
-        } as any);
+        await saveMcqSet({ title: directTitle.trim() || `MCQ Set – ${new Date().toLocaleDateString()}`, questions: limited, created_at: new Date().toISOString(), published: true, original_notes: directContent, category: finalCategory, access_password: "", is_raw: true } as any);
       } else {
         const parsed = parseDirectFlashcards(directContent);
         const limited = parsed.slice(0, clampRequestedCount(directTargetCount));
         if (!limited.length) throw new Error("Could not parse flashcards. Check format.");
-        await saveFlashcardSet({
-          title: directTitle.trim() || `Flashcards – ${new Date().toLocaleDateString()}`,
-          cards: limited,
-          created_at: new Date().toISOString(),
-          published: true,
-          original_notes: directContent,
-          category: finalCategory,
-          is_raw: true,
-        } as any);
+        await saveFlashcardSet({ title: directTitle.trim() || `Flashcards – ${new Date().toLocaleDateString()}`, cards: limited, created_at: new Date().toISOString(), published: true, original_notes: directContent, category: finalCategory, is_raw: true } as any);
       }
-
-      toast({ title: "⚡ Published instantly! Go to the Raw tab to format with Gemini later." });
-      setDirectContent("");
-      setDirectTitle("");
-      setDirectCategory("");
+      toast({ title: "Published instantly! Go to the Raw tab to format with Gemini later." });
+      setDirectContent(""); setDirectTitle(""); setDirectCategory("");
     } catch (err: any) {
       toast({ title: "Publish failed", description: err.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
-      setLoadingType(null);
-    }
+    } finally { setLoading(false); setLoadingType(null); }
   };
 
   const handleFormatDirect = async () => {
     if (!directContent.trim()) { toast({ title: "Paste content first", variant: "destructive" }); return; }
-    setLoading(true);
-    setLoadingType("direct");
+    setLoading(true); setLoadingType("direct");
     try {
       if (directType === "article") {
         const { data, error } = await supabase.functions.invoke('generate-content', { body: { notes: directContent, type: 'direct-article', geminiKey, title: directTitle.trim() } });
@@ -275,7 +236,7 @@ export default function Admin() {
         if (data?.error) throw new Error(data.error);
         setDirectPreviewArticle({ title: data.title, content: data.content });
         setDirectPreviewCards(null); setDirectPreviewMcqs(null);
-        toast({ title: "Article formatted by Gemini ✓" });
+        toast({ title: "Article formatted by Gemini" });
       } else if (directType === "mcqs") {
         const { data, error } = await supabase.functions.invoke('generate-content', { body: { notes: directContent, type: 'direct-mcqs', geminiKey, count: clampRequestedCount(directTargetCount) } });
         if (error) throw new Error(error.message);
@@ -287,7 +248,7 @@ export default function Admin() {
           setDirectPreviewMcqs(limited);
         } else { setDirectPreviewMcqs(data); }
         setDirectPreviewArticle(null); setDirectPreviewCards(null);
-        toast({ title: "Formatted MCQs via Gemini ✓" });
+        toast({ title: "Formatted MCQs via Gemini" });
       } else {
         const { data, error } = await supabase.functions.invoke('generate-content', { body: { notes: directContent, type: 'direct-flashcards', geminiKey, count: clampRequestedCount(directTargetCount) } });
         if (error) throw new Error(error.message);
@@ -299,7 +260,7 @@ export default function Admin() {
           setDirectPreviewCards(limited);
         } else { setDirectPreviewCards(data); }
         setDirectPreviewArticle(null); setDirectPreviewMcqs(null);
-        toast({ title: "Formatted flashcards via Gemini ✓" });
+        toast({ title: "Formatted flashcards via Gemini" });
       }
     } catch (err: any) {
       toast({ title: "Gemini format failed", description: err.message, variant: "destructive" });
@@ -316,7 +277,7 @@ export default function Admin() {
       } else if (directPreviewCards) {
         await saveFlashcardSet({ title: directTitle.trim() || buildSetTitle("Flashcards", directContent, finalCategory), cards: directPreviewCards, created_at: new Date().toISOString(), published: publish, original_notes: directContent, category: finalCategory });
       } else {
-        toast({ title: "No preview yet", description: "Click Format with Gemini first, or use ⚡ Direct Publish.", variant: "destructive" });
+        toast({ title: "No preview yet", description: "Click Format with Gemini first, or use Direct Publish.", variant: "destructive" });
         return;
       }
       toast({ title: publish ? "Published!" : "Draft saved!" });
@@ -331,10 +292,7 @@ export default function Admin() {
     setLoading(true); setLoadingType(type);
     try {
       let cat = category;
-      if (!cat) {
-        cat = await autoCategorizе(notes);
-        setCategory(cat);
-      }
+      if (!cat) { cat = await autoCategorizе(notes); setCategory(cat); }
       if (type === "article") {
         const result = await generateArticle(notes);
         setPreviewArticle(result); setPreviewTitle(result.title); setPreviewContent(result.content); setPreviewCards(null); setPreviewMcqs(null);
@@ -422,7 +380,7 @@ export default function Admin() {
     { id: "flashcards", label: "Flashcards", icon: Layers },
     { id: "mcqs", label: "MCQs", icon: ListChecks },
     { id: "exams", label: "Exam Results", icon: ListChecks },
-    { id: "raw", label: "Raw ⚠️", icon: AlertTriangle },
+    { id: "raw", label: "Raw", icon: AlertTriangle },
     { id: "recycle", label: "Recycle Bin", icon: Trash2 },
     { id: "settings", label: "Settings", icon: Settings },
   ];
@@ -430,7 +388,6 @@ export default function Admin() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
       <h1 className="mb-6 font-display text-3xl font-bold text-foreground">Dashboard</h1>
-
       <div className="mb-8 flex gap-1 rounded-xl border border-border bg-secondary/50 p-1 overflow-x-auto">
         {tabs.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
@@ -443,7 +400,6 @@ export default function Admin() {
       {tab === "create" && (
         <div>
           <Textarea placeholder="Paste your notes here..." value={notes} onChange={(e) => setNotes(e.target.value)} className="mb-4 min-h-[200px] resize-y" />
-
           <div className="mb-4">
             <label className="mb-2 block text-sm font-medium text-foreground">Unit/Category</label>
             <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground">
@@ -451,7 +407,6 @@ export default function Admin() {
               {UNIT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-
           <div className="mb-4 grid gap-4 sm:grid-cols-2">
             <div className="rounded-lg border border-border bg-card p-3">
               <label className="mb-2 block text-sm font-medium text-foreground">Flashcards (5-100)</label>
@@ -476,7 +431,6 @@ export default function Admin() {
               </div>
             </div>
           </div>
-
           <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-4">
             <div className="mb-3 flex items-center gap-2">
               <Zap className="h-5 w-5 text-primary" />
@@ -493,7 +447,6 @@ export default function Admin() {
               {loading && loadingType === "all" ? "Generating..." : "Generate All (Preview First)"}
             </Button>
           </div>
-
           {hasBatchPreview && (
             <div className="mb-8 space-y-4 rounded-xl border-2 border-primary/40 bg-primary/5 p-6">
               <div className="flex items-center justify-between">
@@ -503,7 +456,7 @@ export default function Admin() {
               {batchArticle && (
                 <div className="rounded-lg border border-border bg-card p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-bold text-foreground">📄 Article</h4>
+                    <h4 className="text-sm font-bold text-foreground">Article</h4>
                     <Button size="sm" variant="ghost" onClick={() => handleRegenerateBatch("article")} disabled={loading} className="gap-1 text-xs"><RefreshCw className="h-3 w-3" /> Regenerate</Button>
                   </div>
                   <p className="text-sm font-medium text-foreground">{batchArticle.title}</p>
@@ -513,7 +466,7 @@ export default function Admin() {
               {batchCards && (
                 <div className="rounded-lg border border-border bg-card p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-bold text-foreground">🃏 Flashcards ({batchCards.length})</h4>
+                    <h4 className="text-sm font-bold text-foreground">Flashcards ({batchCards.length})</h4>
                     <Button size="sm" variant="ghost" onClick={() => handleRegenerateBatch("flashcards")} disabled={loading} className="gap-1 text-xs"><RefreshCw className="h-3 w-3" /> Regenerate</Button>
                   </div>
                   <div className="max-h-32 overflow-y-auto space-y-1">
@@ -525,7 +478,7 @@ export default function Admin() {
               {batchMcqs && (
                 <div className="rounded-lg border border-border bg-card p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-bold text-foreground">✅ MCQs ({batchMcqs.length})</h4>
+                    <h4 className="text-sm font-bold text-foreground">MCQs ({batchMcqs.length})</h4>
                     <Button size="sm" variant="ghost" onClick={() => handleRegenerateBatch("mcqs")} disabled={loading} className="gap-1 text-xs"><RefreshCw className="h-3 w-3" /> Regenerate</Button>
                   </div>
                   <div className="max-h-32 overflow-y-auto space-y-1">
@@ -540,7 +493,6 @@ export default function Admin() {
               </div>
             </div>
           )}
-
           <div className="mb-8 flex flex-wrap gap-3">
             <Button onClick={() => handleGenerate("article")} disabled={loading} variant="outline" className="gap-2">
               {loading && loadingType === "article" && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -555,7 +507,6 @@ export default function Admin() {
               {loading && loadingType === "mcqs" ? "Generating..." : `Generate ${mcqCount} MCQs`}
             </Button>
           </div>
-
           {previewArticle && (
             <div className="rounded-xl border border-border bg-card p-6">
               <div className="mb-4 flex items-center justify-between">
@@ -607,7 +558,7 @@ export default function Admin() {
                         {String.fromCharCode(65 + j)}) {opt} {j === q.correct_answer ? "✓" : ""}
                       </p>
                     ))}
-                    {q.explanation && <p className="mt-1 ml-4 text-xs text-muted-foreground italic">💡 {q.explanation}</p>}
+                    {q.explanation && <p className="mt-1 ml-4 text-xs text-muted-foreground italic">{q.explanation}</p>}
                   </div>
                 ))}
               </div>
@@ -617,22 +568,18 @@ export default function Admin() {
               </div>
             </div>
           )}
-
-          {/* Direct Publish Mode */}
           <div className="mt-8 rounded-xl border border-border bg-card p-6">
-            <h3 className="mb-1 font-display text-lg font-bold text-foreground">📋 Direct Publish Mode</h3>
+            <h3 className="mb-1 font-display text-lg font-bold text-foreground">Direct Publish Mode</h3>
             <p className="mb-4 text-sm text-muted-foreground">
-              <strong>⚡ Direct Publish (No AI)</strong> saves instantly — no delays, no Gemini call.
-              Items land in the <strong>Raw tab</strong> where you can bulk-format them with Gemini whenever you're free.
+              <strong>Direct Publish (No AI)</strong> saves instantly. Items land in the Raw tab for bulk Gemini formatting later.
             </p>
-
             <div className="mb-4 grid gap-4 md:grid-cols-4">
               <div>
                 <label className="mb-1 block text-sm font-medium text-foreground">Content Type</label>
                 <select value={directType} onChange={(e) => setDirectType(e.target.value as DirectType)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground">
-                  <option value="article">📄 Article</option>
-                  <option value="mcqs">✅ MCQs</option>
-                  <option value="flashcards">🃏 Flashcards</option>
+                  <option value="article">Article</option>
+                  <option value="mcqs">MCQs</option>
+                  <option value="flashcards">Flashcards</option>
                 </select>
               </div>
               <div>
@@ -654,27 +601,21 @@ export default function Admin() {
                 }
               </div>
             </div>
-
-            <Textarea
-              value={directContent}
-              onChange={(e) => setDirectContent(e.target.value)}
+            <Textarea value={directContent} onChange={(e) => setDirectContent(e.target.value)}
               placeholder={directType === "article" ? "Paste article markdown/plain text" : directType === "mcqs" ? "Paste MCQs JSON or Q1 + A) B) C) D) format" : "Paste flashcards JSON or Q:/A: format"}
-              className="mb-4 min-h-[180px]"
-            />
-
+              className="mb-4 min-h-[180px]" />
             <div className="mb-4 flex flex-wrap gap-3">
               <Button onClick={handleDirectPublishRaw} disabled={loading} className="gap-2 bg-amber-600 hover:bg-amber-700 text-white border-0">
                 {loading && loadingType === "direct-raw" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bolt className="h-4 w-4" />}
-                {loading && loadingType === "direct-raw" ? "Saving..." : "⚡ Direct Publish (No AI)"}
+                {loading && loadingType === "direct-raw" ? "Saving..." : "Direct Publish (No AI)"}
               </Button>
               <Button onClick={handleFormatDirect} variant="outline" disabled={loading} className="gap-2">
                 {loading && loadingType === "direct" && <Loader2 className="h-4 w-4 animate-spin" />}
-                {loading && loadingType === "direct" ? "Formatting..." : "✨ Format with Gemini"}
+                {loading && loadingType === "direct" ? "Formatting..." : "Format with Gemini"}
               </Button>
               <Button onClick={() => handleDirectSave(false)} variant="outline" disabled={loading}>Save Draft</Button>
               <Button onClick={() => handleDirectSave(true)} disabled={loading}>Publish (Formatted)</Button>
             </div>
-
             {directPreviewArticle && (
               <div className="rounded-lg border border-border bg-secondary/30 p-4">
                 <p className="font-medium text-foreground">{directPreviewArticle.title}</p>
@@ -767,7 +708,6 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
     let current = 0;
     const total = totalRaw;
     let errors = 0;
-
     for (const article of articles) {
       current++;
       setProgress({ current, total, label: `Formatting article: ${article.title.slice(0, 45)}...` });
@@ -783,13 +723,9 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
       setProgress({ current, total, label: `Formatting MCQs: ${set.title.slice(0, 45)}...` });
       try { await formatMcqsWithGemini(set); } catch { errors++; }
     }
-
     setProgress(null);
     setFormatting(false);
-    toast({
-      title: errors === 0 ? `✅ All ${total} items formatted!` : `Done — ${errors} item(s) failed`,
-      description: errors > 0 ? "Failed items remain in the Raw tab." : undefined,
-    });
+    toast({ title: errors === 0 ? `All ${total} items formatted!` : `Done — ${errors} item(s) failed`, description: errors > 0 ? "Failed items remain in the Raw tab." : undefined });
     await refresh();
   };
 
@@ -799,7 +735,7 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
       if (type === "article") await formatArticleWithGemini(item);
       else if (type === "flashcards") await formatFlashcardsWithGemini(item);
       else await formatMcqsWithGemini(item);
-      toast({ title: "Formatted! ✓" });
+      toast({ title: "Formatted!" });
       await refresh();
     } catch (err: any) {
       toast({ title: "Format failed", description: err.message, variant: "destructive" });
@@ -826,9 +762,7 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
               <h3 className="font-display text-lg font-bold text-foreground">Raw / Unformatted Content</h3>
             </div>
             <p className="text-sm text-muted-foreground">
-              {totalRaw === 0
-                ? "No raw content — everything is formatted! 🎉"
-                : `${totalRaw} item${totalRaw > 1 ? "s" : ""} waiting to be formatted with Gemini.`}
+              {totalRaw === 0 ? "No raw content — everything is formatted!" : `${totalRaw} item${totalRaw > 1 ? "s" : ""} waiting to be formatted with Gemini.`}
             </p>
           </div>
           {totalRaw > 0 && (
@@ -838,7 +772,6 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
             </Button>
           )}
         </div>
-
         {progress && (
           <div className="mt-4">
             <div className="mb-1 flex items-center justify-between">
@@ -851,18 +784,16 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
           </div>
         )}
       </div>
-
       {totalRaw === 0 && (
         <div className="text-center py-16 text-muted-foreground">
           <p className="text-4xl mb-3">✅</p>
           <p className="font-medium text-foreground">All content is formatted</p>
-          <p className="text-sm mt-1">Use ⚡ Direct Publish in the Create tab to add raw content here.</p>
+          <p className="text-sm mt-1">Use Direct Publish in the Create tab to add raw content here.</p>
         </div>
       )}
-
       {articles.length > 0 && (
         <div className="mb-6">
-          <h4 className="mb-3 text-sm font-bold text-foreground uppercase tracking-wide">📄 Articles ({articles.length})</h4>
+          <h4 className="mb-3 text-sm font-bold text-foreground uppercase tracking-wide">Articles ({articles.length})</h4>
           <div className="space-y-2">
             {articles.map((a) => (
               <div key={a.id} className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-card p-4">
@@ -881,10 +812,9 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
           </div>
         </div>
       )}
-
       {flashcardSets.length > 0 && (
         <div className="mb-6">
-          <h4 className="mb-3 text-sm font-bold text-foreground uppercase tracking-wide">🃏 Flashcard Sets ({flashcardSets.length})</h4>
+          <h4 className="mb-3 text-sm font-bold text-foreground uppercase tracking-wide">Flashcard Sets ({flashcardSets.length})</h4>
           <div className="space-y-2">
             {flashcardSets.map((s) => (
               <div key={s.id} className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-card p-4">
@@ -903,10 +833,9 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
           </div>
         </div>
       )}
-
       {mcqSets.length > 0 && (
         <div className="mb-6">
-          <h4 className="mb-3 text-sm font-bold text-foreground uppercase tracking-wide">✅ MCQ Sets ({mcqSets.length})</h4>
+          <h4 className="mb-3 text-sm font-bold text-foreground uppercase tracking-wide">MCQ Sets ({mcqSets.length})</h4>
           <div className="space-y-2">
             {mcqSets.map((s) => (
               <div key={s.id} className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-card p-4">
@@ -929,26 +858,19 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
   );
 }
 
-// --- Articles List ---
+// ===== ARTICLES LIST =====
 function ArticlesList() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Article | null>(null);
   const { toast } = useToast();
-
   const refresh = () => { getArticles().then((arts) => setArticles(arts.filter((a: any) => a.is_raw !== true))).finally(() => setLoading(false)); };
   useEffect(() => { refresh(); }, []);
-
   const handleDelete = async (id: string) => { await deleteArticle(id); refresh(); toast({ title: "Deleted" }); };
   const togglePublish = async (a: Article) => { await saveArticle({ ...a, published: !a.published }); refresh(); toast({ title: a.published ? "Unpublished" : "Published!" }); };
-  const handleSaveEdit = async () => {
-    if (!editing) return;
-    await saveArticle(editing); setEditing(null); refresh(); toast({ title: "Article updated!" });
-  };
-
+  const handleSaveEdit = async () => { if (!editing) return; await saveArticle(editing); setEditing(null); refresh(); toast({ title: "Article updated!" }); };
   if (loading) return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
   if (articles.length === 0) return <p className="text-muted-foreground">No articles yet.</p>;
-
   if (editing) {
     return (
       <div className="rounded-xl border border-border bg-card p-6">
@@ -966,7 +888,6 @@ function ArticlesList() {
       </div>
     );
   }
-
   return (
     <div className="space-y-3">
       {articles.map((a) => (
@@ -989,33 +910,23 @@ function ArticlesList() {
   );
 }
 
-// --- Flashcards List ---
+// ===== FLASHCARDS LIST =====
 function FlashcardsList() {
   const [sets, setSets] = useState<FlashcardSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<FlashcardSet | null>(null);
   const { toast } = useToast();
-
   const refresh = () => { getFlashcardSets().then((s) => setSets(s.filter((f: any) => f.is_raw !== true))).finally(() => setLoading(false)); };
   useEffect(() => { refresh(); }, []);
-
   const handleDelete = async (id: string) => { await deleteFlashcardSet(id); refresh(); toast({ title: "Deleted" }); };
   const togglePublish = async (s: FlashcardSet) => { await saveFlashcardSet({ ...s, published: !s.published }); refresh(); toast({ title: s.published ? "Unpublished" : "Published!" }); };
-  const handleSaveEdit = async () => {
-    if (!editing) return;
-    await saveFlashcardSet(editing); setEditing(null); refresh(); toast({ title: "Updated!" });
-  };
-
+  const handleSaveEdit = async () => { if (!editing) return; await saveFlashcardSet(editing); setEditing(null); refresh(); toast({ title: "Updated!" }); };
   const updateCard = (i: number, field: "question" | "answer", value: string) => {
     if (!editing) return;
-    const cards = [...editing.cards];
-    cards[i] = { ...cards[i], [field]: value };
-    setEditing({ ...editing, cards });
+    const cards = [...editing.cards]; cards[i] = { ...cards[i], [field]: value }; setEditing({ ...editing, cards });
   };
-
   if (loading) return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
   if (sets.length === 0) return <p className="text-muted-foreground">No flashcard sets yet.</p>;
-
   if (editing) {
     return (
       <div className="rounded-xl border border-border bg-card p-6">
@@ -1036,7 +947,6 @@ function FlashcardsList() {
       </div>
     );
   }
-
   return (
     <div className="space-y-3">
       {sets.map((s) => (
@@ -1059,7 +969,7 @@ function FlashcardsList() {
   );
 }
 
-// --- MCQs List ---
+// ===== MCQs LIST =====
 function McqsList() {
   const [sets, setSets] = useState<McqSet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1067,69 +977,26 @@ function McqsList() {
   const [passwordSetId, setPasswordSetId] = useState<string | null>(null);
   const [passwordValue, setPasswordValue] = useState("");
   const { toast } = useToast();
-
   const refresh = () => { getMcqSets().then((s) => setSets(s.filter((m: any) => m.is_raw !== true))).finally(() => setLoading(false)); };
   useEffect(() => { refresh(); }, []);
-
   const handleDelete = async (id: string) => { await deleteMcqSet(id); refresh(); toast({ title: "Deleted" }); };
   const togglePublish = async (s: McqSet) => { await saveMcqSet({ ...s, published: !s.published }); refresh(); toast({ title: s.published ? "Unpublished" : "Published!" }); };
-  const handleSaveEdit = async () => {
-    if (!editing) return;
-    await saveMcqSet(editing); setEditing(null); refresh(); toast({ title: "Updated!" });
-  };
-
-  const handleSetPassword = async (s: McqSet) => {
-    await saveMcqSet({ ...s, access_password: passwordValue.trim() });
-    setPasswordSetId(null); setPasswordValue(""); refresh();
-    toast({ title: passwordValue.trim() ? "Password set!" : "Password removed." });
-  };
-
-  const handleRemovePassword = async (s: McqSet) => {
-    await saveMcqSet({ ...s, access_password: "" }); refresh(); toast({ title: "Password removed" });
-  };
-
-  const updateQuestion = (i: number, field: string, value: any) => {
-    if (!editing) return;
-    const questions = [...editing.questions];
-    questions[i] = { ...questions[i], [field]: value };
-    setEditing({ ...editing, questions });
-  };
-
-  const updateOption = (qi: number, oi: number, value: string) => {
-    if (!editing) return;
-    const questions = [...editing.questions];
-    const options = [...questions[qi].options];
-    options[oi] = value;
-    questions[qi] = { ...questions[qi], options };
-    setEditing({ ...editing, questions });
-  };
-
+  const handleSaveEdit = async () => { if (!editing) return; await saveMcqSet(editing); setEditing(null); refresh(); toast({ title: "Updated!" }); };
+  const handleSetPassword = async (s: McqSet) => { await saveMcqSet({ ...s, access_password: passwordValue.trim() }); setPasswordSetId(null); setPasswordValue(""); refresh(); toast({ title: passwordValue.trim() ? "Password set!" : "Password removed." }); };
+  const handleRemovePassword = async (s: McqSet) => { await saveMcqSet({ ...s, access_password: "" }); refresh(); toast({ title: "Password removed" }); };
+  const updateQuestion = (i: number, field: string, value: any) => { if (!editing) return; const questions = [...editing.questions]; questions[i] = { ...questions[i], [field]: value }; setEditing({ ...editing, questions }); };
+  const updateOption = (qi: number, oi: number, value: string) => { if (!editing) return; const questions = [...editing.questions]; const options = [...questions[qi].options]; options[oi] = value; questions[qi] = { ...questions[qi], options }; setEditing({ ...editing, questions }); };
   if (loading) return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
   if (sets.length === 0) return <p className="text-muted-foreground">No MCQ sets yet.</p>;
-
   if (editing) {
     return (
       <div className="rounded-xl border border-border bg-card p-6">
         <h3 className="mb-4 font-display text-lg font-bold text-foreground">Edit MCQ Set</h3>
-
-        {/* Title */}
-        <Input
-          value={editing.title}
-          onChange={(e) => setEditing({ ...editing, title: e.target.value })}
-          className="mb-3 font-bold"
-          placeholder="Title"
-        />
-
-        {/* ← Category selector */}
-        <select
-          value={editing.category}
-          onChange={(e) => setEditing({ ...editing, category: e.target.value })}
-          className="w-full mb-4 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
-        >
+        <Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="mb-3 font-bold" placeholder="Title" />
+        <select value={editing.category} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className="w-full mb-4 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground">
           <option value="Uncategorized">Uncategorized</option>
           {UNIT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-
         <div className="mb-4 max-h-[500px] overflow-y-auto space-y-3">
           {editing.questions.map((q, i) => (
             <div key={i} className="rounded-lg border border-border p-3 space-y-2">
@@ -1140,7 +1007,7 @@ function McqsList() {
                   <Input value={opt} onChange={(e) => updateOption(i, j, e.target.value)} placeholder={`Option ${String.fromCharCode(65 + j)}`} className="text-sm" />
                 </div>
               ))}
-              <Input value={q.explanation || ""} onChange={(e) => updateQuestion(i, "explanation", e.target.value)} placeholder="Explanation" className="text-sm text-muted-foreground" />
+              <Input value={q.explanation || ""} onChange={(e) => updateQuestion(i, "explanation", e.target.value)} placeholder="Explanation (optional)" className="text-sm text-muted-foreground" />
             </div>
           ))}
         </div>
@@ -1151,7 +1018,6 @@ function McqsList() {
       </div>
     );
   }
-
   return (
     <div className="space-y-3">
       {sets.map((s) => (
@@ -1180,7 +1046,7 @@ function McqsList() {
           </div>
           {passwordSetId === s.id && (
             <div className="mt-3 pt-3 border-t border-border">
-              <p className="text-xs font-medium text-foreground mb-2">🔒 Set Password (leave empty to remove)</p>
+              <p className="text-xs font-medium text-foreground mb-2">Set Password (leave empty to remove)</p>
               <div className="flex gap-2">
                 <Input type="text" placeholder="Enter password" value={passwordValue} onChange={(e) => setPasswordValue(e.target.value)} className="flex-1 text-sm" />
                 <Button size="sm" onClick={() => handleSetPassword(s)} className="gap-1"><Save className="h-3 w-3" /> Save</Button>
@@ -1196,17 +1062,16 @@ function McqsList() {
   );
 }
 
-// --- Settings Panel ---
+// ===== SETTINGS PANEL =====
 function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }) {
   const [localGeminiKey, setLocalGeminiKey] = useState("");
   const [examPassword, setExamPassword] = useState("");
   const [examPrice, setExamPrice] = useState("5");
+  const [examAward, setExamAward] = useState("1000");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [examAward, setExamAward] = useState("1000");
-  const { toast } = useToast();
-
   const [generatingExam, setGeneratingExam] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     Promise.all([getSetting("gemini_api_key"), getSetting("exam_password"), getSetting("exam_price"), getSetting("exam_award")]).then(([key, pwd, price, award]) => {
@@ -1228,12 +1093,9 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
 
   const handleSaveExamPassword = async () => {
     setSaving(true);
-    try {
-      await saveSetting("exam_password", examPassword.trim());
-      toast({ title: examPassword.trim() ? "Exam password saved!" : "Exam password removed" });
-    } catch (err: any) {
-      toast({ title: "Failed to save", description: err.message, variant: "destructive" });
-    } finally { setSaving(false); }
+    try { await saveSetting("exam_password", examPassword.trim()); toast({ title: examPassword.trim() ? "Exam password saved!" : "Exam password removed" }); }
+    catch (err: any) { toast({ title: "Failed to save", description: err.message, variant: "destructive" }); }
+    finally { setSaving(false); }
   };
 
   const handleGenerateExam = async () => {
@@ -1242,7 +1104,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
       const { data, error } = await supabase.functions.invoke('generate-exam');
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
-      toast({ title: `Exam generated! ${data.mcq_count} MCQs, ${data.saq_count} SAQs, ${data.laq_count} LAQs` });
+      toast({ title: `Exam generated! ${data.mcq_count} MCQs` });
     } catch (err: any) {
       toast({ title: "Exam generation failed", description: err.message, variant: "destructive" });
     } finally { setGeneratingExam(false); }
@@ -1254,47 +1116,40 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
     <div className="max-w-lg space-y-6">
       <div className="rounded-xl border border-border bg-card p-6">
         <h3 className="mb-2 font-display text-lg font-bold text-foreground">Google Gemini API</h3>
-        <p className="mb-4 text-sm text-muted-foreground">
-          Enter your Gemini API key from{" "}
-          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google AI Studio</a>.
-        </p>
+        <p className="mb-4 text-sm text-muted-foreground">Enter your Gemini API key from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google AI Studio</a>.</p>
         <div className="flex gap-2">
           <Input type="password" placeholder="Enter your Gemini API key" value={localGeminiKey} onChange={(e) => setLocalGeminiKey(e.target.value)} className="flex-1" />
           <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2"><Key className="h-3 w-3" /> {saving ? "Saving..." : "Save"}</Button>
         </div>
-        {localGeminiKey && <p className="mt-2 text-xs text-primary">✓ API key configured</p>}
+        {localGeminiKey && <p className="mt-2 text-xs text-primary">API key configured</p>}
       </div>
-
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">🔒 Default Exam Password</h3>
+        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Default Exam Password</h3>
         <p className="mb-4 text-sm text-muted-foreground">Set a default password for auto-generated weekly exams.</p>
         <div className="flex gap-2">
           <Input type="text" placeholder="Default exam password" value={examPassword} onChange={(e) => setExamPassword(e.target.value)} className="flex-1" />
           <Button onClick={handleSaveExamPassword} disabled={saving} size="sm" className="gap-2"><Save className="h-3 w-3" /> Save</Button>
         </div>
       </div>
-
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">💰 Exam Price (KES)</h3>
+        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Exam Price (KES)</h3>
         <p className="mb-4 text-sm text-muted-foreground">Set the M-Pesa payment amount for exam access.</p>
         <div className="flex gap-2">
           <Input type="number" placeholder="5" value={examPrice} onChange={(e) => setExamPrice(e.target.value)} className="flex-1 max-w-[120px]" />
           <Button onClick={async () => { setSaving(true); try { await saveSetting("exam_price", examPrice); toast({ title: "Exam price saved!" }); } catch {} finally { setSaving(false); } }} disabled={saving} size="sm" className="gap-2"><Save className="h-3 w-3" /> Save</Button>
         </div>
       </div>
-
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">🏆 Exam Winner Award (KES)</h3>
+        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Exam Winner Award (KES)</h3>
         <p className="mb-4 text-sm text-muted-foreground">Default prize for the top-scoring student per unit exam.</p>
         <div className="flex gap-2">
           <Input type="number" placeholder="1000" value={examAward} onChange={(e) => setExamAward(e.target.value)} className="flex-1 max-w-[120px]" />
           <Button onClick={async () => { setSaving(true); try { await saveSetting("exam_award", examAward); toast({ title: "Exam award saved!" }); } catch {} finally { setSaving(false); } }} disabled={saving} size="sm" className="gap-2"><Save className="h-3 w-3" /> Save</Button>
         </div>
       </div>
-
       <div className="rounded-xl border border-primary/30 bg-primary/5 p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">📝 Weekly Exam Generator</h3>
-        <p className="mb-4 text-sm text-muted-foreground">Generates a comprehensive exam from all published content: 60 MCQs + SAQs + LAQs.</p>
+        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Weekly Exam Generator</h3>
+        <p className="mb-4 text-sm text-muted-foreground">Generates a comprehensive exam from all published content.</p>
         <Button onClick={handleGenerateExam} disabled={generatingExam} className="gap-2">
           {generatingExam && <Loader2 className="h-4 w-4 animate-spin" />}
           {generatingExam ? "Generating Exam..." : "Generate Exam Now"}
@@ -1306,7 +1161,6 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
 
 // ===== EXAM RESULTS TAB =====
 function ExamResultsTab() {
-  const { toast } = useToast();
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1324,57 +1178,82 @@ function ExamResultsTab() {
   const units = [...new Set(results.map((r) => r.unit))].filter(Boolean);
 
   const filtered = results.filter((r) => {
-    const matchesSearch = !searchQuery || r.student_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.university.toLowerCase().includes(searchQuery.toLowerCase()) || r.exam_title.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = !q
+      || r.student_name?.toLowerCase().includes(q)
+      || r.university?.toLowerCase().includes(q)
+      || r.exam_title?.toLowerCase().includes(q)
+      || r.course?.toLowerCase().includes(q);
     const matchesUnit = !selectedUnit || r.unit === selectedUnit;
     return matchesSearch && matchesUnit;
   });
 
+  // ── FIXED PDF: no emoji in title, proper charset, clean HTML entities ──
   const generatePDF = (unit: string) => {
-    const unitResults = results.filter((r) => r.unit === unit).sort((a, b) => (b.mcq_score / b.mcq_total) - (a.mcq_score / a.mcq_total));
+    const unitResults = [...results]
+      .filter((r) => r.unit === unit)
+      .sort((a, b) => (b.mcq_score / b.mcq_total) - (a.mcq_score / a.mcq_total));
 
-    let html = `<html><head><style>
-      body{font-family:Arial,sans-serif;padding:40px;color:#333}
-      h1{text-align:center;color:#1a1a2e;margin-bottom:5px}
-      h2{text-align:center;color:#666;font-size:14px;margin-bottom:30px}
-      table{width:100%;border-collapse:collapse;margin-top:20px}
-      th{background:#1a1a2e;color:white;padding:10px 8px;text-align:left;font-size:12px}
-      td{padding:8px;border-bottom:1px solid #ddd;font-size:12px}
-      tr:nth-child(even){background:#f8f8f8}
-      .rank-1{background:#fef3c7!important;font-weight:bold}
-      .rank-2{background:#e0f2fe!important}
-      .rank-3{background:#fce7f3!important}
-      .header{display:flex;justify-content:space-between;margin-bottom:20px}
-      .footer{margin-top:30px;text-align:center;font-size:10px;color:#999}
-    </style></head><body>
-    <h1>📝 ${unit} - Exam Results</h1>
-    <h2>Generated: ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</h2>
-    <table>
-      <thead><tr><th>#</th><th>Name</th><th>University</th><th>Course</th><th>Score</th><th>%</th><th>Time</th><th>Date</th></tr></thead>
-      <tbody>`;
+    const dateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
+    let rows = "";
     unitResults.forEach((r, i) => {
       const pct = r.mcq_total > 0 ? Math.round((r.mcq_score / r.mcq_total) * 100) : 0;
-      const mins = Math.floor(r.time_taken_seconds / 60);
-      const secs = r.time_taken_seconds % 60;
-      const rankClass = i === 0 ? "rank-1" : i === 1 ? "rank-2" : i === 2 ? "rank-3" : "";
-      html += `<tr class="${rankClass}"><td>${i + 1}</td><td>${r.student_name}</td><td>${r.university}</td><td>${r.course}</td>
-        <td>${r.mcq_score}/${r.mcq_total}</td><td>${pct}%</td><td>${mins}:${String(secs).padStart(2, "0")}</td>
-        <td>${new Date(r.submitted_at).toLocaleDateString()}</td></tr>`;
+      const mins = Math.floor((r.time_taken_seconds || 0) / 60);
+      const secs = (r.time_taken_seconds || 0) % 60;
+      const timeStr = `${mins}:${String(secs).padStart(2, "0")}`;
+      const dateFormatted = r.submitted_at ? new Date(r.submitted_at).toLocaleDateString("en-GB") : "-";
+      const medal = i === 0 ? " (1st)" : i === 1 ? " (2nd)" : i === 2 ? " (3rd)" : "";
+      const rowBg = i === 0 ? "#fef9c3" : i === 1 ? "#dbeafe" : i === 2 ? "#fce7f3" : (i % 2 === 0 ? "#f9fafb" : "#ffffff");
+      const pctColor = pct >= 80 ? "#16a34a" : pct >= 60 ? "#2563eb" : "#d97706";
+      rows += `<tr style="background:${rowBg}">
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb">${i + 1}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-weight:${i < 3 ? "bold" : "normal"}">${escapeHtml(r.student_name || "")}${medal}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb">${escapeHtml(r.university || "")}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb">${escapeHtml(r.course || "")}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb">${r.mcq_score}/${r.mcq_total}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-weight:bold;color:${pctColor}">${pct}%</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb">${timeStr}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb">${dateFormatted}</td>
+      </tr>`;
     });
 
-    html += `</tbody></table>
-    <div class="footer">OmpathStud Exam Results · Confidential</div>
-    </body></html>`;
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escapeHtml(unit)} - Exam Results</title>
+</head>
+<body style="font-family:Arial,Helvetica,sans-serif;padding:40px;color:#111;background:#fff;margin:0">
+  <h1 style="text-align:center;color:#1a1a2e;font-size:22px;margin:0 0 6px 0">${escapeHtml(unit)} &ndash; Exam Results</h1>
+  <p style="text-align:center;color:#555;font-size:13px;margin:0 0 28px 0">Generated: ${dateStr} &bull; ${unitResults.length} student${unitResults.length !== 1 ? "s" : ""}</p>
+  <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead>
+      <tr style="background:#1a1a2e;color:#fff">
+        <th style="padding:10px;text-align:left;font-weight:600">#</th>
+        <th style="padding:10px;text-align:left;font-weight:600">Name</th>
+        <th style="padding:10px;text-align:left;font-weight:600">University</th>
+        <th style="padding:10px;text-align:left;font-weight:600">Course</th>
+        <th style="padding:10px;text-align:left;font-weight:600">Score</th>
+        <th style="padding:10px;text-align:left;font-weight:600">%</th>
+        <th style="padding:10px;text-align:left;font-weight:600">Time</th>
+        <th style="padding:10px;text-align:left;font-weight:600">Date</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <p style="margin-top:32px;text-align:center;font-size:10px;color:#9ca3af">OmpathStudy Exam Results &bull; Confidential</p>
+</body>
+</html>`;
 
-    const blob = new Blob([html], { type: "text/html" });
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const printWindow = window.open(url, "_blank");
-    if (printWindow) {
-      printWindow.onload = () => {
-        printWindow.print();
-        URL.revokeObjectURL(url);
-      };
+    const win = window.open(url, "_blank");
+    if (win) {
+      win.addEventListener("load", () => {
+        setTimeout(() => { win.print(); URL.revokeObjectURL(url); }, 400);
+      });
     }
   };
 
@@ -1382,31 +1261,57 @@ function ExamResultsTab() {
 
   return (
     <div>
+      {/* Stats summary */}
+      <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="rounded-xl border border-border bg-card p-4 text-center">
+          <p className="text-2xl font-bold text-foreground">{results.length}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Total Submissions</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4 text-center">
+          <p className="text-2xl font-bold text-foreground">{units.length}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Units Examined</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4 text-center">
+          <p className="text-2xl font-bold text-green-600">
+            {results.length > 0 ? Math.round(results.reduce((sum, r) => sum + (r.mcq_total > 0 ? (r.mcq_score / r.mcq_total) * 100 : 0), 0) / results.length) : 0}%
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">Average Score</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4 text-center">
+          <p className="text-2xl font-bold text-primary">
+            {results.length > 0 ? Math.max(...results.map((r) => r.mcq_total > 0 ? Math.round((r.mcq_score / r.mcq_total) * 100) : 0)) : 0}%
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">Top Score</p>
+        </div>
+      </div>
+
       <div className="mb-6 flex flex-wrap gap-3 items-end">
         <div className="flex-1 min-w-[200px]">
-          <label className="mb-1 block text-sm font-medium text-foreground">Search Results</label>
-          <Input placeholder="Search by name, university, exam..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+          <label className="mb-1 block text-sm font-medium text-foreground">Search</label>
+          <Input placeholder="Name, university, course, exam..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-foreground">Filter Unit</label>
-          <select value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)}
-            className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground">
+          <label className="mb-1 block text-sm font-medium text-foreground">Filter by Unit</label>
+          <select value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)} className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground">
             <option value="">All Units</option>
             {units.map((u) => <option key={u} value={u}>{u}</option>)}
           </select>
         </div>
         {selectedUnit && (
           <Button onClick={() => generatePDF(selectedUnit)} variant="outline" className="gap-2">
-            📄 Download PDF ({selectedUnit})
+            Download PDF ({selectedUnit})
           </Button>
         )}
+        <Button onClick={refresh} variant="ghost" size="sm" className="gap-1 text-muted-foreground">
+          <RefreshCw className="h-3.5 w-3.5" /> Refresh
+        </Button>
       </div>
 
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
-          <p className="text-4xl mb-3">📝</p>
+          <p className="text-4xl mb-3">📋</p>
           <p className="font-medium text-foreground">No exam results yet</p>
-          <p className="text-sm mt-1">Results will appear here after students submit exams.</p>
+          <p className="text-sm mt-1">Results appear here after students submit exams.</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border">
@@ -1416,6 +1321,7 @@ function ExamResultsTab() {
                 <th className="px-3 py-2 text-left font-medium text-foreground">#</th>
                 <th className="px-3 py-2 text-left font-medium text-foreground">Name</th>
                 <th className="px-3 py-2 text-left font-medium text-foreground">University</th>
+                <th className="px-3 py-2 text-left font-medium text-foreground">Course</th>
                 <th className="px-3 py-2 text-left font-medium text-foreground">Unit</th>
                 <th className="px-3 py-2 text-left font-medium text-foreground">Score</th>
                 <th className="px-3 py-2 text-left font-medium text-foreground">Time</th>
@@ -1425,13 +1331,14 @@ function ExamResultsTab() {
             <tbody>
               {filtered.map((r, i) => {
                 const pct = r.mcq_total > 0 ? Math.round((r.mcq_score / r.mcq_total) * 100) : 0;
-                const mins = Math.floor(r.time_taken_seconds / 60);
-                const secs = r.time_taken_seconds % 60;
+                const mins = Math.floor((r.time_taken_seconds || 0) / 60);
+                const secs = (r.time_taken_seconds || 0) % 60;
                 return (
                   <tr key={r.id} className="border-b border-border/60 hover:bg-muted/30">
                     <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
                     <td className="px-3 py-2 font-medium text-foreground">{r.student_name}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{r.university}</td>
+                    <td className="px-3 py-2 text-muted-foreground text-xs">{r.university}</td>
+                    <td className="px-3 py-2 text-muted-foreground text-xs">{r.course}</td>
                     <td className="px-3 py-2"><span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{r.unit}</span></td>
                     <td className="px-3 py-2">
                       <span className={`font-bold ${pct >= 80 ? "text-green-600" : pct >= 60 ? "text-blue-600" : "text-amber-600"}`}>
@@ -1439,7 +1346,7 @@ function ExamResultsTab() {
                       </span>
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{mins}:{String(secs).padStart(2, "0")}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{new Date(r.submitted_at).toLocaleDateString()}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : "-"}</td>
                   </tr>
                 );
               })}
@@ -1448,14 +1355,13 @@ function ExamResultsTab() {
         </div>
       )}
 
-      {/* Unit-wise PDF download buttons */}
       {units.length > 0 && (
         <div className="mt-6 rounded-xl border border-border bg-card p-5">
-          <h3 className="mb-3 font-display text-base font-bold text-foreground">📄 Download Results by Unit</h3>
+          <h3 className="mb-3 font-display text-base font-bold text-foreground">Download Results by Unit</h3>
           <div className="flex flex-wrap gap-2">
             {units.map((u) => (
               <Button key={u} variant="outline" size="sm" onClick={() => generatePDF(u)} className="gap-1 text-xs">
-                📄 {u} ({results.filter((r) => r.unit === u).length} students)
+                {u} ({results.filter((r) => r.unit === u).length})
               </Button>
             ))}
           </div>
@@ -1465,7 +1371,17 @@ function ExamResultsTab() {
   );
 }
 
-// ===== RECYCLE BIN TAB =====
+// Safe HTML escaping for PDF — prevents encoding issues
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// ===== RECYCLE BIN =====
 function RecycleBinTab() {
   const { toast } = useToast();
   const [items, setItems] = useState<{ type: string; id: string; title: string; deleted_at: string; category: string }[]>([]);
@@ -1492,22 +1408,18 @@ function RecycleBinTab() {
   const handleRestore = async (item: typeof items[0]) => {
     const table = item.type === "article" ? "articles" : item.type === "flashcards" ? "flashcard_sets" : "mcq_sets";
     await supabase.from(table).update({ deleted_at: null } as any).eq("id", item.id);
-    toast({ title: "Restored!" });
-    refresh();
+    toast({ title: "Restored!" }); refresh();
   };
 
   const handlePermanentDelete = async (item: typeof items[0]) => {
     const table = item.type === "article" ? "articles" : item.type === "flashcards" ? "flashcard_sets" : "mcq_sets";
     await supabase.from(table).delete().eq("id", item.id);
-    toast({ title: "Permanently deleted" });
-    refresh();
+    toast({ title: "Permanently deleted" }); refresh();
   };
 
   const daysUntilPurge = (deleted_at: string) => {
-    const deletedDate = new Date(deleted_at);
-    const purgeDate = new Date(deletedDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const now = new Date();
-    return Math.max(0, Math.ceil((purgeDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)));
+    const purge = new Date(new Date(deleted_at).getTime() + 7 * 24 * 60 * 60 * 1000);
+    return Math.max(0, Math.ceil((purge.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
   };
 
   if (loading) return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
@@ -1519,11 +1431,8 @@ function RecycleBinTab() {
           <Trash2 className="h-5 w-5 text-muted-foreground" />
           <h3 className="font-display text-lg font-bold text-foreground">Recycle Bin</h3>
         </div>
-        <p className="text-sm text-muted-foreground">
-          {items.length === 0 ? "Recycle bin is empty." : `${items.length} item(s) — auto-deleted after 7 days.`}
-        </p>
+        <p className="text-sm text-muted-foreground">{items.length === 0 ? "Recycle bin is empty." : `${items.length} item(s) — auto-deleted after 7 days.`}</p>
       </div>
-
       {items.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <p className="text-4xl mb-3">🗑️</p>
@@ -1535,22 +1444,16 @@ function RecycleBinTab() {
             <div key={item.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
-                    {item.type}
-                  </span>
+                  <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">{item.type}</span>
                   <h5 className="font-medium text-foreground truncate">{item.title}</h5>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {item.category} · Deleted {new Date(item.deleted_at).toLocaleDateString()} · <span className="text-destructive">{daysUntilPurge(item.deleted_at)} days until permanent deletion</span>
+                  {item.category} · Deleted {new Date(item.deleted_at).toLocaleDateString()} · <span className="text-destructive">{daysUntilPurge(item.deleted_at)}d until deletion</span>
                 </p>
               </div>
               <div className="flex gap-2 ml-3 shrink-0">
-                <Button size="sm" variant="outline" onClick={() => handleRestore(item)} className="gap-1 text-xs">
-                  <RefreshCw className="h-3 w-3" /> Restore
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => handlePermanentDelete(item)} className="text-destructive text-xs">
-                  <Trash2 className="h-3 w-3" /> Delete
-                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleRestore(item)} className="gap-1 text-xs"><RefreshCw className="h-3 w-3" /> Restore</Button>
+                <Button size="sm" variant="ghost" onClick={() => handlePermanentDelete(item)} className="text-destructive text-xs"><Trash2 className="h-3 w-3" /> Delete</Button>
               </div>
             </div>
           ))}
