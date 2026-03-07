@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Clock, Loader2, Shield, Trophy, User, GraduationCap, BookOpen, Plus, Check } from "lucide-react";
+import { ArrowLeft, Clock, Loader2, Shield, Trophy, User, GraduationCap, BookOpen, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import ExamMode, { loadSavedCredentials } from "@/components/ExamMode";
+import ExamMode from "@/components/ExamMode";
 
 interface ExamSet {
   id: string;
@@ -20,39 +20,52 @@ interface StudentInfo {
 }
 
 const UNLOCKED_KEY = "unlocked_exams";
+const STUDENT_CREDS_KEY = "student_credentials";
 
+// ── credential helpers ───────────────────────────────────────
+function loadCreds(): StudentInfo | null {
+  try {
+    const raw = localStorage.getItem(STUDENT_CREDS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+function saveCreds(info: StudentInfo) {
+  try { localStorage.setItem(STUDENT_CREDS_KEY, JSON.stringify(info)); } catch {}
+}
+
+// ── base lists ───────────────────────────────────────────────
 const BASE_UNIVERSITIES = [
-  "University of Nairobi",
-  "Kenyatta University",
-  "Moi University",
-  "Jomo Kenyatta University of Agriculture and Technology",
-  "Egerton University",
-  "Maseno University",
-  "Mount Kenya University",
-  "Kabarak University",
-  "Daystar University",
-  "Strathmore University",
-  "KCA University",
-  "United States International University",
-  "Kenya Methodist University",
   "Africa Nazarene University",
+  "Daystar University",
   "Dedan Kimathi University",
+  "Egerton University",
+  "Jomo Kenyatta University of Agriculture and Technology",
+  "KCA University",
+  "Kabarak University",
+  "Kenya Methodist University",
+  "Kenyatta University",
+  "Maseno University",
   "Masinde Muliro University",
+  "Moi University",
+  "Mount Kenya University",
+  "Strathmore University",
   "Technical University of Kenya",
+  "United States International University",
+  "University of Nairobi",
 ];
 
 const BASE_COURSES = [
-  "Medicine (MBChB)",
-  "Pharmacy (B.Pharm)",
-  "Nursing",
-  "Dental Surgery (BDS)",
-  "Clinical Medicine",
-  "Physiotherapy",
-  "Medical Laboratory Science",
-  "Nutrition and Dietetics",
-  "Public Health",
-  "Health Records & Information Management",
   "Biomedical Science",
+  "Clinical Medicine",
+  "Dental Surgery (BDS)",
+  "Health Records & Information Management",
+  "Medical Laboratory Science",
+  "Medicine (MBChB)",
+  "Nursing",
+  "Nutrition and Dietetics",
+  "Pharmacy (B.Pharm)",
+  "Physiotherapy",
+  "Public Health",
 ];
 
 function sampleExam(): ExamSet {
@@ -83,26 +96,28 @@ export default function ExamStart() {
   const [exam, setExam] = useState<ExamSet | null>(null);
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
-  const [studentInfo, setStudentInfo] = useState<StudentInfo>(() => {
-    const saved = loadSavedCredentials();
-    return saved ?? { name: "", university: "", course: "" };
-  });
-  const [credentialsRestored] = useState(() => !!loadSavedCredentials());
   const [showForm, setShowForm] = useState(false);
 
-  // approved custom institutions fetched from DB
+  // Pre-fill from saved credentials
+  const [studentInfo, setStudentInfo] = useState<StudentInfo>(() => {
+    return loadCreds() ?? { name: "", university: "", course: "" };
+  });
+  const wasRestored = useMemo(() => {
+    const c = loadCreds();
+    return !!(c?.name || c?.university || c?.course);
+  }, []);
+
+  // Approved custom institutions from DB
   const [extraUniversities, setExtraUniversities] = useState<string[]>([]);
   const [extraCourses, setExtraCourses] = useState<string[]>([]);
 
-  // "add new" UI states
+  // "Add new" UI
   const [addingUni, setAddingUni] = useState(false);
   const [addingCourse, setAddingCourse] = useState(false);
   const [customUniInput, setCustomUniInput] = useState("");
   const [customCourseInput, setCustomCourseInput] = useState("");
   const [submittingUni, setSubmittingUni] = useState(false);
   const [submittingCourse, setSubmittingCourse] = useState(false);
-  const [uniSubmitted, setUniSubmitted] = useState(false);
-  const [courseSubmitted, setCourseSubmitted] = useState(false);
 
   // Load exam
   useEffect(() => {
@@ -128,41 +143,45 @@ export default function ExamStart() {
 
   // Load approved custom institutions from DB
   useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase
-        .from("pending_institutions")
-        .select("type, value")
-        .eq("status", "approved");
-      if (data) {
-        setExtraUniversities(data.filter((d) => d.type === "university").map((d) => d.value));
-        setExtraCourses(data.filter((d) => d.type === "course").map((d) => d.value));
-      }
-    };
-    load();
+    supabase
+      .from("pending_institutions")
+      .select("type, value")
+      .eq("status", "approved")
+      .then(({ data }) => {
+        if (data) {
+          setExtraUniversities(data.filter((d) => d.type === "university").map((d) => d.value));
+          setExtraCourses(data.filter((d) => d.type === "course").map((d) => d.value));
+        }
+      });
   }, []);
 
   const allUniversities = useMemo(
-    () => [...BASE_UNIVERSITIES, ...extraUniversities].sort(),
+    () => [...new Set([...BASE_UNIVERSITIES, ...extraUniversities])].sort(),
     [extraUniversities]
   );
-
   const allCourses = useMemo(
-    () => [...BASE_COURSES, ...extraCourses].sort(),
+    () => [...new Set([...BASE_COURSES, ...extraCourses])].sort(),
     [extraCourses]
   );
 
   const unitName = useMemo(() => {
     if (!exam) return "General";
-    const fromCategory = exam.category?.replace(/^Weekly Exam\s*:?\s*/i, "").trim();
-    return fromCategory && fromCategory !== "Weekly Exam" ? fromCategory : "General";
+    const c = exam.category?.replace(/^Weekly Exam\s*:?\s*/i, "").trim();
+    return c && c !== "Weekly Exam" ? c : "General";
   }, [exam]);
 
-  const totalMinutes = useMemo(() => {
-    if (!exam) return 60;
-    return exam.questions.length;
-  }, [exam]);
+  const totalMinutes = useMemo(() => (exam ? exam.questions.length : 60), [exam]);
 
-  // Submit a custom university to DB (pending review)
+  // Update a field and immediately persist credentials
+  const updateField = (field: keyof StudentInfo, value: string) => {
+    setStudentInfo((prev) => {
+      const updated = { ...prev, [field]: value };
+      saveCreds(updated); // save on every change
+      return updated;
+    });
+  };
+
+  // Submit custom university
   const handleSubmitCustomUni = async () => {
     const val = customUniInput.trim();
     if (!val) return;
@@ -172,9 +191,7 @@ export default function ExamStart() {
         { type: "university", value: val, submitted_by: studentInfo.name || "Anonymous", status: "pending" },
         { onConflict: "type,value", ignoreDuplicates: true }
       );
-      // Use the submitted value immediately for this session
-      setStudentInfo((prev) => ({ ...prev, university: val }));
-      setUniSubmitted(true);
+      updateField("university", val);
       setAddingUni(false);
       setCustomUniInput("");
     } catch (e) {
@@ -184,7 +201,7 @@ export default function ExamStart() {
     }
   };
 
-  // Submit a custom course to DB (pending review)
+  // Submit custom course
   const handleSubmitCustomCourse = async () => {
     const val = customCourseInput.trim();
     if (!val) return;
@@ -194,8 +211,7 @@ export default function ExamStart() {
         { type: "course", value: val, submitted_by: studentInfo.name || "Anonymous", status: "pending" },
         { onConflict: "type,value", ignoreDuplicates: true }
       );
-      setStudentInfo((prev) => ({ ...prev, course: val }));
-      setCourseSubmitted(true);
+      updateField("course", val);
       setAddingCourse(false);
       setCustomCourseInput("");
     } catch (e) {
@@ -207,6 +223,7 @@ export default function ExamStart() {
 
   const handleStartExam = () => {
     if (!studentInfo.name.trim() || !studentInfo.university || !studentInfo.course) return;
+    saveCreds(studentInfo); // ensure saved before entering exam
     setStarted(true);
   };
 
@@ -281,9 +298,9 @@ export default function ExamStart() {
                 <GraduationCap className="h-5 w-5 text-primary" /> Student Information
               </h3>
 
-              {credentialsRestored && (
+              {wasRestored && (
                 <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary">
-                  Welcome back! Your details have been filled in from your last exam. Update if needed.
+                  Welcome back! Your details were saved from your last exam. Update if needed.
                 </div>
               )}
 
@@ -293,7 +310,7 @@ export default function ExamStart() {
                 <Input
                   placeholder="Enter your full name"
                   value={studentInfo.name}
-                  onChange={(e) => setStudentInfo({ ...studentInfo, name: e.target.value })}
+                  onChange={(e) => updateField("name", e.target.value)}
                 />
               </div>
 
@@ -301,48 +318,38 @@ export default function ExamStart() {
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">University *</label>
                 {!addingUni ? (
-                  <div className="space-y-2">
-                    <select
-                      value={studentInfo.university}
-                      onChange={(e) => {
-                        if (e.target.value === "__add__") {
-                          setAddingUni(true);
-                          setStudentInfo({ ...studentInfo, university: "" });
-                        } else {
-                          setStudentInfo({ ...studentInfo, university: e.target.value });
-                        }
-                      }}
-                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
-                    >
-                      <option value="">Select university...</option>
-                      {allUniversities.map((u) => (
-                        <option key={u} value={u}>{u}</option>
-                      ))}
-                      <option value="__add__">+ My university is not listed</option>
-                    </select>
-                    {uniSubmitted && studentInfo.university && (
-                      <p className="text-xs text-amber-600 flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        "{studentInfo.university}" submitted for review. You can use it now.
-                      </p>
-                    )}
-                  </div>
+                  <select
+                    value={studentInfo.university}
+                    onChange={(e) => {
+                      if (e.target.value === "__add__") {
+                        setAddingUni(true);
+                      } else {
+                        updateField("university", e.target.value);
+                      }
+                    }}
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
+                  >
+                    <option value="">Select university...</option>
+                    {allUniversities.map((u) => (
+                      <option key={u} value={u}>{u}</option>
+                    ))}
+                    <option value="__add__">+ My university is not listed</option>
+                  </select>
                 ) : (
                   <div className="space-y-2">
                     <Input
-                      placeholder="Enter your university name"
+                      placeholder="Type your university name"
                       value={customUniInput}
                       onChange={(e) => setCustomUniInput(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") handleSubmitCustomUni(); }}
                       autoFocus
                     />
+                    <p className="text-xs text-muted-foreground">
+                      You can use it now. It will be reviewed by admin and added to the list if approved.
+                    </p>
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={handleSubmitCustomUni}
-                        disabled={!customUniInput.trim() || submittingUni}
-                        className="gap-1"
-                      >
+                      <Button size="sm" onClick={handleSubmitCustomUni}
+                        disabled={!customUniInput.trim() || submittingUni} className="gap-1">
                         {submittingUni ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
                         Use this
                       </Button>
@@ -350,10 +357,13 @@ export default function ExamStart() {
                         Cancel
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      This will be sent to the admin for review and added to the list if approved.
-                    </p>
                   </div>
+                )}
+                {/* Show selected custom value clearly */}
+                {!addingUni && studentInfo.university && !allUniversities.includes(studentInfo.university) && (
+                  <p className="mt-1 text-xs text-amber-600">
+                    Using: "{studentInfo.university}" (pending admin review)
+                  </p>
                 )}
               </div>
 
@@ -361,48 +371,38 @@ export default function ExamStart() {
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">Course *</label>
                 {!addingCourse ? (
-                  <div className="space-y-2">
-                    <select
-                      value={studentInfo.course}
-                      onChange={(e) => {
-                        if (e.target.value === "__add__") {
-                          setAddingCourse(true);
-                          setStudentInfo({ ...studentInfo, course: "" });
-                        } else {
-                          setStudentInfo({ ...studentInfo, course: e.target.value });
-                        }
-                      }}
-                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
-                    >
-                      <option value="">Select your course...</option>
-                      {allCourses.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                      <option value="__add__">+ My course is not listed</option>
-                    </select>
-                    {courseSubmitted && studentInfo.course && (
-                      <p className="text-xs text-amber-600 flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        "{studentInfo.course}" submitted for review. You can use it now.
-                      </p>
-                    )}
-                  </div>
+                  <select
+                    value={studentInfo.course}
+                    onChange={(e) => {
+                      if (e.target.value === "__add__") {
+                        setAddingCourse(true);
+                      } else {
+                        updateField("course", e.target.value);
+                      }
+                    }}
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
+                  >
+                    <option value="">Select your course...</option>
+                    {allCourses.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                    <option value="__add__">+ My course is not listed</option>
+                  </select>
                 ) : (
                   <div className="space-y-2">
                     <Input
-                      placeholder="Enter your course name"
+                      placeholder="Type your course name"
                       value={customCourseInput}
                       onChange={(e) => setCustomCourseInput(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") handleSubmitCustomCourse(); }}
                       autoFocus
                     />
+                    <p className="text-xs text-muted-foreground">
+                      You can use it now. It will be reviewed by admin and added to the list if approved.
+                    </p>
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={handleSubmitCustomCourse}
-                        disabled={!customCourseInput.trim() || submittingCourse}
-                        className="gap-1"
-                      >
+                      <Button size="sm" onClick={handleSubmitCustomCourse}
+                        disabled={!customCourseInput.trim() || submittingCourse} className="gap-1">
                         {submittingCourse ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
                         Use this
                       </Button>
@@ -410,10 +410,12 @@ export default function ExamStart() {
                         Cancel
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      This will be sent to the admin for review and added to the list if approved.
-                    </p>
                   </div>
+                )}
+                {!addingCourse && studentInfo.course && !allCourses.includes(studentInfo.course) && (
+                  <p className="mt-1 text-xs text-amber-600">
+                    Using: "{studentInfo.course}" (pending admin review)
+                  </p>
                 )}
               </div>
 
