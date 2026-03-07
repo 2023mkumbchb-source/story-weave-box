@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, Bolt, AlertTriangle } from "lucide-react";
+import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, Bolt, AlertTriangle, Building2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import {
 } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 
-type Tab = "create" | "articles" | "flashcards" | "mcqs" | "raw" | "exams" | "recycle" | "settings";
+type Tab = "create" | "articles" | "flashcards" | "mcqs" | "raw" | "exams" | "recycle" | "settings" | "institutions";
 type DirectType = "article" | "mcqs" | "flashcards";
 
 export default function Admin() {
@@ -382,6 +382,7 @@ export default function Admin() {
     { id: "exams", label: "Exam Results", icon: ListChecks },
     { id: "raw", label: "Raw", icon: AlertTriangle },
     { id: "recycle", label: "Recycle Bin", icon: Trash2 },
+    { id: "institutions", label: "Institutions", icon: Building2 },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -644,6 +645,7 @@ export default function Admin() {
       {tab === "exams" && <ExamResultsTab />}
       {tab === "raw" && <RawContentTab geminiKey={geminiKey} />}
       {tab === "recycle" && <RecycleBinTab />}
+      {tab === "institutions" && <InstitutionsTab />}
       {tab === "settings" && <SettingsPanel setGeminiKey={setGeminiKey} />}
     </div>
   );
@@ -1455,6 +1457,126 @@ function RecycleBinTab() {
                 <Button size="sm" variant="outline" onClick={() => handleRestore(item)} className="gap-1 text-xs"><RefreshCw className="h-3 w-3" /> Restore</Button>
                 <Button size="sm" variant="ghost" onClick={() => handlePermanentDelete(item)} className="text-destructive text-xs"><Trash2 className="h-3 w-3" /> Delete</Button>
               </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Institutions Review Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface PendingInstitution {
+  id: string;
+  type: "university" | "course";
+  value: string;
+  submitted_by: string | null;
+  submitted_at: string;
+  status: "pending" | "approved" | "rejected";
+}
+
+function InstitutionsTab() {
+  const [items, setItems] = useState<PendingInstitution[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
+  const [updating, setUpdating] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const load = async () => {
+    setLoading(true);
+    let query = supabase
+      .from("pending_institutions")
+      .select("*")
+      .order("submitted_at", { ascending: false });
+    if (filter !== "all") query = query.eq("status", filter) as typeof query;
+    const { data } = await query;
+    setItems((data as PendingInstitution[]) || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, [filter]);
+
+  const updateStatus = async (id: string, status: "approved" | "rejected") => {
+    setUpdating(id);
+    const { error } = await supabase
+      .from("pending_institutions")
+      .update({ status, reviewed_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) {
+      toast({ title: "Failed to update", variant: "destructive" });
+    } else {
+      toast({ title: status === "approved" ? "Approved — now visible to students" : "Rejected" });
+      setItems((prev) => prev.filter((i) => i.id !== id));
+    }
+    setUpdating(null);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="font-display text-xl font-bold text-foreground">Institutions Review</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Student-submitted universities and courses pending your approval.</p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {(["pending", "approved", "rejected", "all"] as const).map((f) => (
+            <button key={f} onClick={() => setFilter(f)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
+                filter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}>
+              {f}
+            </button>
+          ))}
+          <Button size="sm" variant="outline" onClick={load}><RefreshCw className="h-3.5 w-3.5" /></Button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+      ) : items.length === 0 ? (
+        <div className="rounded-xl border border-border bg-card p-10 text-center text-muted-foreground text-sm">
+          No {filter === "all" ? "" : filter} submissions found.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {items.map((item) => (
+            <div key={item.id} className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 flex-wrap">
+              <div className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide shrink-0 ${
+                item.type === "university" ? "bg-blue-500/10 text-blue-500" : "bg-purple-500/10 text-purple-500"
+              }`}>
+                {item.type}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{item.value}</p>
+                <p className="text-xs text-muted-foreground">
+                  By {item.submitted_by || "Anonymous"} · {new Date(item.submitted_at).toLocaleDateString()}
+                </p>
+              </div>
+              <div className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize shrink-0 ${
+                item.status === "pending" ? "bg-amber-500/10 text-amber-500"
+                : item.status === "approved" ? "bg-green-500/10 text-green-500"
+                : "bg-destructive/10 text-destructive"
+              }`}>
+                {item.status}
+              </div>
+              {item.status === "pending" && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button size="sm" onClick={() => updateStatus(item.id, "approved")}
+                    disabled={updating === item.id}
+                    className="gap-1 bg-green-600 hover:bg-green-700 text-white h-8 px-3 text-xs">
+                    {updating === item.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                    Approve
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => updateStatus(item.id, "rejected")}
+                    disabled={updating === item.id}
+                    className="gap-1 text-destructive border-destructive/30 hover:bg-destructive/10 h-8 px-3 text-xs">
+                    <X className="h-3 w-3" /> Reject
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>
