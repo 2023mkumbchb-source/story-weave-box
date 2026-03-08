@@ -250,7 +250,7 @@ export default function ExamMode({
         });
       } catch (e) { console.error("DB save failed:", e); }
     }
-  }, [answers, questions, setId, studentInfo, title, unitName, startTime]);
+  }, [answers, questions, setId, studentInfo, title, unitName, startTime, sessionId]);
 
   useEffect(() => {
     if (submittedRef.current || !timeLimit) return;
