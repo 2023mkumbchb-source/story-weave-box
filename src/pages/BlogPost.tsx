@@ -305,6 +305,23 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
+    // Markdown image
+    const imageMatch = t.match(/^!\[(.*?)\]\((.*?)\)$/);
+    if (imageMatch) {
+      flushList();
+      underSubheading = false;
+      const alt = imageMatch[1]?.trim() || "Medical illustration";
+      const src = imageMatch[2]?.trim();
+      if (src) {
+        els.push(
+          <figure key={`img-${i}`} className="my-6 overflow-hidden rounded-2xl border border-border bg-muted/20">
+            <img src={src} alt={alt} loading="lazy" className="w-full object-cover" />
+          </figure>
+        );
+      }
+      return;
+    }
+
     // QUESTION pattern
     const questionMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)[:\s-]*(.*)/i);
     if (questionMatch) {
