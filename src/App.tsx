@@ -24,6 +24,7 @@ const Essays = lazy(() => import("./pages/Essays"));
 const EssayStudy = lazy(() => import("./pages/EssayStudy"));
 const Stories = lazy(() => import("./pages/Stories"));
 const StoryRead = lazy(() => import("./pages/StoryRead"));
+const SubmitStory = lazy(() => import("./pages/SubmitStory"));
 const Login = lazy(() => import("./pages/Login"));
 const Admin = lazy(() => import("./pages/Admin"));
 const YearHub = lazy(() => import("./pages/YearHub"));
