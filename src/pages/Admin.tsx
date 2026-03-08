@@ -2309,6 +2309,9 @@ function SeoIndexingTab() {
             cursor,
             year: seoYear === "All" ? null : seoYear,
             include_all: seoMode === "all",
+            include_unpublished: includeUnpublished,
+            fields: seoFields,
+            site_url: siteUrlInput,
           },
         });
         if (error) throw new Error(error.message);
