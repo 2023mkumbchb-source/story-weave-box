@@ -2865,6 +2865,7 @@ function StoriesTab() {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editCategory, setEditCategory] = useState("");
+  const [editCoverUrl, setEditCoverUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
@@ -2889,12 +2890,13 @@ function StoriesTab() {
     setEditTitle(story.title);
     setEditContent(story.content);
     setEditCategory(story.category);
+    setEditCoverUrl(story.cover_image_url || "");
   };
 
   const handleSave = async () => {
     if (!editId) return;
     setSaving(true);
-    const { error } = await supabase.from("stories").update({ title: editTitle, content: editContent, category: editCategory }).eq("id", editId);
+    const { error } = await supabase.from("stories").update({ title: editTitle, content: editContent, category: editCategory, cover_image_url: editCoverUrl || null }).eq("id", editId);
     if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
     else { toast({ title: "Story updated" }); setEditId(null); fetchStories(); }
     setSaving(false);
@@ -2947,6 +2949,11 @@ function StoriesTab() {
         </div>
         <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Title" className="font-bold" />
         <Input value={editCategory} onChange={e => setEditCategory(e.target.value)} placeholder="Category" />
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Cover Image URL</label>
+          <Input value={editCoverUrl} onChange={e => setEditCoverUrl(e.target.value)} placeholder="https://... (paste image URL)" />
+          {editCoverUrl && <img src={editCoverUrl} alt="Cover preview" className="mt-2 h-32 w-full rounded-lg object-cover border border-border" />}
+        </div>
         <Textarea value={editContent} onChange={e => setEditContent(e.target.value)} className="min-h-[400px] resize-y font-mono text-sm" />
         <div className="flex gap-3">
           <Button onClick={handleSave} disabled={saving} className="gap-2">

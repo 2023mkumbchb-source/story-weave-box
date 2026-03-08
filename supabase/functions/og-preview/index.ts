@@ -14,41 +14,68 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const slug = url.searchParams.get('slug');
-    if (!slug) {
-      return new Response(JSON.stringify({ error: 'Missing slug' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const storyId = url.searchParams.get('story');
+
+    if (!slug && !storyId) {
+      return new Response(JSON.stringify({ error: 'Missing slug or story param' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Try slug first, then ID
-    let { data: article } = await supabase
-      .from('articles')
-      .select('title, meta_title, meta_description, og_image_url, slug, id')
-      .eq('slug', slug)
-      .eq('published', true)
-      .maybeSingle();
+    let title = '';
+    let description = '';
+    let image = '';
+    let canonicalPath = '';
 
-    if (!article) {
-      const { data: byId } = await supabase
-        .from('articles')
-        .select('title, meta_title, meta_description, og_image_url, slug, id')
-        .eq('id', slug)
+    if (storyId) {
+      const { data: story } = await supabase
+        .from('stories')
+        .select('title, content, cover_image_url, id')
+        .eq('id', storyId)
         .eq('published', true)
         .maybeSingle();
-      article = byId;
-    }
 
-    if (!article) {
-      return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (!story) {
+        return new Response(JSON.stringify({ error: 'Story not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      title = story.title;
+      description = (story.content || '').replace(/<[^>]*>/g, '').replace(/[#*_`>\-]/g, '').replace(/\s+/g, ' ').trim().slice(0, 160);
+      image = story.cover_image_url || '';
+      canonicalPath = `/stories/${story.id}`;
+    } else {
+      // Article lookup
+      let { data: article } = await supabase
+        .from('articles')
+        .select('title, meta_title, meta_description, og_image_url, slug, id')
+        .eq('slug', slug)
+        .eq('published', true)
+        .maybeSingle();
+
+      if (!article) {
+        const { data: byId } = await supabase
+          .from('articles')
+          .select('title, meta_title, meta_description, og_image_url, slug, id')
+          .eq('id', slug)
+          .eq('published', true)
+          .maybeSingle();
+        article = byId;
+      }
+
+      if (!article) {
+        return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      title = article.meta_title || article.title;
+      description = article.meta_description || `Study ${article.title} - medical notes on Ompath Study.`;
+      image = article.og_image_url || '';
+      canonicalPath = article.slug ? `/blog/${article.slug}` : `/blog/${article.id}`;
     }
 
     const baseUrl = 'https://medicine.kenyaadverts.co.ke';
-    const title = article.meta_title || article.title;
-    const description = article.meta_description || `Study ${article.title} - medical notes on Ompath Study.`;
-    const image = article.og_image_url || `${baseUrl}/icon-512.png`;
-    const canonicalPath = article.slug ? `/blog/${article.slug}` : `/blog/${article.id}`;
+    const ogImage = image || `${baseUrl}/icon-512.png`;
     const canonical = `${baseUrl}${canonicalPath}`;
 
     // Return HTML page with meta tags that redirects to the SPA
@@ -61,12 +88,12 @@ serve(async (req) => {
   <meta property="og:type" content="article">
   <meta property="og:title" content="${escapeHtml(title)}">
   <meta property="og:description" content="${escapeHtml(description)}">
-  <meta property="og:image" content="${escapeHtml(image)}">
+  <meta property="og:image" content="${escapeHtml(ogImage)}">
   <meta property="og:url" content="${escapeHtml(canonical)}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${escapeHtml(title)}">
   <meta name="twitter:description" content="${escapeHtml(description)}">
-  <meta name="twitter:image" content="${escapeHtml(image)}">
+  <meta name="twitter:image" content="${escapeHtml(ogImage)}">
   <link rel="canonical" href="${escapeHtml(canonical)}">
   <meta http-equiv="refresh" content="0;url=${escapeHtml(canonical)}">
   <script>window.location.replace("${canonical}");</script>
