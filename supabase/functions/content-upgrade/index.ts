@@ -157,6 +157,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, supabaseKey);
+    const siteUrl = await resolveSiteUrlFromBodyOrSettings(sb, body?.site_url);
 
     const geminiKey = typeof body?.geminiKey === "string" && body.geminiKey.trim()
       ? body.geminiKey.trim()
