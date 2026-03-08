@@ -166,7 +166,7 @@ function extractMcqsFromContent(content: string): { question: string; options: s
     if (questionText.length < 8) return null;
 
     const optionsPart = normalized.slice(firstOptionIndex);
-    const optionRegex = /([A-Ea-e])[\).]\s*([\s\S]*?)(?=(?:\s+[A-Ea-e][\).]\s)|(?:\s+Answer\s*[:\-])|(?:\s+Explanation\s*[:\-])|$)/g;
+    const optionRegex = /([A-Ea-e])[\).]\s*([\s\S]*?)(?=(?:\s*[A-Ea-e][\).]\s)|(?:\s*Answer\s*[:\-])|(?:\s*Explanation\s*[:\-])|$)/g;
     const optionEntries: Array<[string, string]> = [];
     let match: RegExpExecArray | null;
 
