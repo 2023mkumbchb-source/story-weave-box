@@ -8,6 +8,14 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5"];
 
+function normalizeYear(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (trimmed === "All") return "All";
+  const match = trimmed.match(/year\s*([1-5])/i);
+  return match ? `Year ${match[1]}` : null;
+}
+
 function timeAgo(ms: number): string {
   const diff = Date.now() - ms;
   const mins = Math.floor(diff / 60_000);
