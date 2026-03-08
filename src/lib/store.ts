@@ -305,14 +305,17 @@ export async function getArticleById(id: string): Promise<Article | null> {
 }
 
 export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | null> {
-  if (!slugOrId) return null;
-  if (UUID_REGEX.test(slugOrId)) return getArticleById(slugOrId);
+  const normalizedParam = decodeURIComponent(String(slugOrId || "")).trim().toLowerCase();
+  if (!normalizedParam) return null;
+
+  const explicitId = extractArticleIdFromParam(normalizedParam);
+  if (explicitId) return getArticleById(explicitId);
 
   // Check DB slug column first
   const { data: slugMatch } = await supabase
     .from("articles")
     .select("id")
-    .eq("slug", slugOrId)
+    .eq("slug", normalizedParam)
     .eq("published", true)
     .is("deleted_at", null)
     .maybeSingle();
@@ -328,7 +331,6 @@ export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | 
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  const normalizedParam = slugOrId.toLowerCase().trim();
 
   const exactMatch = (data || []).find((row: any) => slugifyTitle(row.title) === normalizedParam);
   const startsWithMatch = exactMatch || (data || []).find((row: any) => slugifyTitle(row.title).startsWith(normalizedParam));
