@@ -620,7 +620,9 @@ serve(async (req) => {
         }
 
         const titleSuggestsMcq = /\bmcq\b|multiple\s+choice/i.test(article.title || "");
-        if (isMcqContent(analysisContent) || titleSuggestsMcq) {
+        const essaySignal = looksLikeEssayContent(analysisContent);
+
+        if ((isMcqContent(analysisContent) || titleSuggestsMcq) && !essaySignal) {
           const mcqs = extractMcqsFromContent(analysisContent);
           if (mcqs.length >= 3 || (titleSuggestsMcq && mcqs.length >= 1)) {
             issues.push(`Contains ${mcqs.length} MCQs - should migrate to MCQ section`);
@@ -629,7 +631,7 @@ serve(async (req) => {
           }
         }
 
-        if (looksLikeEssayContent(analysisContent)) {
+        if (essaySignal) {
           issues.push("Contains SAQ/LAQ style content - should migrate to Essays section");
           fixes.migrate_essays = true;
         }
