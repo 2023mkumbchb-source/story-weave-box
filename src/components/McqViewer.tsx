@@ -780,7 +780,7 @@ function InlineArticle({ article, onDone }: { article: any; onDone: () => void }
         <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-line">{preview}</p>
       </div>
       {content.length > 600 && (
-        <Link to={`/blog/${article.id}`} target="_blank"
+        <Link to={buildBlogPath({ id: article.id, title: article.title || "article", slug: article.slug })} target="_blank"
           className="mt-2 block text-center text-xs font-semibold text-primary hover:underline">
           Read full article →
         </Link>
