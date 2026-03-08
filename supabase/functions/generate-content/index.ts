@@ -270,7 +270,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { notes, type, count = 20, geminiKey, title: customTitle } = await req.json();
+    const { notes, type, count = 20, geminiKey, geminiKeys, title: customTitle } = await req.json();
+    // geminiKeys is an array of API keys for rotation; geminiKey is legacy single key
+    const allKeys: string[] = Array.isArray(geminiKeys) ? geminiKeys.filter((k: string) => k?.trim()) : [];
     const cardCount = Math.min(Math.max(Number(count) || 20, 5), 100);
 
     if (!notes || typeof notes !== "string") {
