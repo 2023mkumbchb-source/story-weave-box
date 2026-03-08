@@ -112,48 +112,174 @@ function detectBestCategory(title: string, content: string): string | null {
 }
 
 function isMcqContent(content: string): boolean {
-  const mcqPatterns = [/\bA\)\s/g, /\bB\)\s/g, /\bC\)\s/g, /\bD\)\s/g, /\*\*Answer:\s*[A-E]\)/gi, /correct answer/gi];
-  let mcqSignals = 0;
-  for (const pat of mcqPatterns) {
-    const matches = content.match(pat);
-    if (matches && matches.length >= 3) mcqSignals++;
-  }
-  const hasQuestionNumbers = (content.match(/\*\*Question \d+/g) || []).length >= 5;
-  return mcqSignals >= 2 || hasQuestionNumbers;
-}
+  const text = content || "";
+  const questionHeadings = (text.match(/^\s*(?:#+\s*)?(?:\*\*)?question\s*\d+/gim) || []).length;
+  const answerLines = (text.match(/^\s*\*{0,2}answer\s*[:\-]\s*[A-E](?:[\).]|\b)/gim) || []).length;
+  const optionLines = (text.match(/^\s*[A-Ea-e][\).]\s+/gm) || []).length;
+  const inlineOptionRuns = (text.match(/\b[a-e][\).]\s+[^\n]{2,120}(?=\s+[b-e][\).]\s+)/gi) || []).length;
+  const hasMcqKeywords = /\bmcq|multiple choice|choose the (?:best|correct) answer\b/i.test(text);
 
-function looksLikeEssayContent(content: string): boolean {
-  const text = (content || "").toLowerCase();
-  const hasEssayHeaders = /(short answer|long answer|saq|laq|essay question|section a|section b)/i.test(text);
-  const numberedQuestions = (content.match(/^\s*(?:question\s*)?\d+[.)\-:]/gim) || []).length;
-  return hasEssayHeaders && numberedQuestions >= 3;
+  return (
+    (questionHeadings >= 3 && (optionLines >= 12 || answerLines >= 3)) ||
+    (questionHeadings >= 5 && optionLines >= 8) ||
+    (answerLines >= 5 && optionLines >= 10) ||
+    (hasMcqKeywords && optionLines >= 6) ||
+    inlineOptionRuns >= 2
+  );
 }
 
 function extractMcqsFromContent(content: string): { question: string; options: string[]; correct_answer: number; explanation?: string }[] {
-  const questions: any[] = [];
-  const qBlocks = content.split(/(?=\*\*Question \d+|###\s*Question \d+|\d+\.\s*\*\*)/);
+  const questions: Array<{ question: string; options: string[]; correct_answer: number; explanation?: string }> = [];
+  const seenQuestions = new Set<string>();
+  const normalizedContent = (content || "").replace(/\r/g, "");
+
+  const pushQuestion = (item: { question: string; options: string[]; correct_answer: number; explanation?: string } | null) => {
+    if (!item) return;
+    const key = item.question.toLowerCase().replace(/\s+/g, " ").trim();
+    if (!key || seenQuestions.has(key) || item.options.length < 3) return;
+    seenQuestions.add(key);
+    questions.push(item);
+  };
+
+  const parseInlineMcqBlock = (rawBlock: string): { question: string; options: string[]; correct_answer: number; explanation?: string } | null => {
+    const compact = rawBlock
+      .replace(/\*\*/g, " ")
+      .replace(/\r?\n+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (compact.length < 20) return null;
+
+    const normalized = compact
+      .replace(/^[-*]\s*/, "")
+      .replace(/^question\s*\d+\s*[:\-.]?\s*/i, "")
+      .replace(/^\d+\.\s*/, "");
+
+    const firstOptionIndex = normalized.search(/\b[A-Ea-e][\).]\s+/);
+    if (firstOptionIndex < 0) return null;
+
+    const questionText = normalized
+      .slice(0, firstOptionIndex)
+      .replace(/[:\-]\s*$/, "")
+      .trim();
+
+    if (questionText.length < 8) return null;
+
+    const optionsPart = normalized.slice(firstOptionIndex);
+    const optionRegex = /([A-Ea-e])[\).]\s*([\s\S]*?)(?=(?:\s*[A-Ea-e][\).]\s)|(?:\s*Answer\s*[:\-])|(?:\s*Explanation\s*[:\-])|$)/g;
+    const optionEntries: Array<[string, string]> = [];
+    let match: RegExpExecArray | null;
+
+    while ((match = optionRegex.exec(optionsPart)) !== null) {
+      optionEntries.push([match[1].toUpperCase(), match[2].trim()]);
+    }
+
+    if (optionEntries.length < 3) return null;
+
+    const answerLetter = optionsPart.match(/answer\s*[:\-]\s*([A-Ea-e])/i)?.[1]?.toUpperCase() || null;
+    const correctAnswer = answerLetter ? Math.max(0, optionEntries.findIndex(([key]) => key === answerLetter)) : 0;
+    const explanation = optionsPart.match(/explanation\s*[:\-]\s*(.+)$/i)?.[1]?.trim();
+
+    return {
+      question: questionText,
+      options: optionEntries.map(([, value]) => value),
+      correct_answer: correctAnswer,
+      explanation: explanation || undefined,
+    };
+  };
+
+  const headingBlocks = normalizedContent
+    .split(/(?=^\s*(?:#+\s*)?(?:\*\*)?question\s*\d+\b)/gim)
+    .filter((b) => /question\s*\d+/i.test(b));
+
+  const qBlocks = headingBlocks.length > 0
+    ? headingBlocks
+    : normalizedContent.split(/(?=^\s*\d+\.\s+)/gm).filter((b) => /^\s*\d+\.\s+/.test(b));
 
   for (const block of qBlocks) {
     if (block.trim().length < 20) continue;
 
-    const qMatch = block.match(/(?:\*\*Question \d+\*\*[\s\n]*)?(.+?)(?=\n\s*[A-E]\))/s);
-    if (!qMatch) continue;
+    const lines = block.split("\n");
+    const questionParts: string[] = [];
+    const optionMap: Record<string, string> = {};
+    const explanationParts: string[] = [];
 
-    const questionText = qMatch[1].replace(/\*\*/g, "").replace(/^[\d.]+\s*/, "").trim();
-    if (questionText.length < 10) continue;
+    let currentOption: string | null = null;
+    let answerLetter: string | null = null;
+    let inExplanation = false;
 
-    const optionMatches = block.match(/([A-E])\)\s*([^\n]+)/g);
-    if (!optionMatches || optionMatches.length < 3) continue;
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line) continue;
+      if (/^(?:#+\s*)?(?:\*\*)?question\s*\d+/i.test(line)) continue;
 
-    const options = optionMatches.map((o) => o.replace(/^[A-E]\)\s*/, "").trim());
-    const ansMatch = block.match(/\*\*Answer:\s*([A-E])\)/i) || block.match(/correct.*?([A-E])\)/i);
+      const answerMatch = line.match(/^\*{0,2}answer\s*[:\-]\s*([A-Ea-e])/i);
+      if (answerMatch) {
+        answerLetter = answerMatch[1].toUpperCase();
+        currentOption = null;
+        inExplanation = false;
+        continue;
+      }
+
+      if (/^\*{0,2}explanation\s*[:\-]/i.test(line)) {
+        inExplanation = true;
+        currentOption = null;
+        explanationParts.push(line.replace(/^\*{0,2}explanation\s*[:\-]\s*/i, ""));
+        continue;
+      }
+
+      const optionMatch = line.match(/^([A-Ea-e])[\).]\s*(.+)$/);
+      if (optionMatch) {
+        currentOption = optionMatch[1].toUpperCase();
+        optionMap[currentOption] = optionMatch[2].trim();
+        inExplanation = false;
+        continue;
+      }
+
+      if (inExplanation) {
+        explanationParts.push(line);
+        continue;
+      }
+
+      if (currentOption) {
+        optionMap[currentOption] = `${optionMap[currentOption]} ${line}`.trim();
+        continue;
+      }
+
+      questionParts.push(line.replace(/^\d+\.\s*/, ""));
+    }
+
+    const optionEntries = Object.entries(optionMap).sort(([a], [b]) => a.localeCompare(b));
+    if (optionEntries.length < 3) {
+      pushQuestion(parseInlineMcqBlock(block));
+      continue;
+    }
+
+    const questionText = questionParts.join(" ").replace(/\s+/g, " ").trim();
+    if (questionText.length < 8) {
+      pushQuestion(parseInlineMcqBlock(block));
+      continue;
+    }
+
+    const options = optionEntries.map(([, value]) => value);
     let correctAnswer = 0;
-    if (ansMatch) correctAnswer = ansMatch[1].charCodeAt(0) - 65;
+    if (answerLetter) {
+      const index = optionEntries.findIndex(([key]) => key === answerLetter);
+      if (index >= 0) correctAnswer = index;
+    }
 
-    const expMatch = block.match(/\*\*Explanation:\*\*\s*(.+?)(?=\n\n|\*\*Question|$)/s);
-    const explanation = expMatch ? expMatch[1].trim() : undefined;
+    const explanation = explanationParts.join(" ").replace(/\s+/g, " ").trim() || undefined;
+    pushQuestion({ question: questionText, options, correct_answer: correctAnswer, explanation });
+  }
 
-    questions.push({ question: questionText, options, correct_answer: correctAnswer, explanation });
+  if (questions.length < 5) {
+    const inlineCandidates = normalizedContent
+      .split("\n")
+      .filter((line) => /\b[A-Ea-e][\).]\s/.test(line) && /answer\s*[:\-]\s*[A-Ea-e]/i.test(line));
+
+    for (const line of inlineCandidates) {
+      pushQuestion(parseInlineMcqBlock(line));
+    }
   }
 
   return questions;
@@ -801,10 +927,19 @@ serve(async (req) => {
           if (!newTitle) newTitle = inferTitleFromContent(baseContent);
 
           const suggestedCat = ai?.category && CATEGORY_KEYWORDS[ai.category] ? ai.category : null;
-          const detectedCat = detectBestCategory(newTitle, baseContent);
-          const newCategory = suggestedCat || detectedCat || article.category;
-          const contentType = ai?.content_type || (isMcqContent(baseContent) ? "mcq" : looksLikeEssayContent(baseContent) ? "essay" : "article");
           const newContent = cleanContent(ai?.clean_content || baseContent);
+          const detectedCat = detectBestCategory(newTitle, newContent);
+          const newCategory = suggestedCat || detectedCat || article.category;
+
+          const parsedMcqs = extractMcqsFromContent(newContent.slice(0, MAX_MCQ_EXTRACT_CHARS));
+          const parsedEssays = extractEssayQuestions(newContent.slice(0, MAX_MCQ_EXTRACT_CHARS));
+          const forcedType = parsedMcqs.length >= 5
+            ? "mcq"
+            : parsedEssays.saqs.length + parsedEssays.laqs.length >= 3
+            ? "essay"
+            : null;
+
+          const contentType = forcedType || ai?.content_type || (isMcqContent(baseContent) ? "mcq" : looksLikeEssayContent(baseContent) ? "essay" : "article");
 
           if (contentType === "delete" || newContent.replace(/\s+/g, "").length < 40) {
             await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
@@ -814,7 +949,7 @@ serve(async (req) => {
           }
 
           if (contentType === "mcq") {
-            const mcqs = extractMcqsFromContent(newContent.slice(0, MAX_MCQ_EXTRACT_CHARS));
+            const mcqs = parsedMcqs;
             if (mcqs.length >= 5) {
               const { error: mcqError } = await sb.from("mcq_sets").insert({
                 title: normalizeTitle(newTitle),
@@ -835,7 +970,7 @@ serve(async (req) => {
           }
 
           if (contentType === "essay") {
-            const essays = extractEssayQuestions(newContent);
+            const essays = parsedEssays;
             if (essays.saqs.length + essays.laqs.length >= 3) {
               const { error: essayErr } = await sb.from("essays").insert({
                 title: normalizeTitle(newTitle),
