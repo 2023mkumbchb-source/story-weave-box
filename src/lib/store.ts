@@ -236,6 +236,18 @@ export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | 
   if (!slugOrId) return null;
   if (UUID_REGEX.test(slugOrId)) return getArticleById(slugOrId);
 
+  // Check DB slug column first
+  const { data: slugMatch } = await supabase
+    .from("articles")
+    .select("id")
+    .eq("slug", slugOrId)
+    .eq("published", true)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (slugMatch) return getArticleById(slugMatch.id);
+
+  // Fallback: match by title slug
   const { data, error } = await supabase
     .from("articles")
     .select("id, title")
