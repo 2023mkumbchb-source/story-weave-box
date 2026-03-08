@@ -844,7 +844,7 @@ serve(async (req) => {
 
     if (action === "cleanup_non_ai_batch") {
       const nonAiBatchSize = Math.min(Math.max(Number(body?.batch_size || 6), 1), 12);
-      const articles = await fetchArticleBatch(sb, nonAiBatchSize, cursor, yearFilter);
+      const articles = await fetchArticleBatch(sb, nonAiBatchSize, cursor, yearFilter, includeUnpublished);
 
       if (articles.length === 0) {
         return new Response(JSON.stringify({
