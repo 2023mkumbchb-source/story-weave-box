@@ -130,10 +130,71 @@ function isMcqContent(content: string): boolean {
 
 function extractMcqsFromContent(content: string): { question: string; options: string[]; correct_answer: number; explanation?: string }[] {
   const questions: Array<{ question: string; options: string[]; correct_answer: number; explanation?: string }> = [];
-  const qBlocks = (content || "")
-    .replace(/\r/g, "")
+  const seenQuestions = new Set<string>();
+  const normalizedContent = (content || "").replace(/\r/g, "");
+
+  const pushQuestion = (item: { question: string; options: string[]; correct_answer: number; explanation?: string } | null) => {
+    if (!item) return;
+    const key = item.question.toLowerCase().replace(/\s+/g, " ").trim();
+    if (!key || seenQuestions.has(key) || item.options.length < 3) return;
+    seenQuestions.add(key);
+    questions.push(item);
+  };
+
+  const parseInlineMcqBlock = (rawBlock: string): { question: string; options: string[]; correct_answer: number; explanation?: string } | null => {
+    const compact = rawBlock
+      .replace(/\*\*/g, " ")
+      .replace(/\r?\n+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (compact.length < 20) return null;
+
+    const normalized = compact
+      .replace(/^[-*]\s*/, "")
+      .replace(/^question\s*\d+\s*[:\-.]?\s*/i, "")
+      .replace(/^\d+\.\s*/, "");
+
+    const firstOptionIndex = normalized.search(/\b[A-Ea-e][\).]\s+/);
+    if (firstOptionIndex < 0) return null;
+
+    const questionText = normalized
+      .slice(0, firstOptionIndex)
+      .replace(/[:\-]\s*$/, "")
+      .trim();
+
+    if (questionText.length < 8) return null;
+
+    const optionsPart = normalized.slice(firstOptionIndex);
+    const optionRegex = /([A-Ea-e])[\).]\s*([\s\S]*?)(?=(?:\s+[A-Ea-e][\).]\s)|(?:\s+Answer\s*[:\-])|(?:\s+Explanation\s*[:\-])|$)/g;
+    const optionEntries: Array<[string, string]> = [];
+    let match: RegExpExecArray | null;
+
+    while ((match = optionRegex.exec(optionsPart)) !== null) {
+      optionEntries.push([match[1].toUpperCase(), match[2].trim()]);
+    }
+
+    if (optionEntries.length < 3) return null;
+
+    const answerLetter = optionsPart.match(/answer\s*[:\-]\s*([A-Ea-e])/i)?.[1]?.toUpperCase() || null;
+    const correctAnswer = answerLetter ? Math.max(0, optionEntries.findIndex(([key]) => key === answerLetter)) : 0;
+    const explanation = optionsPart.match(/explanation\s*[:\-]\s*(.+)$/i)?.[1]?.trim();
+
+    return {
+      question: questionText,
+      options: optionEntries.map(([, value]) => value),
+      correct_answer: correctAnswer,
+      explanation: explanation || undefined,
+    };
+  };
+
+  const headingBlocks = normalizedContent
     .split(/(?=^\s*(?:#+\s*)?(?:\*\*)?question\s*\d+\b)/gim)
     .filter((b) => /question\s*\d+/i.test(b));
+
+  const qBlocks = headingBlocks.length > 0
+    ? headingBlocks
+    : normalizedContent.split(/(?=^\s*\d+\.\s+)/gm).filter((b) => /^\s*\d+\.\s+/.test(b));
 
   for (const block of qBlocks) {
     if (block.trim().length < 20) continue;
@@ -185,14 +246,20 @@ function extractMcqsFromContent(content: string): { question: string; options: s
         continue;
       }
 
-      questionParts.push(line);
+      questionParts.push(line.replace(/^\d+\.\s*/, ""));
     }
 
     const optionEntries = Object.entries(optionMap).sort(([a], [b]) => a.localeCompare(b));
-    if (optionEntries.length < 3) continue;
+    if (optionEntries.length < 3) {
+      pushQuestion(parseInlineMcqBlock(block));
+      continue;
+    }
 
     const questionText = questionParts.join(" ").replace(/\s+/g, " ").trim();
-    if (questionText.length < 8) continue;
+    if (questionText.length < 8) {
+      pushQuestion(parseInlineMcqBlock(block));
+      continue;
+    }
 
     const options = optionEntries.map(([, value]) => value);
     let correctAnswer = 0;
@@ -202,7 +269,17 @@ function extractMcqsFromContent(content: string): { question: string; options: s
     }
 
     const explanation = explanationParts.join(" ").replace(/\s+/g, " ").trim() || undefined;
-    questions.push({ question: questionText, options, correct_answer: correctAnswer, explanation });
+    pushQuestion({ question: questionText, options, correct_answer: correctAnswer, explanation });
+  }
+
+  if (questions.length < 5) {
+    const inlineCandidates = normalizedContent
+      .split("\n")
+      .filter((line) => /\b[A-Ea-e][\).]\s/.test(line) && /answer\s*[:\-]\s*[A-Ea-e]/i.test(line));
+
+    for (const line of inlineCandidates) {
+      pushQuestion(parseInlineMcqBlock(line));
+    }
   }
 
   return questions;
