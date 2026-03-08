@@ -288,7 +288,7 @@ function extractMcqsFromContent(content: string): ExtractedMcq[] {
     }
 
     const optionEntries = Object.entries(optionMap).sort(([a], [b]) => a.localeCompare(b));
-    if (optionEntries.length < 3) {
+    if (optionEntries.length < 4) {
       pushQuestion(parseInlineMcqBlock(block));
       continue;
     }
