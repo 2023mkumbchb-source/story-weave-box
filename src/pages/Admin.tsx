@@ -2661,11 +2661,11 @@ function SeoIndexingTab() {
     setLoadingBatches(true);
     try {
       const { data, error } = await supabase.functions.invoke("google-indexing", {
-        body: { action: "list_batches", year: seoYear === "All" ? null : seoYear, site_url: siteUrlInput },
+        body: { action: "list_all_urls", year: seoYear === "All" ? null : seoYear, content_type: contentTypeFilter, site_url: siteUrlInput },
       });
       if (error) throw new Error(error.message);
       setBatches(data?.batches || []);
-      toast({ title: `${data?.total || 0} articles in ${data?.batch_count || 0} batches` });
+      toast({ title: `${data?.total || 0} URLs in ${data?.batch_count || 0} batches` });
     } catch (err: any) {
       const description = err.message?.includes("FunctionsHttpError") || err.message?.includes("404")
         ? "Indexing service is not available yet."
