@@ -1,10 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { GraduationCap, Calendar, Layers, Loader2, RotateCcw } from "lucide-react";
+import { GraduationCap, Calendar, Layers, ChevronDown, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
 import { getPublishedFlashcardSets, getCategoryDisplayName, getYearFromCategory, type FlashcardSet } from "@/lib/store";
 import { getVisitedFlashcardIds } from "@/lib/progress-store";
 import CategoryTabs from "@/components/CategoryTabs";
+
+const INITIAL_VISIBLE = 12;
+const LOAD_MORE_STEP = 12;
 
 export default function Flashcards() {
   useEffect(() => { document.title = "Flashcards | Kenya Meds"; }, []);
@@ -12,6 +15,7 @@ export default function Flashcards() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
   const [searchParams] = useSearchParams();
   const selectedYear = searchParams.get("year") || "All";
 
@@ -22,6 +26,7 @@ export default function Flashcards() {
 
   useEffect(() => {
     setSelectedCategory(null);
+    setVisibleCount(INITIAL_VISIBLE);
   }, [selectedYear]);
 
   const yearScopedSets = useMemo(() => {
@@ -75,7 +80,7 @@ export default function Flashcards() {
         counts={categoryCounts}
         totalCount={yearScopedSets.length}
         selected={selectedCategory}
-        onChange={setSelectedCategory}
+        onChange={(c) => { setSelectedCategory(c); setVisibleCount(INITIAL_VISIBLE); }}
       />
 
       {filtered.length === 0 ? (
@@ -84,41 +89,52 @@ export default function Flashcards() {
           <p className="text-muted-foreground">No flashcard sets found for this selection.</p>
         </div>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((s, i) => (
-            <motion.div key={s.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-              <Link
-                to={`/flashcards/${s.id}`}
-                className="group relative block h-full rounded-xl border border-border bg-card p-6 transition-shadow hover:[box-shadow:var(--shadow-card-hover)]"
-                style={{ boxShadow: "var(--shadow-card)" }}
-              >
-                {visitedIds.has(s.id) && (
-                  <div className="absolute right-3 top-3">
-                    <span className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                      <RotateCcw className="h-2.5 w-2.5" />
-                      Continue
-                    </span>
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.slice(0, visibleCount).map((s, i) => (
+              <motion.div key={s.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.05 }}>
+                <Link
+                  to={`/flashcards/${s.id}`}
+                  className="group relative block h-full rounded-xl border border-border bg-card p-5 sm:p-6 transition-shadow hover:[box-shadow:var(--shadow-card-hover)]"
+                  style={{ boxShadow: "var(--shadow-card)" }}
+                >
+                  {visitedIds.has(s.id) && (
+                    <div className="absolute right-3 top-3">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                        <RotateCcw className="h-2.5 w-2.5" />
+                        Continue
+                      </span>
+                    </div>
+                  )}
+                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-accent/20 text-accent sm:mb-4 sm:h-10 sm:w-10">
+                    <Layers className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
-                )}
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-accent/20 text-accent">
-                  <Layers className="h-5 w-5" />
-                </div>
-                {s.category && s.category !== "Uncategorized" && (
-                  <span className="mb-2 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                    {getCategoryDisplayName(s.category)}
-                  </span>
-                )}
-                <h3 className="mb-2 line-clamp-2 font-serif text-base font-bold text-foreground transition-colors group-hover:text-primary">
-                  {s.title}
-                </h3>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1"><Layers className="h-3 w-3" /> {s.cards.length} cards</span>
-                  <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(s.created_at).toLocaleDateString()}</span>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
+                  {s.category && s.category !== "Uncategorized" && (
+                    <span className="mb-2 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                      {getCategoryDisplayName(s.category)}
+                    </span>
+                  )}
+                  <h3 className="mb-2 line-clamp-2 font-serif text-sm font-bold text-foreground transition-colors group-hover:text-primary sm:text-base">
+                    {s.title}
+                  </h3>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><Layers className="h-3 w-3" /> {s.cards.length} cards</span>
+                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(s.created_at).toLocaleDateString()}</span>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+          {filtered.length > visibleCount && (
+            <button
+              onClick={() => setVisibleCount(prev => prev + LOAD_MORE_STEP)}
+              className="mx-auto mt-6 flex items-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+            >
+              Load more ({filtered.length - visibleCount} remaining)
+              <ChevronDown className="h-4 w-4" />
+            </button>
+          )}
+        </>
       )}
     </div>
   );
