@@ -95,7 +95,7 @@ export default function Stories() {
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((story) => {
-            const thumb = story.cover_image_url || pathologyThumb;
+            const thumb = story.cover_image_url || null;
             const preview = stripRichText(story.content || "")
               .replace(/^\d+\.?\s*/g, "")
               .slice(0, 150);
