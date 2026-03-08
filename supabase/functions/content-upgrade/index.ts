@@ -290,15 +290,68 @@ Style requirements:
       return json({ success: true });
     }
 
-    // Generate SEO metadata for articles using Lovable AI
-    if (action === "generate_seo") {
+    if (action === "list_articles_seo") {
       const yearFilter = body?.year || null;
-      const batchSize = body?.batch_size || 10;
-      const cursor = body?.cursor || null;
+      const batchSize = Math.min(Math.max(Number(body?.batch_size || 100), 1), 200);
+      const cursor = typeof body?.cursor === "string" && body.cursor ? body.cursor : null;
 
       let query = sb
         .from("articles")
-        .select("id, title, content, category, meta_title, meta_description, slug")
+        .select("id, title, category, slug, meta_title, meta_description, og_image_url, published")
+        .is("deleted_at", null)
+        .eq("published", true)
+        .order("id", { ascending: true })
+        .limit(batchSize);
+
+      if (yearFilter && /^Year [1-5]$/.test(yearFilter)) query = query.like("category", `${yearFilter}:%`);
+      if (cursor) query = query.gt("id", cursor);
+
+      const { data: articles, error } = await query;
+      if (error) throw error;
+
+      const normalized = (articles || []).map((a: any) => {
+        const fallbackSlug = toSlug(a.title) || a.id;
+        const safeSlug = (a.slug && String(a.slug).trim()) ? String(a.slug).trim() : fallbackSlug;
+        const url = `${SITE_URL}/blog/${safeSlug}`;
+        const missingFields = [
+          !a.meta_title || !String(a.meta_title).trim(),
+          !a.meta_description || !String(a.meta_description).trim(),
+          !a.slug || !String(a.slug).trim(),
+          !a.og_image_url || !String(a.og_image_url).trim(),
+        ].filter(Boolean).length;
+
+        return {
+          id: a.id,
+          title: a.title,
+          category: a.category,
+          slug: a.slug || "",
+          meta_title: a.meta_title || "",
+          meta_description: a.meta_description || "",
+          og_image_url: a.og_image_url || "",
+          url,
+          seo_status: missingFields === 0 ? "complete" : "missing",
+          missing_count: missingFields,
+        };
+      });
+
+      const nextCursor = articles?.length ? articles[articles.length - 1].id : null;
+      return json({
+        articles: normalized,
+        next_cursor: nextCursor,
+        done: (articles?.length || 0) < batchSize,
+      });
+    }
+
+    // Generate SEO metadata for articles using Lovable AI
+    if (action === "generate_seo") {
+      const yearFilter = body?.year || null;
+      const batchSize = Math.min(Math.max(Number(body?.batch_size || 10), 1), 25);
+      const cursor = body?.cursor || null;
+      const includeAll = Boolean(body?.include_all);
+
+      let query = sb
+        .from("articles")
+        .select("id, title, content, category, meta_title, meta_description, slug, og_image_url")
         .eq("published", true)
         .is("deleted_at", null)
         .order("id", { ascending: true })
@@ -309,13 +362,14 @@ Style requirements:
       }
       if (cursor) query = query.gt("id", cursor);
 
-      // Only process articles missing SEO data
-      query = query.or("meta_title.eq.,meta_description.eq.,slug.eq.");
+      if (!includeAll) {
+        query = query.or("meta_title.eq.,meta_description.eq.,slug.eq.,og_image_url.eq.");
+      }
 
       const { data: articles, error: fetchError } = await query;
       if (fetchError) throw fetchError;
 
-      if (!articles?.length) return json({ done: true, updated: 0 });
+      if (!articles?.length) return json({ done: true, updated: 0, processed_articles: [] });
 
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not set");
@@ -325,13 +379,8 @@ Style requirements:
 
       for (const article of articles) {
         try {
-          const contentSnippet = (article.content || "").slice(0, 3000);
-          const seoPrompt = `Generate SEO metadata for this medical study article. Return ONLY valid JSON:
-{"meta_title":"string (max 60 chars, include key medical term)","meta_description":"string (max 155 chars, compelling description for search results)","slug":"string (url-friendly, lowercase, hyphens, max 60 chars)"}
-
-Article title: ${article.title}
-Category: ${article.category}
-Content preview: ${contentSnippet}`;
+          const contentSnippet = (article.content || "").slice(0, 10000);
+          const seoPrompt = `Generate SEO metadata for this medical study article. Return ONLY valid JSON:\n{"meta_title":"string (max 60 chars, include key medical term)","meta_description":"string (max 155 chars, compelling description for search results)","slug":"string (url-friendly, lowercase, hyphens, max 60 chars)","og_image_prompt":"string (brief suggestion for ideal medical thumbnail)"}\n\nArticle title: ${article.title}\nCategory: ${article.category}\nContent preview: ${contentSnippet}`;
 
           const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
@@ -343,6 +392,7 @@ Content preview: ${contentSnippet}`;
               model: "google/gemini-3-flash-preview",
               messages: [{ role: "user", content: seoPrompt }],
               temperature: 0.1,
+              max_tokens: 900,
             }),
           });
 
@@ -352,23 +402,23 @@ Content preview: ${contentSnippet}`;
 
           const data = await response.json();
           const text = data?.choices?.[0]?.message?.content || "";
-          const match = text.match(/\{[\s\S]*\}/);
-          if (!match) { processedArticles.push({ id: article.id, title: article.title, action: "parse_failed" }); continue; }
+          const seo = extractJsonFromResponse(text);
 
-          const seo = JSON.parse(match[0]);
           const updateData: Record<string, string> = {};
-          if (seo.meta_title) updateData.meta_title = seo.meta_title.slice(0, 60);
-          if (seo.meta_description) updateData.meta_description = seo.meta_description.slice(0, 160);
-          if (seo.slug) updateData.slug = seo.slug.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 60);
+          if (seo?.meta_title) updateData.meta_title = String(seo.meta_title).trim().slice(0, 60);
+          if (seo?.meta_description) updateData.meta_description = String(seo.meta_description).trim().slice(0, 160);
+          const slugCandidate = seo?.slug ? String(seo.slug) : String(article.slug || article.title);
+          updateData.slug = toSlug(slugCandidate) || toSlug(article.title) || article.id;
 
-          if (Object.keys(updateData).length) {
-            await sb.from("articles").update(updateData).eq("id", article.id);
-            updated++;
-            processedArticles.push({ id: article.id, title: article.title, action: `seo_updated` });
-          }
+          const firstImage = extractFirstImageUrl(article.content || "");
+          if (firstImage) updateData.og_image_url = firstImage;
+
+          await sb.from("articles").update(updateData).eq("id", article.id);
+          updated++;
+          processedArticles.push({ id: article.id, title: article.title, action: "seo_updated" });
         } catch (e: any) {
           processedArticles.push({ id: article.id, title: article.title, action: `error: ${e.message}` });
-          if (e.message.includes("Rate limited") || e.message.includes("Credits")) break;
+          if ((e?.message || "").includes("Rate limited") || (e?.message || "").includes("Credits")) break;
         }
       }
 
@@ -381,19 +431,18 @@ Content preview: ${contentSnippet}`;
       const id = body?.id;
       if (!id) throw new Error("Missing article id");
 
-      const { data: article } = await sb.from("articles").select("id, title, content, category").eq("id", id).single();
+      const { data: article } = await sb
+        .from("articles")
+        .select("id, title, content, category, slug")
+        .eq("id", id)
+        .maybeSingle();
       if (!article) throw new Error("Article not found");
 
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not set");
 
-      const contentSnippet = (article.content || "").slice(0, 3000);
-      const seoPrompt = `Generate SEO metadata for this medical study article. Return ONLY valid JSON:
-{"meta_title":"string (max 60 chars, include key medical term)","meta_description":"string (max 155 chars, compelling description for search results)","slug":"string (url-friendly, lowercase, hyphens, max 60 chars)","og_image_prompt":"string (describe ideal medical illustration for this article in 1 sentence)"}
-
-Article title: ${article.title}
-Category: ${article.category}
-Content preview: ${contentSnippet}`;
+      const contentSnippet = (article.content || "").slice(0, 10000);
+      const seoPrompt = `Generate SEO metadata for this medical study article. Return ONLY valid JSON:\n{"meta_title":"string (max 60 chars, include key medical term)","meta_description":"string (max 155 chars, compelling description for search results)","slug":"string (url-friendly, lowercase, hyphens, max 60 chars)","og_image_prompt":"string (brief suggestion for ideal medical thumbnail)"}\n\nArticle title: ${article.title}\nCategory: ${article.category}\nContent preview: ${contentSnippet}`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -405,6 +454,7 @@ Content preview: ${contentSnippet}`;
           model: "google/gemini-3-flash-preview",
           messages: [{ role: "user", content: seoPrompt }],
           temperature: 0.1,
+          max_tokens: 900,
         }),
       });
 
@@ -414,20 +464,19 @@ Content preview: ${contentSnippet}`;
 
       const data = await response.json();
       const text = data?.choices?.[0]?.message?.content || "";
-      const match = text.match(/\{[\s\S]*\}/);
-      if (!match) throw new Error("Failed to parse AI response");
+      const seo = extractJsonFromResponse(text);
 
-      const seo = JSON.parse(match[0]);
       const updateData: Record<string, string> = {};
-      if (seo.meta_title) updateData.meta_title = seo.meta_title.slice(0, 60);
-      if (seo.meta_description) updateData.meta_description = seo.meta_description.slice(0, 160);
-      if (seo.slug) updateData.slug = seo.slug.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 60);
+      if (seo?.meta_title) updateData.meta_title = String(seo.meta_title).trim().slice(0, 60);
+      if (seo?.meta_description) updateData.meta_description = String(seo.meta_description).trim().slice(0, 160);
+      updateData.slug = toSlug(String(seo?.slug || article.slug || article.title)) || article.id;
 
-      if (Object.keys(updateData).length) {
-        await sb.from("articles").update(updateData).eq("id", article.id);
-      }
+      const firstImage = extractFirstImageUrl(article.content || "");
+      if (firstImage) updateData.og_image_url = firstImage;
 
-      return json({ success: true, seo: updateData });
+      await sb.from("articles").update(updateData).eq("id", article.id);
+
+      return json({ success: true, seo: updateData, url: `${SITE_URL}/blog/${updateData.slug}` });
     }
 
     throw new Error("Unknown action");
