@@ -132,8 +132,8 @@ export function slugifyTitle(title: string): string {
     .replace(/^-|-$/g, "");
 }
 
-export function buildBlogPath(article: Pick<Article, "id" | "title">): string {
-  const slug = slugifyTitle(article.title);
+export function buildBlogPath(article: Pick<Article, "id" | "title"> & { slug?: string }): string {
+  const slug = article.slug || slugifyTitle(article.title);
   return `/blog/${slug || article.id}`;
 }
 
