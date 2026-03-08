@@ -412,7 +412,7 @@ Rules:
         { role: "user", content: safeNotes },
       ];
 
-      const text = await callAI(messages, geminiKey);
+      const text = await callAI(messages, geminiKey, allKeys);
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (!jsonMatch) throw new Error("Failed to parse flashcards");
       const parsed = JSON.parse(jsonMatch[0]);
