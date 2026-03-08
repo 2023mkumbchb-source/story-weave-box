@@ -2890,6 +2890,7 @@ function StoriesTab() {
     setEditTitle(story.title);
     setEditContent(story.content);
     setEditCategory(story.category);
+    setEditCoverUrl(story.cover_image_url || "");
   };
 
   const handleSave = async () => {
