@@ -114,7 +114,7 @@ function extractKeywords(text: string): string[] {
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
-export default function McqViewer({ questions, title, setId, category, hideAnswers = false }: Props) {
+export default function McqViewer({ questions, title, setId, category, hideAnswers = false, freeLimit = 0, mcqPrice = 10, isPaid = false, onPayRequest }: Props) {
   // Restore order + current from localStorage if available
   const [order, setOrder] = useState<number[]>(() => {
     if (setId) {
