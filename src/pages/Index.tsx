@@ -46,7 +46,7 @@ export default function Index() {
         <div className="relative mx-auto max-w-5xl px-5 py-14 sm:py-20">
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
             <h1 className="font-serif text-3xl sm:text-5xl font-bold mb-3 leading-tight">
-              Ompath <span className="text-[hsl(174,80%,65%)]">Study</span>
+              Kenya <span className="text-[hsl(174,80%,65%)]">Meds</span>
             </h1>
             <p className="text-white/70 text-base sm:text-lg max-w-xl leading-relaxed mb-8">
               Comprehensive MBChB study notes, flashcards, MCQs, and exam preparation — organized by year and unit.
@@ -123,7 +123,7 @@ export default function Index() {
       <footer className="border-t border-border">
         <div className="mx-auto max-w-5xl px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Ompath Study
+            © {new Date().getFullYear()} Kenya Meds
           </div>
           <div className="flex gap-2">
             <a href="tel:+254115475543" className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors">

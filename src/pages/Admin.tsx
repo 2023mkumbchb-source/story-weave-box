@@ -1570,7 +1570,7 @@ function ExamResultsTab() {
     </thead>
     <tbody>${rows}</tbody>
   </table>
-  <p style="margin-top:32px;text-align:center;font-size:10px;color:#9ca3af">OmpathStudy Exam Results &bull; Confidential</p>
+  <p style="margin-top:32px;text-align:center;font-size:10px;color:#9ca3af">Kenya Meds Exam Results &bull; Confidential</p>
 </body>
 </html>`;
 

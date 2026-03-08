@@ -346,7 +346,7 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
   const normalizedMetaDescription = (
     article.meta_description?.trim() ||
     generatedDescription ||
-    `Study ${article.title} on Ompath Study.`
+    `Study ${article.title} on Kenya Meds.`
   ).slice(0, 160);
   const normalizedOgImage = article.og_image_url?.trim() || extractFirstImageFromContent(article.content || "") || null;
 

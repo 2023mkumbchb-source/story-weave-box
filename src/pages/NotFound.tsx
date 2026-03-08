@@ -8,7 +8,7 @@ export default function NotFound() {
 
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
-    document.title = "Page Not Found | Ompath Study";
+    document.title = "Page Not Found | Kenya Meds";
   }, [location.pathname]);
 
   return (

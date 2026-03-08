@@ -754,11 +754,11 @@ export default function BlogPost() {
     if (!article) return;
     const metaTitle = article.meta_title || article.title;
     const fallbackDesc = stripRichText(article.content || "", 160);
-    const metaDesc = article.meta_description || fallbackDesc || `Study ${article.title} - medical notes, key concepts and practice questions on Ompath Study.`;
+    const metaDesc = article.meta_description || fallbackDesc || `Study ${article.title} - medical notes, key concepts and practice questions on Kenya Meds.`;
     const ogImage = article.og_image_url || extractFirstImageFromContent(article.content || "") || `${SITE_URL}/icon-512.png`;
     const canonicalUrl = `${SITE_URL}${buildBlogPath(article)}`;
 
-    document.title = `${metaTitle} | Ompath Study`;
+    document.title = `${metaTitle} | Kenya Meds`;
 
     const setMeta = (attr: string, key: string, content: string) => {
       let el = document.querySelector(`meta[${attr}="${key}"]`) as HTMLMetaElement | null;
@@ -791,8 +791,8 @@ export default function BlogPost() {
       "image": ogImage,
       "url": canonicalUrl,
       "datePublished": article.created_at,
-      "author": { "@type": "Organization", "name": "Ompath Study" },
-      "publisher": { "@type": "Organization", "name": "Ompath Study" },
+      "author": { "@type": "Organization", "name": "Kenya Meds" },
+      "publisher": { "@type": "Organization", "name": "Kenya Meds" },
     });
 
     return () => {

@@ -28,7 +28,7 @@ export default function SiteFooter() {
             <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <BookOpen className="h-4 w-4" />
             </span>
-            Ompath Study
+            Kenya Meds
           </div>
 
           <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
@@ -50,7 +50,7 @@ export default function SiteFooter() {
             </a>
             <InstallAppButton />
           </div>
-          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Ompath Study</p>
+          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Kenya Meds</p>
         </div>
       </div>
     </footer>

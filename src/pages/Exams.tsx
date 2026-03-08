@@ -28,7 +28,7 @@ function inferUnit(exam: ExamSet): string {
 }
 
 export default function Exams() {
-  useEffect(() => { document.title = "Exam Center | Ompath Study"; }, []);
+  useEffect(() => { document.title = "Exam Center | Kenya Meds"; }, []);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const selectedYear = searchParams.get("year") || "All";
@@ -200,9 +200,9 @@ export default function Exams() {
                 <Heart className="h-4 w-4 text-rose-500" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground mb-1">Support Ompath Study</p>
+                <p className="text-sm font-semibold text-foreground mb-1">Support Kenya Meds</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Each exam is just <strong className="text-foreground">KES {examPrice}</strong>. This goes directly toward building weekly exams, expanding the question bank, and keeping Ompath Study free for all health students in Kenya.
+                  Each exam is just <strong className="text-foreground">KES {examPrice}</strong>. This goes directly toward building weekly exams, expanding the question bank, and keeping Kenya Meds free for all health students in Kenya.
                 </p>
               </div>
             </div>
@@ -310,7 +310,7 @@ export default function Exams() {
           <div>
             <p className="text-sm font-bold text-foreground mb-1">Every exam supports this platform</p>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Ompath Study is built by and for health students in Kenya. The small fee helps cover question generation, platform hosting, and new study tools — so we can keep growing and keep everything else free.
+              Kenya Meds is built by and for health students in Kenya. The small fee helps cover question generation, platform hosting, and new study tools — so we can keep growing and keep everything else free.
             </p>
           </div>
         </motion.div>

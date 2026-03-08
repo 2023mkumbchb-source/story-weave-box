@@ -16,7 +16,7 @@ interface Essay {
 }
 
 export default function Essays() {
-  useEffect(() => { document.title = "Essays & SAQs | Ompath Study"; }, []);
+  useEffect(() => { document.title = "Essays & SAQs | Kenya Meds"; }, []);
   const [essays, setEssays] = useState<Essay[]>([]);
   const [loading, setLoading] = useState(true);
 
