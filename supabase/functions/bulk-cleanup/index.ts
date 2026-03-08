@@ -921,7 +921,7 @@ serve(async (req) => {
 
     if (action === "ai_fix_batch") {
       const aiBatchSize = Math.min(Math.max(Number(body?.batch_size || 1), 1), 2);
-      const articles = await fetchArticleBatch(sb, aiBatchSize, cursor, yearFilter);
+      const articles = await fetchArticleBatch(sb, aiBatchSize, cursor, yearFilter, includeUnpublished);
 
       if (articles.length === 0) {
         return new Response(JSON.stringify({ fixed: 0, migrated_mcqs: 0, migrated_essays: 0, deleted: 0, failed: 0, processed: 0, done: true, next_cursor: null, processed_articles: [] }), {
