@@ -854,7 +854,10 @@ serve(async (req) => {
           if (action === "migrate_mcqs") {
             const mcqSource = article.content.length > MAX_MCQ_EXTRACT_CHARS ? article.content.slice(0, MAX_MCQ_EXTRACT_CHARS) : article.content;
             const titleSuggestsMcq = /\bmcq\b|multiple\s+choice/i.test(article.title || "");
-            if (!isMcqContent(mcqSource) && !titleSuggestsMcq) {
+            const titleSuggestsEssay = /\bessay|saq|laq|short\s+answer|long\s+answer\b/i.test(article.title || "");
+            const essaySignal = looksLikeEssayContent(mcqSource) || titleSuggestsEssay;
+
+            if ((!isMcqContent(mcqSource) && !titleSuggestsMcq) || essaySignal) {
               skipped++;
             } else {
               const mcqs = extractMcqsFromContent(mcqSource);
