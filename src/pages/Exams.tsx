@@ -63,7 +63,7 @@ export default function Exams() {
       .select("*")
       .eq("published", true)
       .or("title.ilike.%exam%,category.ilike.Weekly Exam%")
-      .order("created_at", { ascending: false });
+      .order("updated_at", { ascending: false });
 
     setExamSets((data || []) as unknown as ExamSet[]);
     setLoading(false);

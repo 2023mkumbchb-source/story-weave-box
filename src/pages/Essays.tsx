@@ -25,7 +25,7 @@ export default function Essays() {
       .from("essays")
       .select("*")
       .eq("published", true)
-      .order("created_at", { ascending: false })
+      .order("updated_at", { ascending: false })
       .then(({ data }) => {
         setEssays((data || []) as unknown as Essay[]);
         setLoading(false);

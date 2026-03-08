@@ -219,7 +219,7 @@ export async function getArticles(): Promise<Article[]> {
     .from("articles")
     .select("*")
     .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+    .order("updated_at", { ascending: false });
   if (error) throw error;
   return (data || []) as Article[];
 }
@@ -230,7 +230,7 @@ export async function getPublishedArticles(): Promise<Article[]> {
     .select("*")
     .eq("published", true)
     .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+    .order("updated_at", { ascending: false });
   if (error) throw error;
   return (data || []) as Article[];
 }
@@ -247,7 +247,7 @@ export async function getPublishedArticleSummaries(year?: string): Promise<Artic
     .select("id, title, category, created_at, published, slug, meta_description")
     .eq("published", true)
     .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+    .order("updated_at", { ascending: false });
 
   if (year && /^Year [1-6]$/.test(year)) {
     query = query.like("category", `${year}:%`);
@@ -272,7 +272,7 @@ export async function searchPublishedArticles(queryText: string, year?: string, 
     .eq("published", true)
     .is("deleted_at", null)
     .or(`title.ilike.%${safeQ}%,category.ilike.%${safeQ}%,content.ilike.%${safeQ}%`)
-    .order("created_at", { ascending: false })
+    .order("updated_at", { ascending: false })
     .limit(80);
 
   if (year && /^Year [1-6]$/.test(year)) {
@@ -399,7 +399,7 @@ export async function getFlashcardSets(): Promise<FlashcardSet[]> {
     .from("flashcard_sets")
     .select("*")
     .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+    .order("updated_at", { ascending: false });
   if (error) throw error;
   return (data || []) as unknown as FlashcardSet[];
 }
@@ -410,7 +410,7 @@ export async function getPublishedFlashcardSets(): Promise<FlashcardSet[]> {
     .select("*")
     .eq("published", true)
     .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+    .order("updated_at", { ascending: false });
   if (error) throw error;
   return (data || []) as unknown as FlashcardSet[];
 }
@@ -466,7 +466,7 @@ export async function getMcqSets(): Promise<McqSet[]> {
     .from("mcq_sets")
     .select("*")
     .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+    .order("updated_at", { ascending: false });
   if (error) throw error;
   return (data || []) as unknown as McqSet[];
 }
@@ -477,7 +477,7 @@ export async function getPublishedMcqSets(): Promise<McqSet[]> {
     .select("*")
     .eq("published", true)
     .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+    .order("updated_at", { ascending: false });
   if (error) throw error;
   return (data || []) as unknown as McqSet[];
 }
