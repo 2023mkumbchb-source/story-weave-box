@@ -594,6 +594,26 @@ export default function BlogPost() {
     }
   };
 
+  const runCleanupFix = async (fixes: Record<string, any>, successMessage: string) => {
+    if (!article) return;
+    setActionLoading("fix");
+    try {
+      const { data, error } = await supabase.functions.invoke("bulk-cleanup", { body: { action: "fix", article_id: article.id, fixes } });
+      if (error) throw new Error(error.message);
+      if (data?.deleted_article) {
+        toast({ title: successMessage });
+        navigate("/blog", { replace: true });
+        return;
+      }
+      await reloadCurrentArticle(article.id);
+      toast({ title: successMessage });
+    } catch (err: any) {
+      toast({ title: "Action failed", description: err?.message, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   useEffect(() => {
     if (!slug) { setLoading(false); return; }
     getArticleBySlugOrId(slug)
