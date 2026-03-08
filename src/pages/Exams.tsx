@@ -164,7 +164,12 @@ export default function Exams() {
     ],
   };
 
-  const allExams = useMemo(() => [sampleExam, ...examSets], [examSets]);
+  const filteredExamSets = useMemo(() => {
+    if (selectedYear === "All") return examSets;
+    return examSets.filter((exam) => getYearFromCategory(exam.category) === selectedYear);
+  }, [examSets, selectedYear]);
+
+  const allExams = useMemo(() => [sampleExam, ...filteredExamSets], [filteredExamSets]);
 
   return (
     <div className="min-h-screen bg-background">
