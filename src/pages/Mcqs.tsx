@@ -90,7 +90,7 @@ export default function Mcqs() {
   return (
     <div className="mx-auto max-w-5xl px-5 py-10 sm:px-6 sm:py-12">
       <div className="mb-7">
-        <h1 className="mb-1 font-display text-3xl font-bold text-foreground sm:text-4xl">MCQ Quizzes</h1>
+        <h1 className="mb-1 font-serif text-3xl font-bold text-foreground sm:text-4xl">MCQ Quizzes</h1>
         <p className="text-sm text-muted-foreground sm:text-base">
           {selectedYear === "All" ? "Interactive multiple choice quizzes from notes" : `${selectedYear} MCQ quizzes`}
         </p>
