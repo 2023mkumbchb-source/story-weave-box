@@ -905,7 +905,7 @@ export default function BlogPost() {
 
       {/* Main layout: sidebar TOC + article */}
       <div className="mx-auto max-w-6xl px-5 py-8">
-        <div className="lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10">
+        <div className={toc.length > 0 ? "lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10" : "max-w-3xl mx-auto"}>
           {/* Left sidebar: TOC — only show when real headings exist */}
           {toc.length > 0 && (
             <aside className="hidden lg:block">
