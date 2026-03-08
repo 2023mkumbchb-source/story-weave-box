@@ -276,6 +276,16 @@ export default function ExamMode({
   const correctCount = [...displayAnswers.entries()].filter(([qi, oi]) => questions[qi]?.correct_answer === oi).length;
   const pct = total > 0 ? Math.round((correctCount / total) * 100) : 0;
 
+  const handleExitWithSave = () => {
+    saveSessionToStorage({
+      sessionId,
+      answers: [...answers.entries()],
+      elapsed,
+    });
+    setShowExitConfirm(false);
+    onExit();
+  };
+
   // Color only — NO blinking/pulse classes anywhere
   const timeColor =
     remaining !== undefined
