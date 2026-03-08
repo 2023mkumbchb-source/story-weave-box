@@ -14,6 +14,7 @@ import {
   type Article, type FlashcardSet, type McqSet,
 } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
+import { autoIndexUrls, SITE_URL, slugifyText } from "@/lib/seo";
 
 type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo";
 type DirectType = "article" | "mcqs" | "flashcards";
@@ -2515,7 +2516,8 @@ function ContentUpgradeTab() {
 // SEO & Indexing Tab
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CLEANUP_SEO_YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5"] as const;
+const CLEANUP_SEO_YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"] as const;
+const CONTENT_TYPES = ["all", "articles", "stories", "mcqs", "flashcards", "essays"] as const;
 
 function SeoIndexingTab() {
   const { toast } = useToast();
@@ -2546,12 +2548,13 @@ function SeoIndexingTab() {
   }>>([]);
   const [loadingArticles, setLoadingArticles] = useState(false);
   const [updatingOne, setUpdatingOne] = useState<string | null>(null);
-  const [batches, setBatches] = useState<Array<{ batch_number: number; count: number; articles: any[] }>>([]);
+  const [batches, setBatches] = useState<Array<{ batch_number: number; count: number; urls: any[] }>>([]);
   const [loadingBatches, setLoadingBatches] = useState(false);
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [copiedBatch, setCopiedBatch] = useState<number | null>(null);
   const [siteUrlInput, setSiteUrlInput] = useState("https://medicine.kenyaadverts.co.ke");
   const [googleApiKey, setGoogleApiKey] = useState("");
+  const [contentTypeFilter, setContentTypeFilter] = useState<string>("all");
 
   const sitemapUrl = `${siteUrlInput.replace(/\/+$/, "")}/sitemap.xml`;
 
@@ -2659,11 +2662,11 @@ function SeoIndexingTab() {
     setLoadingBatches(true);
     try {
       const { data, error } = await supabase.functions.invoke("google-indexing", {
-        body: { action: "list_batches", year: seoYear === "All" ? null : seoYear, site_url: siteUrlInput },
+        body: { action: "list_all_urls", year: seoYear === "All" ? null : seoYear, content_type: contentTypeFilter, site_url: siteUrlInput },
       });
       if (error) throw new Error(error.message);
       setBatches(data?.batches || []);
-      toast({ title: `${data?.total || 0} articles in ${data?.batch_count || 0} batches` });
+      toast({ title: `${data?.total || 0} URLs in ${data?.batch_count || 0} batches` });
     } catch (err: any) {
       const description = err.message?.includes("FunctionsHttpError") || err.message?.includes("404")
         ? "Indexing service is not available yet."
@@ -2675,30 +2678,24 @@ function SeoIndexingTab() {
   };
 
   const handleCopyBatchUrls = async (batchNumber: number) => {
-    try {
-      const { data, error } = await supabase.functions.invoke("google-indexing", {
-        body: { action: "generate_urls", batch_number: batchNumber, year: seoYear === "All" ? null : seoYear, site_url: siteUrlInput },
-      });
-      if (error) throw new Error(error.message);
-      await navigator.clipboard.writeText(data?.urls_text || "");
-      setCopiedBatch(batchNumber);
-      setTimeout(() => setCopiedBatch(null), 2000);
-      toast({ title: `Copied ${data?.count || 0} URLs from batch ${batchNumber}` });
-    } catch (err: any) {
-      toast({ title: "Failed to copy URLs", description: err.message, variant: "destructive" });
-    }
+    const batch = batches.find(b => b.batch_number === batchNumber);
+    if (!batch) return;
+    const urlsText = batch.urls.map((u: any) => u.url).join("\n");
+    await navigator.clipboard.writeText(urlsText);
+    setCopiedBatch(batchNumber);
+    setTimeout(() => setCopiedBatch(null), 2000);
+    toast({ title: `Copied ${batch.count} URLs from batch ${batchNumber}` });
   };
 
   const handleSubmitBatch = async (batchNumber: number) => {
     setSubmitting(batchNumber);
     try {
-      const { data: urlData, error: urlError } = await supabase.functions.invoke("google-indexing", {
-        body: { action: "generate_urls", batch_number: batchNumber, year: seoYear === "All" ? null : seoYear, site_url: siteUrlInput },
-      });
-      if (urlError) throw new Error(urlError.message);
+      const batch = batches.find(b => b.batch_number === batchNumber);
+      if (!batch) throw new Error("Batch not found");
+      const urls = batch.urls.map((u: any) => u.url);
 
       const { data, error } = await supabase.functions.invoke("google-indexing", {
-        body: { action: "submit_to_google", urls: urlData?.urls || [], google_api_key: googleApiKey.trim() || undefined },
+        body: { action: "submit_to_google", urls, google_api_key: googleApiKey.trim() || undefined },
       });
       if (error) throw new Error(error.message);
 
@@ -2777,7 +2774,7 @@ function SeoIndexingTab() {
       <div className="rounded-xl border border-border bg-card p-5 space-y-3">
         <div className="flex items-center gap-2">
           <Globe className="h-5 w-5 text-primary" />
-          <h3 className="font-serif text-lg font-bold text-foreground">Google Indexing</h3>
+          <h3 className="font-serif text-lg font-bold text-foreground">Google Indexing – All Content</h3>
         </div>
         <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
           <p className="text-xs font-semibold text-primary mb-1">Sitemap URL</p>
@@ -2788,20 +2785,25 @@ function SeoIndexingTab() {
             </Button>
           </div>
         </div>
-        <Button onClick={handleLoadBatches} disabled={loadingBatches} className="gap-2">
-          {loadingBatches ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
-          {loadingBatches ? "Loading..." : "Load Article Batches"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <select value={contentTypeFilter} onChange={(e) => setContentTypeFilter(e.target.value)} className="rounded-lg border border-input bg-background px-3 py-2 text-xs font-medium text-foreground">
+            {CONTENT_TYPES.map((t) => <option key={t} value={t}>{t === "all" ? "All Content" : t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+          </select>
+          <Button onClick={handleLoadBatches} disabled={loadingBatches} className="gap-2">
+            {loadingBatches ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+            {loadingBatches ? "Loading..." : "Load All URLs"}
+          </Button>
+        </div>
       </div>
 
       {batches.length > 0 && (
         <div className="space-y-3">
           {batches.map((batch) => (
             <div key={batch.batch_number} className="rounded-xl border border-border bg-card p-4">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-3">
                 <div>
                   <h5 className="font-medium text-foreground">Batch {batch.batch_number}</h5>
-                  <p className="text-xs text-muted-foreground">{batch.count} articles</p>
+                  <p className="text-xs text-muted-foreground">{batch.count} URLs</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button size="sm" variant="outline" onClick={() => handleCopyBatchUrls(batch.batch_number)} className="gap-1">
@@ -2812,6 +2814,21 @@ function SeoIndexingTab() {
                     {submitting === batch.batch_number ? <Loader2 className="h-3 w-3 animate-spin" /> : <ExternalLink className="h-3 w-3" />} Submit
                   </Button>
                 </div>
+              </div>
+              <div className="max-h-40 overflow-auto space-y-1">
+                {batch.urls.map((u: any) => (
+                  <div key={u.id} className="flex items-center gap-2 text-xs">
+                    <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                      u.type === "article" ? "bg-primary/10 text-primary"
+                      : u.type === "story" ? "bg-purple-500/10 text-purple-600"
+                      : u.type === "mcq" ? "bg-amber-500/10 text-amber-600"
+                      : u.type === "flashcard" ? "bg-blue-500/10 text-blue-600"
+                      : "bg-green-500/10 text-green-600"
+                    }`}>{u.type}</span>
+                    <span className="truncate text-muted-foreground">{u.title}</span>
+                    {!u.has_meta && <span className="shrink-0 text-[10px] text-destructive font-semibold">SEO ✗</span>}
+                  </div>
+                ))}
               </div>
             </div>
           ))}
@@ -2908,8 +2925,12 @@ function StoriesTab() {
   };
 
   const handleApprove = async (id: string) => {
-    const { error } = await supabase.from("stories").update({ published: true }).eq("id", id);
-    if (!error) { toast({ title: "Story approved & published" }); fetchStories(); fetchPending(); }
+    const { error, data } = await supabase.from("stories").update({ published: true }).eq("id", id).select("id, title").single();
+    if (!error) {
+      toast({ title: "Story approved & published" });
+      if (data) autoIndexUrls([`${SITE_URL}/stories/${data.id}-${slugifyText(data.title) || "story"}`]);
+      fetchStories(); fetchPending();
+    }
   };
 
   const handleBulkAIUpdate = async () => {

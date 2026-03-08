@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { extractFirstImageFromContent, stripRichText } from "@/lib/seo";
+import { extractFirstImageFromContent, stripRichText, autoIndexUrls, SITE_URL } from "@/lib/seo";
 
 export interface Article {
   id: string;
@@ -360,7 +360,9 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
       .select()
       .single();
     if (error) throw error;
-    return data as Article;
+    const saved = data as Article;
+    if (saved.published) autoIndexUrls([`${SITE_URL}${buildBlogPath(saved)}`]);
+    return saved;
   } else {
     const { data, error } = await supabase
       .from("articles")
@@ -368,7 +370,9 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
       .select()
       .single();
     if (error) throw error;
-    return data as Article;
+    const saved = data as Article;
+    if (saved.published) autoIndexUrls([`${SITE_URL}${buildBlogPath(saved)}`]);
+    return saved;
   }
 }
 
