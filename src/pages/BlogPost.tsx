@@ -335,7 +335,7 @@ function ArticleContent({ content }: { content: string }) {
             <span className="shrink-0 flex items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm w-10 h-10">
               Q{qNum}
             </span>
-            <h2 className="font-serif font-bold text-xl text-foreground leading-tight">
+            <h2 className="font-serif font-bold text-2xl text-foreground leading-tight sm:text-[2rem]">
               {qTitle || `Question ${qNum}`}
             </h2>
           </div>
