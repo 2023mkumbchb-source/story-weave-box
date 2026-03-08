@@ -1620,6 +1620,8 @@ interface CleanupResult {
   word_count: number;
 }
 
+const CLEANUP_YEAR_OPTIONS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5"] as const;
+
 function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void }) {
   const { toast } = useToast();
   const [scanning, setScanning] = useState(false);
@@ -1628,8 +1630,13 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
   const [autoFixing, setAutoFixing] = useState(false);
   const [migratingMcqs, setMigratingMcqs] = useState(false);
   const [aiFixing, setAiFixing] = useState(false);
+  const [manualFixing, setManualFixing] = useState(false);
+  const [cleanupYear, setCleanupYear] = useState<(typeof CLEANUP_YEAR_OPTIONS)[number]>("Year 1");
   const [scanProgress, setScanProgress] = useState({ scanned: 0, done: false });
   const [fixLog, setFixLog] = useState<string[]>([]);
+
+  const anyRunning = scanning || autoFixing || migratingMcqs || aiFixing || manualFixing;
+  const scopeLabel = cleanupYear === "All" ? "all years" : cleanupYear;
 
   const handleScan = async () => {
     setScanning(true);
@@ -1644,7 +1651,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
     while (true) {
       try {
         const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
-          body: { action: "scan", batch_size: 8, cursor },
+          body: { action: "scan", batch_size: 8, cursor, year: cleanupYear },
         });
         if (error) throw new Error(error.message);
 
@@ -1666,7 +1673,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
     }
 
     setScanning(false);
-    toast({ title: `Scan complete: ${allResults.length} articles need review/fixes` });
+    toast({ title: `Scan complete (${scopeLabel}): ${allResults.length} notes need review` });
   };
 
   const handleFix = async (item: CleanupResult) => {
@@ -1700,7 +1707,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
     while (true) {
       try {
         const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
-          body: { action: "fix_all_safe", batch_size: 6, cursor },
+          body: { action: "fix_all_safe", batch_size: 6, cursor, year: cleanupYear },
         });
         if (error) throw new Error(error.message);
 
@@ -1715,7 +1722,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
 
         setFixLog((prev) => [
           ...prev,
-          `Batch: ${fixed} fixed · ${failed} failed · ${skipped} skipped (${processed} checked)`,
+          `Auto-fix batch (${scopeLabel}): ${fixed} fixed · ${failed} failed · ${skipped} skipped (${processed} checked)`,
         ]);
 
         if (data?.done) break;
@@ -1729,7 +1736,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
     }
 
     setAutoFixing(false);
-    toast({ title: `Auto-fix done: ${totalFixed} fixed · ${totalFailed} failed · ${totalSkipped} skipped` });
+    toast({ title: `Auto-fix done (${scopeLabel}): ${totalFixed} fixed · ${totalFailed} failed · ${totalSkipped} skipped` });
   };
 
   const handleMigrateMcqs = async () => {
@@ -1742,7 +1749,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
     while (true) {
       try {
         const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
-          body: { action: "migrate_mcqs", batch_size: 4, cursor },
+          body: { action: "migrate_mcqs", batch_size: 4, cursor, year: cleanupYear },
         });
         if (error) throw new Error(error.message);
 
@@ -1755,7 +1762,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
             ...(data.migratedArticles as string[]).map((a: string) => `📝→📋 ${a}`),
           ]);
         } else {
-          setFixLog((prev) => [...prev, `Batch complete: ${migrated} migrated`]);
+          setFixLog((prev) => [...prev, `MCQ migration batch (${scopeLabel}): ${migrated} migrated`]);
         }
 
         if (data?.done) break;
@@ -1769,7 +1776,54 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
     }
 
     setMigratingMcqs(false);
-    toast({ title: `MCQ migration complete: ${totalMigrated} articles converted` });
+    toast({ title: `MCQ migration complete (${scopeLabel}): ${totalMigrated} notes converted` });
+  };
+
+  const handleManualCleanup = async () => {
+    setManualFixing(true);
+    setFixLog([]);
+
+    let cursor: string | null = null;
+    let totals = { updated: 0, mcqs: 0, essays: 0, deleted: 0, failed: 0, skipped: 0 };
+
+    while (true) {
+      try {
+        const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
+          body: { action: "cleanup_non_ai_batch", batch_size: 6, cursor, year: cleanupYear },
+        });
+        if (error) throw new Error(error.message);
+
+        totals.updated += Number(data?.updated || 0);
+        totals.mcqs += Number(data?.migrated_mcqs || 0);
+        totals.essays += Number(data?.migrated_essays || 0);
+        totals.deleted += Number(data?.deleted || 0);
+        totals.failed += Number(data?.failed || 0);
+        totals.skipped += Number(data?.skipped || 0);
+
+        const processedArticles = (data?.processed_articles || []) as Array<{ id: string; title: string; action: string; details?: string }>;
+        if (processedArticles.length) {
+          setFixLog((prev) => [
+            ...prev,
+            ...processedArticles.map((a) => `Manual: ${a.title || a.id} → ${a.action}${a.details ? ` (${a.details})` : ""}`),
+          ]);
+          const touched = new Set(processedArticles.map((a) => a.id));
+          setResults((prev) => prev.filter((r) => !touched.has(r.id)));
+        }
+
+        if (data?.done) break;
+        const nextCursor = (data?.next_cursor as string | null) || null;
+        if (!nextCursor || nextCursor === cursor) break;
+        cursor = nextCursor;
+      } catch (err: any) {
+        setFixLog((prev) => [...prev, `Manual cleanup error: ${err.message}`]);
+        break;
+      }
+    }
+
+    setManualFixing(false);
+    toast({
+      title: `Manual cleanup done (${scopeLabel}): ${totals.updated} updated · ${totals.mcqs} MCQ · ${totals.essays} essay · ${totals.deleted} deleted · ${totals.failed} failed`,
+    });
   };
 
   const handleAiFixAll = async () => {
@@ -1782,7 +1836,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
     while (true) {
       try {
         const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
-          body: { action: "ai_fix_batch", batch_size: 1, cursor },
+          body: { action: "ai_fix_batch", batch_size: 1, cursor, year: cleanupYear },
         });
         if (error) throw new Error(error.message);
 
@@ -1806,6 +1860,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
         const nextCursor = (data?.next_cursor as string | null) || null;
         if (!nextCursor || nextCursor === cursor) break;
         cursor = nextCursor;
+        await new Promise((resolve) => setTimeout(resolve, 300));
       } catch (err: any) {
         setFixLog((prev) => [...prev, `AI Error: ${err.message}`]);
         break;
@@ -1814,7 +1869,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
 
     setAiFixing(false);
     toast({
-      title: `AI cleanup done: ${totals.fixed} updated · ${totals.mcqs} MCQ migrations · ${totals.essays} essay migrations · ${totals.deleted} deleted · ${totals.failed} failed`,
+      title: `AI cleanup done (${scopeLabel}): ${totals.fixed} updated · ${totals.mcqs} MCQ migrations · ${totals.essays} essay migrations · ${totals.deleted} deleted · ${totals.failed} failed`,
     });
   };
 
@@ -1830,22 +1885,46 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
           <h3 className="font-display text-lg font-bold text-foreground">Bulk Article Cleanup</h3>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
-          Runs in safe small batches to avoid timeouts. Use “Open editor” for oversized/problematic notes.
+          Run cleanup in safe batches. Start with Year 1 using Manual Cleanup (No AI) to avoid AI rate-limit errors.
         </p>
+
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Year scope</label>
+          <select
+            value={cleanupYear}
+            onChange={(e) => setCleanupYear(e.target.value as (typeof CLEANUP_YEAR_OPTIONS)[number])}
+            className="rounded-lg border border-input bg-background px-3 py-2 text-xs font-medium text-foreground"
+            aria-label="Select cleanup year"
+            disabled={anyRunning}
+          >
+            {CLEANUP_YEAR_OPTIONS.map((year) => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+        </div>
+
         <div className="flex flex-wrap gap-2">
-          <Button onClick={handleScan} disabled={scanning || autoFixing || migratingMcqs || aiFixing} className="gap-2">
+          <Button onClick={handleScan} disabled={anyRunning} className="gap-2">
             {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            {scanning ? `Scanning... (${scanProgress.scanned} checked)` : "Scan All Articles"}
+            {scanning ? `Scanning... (${scanProgress.scanned} checked)` : "Scan Articles"}
           </Button>
-          <Button onClick={handleAutoFixAll} disabled={scanning || autoFixing || migratingMcqs || aiFixing} variant="outline" className="gap-2">
+
+          <Button onClick={handleManualCleanup} disabled={anyRunning} variant="default" className="gap-2">
+            {manualFixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
+            {manualFixing ? "Manual Cleaning..." : "Manual Cleanup (No AI)"}
+          </Button>
+
+          <Button onClick={handleAutoFixAll} disabled={anyRunning} variant="outline" className="gap-2">
             {autoFixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
             {autoFixing ? "Fixing..." : "Auto-Fix Formatting"}
           </Button>
-          <Button onClick={handleMigrateMcqs} disabled={scanning || autoFixing || migratingMcqs || aiFixing} variant="outline" className="gap-2">
+
+          <Button onClick={handleMigrateMcqs} disabled={anyRunning} variant="outline" className="gap-2">
             {migratingMcqs ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bolt className="h-4 w-4" />}
             {migratingMcqs ? "Migrating..." : "Migrate MCQ Articles"}
           </Button>
-          <Button onClick={handleAiFixAll} disabled={scanning || autoFixing || migratingMcqs || aiFixing} variant="outline" className="gap-2">
+
+          <Button onClick={handleAiFixAll} disabled={anyRunning} variant="outline" className="gap-2">
             {aiFixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {aiFixing ? "AI Cleaning..." : "AI Cleanup (Lovable AI)"}
           </Button>
@@ -1855,7 +1934,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
       {fixLog.length > 0 && (
         <div className="rounded-xl border border-border bg-card p-4">
           <h4 className="text-sm font-bold text-foreground mb-2">Activity Log</h4>
-          <div className="max-h-48 overflow-y-auto space-y-0.5 text-xs text-muted-foreground font-mono">
+          <div className="max-h-56 overflow-y-auto space-y-0.5 text-xs text-muted-foreground font-mono">
             {fixLog.map((log, i) => <p key={i}>{log}</p>)}
           </div>
         </div>
@@ -1945,12 +2024,13 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
       {results.length === 0 && !scanning && scanProgress.done && (
         <div className="text-center py-16 text-muted-foreground">
           <p className="text-4xl mb-3">✨</p>
-          <p className="font-medium text-foreground">All scanned articles look clean.</p>
+          <p className="font-medium text-foreground">All scanned articles look clean for {scopeLabel}.</p>
         </div>
       )}
     </div>
   );
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Content Upgrade Tab (Gemini AI)
