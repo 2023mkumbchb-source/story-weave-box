@@ -1163,7 +1163,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
         </div>
       </div>
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Exam Winner Award (KES)</h3>
+        <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Exam Winner Award (KES)</h3>
         <p className="mb-4 text-sm text-muted-foreground">Default prize for the top-scoring student per unit exam.</p>
         <div className="flex gap-2">
           <Input type="number" placeholder="1000" value={examAward} onChange={(e) => setExamAward(e.target.value)} className="flex-1 max-w-[120px]" />
