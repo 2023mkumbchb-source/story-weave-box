@@ -2790,8 +2790,26 @@ function SeoIndexingTab() {
           </Button>
         </div>
 
-        <div className="grid gap-2 md:grid-cols-2">
-          <Input value={siteUrlInput} onChange={(e) => setSiteUrlInput(e.target.value)} placeholder="https://yourdomain.com" />
+        <div className="grid gap-2 md:grid-cols-[1fr_auto_1fr]">
+          <Input value={siteUrlInput} onChange={(e) => setSiteUrlInput(e.target.value)} placeholder="https://yourdomain.com" disabled={loadingConfig || savingSiteUrl} />
+          <Button
+            variant="outline"
+            className="gap-2"
+            disabled={loadingConfig || savingSiteUrl}
+            onClick={async () => {
+              setSavingSiteUrl(true);
+              try {
+                await syncSiteUrlConfig(true);
+              } catch (err: any) {
+                toast({ title: "Failed to save site URL", description: err.message, variant: "destructive" });
+              } finally {
+                setSavingSiteUrl(false);
+              }
+            }}
+          >
+            {loadingConfig || savingSiteUrl ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+            {loadingConfig ? "Loading..." : savingSiteUrl ? "Saving..." : "Save URL"}
+          </Button>
           <Input value={googleApiKey} onChange={(e) => setGoogleApiKey(e.target.value)} placeholder="Google API key (optional for direct submit)" />
         </div>
 
