@@ -63,9 +63,20 @@ export default function Blog() {
   }, [searchParams, setSearchParams]);
 
   useEffect(() => {
-    getPublishedArticleSummaries().then(setArticles).finally(() => setLoading(false));
+    let mounted = true;
+    setLoading(true);
+    getPublishedArticleSummaries(selectedYear === "All" ? undefined : selectedYear)
+      .then((data) => {
+        if (mounted) setArticles(data);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
     setRecentArticles(getRecentArticles());
-  }, []);
+    return () => {
+      mounted = false;
+    };
+  }, [selectedYear]);
 
   useEffect(() => {
     if (!search.trim()) { setSearchMatches(null); return; }

@@ -538,22 +538,32 @@ export default function BlogPost() {
     else navigate("/blog");
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const resetToTop = () => {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
+      const scrollingEl = document.scrollingElement as HTMLElement | null;
+      if (scrollingEl) scrollingEl.scrollTop = 0;
     };
 
     resetToTop();
-    const raf = requestAnimationFrame(resetToTop);
-    const timeoutId = window.setTimeout(resetToTop, 120);
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      resetToTop();
+      raf2 = requestAnimationFrame(resetToTop);
+    });
+
+    const t1 = window.setTimeout(resetToTop, 80);
+    const t2 = window.setTimeout(resetToTop, 220);
 
     return () => {
-      cancelAnimationFrame(raf);
-      clearTimeout(timeoutId);
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+      clearTimeout(t1);
+      clearTimeout(t2);
     };
-  }, [slug]);
+  }, [slug, location.key, article?.id]);
 
   const reloadCurrentArticle = async (id: string) => {
     const refreshed = await getArticleBySlugOrId(id);
