@@ -14,4 +14,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://medicine.kenyaadverts.co.ke/sitemap.xml
-Sitemap: https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/generate-sitemap
+Sitemap: https://medicine.kenyaadverts.co.ke/sitemap-dynamic.xml
