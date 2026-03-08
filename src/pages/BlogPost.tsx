@@ -29,9 +29,11 @@ function Inline({ text }: { text: string }) {
   );
 }
 
-/* ─── Reading progress bar ─── */
+/* ─── Reading progress bar + dot ─── */
 function ReadingProgress() {
   const [pct, setPct] = useState(0);
+  const [expanded, setExpanded] = useState(false);
+
   useEffect(() => {
     const fn = () => {
       const d = document.documentElement;
@@ -39,13 +41,28 @@ function ReadingProgress() {
       setPct(total > 0 ? (d.scrollTop / total) * 100 : 0);
     };
     window.addEventListener("scroll", fn, { passive: true });
+    fn();
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
+  const rounded = Math.max(0, Math.min(100, Math.round(pct)));
+  const toneClass = rounded < 35 ? "bg-muted-foreground" : rounded < 75 ? "bg-accent" : "bg-primary";
+
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 h-[3px]">
-      <div className="h-full bg-primary transition-all duration-150" style={{ width: `${pct}%` }} />
-    </div>
+    <>
+      <div className="fixed left-0 right-0 top-0 z-50 h-[3px]">
+        <div className="h-full bg-primary transition-all duration-150" style={{ width: `${pct}%` }} />
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setExpanded((prev) => !prev)}
+        className={`fixed bottom-6 right-4 z-40 inline-flex items-center justify-center rounded-full border border-border text-primary-foreground shadow-[var(--shadow-elevated)] transition-all ${toneClass} ${expanded ? "h-9 px-3 text-xs font-semibold" : "h-3.5 w-3.5"}`}
+        aria-label="Reading progress"
+      >
+        <span className={`${expanded ? "opacity-100" : "sr-only"}`}>{rounded}%</span>
+      </button>
+    </>
   );
 }
 
