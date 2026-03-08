@@ -541,8 +541,8 @@ Content preview: ${contentSnippet}`;
 
       await sb.from("articles").update(updateData).eq("id", article.id);
 
-      const finalSlug = updateData.slug || toSlug(article.slug || article.title) || article.id;
-      return json({ success: true, seo: updateData, url: `${siteUrl}/blog/${finalSlug}` });
+      const finalSlug = updateData.slug || toSlug(article.slug || article.title) || "article";
+      return json({ success: true, seo: updateData, url: `${siteUrl}/blog/${article.id}-${finalSlug}` });
     }
 
     throw new Error("Unknown action");
