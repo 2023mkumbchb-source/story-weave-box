@@ -329,6 +329,16 @@ export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | 
 }
 
 export async function saveArticle(article: Omit<Article, "id"> & { id?: string }): Promise<Article> {
+  const normalizedSlug = (article.slug || slugifyTitle(article.title)).trim();
+  const normalizedMetaTitle = (article.meta_title?.trim() || article.title).slice(0, 80);
+  const generatedDescription = stripRichText(article.content || article.original_notes || "", 160);
+  const normalizedMetaDescription = (
+    article.meta_description?.trim() ||
+    generatedDescription ||
+    `Study ${article.title} on Ompath Study.`
+  ).slice(0, 160);
+  const normalizedOgImage = article.og_image_url?.trim() || extractFirstImageFromContent(article.content || "") || null;
+
   const payload = {
     title: article.title,
     content: article.content,
@@ -336,6 +346,10 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
     original_notes: article.original_notes,
     category: article.category,
     is_raw: article.is_raw ?? false,
+    slug: normalizedSlug || null,
+    meta_title: normalizedMetaTitle,
+    meta_description: normalizedMetaDescription,
+    og_image_url: normalizedOgImage,
   };
 
   if (article.id) {
