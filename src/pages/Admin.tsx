@@ -1138,7 +1138,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
   return (
     <div className="max-w-lg space-y-6">
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Google Gemini API</h3>
+        <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Google Gemini API</h3>
         <p className="mb-4 text-sm text-muted-foreground">Enter your Gemini API key from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google AI Studio</a>.</p>
         <div className="flex gap-2">
           <Input type="password" placeholder="Enter your Gemini API key" value={localGeminiKey} onChange={(e) => setLocalGeminiKey(e.target.value)} className="flex-1" />
