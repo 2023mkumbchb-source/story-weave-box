@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/dynamic-sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/dynamic-sitemap.xml"
+    },
+    {
       "source": "/blog/:slug",
       "has": [
         {
