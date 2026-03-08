@@ -11,7 +11,7 @@ const links = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
 ];
 
-const YEAR_OPTIONS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5"];
+const YEAR_OPTIONS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
 const STORAGE_KEY = "nav_year_filter";
 
 export default function Navbar() {
