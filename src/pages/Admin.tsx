@@ -2689,13 +2689,12 @@ function SeoIndexingTab() {
   const handleSubmitBatch = async (batchNumber: number) => {
     setSubmitting(batchNumber);
     try {
-      const { data: urlData, error: urlError } = await supabase.functions.invoke("google-indexing", {
-        body: { action: "generate_urls", batch_number: batchNumber, year: seoYear === "All" ? null : seoYear, site_url: siteUrlInput },
-      });
-      if (urlError) throw new Error(urlError.message);
+      const batch = batches.find(b => b.batch_number === batchNumber);
+      if (!batch) throw new Error("Batch not found");
+      const urls = batch.urls.map((u: any) => u.url);
 
       const { data, error } = await supabase.functions.invoke("google-indexing", {
-        body: { action: "submit_to_google", urls: urlData?.urls || [], google_api_key: googleApiKey.trim() || undefined },
+        body: { action: "submit_to_google", urls, google_api_key: googleApiKey.trim() || undefined },
       });
       if (error) throw new Error(error.message);
 
