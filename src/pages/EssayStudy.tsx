@@ -59,7 +59,7 @@ export default function EssayStudy() {
   if (!essay) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-        <h1 className="mb-4 font-display text-3xl font-bold text-foreground">Essay not found</h1>
+        <h1 className="mb-4 font-serif text-3xl font-bold text-foreground">Essay not found</h1>
         <Button asChild variant="outline"><Link to="/essays"><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link></Button>
       </div>
     );
@@ -72,7 +72,7 @@ export default function EssayStudy() {
       </Button>
 
       <div className="mb-6">
-        <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-2">{essay.title}</h1>
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-foreground mb-2">{essay.title}</h1>
         {essay.category !== "Uncategorized" && (
           <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             {getCategoryDisplayName(essay.category)}
@@ -88,7 +88,7 @@ export default function EssayStudy() {
       {/* SAQs */}
       {essay.short_answer_questions.length > 0 && (
         <div className="mb-8">
-          <h2 className="font-display text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+          <h2 className="font-serif text-lg font-bold text-foreground mb-3 flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" /> Short Answer Questions ({essay.short_answer_questions.length})
           </h2>
           <div className="space-y-2">
@@ -121,7 +121,7 @@ export default function EssayStudy() {
       {/* LAQs */}
       {essay.long_answer_questions.length > 0 && (
         <div>
-          <h2 className="font-display text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+          <h2 className="font-serif text-lg font-bold text-foreground mb-3 flex items-center gap-2">
             <FileText className="h-5 w-5 text-accent" /> Long Answer Questions ({essay.long_answer_questions.length})
           </h2>
           <div className="space-y-2">

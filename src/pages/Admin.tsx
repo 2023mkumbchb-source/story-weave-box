@@ -392,7 +392,7 @@ export default function Admin() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
-      <h1 className="mb-6 font-display text-3xl font-bold text-foreground">Dashboard</h1>
+      <h1 className="mb-6 font-serif text-3xl font-bold text-foreground">Dashboard</h1>
       <div className="mb-8 flex gap-1 rounded-xl border border-border bg-secondary/50 p-1 overflow-x-auto">
         {tabs.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
@@ -455,7 +455,7 @@ export default function Admin() {
           {hasBatchPreview && (
             <div className="mb-8 space-y-4 rounded-xl border-2 border-primary/40 bg-primary/5 p-6">
               <div className="flex items-center justify-between">
-                <h3 className="font-display text-lg font-bold text-foreground">Review Generated Content</h3>
+                <h3 className="font-serif text-lg font-bold text-foreground">Review Generated Content</h3>
                 <div className="text-xs rounded-full bg-primary/20 px-3 py-1 text-primary font-medium">{batchCategory}</div>
               </div>
               {batchArticle && (
@@ -515,7 +515,7 @@ export default function Admin() {
           {previewArticle && (
             <div className="rounded-xl border border-border bg-card p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-display text-lg font-bold text-foreground">Article Preview</h3>
+                <h3 className="font-serif text-lg font-bold text-foreground">Article Preview</h3>
                 <Button size="sm" variant="ghost" onClick={() => handleGenerate("article")} disabled={loading} className="gap-1"><RefreshCw className="h-3 w-3" /> Regenerate</Button>
               </div>
               <Input value={previewTitle} onChange={(e) => setPreviewTitle(e.target.value)} className="mb-3 font-bold" placeholder="Title" />
@@ -529,7 +529,7 @@ export default function Admin() {
           {previewCards && (
             <div className="rounded-xl border border-border bg-card p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-display text-lg font-bold text-foreground">Flashcard Preview ({previewCards.length})</h3>
+                <h3 className="font-serif text-lg font-bold text-foreground">Flashcard Preview ({previewCards.length})</h3>
                 <Button size="sm" variant="ghost" onClick={() => handleGenerate("flashcards")} disabled={loading} className="gap-1"><RefreshCw className="h-3 w-3" /> Regenerate</Button>
               </div>
               <Input value={previewTitle} onChange={(e) => setPreviewTitle(e.target.value)} className="mb-4" placeholder="Set title" />
@@ -550,7 +550,7 @@ export default function Admin() {
           {previewMcqs && (
             <div className="rounded-xl border border-border bg-card p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-display text-lg font-bold text-foreground">MCQ Preview ({previewMcqs.length})</h3>
+                <h3 className="font-serif text-lg font-bold text-foreground">MCQ Preview ({previewMcqs.length})</h3>
                 <Button size="sm" variant="ghost" onClick={() => handleGenerate("mcqs")} disabled={loading} className="gap-1"><RefreshCw className="h-3 w-3" /> Regenerate</Button>
               </div>
               <Input value={previewTitle} onChange={(e) => setPreviewTitle(e.target.value)} className="mb-4" placeholder="Quiz title" />
@@ -574,7 +574,7 @@ export default function Admin() {
             </div>
           )}
           <div className="mt-8 rounded-xl border border-border bg-card p-6">
-            <h3 className="mb-1 font-display text-lg font-bold text-foreground">Direct Publish Mode</h3>
+            <h3 className="mb-1 font-serif text-lg font-bold text-foreground">Direct Publish Mode</h3>
             <p className="mb-4 text-sm text-muted-foreground">
               <strong>Direct Publish (No AI)</strong> saves instantly. Items land in the Raw tab for bulk Gemini formatting later.
             </p>
@@ -768,7 +768,7 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
-              <h3 className="font-display text-lg font-bold text-foreground">Raw / Unformatted Content</h3>
+              <h3 className="font-serif text-lg font-bold text-foreground">Raw / Unformatted Content</h3>
             </div>
             <p className="text-sm text-muted-foreground">
               {totalRaw === 0 ? "No raw content — everything is formatted!" : `${totalRaw} item${totalRaw > 1 ? "s" : ""} waiting to be formatted with Gemini.`}
@@ -897,7 +897,7 @@ function ArticlesList({
   if (editing) {
     return (
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-4 font-display text-lg font-bold text-foreground">Edit Article</h3>
+        <h3 className="mb-4 font-serif text-lg font-bold text-foreground">Edit Article</h3>
         <Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="mb-3 font-bold" placeholder="Title" />
         <select value={editing.category} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className="w-full mb-3 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground">
           <option value="Uncategorized">Uncategorized</option>
@@ -953,7 +953,7 @@ function FlashcardsList() {
   if (editing) {
     return (
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-4 font-display text-lg font-bold text-foreground">Edit Flashcard Set</h3>
+        <h3 className="mb-4 font-serif text-lg font-bold text-foreground">Edit Flashcard Set</h3>
         <Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="mb-4 font-bold" placeholder="Title" />
         <div className="mb-4 max-h-96 overflow-y-auto space-y-2">
           {editing.cards.map((c, i) => (
@@ -1014,7 +1014,7 @@ function McqsList() {
   if (editing) {
     return (
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-4 font-display text-lg font-bold text-foreground">Edit MCQ Set</h3>
+        <h3 className="mb-4 font-serif text-lg font-bold text-foreground">Edit MCQ Set</h3>
         <Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="mb-3 font-bold" placeholder="Title" />
         <select value={editing.category} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className="w-full mb-4 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground">
           <option value="Uncategorized">Uncategorized</option>
@@ -1138,7 +1138,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
   return (
     <div className="max-w-lg space-y-6">
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Google Gemini API</h3>
+        <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Google Gemini API</h3>
         <p className="mb-4 text-sm text-muted-foreground">Enter your Gemini API key from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google AI Studio</a>.</p>
         <div className="flex gap-2">
           <Input type="password" placeholder="Enter your Gemini API key" value={localGeminiKey} onChange={(e) => setLocalGeminiKey(e.target.value)} className="flex-1" />
@@ -1147,7 +1147,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
         {localGeminiKey && <p className="mt-2 text-xs text-primary">API key configured</p>}
       </div>
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Default Exam Password</h3>
+        <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Default Exam Password</h3>
         <p className="mb-4 text-sm text-muted-foreground">Set a default password for auto-generated weekly exams.</p>
         <div className="flex gap-2">
           <Input type="text" placeholder="Default exam password" value={examPassword} onChange={(e) => setExamPassword(e.target.value)} className="flex-1" />
@@ -1155,7 +1155,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
         </div>
       </div>
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Exam Price (KES)</h3>
+        <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Exam Price (KES)</h3>
         <p className="mb-4 text-sm text-muted-foreground">Set the M-Pesa payment amount for exam access.</p>
         <div className="flex gap-2">
           <Input type="number" placeholder="5" value={examPrice} onChange={(e) => setExamPrice(e.target.value)} className="flex-1 max-w-[120px]" />
@@ -1163,7 +1163,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
         </div>
       </div>
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Exam Winner Award (KES)</h3>
+        <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Exam Winner Award (KES)</h3>
         <p className="mb-4 text-sm text-muted-foreground">Default prize for the top-scoring student per unit exam.</p>
         <div className="flex gap-2">
           <Input type="number" placeholder="1000" value={examAward} onChange={(e) => setExamAward(e.target.value)} className="flex-1 max-w-[120px]" />
@@ -1171,7 +1171,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
         </div>
       </div>
       <div className="rounded-xl border border-primary/30 bg-primary/5 p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Weekly Exam Generator</h3>
+        <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Weekly Exam Generator</h3>
         <p className="mb-4 text-sm text-muted-foreground">Generates a comprehensive exam from all published content.</p>
         <Button onClick={handleGenerateExam} disabled={generatingExam} className="gap-2">
           {generatingExam && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -1381,7 +1381,7 @@ function ExamResultsTab() {
 
       {units.length > 0 && (
         <div className="mt-6 rounded-xl border border-border bg-card p-5">
-          <h3 className="mb-3 font-display text-base font-bold text-foreground">Download Results by Unit</h3>
+          <h3 className="mb-3 font-serif text-base font-bold text-foreground">Download Results by Unit</h3>
           <div className="flex flex-wrap gap-2">
             {units.map((u) => (
               <Button key={u} variant="outline" size="sm" onClick={() => generatePDF(u)} className="gap-1 text-xs">
@@ -1453,7 +1453,7 @@ function RecycleBinTab() {
       <div className="mb-6 rounded-xl border border-border bg-card p-5">
         <div className="flex items-center gap-2 mb-1">
           <Trash2 className="h-5 w-5 text-muted-foreground" />
-          <h3 className="font-display text-lg font-bold text-foreground">Recycle Bin</h3>
+          <h3 className="font-serif text-lg font-bold text-foreground">Recycle Bin</h3>
         </div>
         <p className="text-sm text-muted-foreground">{items.length === 0 ? "Recycle bin is empty." : `${items.length} item(s) — auto-deleted after 7 days.`}</p>
       </div>
@@ -1540,7 +1540,7 @@ function InstitutionsTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="font-display text-xl font-bold text-foreground">Institutions Review</h2>
+          <h2 className="font-serif text-xl font-bold text-foreground">Institutions Review</h2>
           <p className="text-sm text-muted-foreground mt-0.5">Student-submitted universities and courses pending your approval.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -1882,7 +1882,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="flex items-center gap-2 mb-2">
           <Wrench className="h-5 w-5 text-primary" />
-          <h3 className="font-display text-lg font-bold text-foreground">Bulk Article Cleanup</h3>
+          <h3 className="font-serif text-lg font-bold text-foreground">Bulk Article Cleanup</h3>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
           Run cleanup in safe batches. Start with Year 1 using Manual Cleanup (No AI) to avoid AI rate-limit errors.
@@ -2137,7 +2137,7 @@ function ContentUpgradeTab() {
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          <h3 className="font-display text-lg font-bold text-foreground">AI Content Upgrade</h3>
+          <h3 className="font-serif text-lg font-bold text-foreground">AI Content Upgrade</h3>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
           Scan your published articles for formatting issues, missing details, and suggest AI-powered improvements.
@@ -2280,7 +2280,7 @@ function ImportTab() {
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="flex items-center gap-2 mb-2">
           <Upload className="h-5 w-5 text-primary" />
-          <h3 className="font-display text-lg font-bold text-foreground">Import WordPress Posts</h3>
+          <h3 className="font-serif text-lg font-bold text-foreground">Import WordPress Posts</h3>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
           Upload a WordPress JSON export file. Posts will be auto-classified as articles, MCQs, or stories and assigned categories.

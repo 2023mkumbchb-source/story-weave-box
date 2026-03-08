@@ -36,7 +36,7 @@ export default function Login() {
         <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <Lock className="h-7 w-7" />
         </div>
-        <h1 className="mb-2 text-center font-display text-2xl font-bold text-foreground">
+        <h1 className="mb-2 text-center font-serif text-2xl font-bold text-foreground">
           Admin Login
         </h1>
         <p className="mb-6 text-center text-sm text-muted-foreground">

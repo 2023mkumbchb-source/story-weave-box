@@ -51,7 +51,7 @@ export default function Flashcards() {
   return (
     <div className="mx-auto max-w-5xl px-5 py-10 sm:px-6 sm:py-12">
       <div className="mb-7">
-        <h1 className="mb-1 font-display text-3xl font-bold text-foreground sm:text-4xl">Flashcards</h1>
+        <h1 className="mb-1 font-serif text-3xl font-bold text-foreground sm:text-4xl">Flashcards</h1>
         <p className="text-sm text-muted-foreground sm:text-base">
           {selectedYear === "All" ? "Interactive study sets generated from notes" : `${selectedYear} flashcard sets`}
         </p>
@@ -95,7 +95,7 @@ export default function Flashcards() {
                     {getCategoryDisplayName(s.category)}
                   </span>
                 )}
-                <h3 className="mb-2 line-clamp-2 font-display text-base font-bold text-foreground transition-colors group-hover:text-primary">
+                <h3 className="mb-2 line-clamp-2 font-serif text-base font-bold text-foreground transition-colors group-hover:text-primary">
                   {s.title}
                 </h3>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">

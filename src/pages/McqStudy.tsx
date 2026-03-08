@@ -60,7 +60,7 @@ export default function McqStudy() {
   if (!set) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-        <h1 className="mb-4 font-display text-3xl font-bold text-foreground">Set not found</h1>
+        <h1 className="mb-4 font-serif text-3xl font-bold text-foreground">Set not found</h1>
         <Button asChild variant="outline">
           <Link to="/mcqs"><ArrowLeft className="mr-2 h-4 w-4" /> Back to MCQs</Link>
         </Button>
@@ -107,7 +107,7 @@ export default function McqStudy() {
       {isLocked && (
         <div className="mb-6 rounded-2xl border-2 border-amber-500/30 bg-amber-50 p-6 text-center dark:bg-amber-950/20">
           <Lock className="mx-auto mb-3 h-8 w-8 text-amber-600 dark:text-amber-400" />
-          <h3 className="mb-2 font-display text-lg font-bold text-foreground">Password Protected</h3>
+          <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Password Protected</h3>
           <p className="mb-4 text-sm text-muted-foreground">
             This quiz is locked. Enter the password to view answers and explanations.
           </p>

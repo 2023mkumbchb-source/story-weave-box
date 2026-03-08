@@ -262,7 +262,7 @@ export default function ExamStart() {
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
             <Trophy className="h-3.5 w-3.5" /> Ready to start
           </div>
-          <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">{exam.title}</h1>
+          <h1 className="font-serif text-2xl font-bold text-foreground sm:text-3xl">{exam.title}</h1>
           <p className="mt-2 text-sm text-muted-foreground">Unit: {unitName}</p>
 
           <div className="mt-5">
@@ -294,7 +294,7 @@ export default function ExamStart() {
             </div>
           ) : (
             <div className="mt-6 space-y-4 rounded-xl border border-primary/30 bg-primary/5 p-5">
-              <h3 className="flex items-center gap-2 font-display text-base font-bold text-foreground">
+              <h3 className="flex items-center gap-2 font-serif text-base font-bold text-foreground">
                 <GraduationCap className="h-5 w-5 text-primary" /> Student Information
               </h3>
 

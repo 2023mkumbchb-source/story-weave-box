@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import {
-  ArrowLeft, Calendar, Loader2, GraduationCap, ListChecks,
-  ChevronDown, FileText, HelpCircle, Sparkles, GitMerge, Settings2,
+  ArrowLeft, Loader2, GraduationCap, ListChecks,
+  ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getArticleBySlugOrId, getRelatedContent, getCategoryDisplayName, buildBlogPath, type Article } from "@/lib/store";
+import { getArticleBySlugOrId, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, type Article } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { markArticleVisited } from "@/lib/progress-store";
@@ -14,28 +14,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
+/* ─── Inline text: bold/italic ─── */
 function Inline({ text }: { text: string }) {
-  const hasStar = text.includes("⭐");
-  const cleaned = text.replace(/⭐+/g, "").trim();
-  const parts = cleaned.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  const parts = text.replace(/⭐+/g, "").split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
   return (
     <>
       {parts.map((part, j) => {
         if (part.startsWith("**") && part.endsWith("**"))
-          return <strong key={j} className="font-bold text-foreground">{part.slice(2, -2)}</strong>;
+          return <strong key={j} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
         if (part.startsWith("*") && part.endsWith("*") && part.length > 2)
-          return <em key={j}>{part.slice(1, -1)}</em>;
+          return <em key={j} className="text-foreground/80">{part.slice(1, -1)}</em>;
         return <span key={j}>{part.replace(/\*/g, "")}</span>;
       })}
-      {hasStar && <span className="ml-1">⭐</span>}
     </>
   );
 }
 
+/* ─── Reading progress bar ─── */
 function ReadingProgress() {
   const [pct, setPct] = useState(0);
-  const [expanded, setExpanded] = useState(false);
-
   useEffect(() => {
     const fn = () => {
       const d = document.documentElement;
@@ -46,69 +43,18 @@ function ReadingProgress() {
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  const color = pct < 30 ? "#ef4444" : pct < 60 ? "#f59e0b" : pct < 90 ? "#22c55e" : "#16a34a";
-  const label = pct < 2 ? "Start" : pct > 97 ? "Done ✓" : `${Math.round(pct)}%`;
-
   return (
-    <>
-      <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-transparent">
-        <div className="h-full transition-all duration-150" style={{ width: `${pct}%`, background: color }} />
-      </div>
-
-      <button
-        onClick={() => setExpanded(e => !e)}
-        className="fixed bottom-6 right-6 z-50 focus:outline-none"
-        aria-label="Reading progress"
-        style={{ background: "transparent", border: "none", padding: 0, lineHeight: 0 }}
-      >
-        <div style={{
-          position: "absolute",
-          bottom: 0, right: 0,
-          width: 10, height: 10,
-          borderRadius: "50%",
-          background: color,
-          opacity: expanded ? 0 : 0.35,
-          transition: "opacity 0.25s",
-          pointerEvents: "none",
-        }} />
-
-        <div style={{
-          width: 56, height: 56,
-          opacity: expanded ? 1 : 0,
-          transform: expanded ? "scale(1)" : "scale(0.3)",
-          transition: "opacity 0.25s, transform 0.25s",
-          pointerEvents: expanded ? "auto" : "none",
-          position: "relative",
-        }}>
-          <svg
-            style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}
-            width={56} height={56} viewBox="0 0 56 56"
-          >
-            <circle cx={28} cy={28} r={23} fill="hsl(var(--card))" stroke="hsl(var(--border))" strokeWidth={1.5} />
-            <circle
-              cx={28} cy={28} r={23}
-              fill="none" stroke={color} strokeWidth={4}
-              strokeDasharray={`${(pct / 100) * (2 * Math.PI * 23)} ${2 * Math.PI * 23}`}
-              strokeLinecap="round"
-              style={{ transition: "stroke-dasharray 0.3s ease, stroke 0.3s ease" }}
-            />
-          </svg>
-          <span style={{
-            position: "absolute", inset: 0,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontWeight: "700", fontSize: "12px", color, lineHeight: 1,
-          }}>{label}</span>
-        </div>
-      </button>
-    </>
+    <div className="fixed top-0 left-0 right-0 z-50 h-[3px]">
+      <div className="h-full bg-primary transition-all duration-150" style={{ width: `${pct}%` }} />
+    </div>
   );
 }
 
+/* ─── Markdown table ─── */
 function TableBlock({ lines }: { lines: string[] }) {
   const isSep = (l: string) => /^\|[\s\-:|]+\|$/.test(l.trim());
   const parseRow = (l: string) =>
     l.trim().split("|").map(c => c.trim()).filter((_, i, a) => i > 0 && i < a.length - 1);
-
   const dataLines = lines.filter(l => !isSep(l));
   if (dataLines.length < 2) return null;
   const [headerLine, ...bodyLines] = dataLines;
@@ -116,23 +62,21 @@ function TableBlock({ lines }: { lines: string[] }) {
   const rows = bodyLines.map(parseRow);
 
   return (
-    <div className="my-5 overflow-hidden rounded-xl border border-border">
+    <div className="my-6 overflow-hidden rounded-lg border border-border">
       <div className="w-full overflow-x-auto">
-        <table className="w-full border-collapse" style={{ minWidth: Math.max(480, headers.length * 160) }}>
+        <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-border bg-primary/10">
+            <tr className="border-b border-border bg-muted/50">
               {headers.map((h, i) => (
-                <th key={i} className="px-4 py-3 text-left text-sm font-bold text-foreground align-top">
-                  <Inline text={h} />
-                </th>
+                <th key={i} className="px-4 py-2.5 text-left font-semibold text-foreground"><Inline text={h} /></th>
               ))}
             </tr>
           </thead>
           <tbody>
             {rows.map((row, ri) => (
-              <tr key={ri} className={`border-b border-border/60 last:border-0 ${ri % 2 === 1 ? "bg-muted/20" : ""}`}>
+              <tr key={ri} className="border-b border-border/50 last:border-0">
                 {headers.map((_, ci) => (
-                  <td key={ci} className="px-4 py-3 text-sm leading-relaxed text-foreground/85 align-top">
+                  <td key={ci} className="px-4 py-2.5 text-foreground/85 leading-relaxed">
                     {row[ci] != null ? <Inline text={row[ci]} /> : null}
                   </td>
                 ))}
@@ -145,30 +89,21 @@ function TableBlock({ lines }: { lines: string[] }) {
   );
 }
 
-function PracticeQuestion({ number, question, answer }: {
-  number: string; question: string; answer: string;
-}) {
+/* ─── Practice Q expandable ─── */
+function PracticeQuestion({ number, question, answer }: { number: string; question: string; answer: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-2xl border border-border overflow-hidden">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-start gap-3 px-4 py-4 text-left hover:bg-muted/20 active:bg-muted/40 transition-colors"
-      >
-        <span className="shrink-0 flex h-7 w-7 items-center justify-center rounded-full border border-primary/50 bg-primary/10 text-primary text-[14px] font-bold mt-0.5">
-          {number}
-        </span>
-        <span className="flex-1 text-[17px] font-medium text-foreground leading-snug">
-          <Inline text={question} />
-        </span>
-        <ChevronDown className={`h-5 w-5 shrink-0 text-muted-foreground mt-0.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+    <div className="rounded-lg border border-border overflow-hidden">
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors">
+        <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold mt-0.5">{number}</span>
+        <span className="flex-1 text-sm font-medium text-foreground leading-snug"><Inline text={question} /></span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground mt-0.5 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       <AnimatePresence initial={false}>
         {open && (
-          <motion.div key="a" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18 }} className="overflow-hidden">
-            <div className="px-4 py-4 border-t border-border bg-primary/5 flex gap-3">
-              <span className="text-primary font-bold text-[17px] shrink-0 mt-0.5">→</span>
-              <p className="text-[17px] text-foreground/90 leading-relaxed"><Inline text={answer} /></p>
+          <motion.div key="a" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.15 }} className="overflow-hidden">
+            <div className="px-4 py-3 border-t border-border bg-muted/20">
+              <p className="text-sm text-foreground/85 leading-relaxed"><Inline text={answer} /></p>
             </div>
           </motion.div>
         )}
@@ -177,17 +112,13 @@ function PracticeQuestion({ number, question, answer }: {
   );
 }
 
+/* ─── Helpers ─── */
 function splitInlineTable(s: string): string[] {
   if (!s.includes("|---") && !s.includes("| ---")) return [];
-  return s
-    .replace(/\|\s*\|/g, "|\n|")
-    .split("\n")
-    .map(r => r.trim())
-    .filter(r => r.startsWith("|") && r.endsWith("|"));
+  return s.replace(/\|\s*\|/g, "|\n|").split("\n").map(r => r.trim()).filter(r => r.startsWith("|") && r.endsWith("|"));
 }
 
 const META_HEADING = /^(key points|detailed notes|summary)$/i;
-
 
 function preprocessContent(raw: string): string {
   const out: string[] = [];
@@ -195,7 +126,6 @@ function preprocessContent(raw: string): string {
 
   for (const line of raw.split("\n")) {
     const t = line.trim();
-
     if (!t) { out.push(""); continue; }
     if (/^[-*_]{3,}$/.test(t)) { out.push(""); continue; }
     if (/^\d+$/.test(t)) continue;
@@ -209,8 +139,7 @@ function preprocessContent(raw: string): string {
     if (t.startsWith("- ") && !t.startsWith("#") && !t.startsWith("|")) {
       const allDashes = [...t.matchAll(/ - /g)];
       if (allDashes.length >= 3) {
-        const parts = t.slice(2).split(" - ").map((s: string) => s.trim()).filter(Boolean);
-        parts.forEach((p: string) => out.push(`- ${p}`));
+        t.slice(2).split(" - ").map(s => s.trim()).filter(Boolean).forEach(p => out.push(`- ${p}`));
         continue;
       }
     }
@@ -220,25 +149,6 @@ function preprocessContent(raw: string): string {
       if (/^key points$/i.test(heading)) { inKeyPoints = true; continue; }
       if (inKeyPoints) inKeyPoints = false;
       if (META_HEADING.test(heading)) continue;
-      if (/:\s+1\.\s/.test(heading)) {
-        const colonIdx = heading.indexOf(": ");
-        const labelOnly = heading.slice(0, colonIdx).trim();
-        const listPart = heading.slice(colonIdx + 2).trim();
-        const hashes = t.match(/^(#{1,2})/)?.[1] ?? "##";
-        if (labelOnly) out.push(`${hashes} ${labelOnly}`);
-        listPart.split(/(?=(?:^|\s)\d+\.\s)/).map((s: string) => s.trim()).filter(Boolean).forEach((item: string) => out.push(item));
-        continue;
-      }
-      if (heading.includes("|---") || heading.includes("| ---")) {
-        const pipeIdx = heading.search(/ \|/);
-        if (pipeIdx !== -1) {
-          const headOnly = heading.slice(0, pipeIdx).trim();
-          const hashes = t.match(/^(#{1,2})/)?.[1] ?? "##";
-          if (headOnly) out.push(`${hashes} ${headOnly}`);
-          splitInlineTable(heading.slice(pipeIdx).trim()).forEach(r => out.push(r));
-          continue;
-        }
-      }
       out.push(line);
       continue;
     }
@@ -246,52 +156,26 @@ function preprocessContent(raw: string): string {
     if (inKeyPoints) continue;
 
     if (/^#{3,6}\s/.test(t)) {
-      const hashes = t.match(/^(#{3,6})/)?.[1] ?? "###";
       const headText = t.replace(/^#{3,6}\s+/, "");
-      if (headText.includes("|---") || headText.includes("| ---")) {
-        const pipeIdx = headText.search(/ \|/);
-        if (pipeIdx !== -1) {
-          const headOnly = headText.slice(0, pipeIdx).replace(/⭐+/g, "").trim();
-          if (headOnly) out.push(`${hashes} ${headOnly}`);
-          splitInlineTable(headText.slice(pipeIdx).trim()).forEach(r => out.push(r));
-          continue;
-        }
-      }
       const bulletSplit = headText.search(/ - (?=[A-Z*\d"(])/);
       if (bulletSplit !== -1) {
+        const hashes = t.match(/^(#{3,6})/)?.[1] ?? "###";
         const headOnly = headText.slice(0, bulletSplit).replace(/⭐+/g, "").trim();
         if (headOnly) out.push(`${hashes} ${headOnly}`);
-        headText.slice(bulletSplit + 3)
-          .split(/ - (?=[A-Z*\d"(])/)
-          .map(b => b.trim()).filter(Boolean)
-          .forEach(b => out.push(`- ${b}`));
+        headText.slice(bulletSplit + 3).split(/ - (?=[A-Z*\d"(])/).map(b => b.trim()).filter(Boolean).forEach(b => out.push(`- ${b}`));
         continue;
       }
       out.push(line);
       continue;
     }
 
-    if (!t.startsWith("|") && (t.includes("|---") || t.includes("| ---"))) {
-      const pipeIdx = t.indexOf("| ");
-      const prefix = t.slice(0, pipeIdx).replace(/[⭐:*\s]+$/, "").trim();
-      if (prefix) out.push(`### ${prefix}`);
-      splitInlineTable(t.slice(pipeIdx).trim()).forEach(r => out.push(r));
-      continue;
-    }
-
     if (!t.startsWith("- ") && !t.startsWith("#") && !t.startsWith("|")) {
-      const allDashes = [...t.matchAll(/ - /g)];
       const capDashes = [...t.matchAll(/ - (?=[A-Z*\d"(])/g)];
-      const splitPoints = allDashes.length >= 5 ? allDashes : capDashes;
-      if (splitPoints.length >= 2) {
-        const firstIdx = splitPoints[0].index!;
+      if (capDashes.length >= 2) {
+        const firstIdx = capDashes[0].index!;
         const prefix = t.slice(0, firstIdx).replace(/[⭐:\s]+$/, "").trim();
         if (prefix) out.push(`### ${prefix}`);
-        const splitter = allDashes.length >= 5 ? / - / : / - (?=[A-Z*\d"(])/;
-        t.slice(firstIdx + 3)
-          .split(splitter)
-          .map(b => b.trim()).filter(Boolean)
-          .forEach(b => out.push(`- ${b}`));
+        t.slice(firstIdx + 3).split(/ - (?=[A-Z*\d"(])/).map(b => b.trim()).filter(Boolean).forEach(b => out.push(`- ${b}`));
         continue;
       }
       if (t.includes(": - ")) {
@@ -314,6 +198,34 @@ function preprocessContent(raw: string): string {
   return out.join("\n");
 }
 
+/* ─── Extract TOC from content ─── */
+interface TocItem { id: string; text: string; level: number }
+
+function extractToc(content: string): TocItem[] {
+  const items: TocItem[] = [];
+  const lines = preprocessContent(content).split("\n");
+  let secNum = 0;
+
+  for (const line of lines) {
+    const t = line.trim();
+    // ## headings
+    if (/^#{1,2}\s/.test(t)) {
+      const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").replace(/^\d+\.\s*/, "").trim();
+      if (META_HEADING.test(heading)) continue;
+      secNum++;
+      items.push({ id: `section-${secNum}`, text: heading, level: 2 });
+    }
+    // QUESTION pattern
+    const qMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)/i);
+    if (qMatch) {
+      secNum++;
+      items.push({ id: `section-${secNum}`, text: `Question ${qMatch[2]}`, level: 2 });
+    }
+  }
+  return items;
+}
+
+/* ─── Article content renderer ─── */
 let _sec = 0;
 
 function ArticleContent({ content }: { content: string }) {
@@ -323,12 +235,12 @@ function ArticleContent({ content }: { content: string }) {
   let listBuf: { type: "ul" | "ol"; items: React.ReactNode[] } | null = null;
   let inPractice = false;
   let tableBuf: string[] = [];
-  let underSubheading = false; // ← NEW: track whether we're directly under a ### heading
+  let underSubheading = false;
   const pqs: { number: string; question: string; answer: string }[] = [];
 
   const flushList = () => {
     if (!listBuf) return;
-    els.push(<div key={`list-${els.length}`} className="mb-5 space-y-3">{listBuf.items}</div>);
+    els.push(<ul key={`list-${els.length}`} className="mb-5 space-y-2 pl-1">{listBuf.items}</ul>);
     listBuf = null;
   };
   const flushTable = () => {
@@ -339,27 +251,23 @@ function ArticleContent({ content }: { content: string }) {
     if (!pqs.length) return;
     els.push(
       <div key={`pq-${els.length}`} className="my-6">
-        <div className="flex items-center gap-2 mb-4">
-          <HelpCircle className="h-5 w-5 text-primary" />
-          <span className="text-[13px] font-bold uppercase tracking-wider text-primary">Practice Questions</span>
-          <span className="ml-auto text-[12px] text-muted-foreground italic">tap to reveal</span>
+        <div className="flex items-center gap-2 mb-3">
+          <HelpCircle className="h-4 w-4 text-primary" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-primary">Practice Questions</span>
         </div>
-        <div className="space-y-3">
-          {pqs.map((q, k) => <PracticeQuestion key={k} number={q.number} question={q.question} answer={q.answer} />)}
-        </div>
+        <div className="space-y-2">{pqs.map((q, k) => <PracticeQuestion key={k} number={q.number} question={q.question} answer={q.answer} />)}</div>
       </div>
     );
     pqs.length = 0;
   };
 
-  // ─── Helper: render a line as a bullet item ─────────────────────────────
   const pushBullet = (text: string, key: string) => {
     if (!listBuf || listBuf.type !== "ul") { flushList(); listBuf = { type: "ul", items: [] }; }
     listBuf.items.push(
-      <div key={key} className="flex items-start gap-3">
-        <div className="rounded-full bg-primary shrink-0" style={{ width: "9px", height: "9px", minWidth: "9px", marginTop: "9px" }} />
-        <span className="text-[17px] text-foreground/90 leading-relaxed flex-1"><Inline text={text} /></span>
-      </div>
+      <li key={key} className="flex items-start gap-2.5 text-[15px] text-foreground/85 leading-relaxed">
+        <span className="mt-[9px] h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+        <span className="flex-1"><Inline text={text} /></span>
+      </li>
     );
   };
 
@@ -369,69 +277,50 @@ function ArticleContent({ content }: { content: string }) {
     if (t.startsWith("|")) { flushList(); tableBuf.push(t); underSubheading = false; return; }
     else if (tableBuf.length) { flushTable(); }
 
-    if (!t) {
-      // A blank line ends the "under subheading" auto-bullet zone
-      flushList();
-      underSubheading = false;
-      return;
-    }
+    if (!t) { flushList(); underSubheading = false; return; }
 
     if (t.startsWith("> ")) {
-      flushList();
-      underSubheading = false;
+      flushList(); underSubheading = false;
       els.push(
-        <div key={`bq-${i}`} className="my-4 pl-4 border-l-4 border-primary/40 rounded-sm bg-primary/5 py-2 pr-3">
-          <p className="text-[16px] italic text-foreground/75 leading-relaxed"><Inline text={t.slice(2)} /></p>
-        </div>
+        <blockquote key={`bq-${i}`} className="my-4 border-l-3 border-primary/40 pl-4 py-1">
+          <p className="text-[15px] italic text-foreground/70 leading-relaxed"><Inline text={t.slice(2)} /></p>
+        </blockquote>
       );
       return;
     }
 
-    // QUESTION pattern: "QUESTION 1", "Question 1:", "Q1.", etc.
+    // QUESTION pattern
     const questionMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)[:\s-]*(.*)/i);
     if (questionMatch) {
-      flushList();
-      flushPractice();
-      inPractice = false;
-      underSubheading = false;
+      flushList(); flushPractice(); inPractice = false; underSubheading = false;
       _sec++;
       const qNum = questionMatch[2];
       const qTitle = questionMatch[3]?.replace(/^\s*[-:]\s*/, "").trim() || "";
       els.push(
-        <div key={`q-${i}`} className="mt-10 mb-5">
-          <div className="flex items-start gap-4 mb-4">
-            <div className="shrink-0 flex items-center justify-center rounded-xl border-2 border-primary/50 text-primary font-bold text-[15px] w-[48px] h-[48px] bg-primary/10">
+        <div key={`q-${i}`} id={`section-${_sec}`} className="mt-10 mb-4 scroll-mt-20">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="shrink-0 flex items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm w-10 h-10">
               Q{qNum}
-            </div>
-            <div className="flex-1 pt-1">
-              {qTitle ? (
-                <h2 className="font-bold text-[20px] sm:text-[24px] text-foreground leading-tight"><Inline text={qTitle} /></h2>
-              ) : (
-                <h2 className="font-bold text-[20px] sm:text-[24px] text-foreground leading-tight">Question {qNum}</h2>
-              )}
-            </div>
+            </span>
+            <h2 className="font-serif font-bold text-xl text-foreground leading-tight">
+              {qTitle || `Question ${qNum}`}
+            </h2>
           </div>
-          <div className="border-b border-border" />
+          <hr className="border-border" />
         </div>
       );
       return;
     }
 
-    // Sub-question pattern: "a)", "b)", "i)", "ii)", "(a)", etc.
+    // Sub-question pattern
     const subQMatch = t.match(/^(\(?[a-z]\)|[ivx]+\)|\([ivx]+\))\s*(.+)/i);
     if (subQMatch) {
-      flushList();
-      underSubheading = false;
+      flushList(); underSubheading = false;
       const label = subQMatch[1].replace(/[()]/g, "").toUpperCase();
-      const content = subQMatch[2];
       els.push(
-        <div key={`subq-${i}`} className="my-4 flex items-start gap-3 pl-2">
-          <div className="shrink-0 flex items-center justify-center rounded-lg border border-primary/40 bg-primary/5 text-primary font-bold text-[13px] w-[32px] h-[32px]">
-            {label}
-          </div>
-          <div className="flex-1 pt-1">
-            <p className="text-[17px] font-medium text-foreground leading-relaxed"><Inline text={content} /></p>
-          </div>
+        <div key={`subq-${i}`} className="my-3 flex items-start gap-2.5 pl-1">
+          <span className="shrink-0 flex items-center justify-center rounded bg-primary/10 text-primary font-bold text-xs w-7 h-7">{label}</span>
+          <p className="flex-1 text-[15px] font-medium text-foreground leading-relaxed pt-0.5"><Inline text={subQMatch[2]} /></p>
         </div>
       );
       return;
@@ -439,47 +328,36 @@ function ArticleContent({ content }: { content: string }) {
 
     // ## headings
     if (/^#{1,2}\s/.test(t)) {
-      flushList();
-      underSubheading = false;
-      const heading = t
-        .replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "")
-        .replace(/^\d+\.\s*/, "").replace(/^[IVXLC]+\.\s+/, "").trim();
+      flushList(); underSubheading = false;
+      const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").replace(/^\d+\.\s*/, "").replace(/^[IVXLC]+\.\s+/, "").trim();
       if (heading.toLowerCase().includes("practice")) { inPractice = true; return; }
       flushPractice(); inPractice = false;
       _sec++;
       els.push(
-        <div key={`h2-${i}`} className="mt-12 mb-6">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="shrink-0 flex items-center justify-center rounded-full border-2 border-primary/50 text-primary font-bold text-[16px] w-[46px] h-[46px] bg-primary/10">
-              {_sec}
-            </div>
-            <h2 className="font-bold text-[22px] sm:text-[26px] text-foreground leading-tight">{heading}</h2>
-          </div>
-          <div className="border-b border-border" />
-        </div>
+        <h2 key={`h2-${i}`} id={`section-${_sec}`} className="mt-10 mb-4 font-serif font-bold text-xl sm:text-2xl text-foreground scroll-mt-20 border-b border-border pb-3">
+          {heading}
+        </h2>
       );
       return;
     }
 
-    // ### subheadings — set underSubheading = true
+    // ### subheadings
     if (/^#{3,6}\s/.test(t)) {
-      flushList();
-      underSubheading = true; // ← lines after this heading become auto-bullets
+      flushList(); underSubheading = true;
       const txt = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").trim();
-      els.push(<h3 key={`h3-${i}`} className="mt-6 mb-3 font-bold text-[18px] sm:text-[19px] text-foreground leading-snug">{txt}</h3>);
+      els.push(<h3 key={`h3-${i}`} className="mt-6 mb-2 font-semibold text-base text-foreground">{txt}</h3>);
       return;
     }
 
     // Practice Q&A
     const qa = t.match(/^(\d+)\.\s(.+?)\s*→\s*(.+)$/);
     if (qa) {
-      flushList();
-      underSubheading = false;
+      flushList(); underSubheading = false;
       if (inPractice) pqs.push({ number: qa[1], question: qa[2], answer: qa[3] });
       else els.push(
-        <div key={`qa-${i}`} className="mb-4 rounded-2xl border border-border bg-card p-5">
-          <p className="text-[17px] font-medium text-foreground">{qa[1]}. <Inline text={qa[2]} /></p>
-          <p className="mt-2 text-[17px] text-primary font-semibold">→ <Inline text={qa[3]} /></p>
+        <div key={`qa-${i}`} className="mb-3 rounded-lg border border-border p-4">
+          <p className="text-sm font-medium text-foreground">{qa[1]}. <Inline text={qa[2]} /></p>
+          <p className="mt-1.5 text-sm text-primary font-medium">→ <Inline text={qa[3]} /></p>
         </div>
       );
       return;
@@ -492,60 +370,48 @@ function ArticleContent({ content }: { content: string }) {
     }
     if (inPractice && t.startsWith("→")) return;
 
-    // Explicit "- " bullet
-    if (t.startsWith("- ")) {
-      pushBullet(t.slice(2), `li-${i}`);
-      return;
-    }
+    // Explicit bullet
+    if (t.startsWith("- ")) { pushBullet(t.slice(2), `li-${i}`); return; }
 
     // Numbered list
     if (/^\d+\.\s/.test(t) && !t.includes("→") && !inPractice) {
       if (!listBuf || listBuf.type !== "ol") { flushList(); listBuf = { type: "ol", items: [] }; }
       const num = t.match(/^(\d+)/)?.[1] ?? "";
       listBuf.items.push(
-        <div key={`ol-${i}`} className="flex items-start gap-3">
-          <div className="shrink-0 flex items-center justify-center rounded-full border border-primary/50"
-            style={{ width: "28px", height: "28px", minWidth: "28px", marginTop: "1px", background: "hsl(var(--primary) / 0.08)", color: "hsl(var(--primary))", fontSize: "13px", fontWeight: "600" }}>
-            {num}
-          </div>
-          <span className="text-[17px] text-foreground/90 leading-relaxed flex-1"><Inline text={t.replace(/^\d+\.\s/, "")} /></span>
-        </div>
+        <li key={`ol-${i}`} className="flex items-start gap-2.5 text-[15px] text-foreground/85 leading-relaxed">
+          <span className="shrink-0 flex items-center justify-center rounded-full border border-primary/40 bg-primary/5 text-primary text-xs font-semibold w-6 h-6 mt-0.5">{num}</span>
+          <span className="flex-1"><Inline text={t.replace(/^\d+\.\s/, "")} /></span>
+        </li>
       );
       return;
     }
 
-    // ─── AUTO-BULLET LOGIC ──────────────────────────────────────────────────
-    const isItalicLine = /^\*[^*]/.test(t);
-    const isSubLabel = /^[A-Za-z*\s()–-]{2,60}:$/.test(t);
-
-    // Bold-only lines like **Pathogenesis:** → render as ### subheading
+    // Bold label → subheading
     const boldLabelMatch = t.match(/^\*\*([^*]+)\*\*:?$/);
     if (boldLabelMatch) {
       flushList();
-      const labelText = boldLabelMatch[1].replace(/:$/, "").trim();
-      els.push(<h3 key={`bold-label-${i}`} className="mt-6 mb-3 font-bold text-[18px] sm:text-[19px] text-foreground leading-snug">{labelText}</h3>);
+      els.push(<h3 key={`bl-${i}`} className="mt-6 mb-2 font-semibold text-base text-foreground">{boldLabelMatch[1].replace(/:$/, "").trim()}</h3>);
       underSubheading = true;
       return;
     }
 
-    // Sub-labels ending with ":" → ### subheading
+    // Sub-labels ending with ":"
+    const isSubLabel = /^[A-Za-z*\s()–-]{2,60}:$/.test(t);
     if (isSubLabel) {
       flushList();
-      underSubheading = false;
-      els.push(<h3 key={`sublabel-${i}`} className="mt-6 mb-3 font-bold text-[18px] sm:text-[19px] text-foreground leading-snug"><Inline text={t.slice(0, -1)} /></h3>);
+      els.push(<h3 key={`sl-${i}`} className="mt-6 mb-2 font-semibold text-base text-foreground"><Inline text={t.slice(0, -1)} /></h3>);
       underSubheading = true;
       return;
     }
 
-    if (isItalicLine || underSubheading) {
-      // ⚠️ lines → styled amber callout box
+    // Auto-bullet under subheading
+    if (underSubheading) {
       if (t.startsWith("⚠️") || t.startsWith("⚠")) {
         flushList();
-        const warningText = t.replace(/^⚠️?\s*/, "").trim();
         els.push(
-          <div key={`warn-${i}`} className="my-3 flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/30 px-4 py-3">
-            <span className="text-amber-500 text-[16px] shrink-0 mt-0.5">⚠️</span>
-            <p className="text-[15px] leading-relaxed text-foreground/85"><Inline text={warningText} /></p>
+          <div key={`warn-${i}`} className="my-3 flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2.5">
+            <span className="text-amber-500 text-sm shrink-0">⚠️</span>
+            <p className="text-sm leading-relaxed text-foreground/85"><Inline text={t.replace(/^⚠️?\s*/, "")} /></p>
           </div>
         );
         return;
@@ -553,30 +419,52 @@ function ArticleContent({ content }: { content: string }) {
       pushBullet(t, `auto-li-${i}`);
       return;
     }
-    // ────────────────────────────────────────────────────────────────────────
 
-    flushList();
-    underSubheading = false;
+    flushList(); underSubheading = false;
 
-    // Standalone ⚠️ lines outside subheading context
+    // Warning callout
     if (t.startsWith("⚠️") || t.startsWith("⚠")) {
-      const warningText = t.replace(/^⚠️?\s*/, "").trim();
       els.push(
-        <div key={`warn-p-${i}`} className="my-3 flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/30 px-4 py-3">
-          <span className="text-amber-500 text-[16px] shrink-0 mt-0.5">⚠️</span>
-          <p className="text-[15px] leading-relaxed text-foreground/85"><Inline text={warningText} /></p>
+        <div key={`wp-${i}`} className="my-3 flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2.5">
+          <span className="text-amber-500 text-sm shrink-0">⚠️</span>
+          <p className="text-sm leading-relaxed text-foreground/85"><Inline text={t.replace(/^⚠️?\s*/, "")} /></p>
         </div>
       );
       return;
     }
 
-    els.push(<p key={`p-${i}`} className="mb-4 text-[17px] leading-relaxed text-foreground/85"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
+    // Paragraph
+    els.push(<p key={`p-${i}`} className="mb-4 text-[15px] leading-[1.8] text-foreground/85"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
   });
 
   flushList(); flushTable(); flushPractice();
   return <div>{els}</div>;
 }
 
+/* ─── Sidebar TOC ─── */
+function SidebarToc({ items, activeId }: { items: TocItem[]; activeId: string }) {
+  if (items.length < 2) return null;
+  return (
+    <nav className="sticky top-20 space-y-0.5">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Contents</p>
+      {items.map(item => (
+        <a
+          key={item.id}
+          href={`#${item.id}`}
+          className={`block text-[13px] leading-snug py-1.5 pl-3 border-l-2 transition-colors ${
+            activeId === item.id
+              ? "border-primary text-primary font-medium"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
+          }`}
+        >
+          {item.text}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
+/* ─── Main BlogPost component ─── */
 export default function BlogPost() {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -588,31 +476,20 @@ export default function BlogPost() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; mcqs: any[] }>({ articles: [], flashcards: [], mcqs: [] });
-
-  const scrollKey = `scroll:${slug || "article"}`;
+  const [activeSection, setActiveSection] = useState("");
 
   const handleBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-      return;
-    }
-
+    if (window.history.length > 1) { navigate(-1); return; }
     const savedYear = sessionStorage.getItem("nav_year_filter");
-    if (savedYear && /^Year [1-5]$/.test(savedYear)) {
-      navigate(`/blog?year=${encodeURIComponent(savedYear)}`);
-    } else {
-      navigate("/blog");
-    }
+    if (savedYear && /^Year [1-5]$/.test(savedYear)) navigate(`/blog?year=${encodeURIComponent(savedYear)}`);
+    else navigate("/blog");
   };
 
   const reloadCurrentArticle = async (id: string) => {
     const refreshed = await getArticleBySlugOrId(id);
     if (refreshed) {
       setArticle(refreshed);
-      if (refreshed.category) {
-        const nextRelated = await getRelatedContent(refreshed.category, refreshed.id);
-        setRelated(nextRelated);
-      }
+      if (refreshed.category) setRelated(await getRelatedContent(refreshed.category, refreshed.id));
     }
   };
 
@@ -620,253 +497,224 @@ export default function BlogPost() {
     if (!article) return;
     setActionLoading(type);
     try {
-      const { data, error } = await supabase.functions.invoke("content-upgrade", {
-        body: { action: "upgrade", id: article.id, type },
-      });
+      const { data, error } = await supabase.functions.invoke("content-upgrade", { body: { action: "upgrade", id: article.id, type } });
       if (error) throw new Error(error.message);
       if (!data?.improved_content) throw new Error("No upgraded content returned");
-
-      const { error: applyError } = await supabase.functions.invoke("content-upgrade", {
-        body: { action: "apply", id: article.id, content: data.improved_content },
-      });
+      const { error: applyError } = await supabase.functions.invoke("content-upgrade", { body: { action: "apply", id: article.id, content: data.improved_content } });
       if (applyError) throw new Error(applyError.message);
-
       await reloadCurrentArticle(article.id);
-      toast({ title: type === "format" ? "Gemini formatting applied" : "Gemini expansion applied" });
+      toast({ title: type === "format" ? "Formatting applied" : "Content expanded" });
     } catch (err: any) {
-      toast({ title: "Gemini action failed", description: err?.message || "Try again.", variant: "destructive" });
-    } finally {
-      setActionLoading(null);
-    }
+      toast({ title: "Action failed", description: err?.message, variant: "destructive" });
+    } finally { setActionLoading(null); }
   };
 
   const runCleanupFix = async (fixes: Record<string, any>, successMessage: string) => {
     if (!article) return;
     setActionLoading("fix");
     try {
-      const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
-        body: { action: "fix", article_id: article.id, fixes },
-      });
+      const { data, error } = await supabase.functions.invoke("bulk-cleanup", { body: { action: "fix", article_id: article.id, fixes } });
       if (error) throw new Error(error.message);
-
-      if (data?.deleted_article) {
-        toast({ title: successMessage });
-        navigate("/blog", { replace: true });
-        return;
-      }
-
+      if (data?.deleted_article) { toast({ title: successMessage }); navigate("/blog", { replace: true }); return; }
       await reloadCurrentArticle(article.id);
       toast({ title: successMessage });
     } catch (err: any) {
-      toast({ title: "Action failed", description: err?.message || "Try again.", variant: "destructive" });
-    } finally {
-      setActionLoading(null);
-    }
+      toast({ title: "Action failed", description: err?.message, variant: "destructive" });
+    } finally { setActionLoading(null); }
   };
 
   useEffect(() => {
-    if (!slug) {
-      setLoading(false);
-      return;
-    }
-
+    if (!slug) { setLoading(false); return; }
     getArticleBySlugOrId(slug)
       .then((a) => {
         setArticle(a);
         if (!a) return;
-
         const canonicalPath = buildBlogPath(a);
-        if (location.pathname !== canonicalPath) {
-          navigate(canonicalPath, { replace: true });
-        }
-
+        if (location.pathname !== canonicalPath) navigate(canonicalPath, { replace: true });
         markArticleVisited({ id: a.id, title: a.title, category: a.category, visitedAt: Date.now() });
         if (a.category) getRelatedContent(a.category, a.id).then(setRelated);
       })
       .finally(() => setLoading(false));
   }, [slug, navigate, location.pathname]);
 
-  useEffect(() => {
-    if (loading) return;
-    const saved = localStorage.getItem(scrollKey);
-    if (saved) {
-      const y = parseInt(saved, 10);
-      const restore = () => window.scrollTo({ top: y, behavior: "instant" });
-      requestAnimationFrame(() => requestAnimationFrame(restore));
-    }
-  }, [loading, scrollKey]);
+  // Intersection observer for active TOC section
+  const toc = useMemo(() => article ? extractToc(article.content) : [], [article]);
 
   useEffect(() => {
-    if (loading) return;
-    let ticking = false;
-    const onScroll = () => {
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          localStorage.setItem(scrollKey, String(window.scrollY));
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [loading, scrollKey]);
+    if (!toc.length) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) { setActiveSection(entry.target.id); break; }
+        }
+      },
+      { rootMargin: "-80px 0px -60% 0px", threshold: 0 }
+    );
+    toc.forEach(item => {
+      const el = document.getElementById(item.id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, [toc, loading]);
 
   if (loading) {
-    return (
-      <div className="flex min-h-[65vh] items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <div className="flex min-h-[65vh] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
 
   if (!article) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-        <h1 className="mb-4 text-3xl font-bold text-foreground">Article not found</h1>
-        <Button asChild variant="outline">
-          <Link to="/blog">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Blog
-          </Link>
-        </Button>
+        <h1 className="mb-4 text-2xl font-bold text-foreground">Article not found</h1>
+        <Button asChild variant="outline"><Link to="/blog"><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link></Button>
       </div>
     );
   }
 
   const date = new Date(article.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const unitName = getCategoryDisplayName(article.category);
+  const yearName = getYearFromCategory(article.category);
   const hasRelated = related.flashcards.length > 0 || related.mcqs.length > 0;
+
+  document.title = `${article.title} | Ompath Study`;
 
   return (
     <>
       <ReadingProgress />
-      {(() => {
-        document.title = `${article.title} | Ompath Study`;
-        const metaDesc = document.querySelector('meta[name="description"]');
-        const desc = article.content.replace(/[#*|\n]+/g, " ").slice(0, 155).trim();
-        if (metaDesc) metaDesc.setAttribute("content", desc);
-        else {
-          const m = document.createElement("meta");
-          m.name = "description";
-          m.content = desc;
-          document.head.appendChild(m);
-        }
-        return null;
-      })()}
 
-      <div className="mx-auto max-w-3xl px-5 py-8 sm:px-6 sm:py-12">
-        <button onClick={handleBack} className="mb-6 inline-flex items-center gap-2 text-[15px] text-muted-foreground transition-colors hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> Back
-        </button>
-
-        {isAdmin && (
-          <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/80 p-2.5">
-            <Button
-              size="sm"
-              variant="secondary"
-              className="gap-2"
-              disabled={!!actionLoading}
-              onClick={() => runGeminiUpgrade("format")}
-            >
-              {actionLoading === "format" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              Gemini
-            </Button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" className="gap-2" disabled={!!actionLoading}>
-                  <GitMerge className="h-4 w-4" />
-                  Migrate
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => runCleanupFix({ migrate_mcqs: true }, "Migrated to MCQs")}>Migrate to MCQs</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => runCleanupFix({ migrate_essays: true }, "Migrated to Essays")}>Migrate to Essays</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" className="gap-2" disabled={!!actionLoading}>
-                  <Settings2 className="h-4 w-4" />
-                  Change
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => runGeminiUpgrade("format")}>Improve formatting (Gemini)</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => runGeminiUpgrade("expand")}>Expand content (Gemini)</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => runCleanupFix({ fix_formatting: true, clean_emojis: true, clean_mku: true }, "Clean formatting applied")}>Clean formatting</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
-
-        <div className="mb-4 flex flex-wrap items-center gap-2 text-[15px] text-muted-foreground">
-          <Calendar className="h-4 w-4" />
-          <span>{date}</span>
+      {/* Breadcrumbs */}
+      <div className="border-b border-border bg-muted/30">
+        <div className="mx-auto max-w-6xl px-5 py-3 flex items-center gap-2 text-sm text-muted-foreground overflow-x-auto">
+          <button onClick={handleBack} className="shrink-0 hover:text-foreground transition-colors">
+            <ArrowLeft className="h-3.5 w-3.5" />
+          </button>
+          <ChevronRight className="h-3 w-3 shrink-0" />
+          <Link to="/blog" className="shrink-0 hover:text-foreground transition-colors">Study Notes</Link>
+          {yearName && (
+            <>
+              <ChevronRight className="h-3 w-3 shrink-0" />
+              <Link to={`/blog?year=${encodeURIComponent(yearName)}`} className="shrink-0 hover:text-foreground transition-colors">{yearName}</Link>
+            </>
+          )}
           {unitName && unitName !== "Uncategorized" && (
             <>
-              <span className="mx-1">·</span>
-              <span className="font-bold uppercase tracking-wider text-foreground/70">{unitName}</span>
+              <ChevronRight className="h-3 w-3 shrink-0" />
+              <span className="truncate text-foreground font-medium">{unitName}</span>
             </>
           )}
         </div>
+      </div>
 
-        <h1 className="mb-6 text-[28px] font-bold leading-tight text-foreground sm:text-[36px]">{article.title.replace(/^#+\s*/, "")}</h1>
-        <BlogAudioPlayer content={article.content} title={article.title} />
-        <ArticleContent content={article.content} />
-
-        {hasRelated && (
-          <div className="mt-14 overflow-hidden rounded-2xl border border-border bg-card">
-            <div className="flex items-center gap-2 border-b border-border px-5 py-4">
-              <FileText className="h-5 w-5 text-primary" />
-              <h3 className="text-[17px] font-semibold text-foreground">Continue Learning</h3>
-              {unitName && unitName !== "Uncategorized" && <span className="ml-auto text-[13px] text-muted-foreground">{unitName}</span>}
-            </div>
-            <div className="space-y-5 p-5">
-              {related.flashcards.length > 0 && (
-                <div>
-                  <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Flashcards</p>
-                  <div className="space-y-2">
-                    {related.flashcards.map((f: any) => (
-                      <Link key={f.id} to={`/flashcards/${f.id}`} className="flex items-center gap-4 rounded-xl border border-border bg-background p-4 transition-all hover:border-primary/40 hover:bg-primary/5 active:scale-[0.98]">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                          <GraduationCap className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-[16px] font-medium text-foreground">{f.title}</p>
-                          <p className="text-[13px] text-muted-foreground">{(f.cards as any[])?.length || 0} cards</p>
-                        </div>
-                        <ChevronDown className="h-4 w-4 shrink-0 -rotate-90 text-muted-foreground" />
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {related.mcqs.length > 0 && (
-                <div>
-                  <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">MCQ Quizzes</p>
-                  <div className="space-y-2">
-                    {related.mcqs.map((m: any) => (
-                      <Link key={m.id} to={`/mcqs/${m.id}`} className="flex items-center gap-4 rounded-xl border border-border bg-background p-4 transition-all hover:border-primary/40 hover:bg-primary/5 active:scale-[0.98]">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                          <ListChecks className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-[16px] font-medium text-foreground">{m.title}</p>
-                          <p className="text-[13px] text-muted-foreground">{(m.questions as any[])?.length || 0} questions</p>
-                        </div>
-                        <ChevronDown className="h-4 w-4 shrink-0 -rotate-90 text-muted-foreground" />
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+      {/* Admin toolbar */}
+      {isAdmin && (
+        <div className="border-b border-border bg-card">
+          <div className="mx-auto max-w-6xl px-5 py-2 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground mr-1">Admin:</span>
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" disabled={!!actionLoading} onClick={() => runGeminiUpgrade("format")}>
+              {actionLoading === "format" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} Gemini
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" disabled={!!actionLoading}>
+                  <GitMerge className="h-3 w-3" /> Migrate
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => runCleanupFix({ migrate_mcqs: true }, "Migrated to MCQs")}>To MCQs</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => runCleanupFix({ migrate_essays: true }, "Migrated to Essays")}>To Essays</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" disabled={!!actionLoading}>
+                  <Settings2 className="h-3 w-3" /> Change
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => runGeminiUpgrade("format")}>Improve formatting</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => runGeminiUpgrade("expand")}>Expand content</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => runCleanupFix({ fix_formatting: true, clean_emojis: true, clean_mku: true }, "Cleaned")}>Clean formatting</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        )}
-        <div className="h-12" />
+        </div>
+      )}
+
+      {/* Main layout: sidebar TOC + article */}
+      <div className="mx-auto max-w-6xl px-5 py-8">
+        <div className="lg:grid lg:grid-cols-[220px_1fr_220px] lg:gap-8">
+          {/* Left sidebar: TOC */}
+          <aside className="hidden lg:block">
+            <SidebarToc items={toc} activeId={activeSection} />
+          </aside>
+
+          {/* Article body */}
+          <article className="min-w-0">
+            <header className="mb-8">
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-foreground leading-tight mb-3">
+                {article.title.replace(/^#+\s*/, "")}
+              </h1>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <span>{date}</span>
+                {unitName && unitName !== "Uncategorized" && (
+                  <>
+                    <span>·</span>
+                    <span className="font-medium text-foreground/70">{unitName}</span>
+                  </>
+                )}
+              </div>
+              <div className="mt-4">
+                <BlogAudioPlayer content={article.content} title={article.title} />
+              </div>
+            </header>
+
+            <div className="prose-custom">
+              <ArticleContent content={article.content} />
+            </div>
+
+            {/* Related content */}
+            {hasRelated && (
+              <div className="mt-12 rounded-lg border border-border p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-foreground">Continue Learning</h3>
+                </div>
+                <div className="space-y-4">
+                  {related.flashcards.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Flashcards</p>
+                      <div className="space-y-1.5">
+                        {related.flashcards.map((f: any) => (
+                          <Link key={f.id} to={`/flashcards/${f.id}`} className="flex items-center gap-3 rounded-lg border border-border p-3 hover:border-primary/40 hover:bg-muted/30 transition-colors">
+                            <GraduationCap className="h-4 w-4 text-primary shrink-0" />
+                            <span className="truncate text-sm font-medium text-foreground">{f.title}</span>
+                            <span className="ml-auto text-xs text-muted-foreground">{(f.cards as any[])?.length || 0} cards</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {related.mcqs.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">MCQ Quizzes</p>
+                      <div className="space-y-1.5">
+                        {related.mcqs.map((m: any) => (
+                          <Link key={m.id} to={`/mcqs/${m.id}`} className="flex items-center gap-3 rounded-lg border border-border p-3 hover:border-primary/40 hover:bg-muted/30 transition-colors">
+                            <ListChecks className="h-4 w-4 text-primary shrink-0" />
+                            <span className="truncate text-sm font-medium text-foreground">{m.title}</span>
+                            <span className="ml-auto text-xs text-muted-foreground">{(m.questions as any[])?.length || 0} Qs</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </article>
+
+          {/* Right sidebar: placeholder for future recommended reading */}
+          <aside className="hidden lg:block" />
+        </div>
       </div>
     </>
   );

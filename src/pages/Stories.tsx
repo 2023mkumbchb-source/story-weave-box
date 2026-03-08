@@ -49,7 +49,7 @@ export default function Stories() {
   return (
     <div className="mx-auto max-w-5xl px-5 sm:px-6 py-10 sm:py-12">
       <div className="mb-7">
-        <h1 className="mb-1 font-display text-3xl sm:text-4xl font-bold text-foreground">Stories</h1>
+        <h1 className="mb-1 font-serif text-3xl sm:text-4xl font-bold text-foreground">Stories</h1>
         <p className="text-muted-foreground text-sm sm:text-base">Medical stories and narratives</p>
       </div>
 
@@ -89,7 +89,7 @@ export default function Stories() {
                     {story.category}
                   </span>
                 )}
-                <h3 className="mb-2 font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                <h3 className="mb-2 font-serif text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2">
                   {story.title}
                 </h3>
                 <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3">

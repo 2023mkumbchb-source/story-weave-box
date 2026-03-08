@@ -39,7 +39,7 @@ export default function Essays() {
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-4 py-1.5 text-xs font-semibold text-accent-foreground">
               <FileText className="h-3.5 w-3.5" /> SAQs & LAQs
             </div>
-            <h1 className="mb-3 font-display text-3xl font-bold text-foreground sm:text-4xl">
+            <h1 className="mb-3 font-serif text-3xl font-bold text-foreground sm:text-4xl">
               Essays & Written Questions
             </h1>
             <p className="mx-auto max-w-lg text-sm text-muted-foreground leading-relaxed">
@@ -72,7 +72,7 @@ export default function Essays() {
                   className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 sm:p-5 transition-shadow hover:shadow-md"
                 >
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-display text-base font-bold text-foreground truncate">{e.title}</h3>
+                    <h3 className="font-serif text-base font-bold text-foreground truncate">{e.title}</h3>
                     <p className="text-xs text-muted-foreground mt-1">
                       {e.category !== "Uncategorized" && (
                         <span className="text-primary">{getCategoryDisplayName(e.category)} · </span>

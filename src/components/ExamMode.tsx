@@ -251,7 +251,7 @@ export default function ExamMode({
             className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl">
             <div className="flex items-center gap-3 mb-3">
               <div className="rounded-full bg-destructive/10 p-2"><LogOut className="h-5 w-5 text-destructive" /></div>
-              <h3 className="font-display text-base font-bold text-foreground">Exit Exam?</h3>
+              <h3 className="font-serif text-base font-bold text-foreground">Exit Exam?</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-1">
               Your progress will be <strong className="text-foreground">lost</strong> — this will be an incomplete attempt.
@@ -276,7 +276,7 @@ export default function ExamMode({
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <motion.div initial={{ scale: 0.92 }} animate={{ scale: 1 }} exit={{ scale: 0.92 }}
             className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl">
-            <h3 className="font-display text-base font-bold text-foreground mb-2">Submit Exam?</h3>
+            <h3 className="font-serif text-base font-bold text-foreground mb-2">Submit Exam?</h3>
             {unanswered > 0 && (
               <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-2">
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
@@ -331,7 +331,7 @@ export default function ExamMode({
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             className={`rounded-2xl border ${grade.bg} p-5 text-center`}>
             <div className="text-4xl mb-2">{grade.icon}</div>
-            <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground mb-1">{grade.label}</h2>
+            <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground mb-1">{grade.label}</h2>
             <p className="text-xs text-muted-foreground mb-3 truncate">{title}</p>
             <div className="flex items-center justify-center gap-4 sm:gap-6">
               <div>
@@ -354,7 +354,7 @@ export default function ExamMode({
           {!answersUnlocked ? (
             <div className="rounded-2xl border border-border bg-card p-6 flex flex-col items-center text-center gap-3">
               <div className="rounded-full bg-primary/10 p-4"><Lock className="h-7 w-7 text-primary" /></div>
-              <h3 className="font-display text-base font-bold text-foreground">Answers Locked Until Midnight</h3>
+              <h3 className="font-serif text-base font-bold text-foreground">Answers Locked Until Midnight</h3>
               <p className="text-sm text-muted-foreground max-w-xs">
                 Answers are released at <strong className="text-foreground">12:00 AM</strong> once all students have finished.
               </p>
@@ -429,7 +429,7 @@ export default function ExamMode({
       <div className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur px-3 sm:px-6 py-2.5">
         <div className="mx-auto max-w-2xl flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <h2 className="font-display text-sm sm:text-base font-bold text-foreground truncate">{title}</h2>
+            <h2 className="font-serif text-sm sm:text-base font-bold text-foreground truncate">{title}</h2>
             <p className="text-[10px] sm:text-xs text-muted-foreground">
               {answered}/{total} answered{studentInfo && <> · {studentInfo.name}</>}
             </p>
