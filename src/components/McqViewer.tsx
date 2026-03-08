@@ -524,7 +524,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
 
               {paymentStatus === "pending" ? (
                 <div className="rounded-xl border border-primary/30 bg-primary/10 p-4">
-                  <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
+                  <Loader2Icon className="mx-auto h-5 w-5 animate-spin text-primary" />
                   <p className="mt-2 text-sm font-medium text-foreground">Waiting for M-Pesa…</p>
                   <p className="text-xs text-muted-foreground">Complete STK prompt on your phone.</p>
                 </div>
