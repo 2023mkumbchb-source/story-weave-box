@@ -190,8 +190,8 @@ export default function Blog() {
         )}
       </div>
 
-      {/* Year Tabs */}
-      <div className="mb-6">
+      {/* Year Tabs + Sort */}
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
           {YEARS.map(year => {
             const count = yearCounts[year] || 0;
@@ -214,6 +214,17 @@ export default function Blog() {
             );
           })}
         </div>
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as "newest" | "oldest" | "title")}
+          className="rounded-lg border border-input bg-background px-3 py-2 text-xs font-medium text-foreground"
+          aria-label="Sort articles"
+        >
+          <option value="newest">Sort: Newest</option>
+          <option value="oldest">Sort: Oldest</option>
+          <option value="title">Sort: A–Z</option>
+        </select>
       </div>
 
       {/* Unit filter chips (when a year is selected) */}
