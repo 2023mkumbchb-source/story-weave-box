@@ -2220,6 +2220,14 @@ function SeoIndexingTab() {
   const { toast } = useToast();
   const [seoYear, setSeoYear] = useState<string>("All");
   const [seoMode, setSeoMode] = useState<"missing" | "all">("missing");
+  const [includeUnpublished, setIncludeUnpublished] = useState(true);
+  const [seoFields, setSeoFields] = useState({
+    title: true,
+    meta_title: true,
+    meta_description: true,
+    slug: true,
+    og_image_url: true,
+  });
   const [generating, setGenerating] = useState(false);
   const [seoLog, setSeoLog] = useState<string[]>([]);
   const [seoArticles, setSeoArticles] = useState<Array<{
@@ -2230,6 +2238,7 @@ function SeoIndexingTab() {
     meta_title: string;
     meta_description: string;
     og_image_url: string;
+    published?: boolean;
     url: string;
     seo_status: "complete" | "missing";
     missing_count: number;
@@ -2240,8 +2249,11 @@ function SeoIndexingTab() {
   const [loadingBatches, setLoadingBatches] = useState(false);
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [copiedBatch, setCopiedBatch] = useState<number | null>(null);
+  const [siteUrlInput, setSiteUrlInput] = useState("https://ompathstud.lovable.app");
+  const [savingSiteUrl, setSavingSiteUrl] = useState(false);
+  const [googleApiKey, setGoogleApiKey] = useState("");
 
-  const sitemapUrl = "https://ompathstud.lovable.app/sitemap.xml";
+  const sitemapUrl = `${siteUrlInput.replace(/\/+$/, "")}/sitemap.xml`;
 
   const handleLoadSeoArticles = async () => {
     setLoadingArticles(true);
