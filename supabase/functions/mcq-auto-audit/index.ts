@@ -6,10 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MAX_BATCH = 20;
-const MAX_RUNTIME_MS = 50_000; // 50s safety margin for edge function timeout
+const BATCH_SIZE = 15;
+const MAX_RUNTIME_MS = 140_000; // 140s wall-clock safety (edge functions allow up to 150s)
 
-// ── MCQ detection & extraction (mirrors bulk-cleanup logic) ──
+// ── MCQ detection & extraction ──
 
 function isMcqContent(content: string): boolean {
   const text = content || "";
@@ -146,7 +146,7 @@ function normalizeTitle(title: string): string {
   return clean || trimmed || "Untitled";
 }
 
-// ── Main handler ──
+// ── Main handler: loops through ALL articles in batches ──
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -157,99 +157,100 @@ serve(async (req) => {
     const sb = createClient(supabaseUrl, supabaseKey);
     const startedAt = Date.now();
 
-    // Fetch a batch of published, non-deleted articles
-    let cursor: string | null = null;
-    try {
-      const body = await req.json();
-      cursor = body?.cursor || null;
-    } catch { /* no body = first run */ }
+    let cursor = "00000000-0000-0000-0000-000000000000";
+    let totalScanned = 0;
+    let totalMigrated = 0;
+    const allLog: Array<{ id: string; title: string; mcqs: number }> = [];
+    let batchesProcessed = 0;
 
-    const { data: articles, error: fetchErr } = await sb
-      .from("articles")
-      .select("id, title, content, category")
-      .is("deleted_at", null)
-      .eq("published", true)
-      .order("id", { ascending: true })
-      .gt("id", cursor || "00000000-0000-0000-0000-000000000000")
-      .limit(MAX_BATCH);
-
-    if (fetchErr) throw fetchErr;
-    if (!articles || articles.length === 0) {
-      return new Response(JSON.stringify({ done: true, migrated: 0, scanned: 0, next_cursor: null }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const log: Array<{ id: string; title: string; mcqs: number }> = [];
-    let lastId = cursor;
-
-    for (const article of articles) {
-      // Time guard
-      if (Date.now() - startedAt > MAX_RUNTIME_MS) break;
-      lastId = article.id;
-
-      const content = (article.content || "").slice(0, 32000);
-
-      // Skip essays
-      if (looksLikeEssayContent(content)) continue;
-
-      // Check if MCQ content
-      const titleHintsMcq = /\bmcq\b|multiple\s+choice/i.test(article.title || "");
-      if (!isMcqContent(content) && !titleHintsMcq) continue;
-
-      const mcqs = extractMcqsFromContent(content);
-      if (mcqs.length < 3 && !(titleHintsMcq && mcqs.length >= 1)) continue;
-
-      // Migrate: insert MCQ set
-      const { error: insertErr } = await sb.from("mcq_sets").insert({
-        title: normalizeTitle(article.title),
-        questions: mcqs,
-        published: true,
-        original_notes: "",
-        category: article.category || "Uncategorized",
-        access_password: "",
-      });
-
-      if (insertErr) {
-        console.error(`Failed to migrate article ${article.id}:`, insertErr.message);
-        continue;
+    // Keep looping through batches until we run out of articles or time
+    while (true) {
+      // Time guard: stop if we're running low
+      if (Date.now() - startedAt > MAX_RUNTIME_MS) {
+        console.log(`Time limit reached after ${batchesProcessed} batches, ${totalScanned} scanned, ${totalMigrated} migrated`);
+        break;
       }
 
-      // Soft-delete the source article
-      await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
-      log.push({ id: article.id, title: article.title, mcqs: mcqs.length });
-    }
+      const { data: articles, error: fetchErr } = await sb
+        .from("articles")
+        .select("id, title, content, category")
+        .is("deleted_at", null)
+        .eq("published", true)
+        .order("id", { ascending: true })
+        .gt("id", cursor)
+        .limit(BATCH_SIZE);
 
-    const hasMore = articles.length === MAX_BATCH;
+      if (fetchErr) {
+        console.error("Fetch error:", fetchErr.message);
+        break;
+      }
 
-    // If there are more articles, self-invoke to continue processing
-    if (hasMore && Date.now() - startedAt < MAX_RUNTIME_MS - 5000) {
-      try {
-        const selfUrl = `${supabaseUrl}/functions/v1/mcq-auto-audit`;
-        await fetch(selfUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${supabaseKey}`,
-          },
-          body: JSON.stringify({ cursor: lastId }),
+      if (!articles || articles.length === 0) {
+        console.log("All articles processed.");
+        break;
+      }
+
+      batchesProcessed++;
+
+      for (const article of articles) {
+        // Update cursor regardless
+        cursor = article.id;
+        totalScanned++;
+
+        // Time guard per-article
+        if (Date.now() - startedAt > MAX_RUNTIME_MS) break;
+
+        const content = (article.content || "").slice(0, 32000);
+
+        // Skip essays
+        if (looksLikeEssayContent(content)) continue;
+
+        // Check if MCQ content
+        const titleHintsMcq = /\bmcq\b|multiple\s+choice/i.test(article.title || "");
+        if (!isMcqContent(content) && !titleHintsMcq) continue;
+
+        const mcqs = extractMcqsFromContent(content);
+        if (mcqs.length < 3 && !(titleHintsMcq && mcqs.length >= 1)) continue;
+
+        // Migrate: insert MCQ set
+        const { error: insertErr } = await sb.from("mcq_sets").insert({
+          title: normalizeTitle(article.title),
+          questions: mcqs,
+          published: true,
+          original_notes: "",
+          category: article.category || "Uncategorized",
+          access_password: "",
         });
-      } catch (e) {
-        console.error("Self-invoke failed:", e);
+
+        if (insertErr) {
+          console.error(`Failed to migrate article ${article.id}:`, insertErr.message);
+          continue;
+        }
+
+        // Soft-delete the source article
+        await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
+        totalMigrated++;
+        allLog.push({ id: article.id, title: article.title, mcqs: mcqs.length });
+        console.log(`Migrated: "${article.title}" → ${mcqs.length} MCQs`);
       }
     }
+
+    const elapsed = Math.round((Date.now() - startedAt) / 1000);
+    console.log(`MCQ Auto-Audit complete: ${totalScanned} scanned, ${totalMigrated} migrated in ${elapsed}s across ${batchesProcessed} batches`);
 
     return new Response(
       JSON.stringify({
-        done: !hasMore,
-        migrated: log.length,
-        scanned: articles.length,
-        next_cursor: hasMore ? lastId : null,
-        log,
+        done: true,
+        scanned: totalScanned,
+        migrated: totalMigrated,
+        batches: batchesProcessed,
+        elapsed_seconds: elapsed,
+        log: allLog,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e: any) {
+    console.error("MCQ Auto-Audit error:", e?.message);
     return new Response(JSON.stringify({ error: e?.message || "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
