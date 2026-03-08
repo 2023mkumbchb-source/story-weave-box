@@ -22,14 +22,19 @@ export default function Admin() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [geminiKey, setGeminiKey] = useState("");
+  const [geminiKeysAll, setGeminiKeysAll] = useState<string[]>([]);
   const [articleEditId, setArticleEditId] = useState<string | null>(null);
 
   useEffect(() => {
     if (sessionStorage.getItem("learninghub_auth") !== "true") {
       navigate("/login");
     }
-    getSetting("gemini_api_key").then((key) => {
+    Promise.all([getSetting("gemini_api_key"), getSetting("gemini_api_keys")]).then(([key, multiRaw]) => {
       setGeminiKey(key || "");
+      try {
+        const parsed = JSON.parse(multiRaw || "[]");
+        if (Array.isArray(parsed)) setGeminiKeysAll(parsed.filter(Boolean));
+      } catch { /* ignore */ }
     });
   }, [navigate]);
 
