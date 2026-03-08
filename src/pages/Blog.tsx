@@ -62,15 +62,26 @@ export default function Blog() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [articles, selectedYear]);
 
-  const filtered = useMemo(() => articles.filter((a) => {
-    if (a.category === "Stories") return false;
-    const matchesSearch = !search.trim() ||
-      a.title.toLowerCase().includes(search.toLowerCase()) ||
-      getCategoryDisplayName(a.category).toLowerCase().includes(search.toLowerCase());
-    const matchesYear = selectedYear === "All" || getYearFromCategory(a.category) === selectedYear;
-    const matchesUnit = !selectedUnit || a.category === selectedUnit;
-    return matchesSearch && matchesYear && matchesUnit;
-  }), [articles, search, selectedYear, selectedUnit]);
+  const filtered = useMemo(() => {
+    const base = articles.filter((a) => {
+      if (a.category === "Stories") return false;
+      const matchesSearch = !search.trim() ||
+        a.title.toLowerCase().includes(search.toLowerCase()) ||
+        getCategoryDisplayName(a.category).toLowerCase().includes(search.toLowerCase());
+      const matchesYear = selectedYear === "All" || getYearFromCategory(a.category) === selectedYear;
+      const matchesUnit = !selectedUnit || a.category === selectedUnit;
+      return matchesSearch && matchesYear && matchesUnit;
+    });
+
+    base.sort((a, b) => {
+      if (sortBy === "title") return a.title.localeCompare(b.title);
+      const at = new Date(a.created_at).getTime();
+      const bt = new Date(b.created_at).getTime();
+      return sortBy === "oldest" ? at - bt : bt - at;
+    });
+
+    return base;
+  }, [articles, search, selectedYear, selectedUnit, sortBy]);
 
   // Group by unit when showing "All" or a year without unit selected
   const groupedArticles = useMemo(() => {
