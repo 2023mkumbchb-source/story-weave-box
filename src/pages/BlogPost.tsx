@@ -525,11 +525,20 @@ function ArticleContent({ content }: { content: string }) {
 
 export default function BlogPost() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; mcqs: any[] }>({ articles: [], flashcards: [], mcqs: [] });
 
   const scrollKey = `scroll:${id}`;
+  
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/blog");
+    }
+  };
 
   useEffect(() => {
     if (id) {
