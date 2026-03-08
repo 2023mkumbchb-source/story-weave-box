@@ -462,7 +462,7 @@ Return ONLY valid JSON array: [{"question":"...","answer":"..."}]`;
       },
     ];
 
-    const text = await callAI(messages, geminiKey);
+    const text = await callAI(messages, geminiKey, allKeys);
 
     let result: any;
     if (type === "article") {
