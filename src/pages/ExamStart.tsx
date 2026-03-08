@@ -143,14 +143,14 @@ export default function ExamStart() {
 
   // Load approved custom institutions from DB
   useEffect(() => {
-    supabase
+    (supabase as any)
       .from("pending_institutions")
       .select("type, value")
       .eq("status", "approved")
-      .then(({ data }) => {
+      .then(({ data }: any) => {
         if (data) {
-          setExtraUniversities(data.filter((d) => d.type === "university").map((d) => d.value));
-          setExtraCourses(data.filter((d) => d.type === "course").map((d) => d.value));
+          setExtraUniversities(data.filter((d: any) => d.type === "university").map((d: any) => d.value));
+          setExtraCourses(data.filter((d: any) => d.type === "course").map((d: any) => d.value));
         }
       });
   }, []);
@@ -187,7 +187,7 @@ export default function ExamStart() {
     if (!val) return;
     setSubmittingUni(true);
     try {
-      await supabase.from("pending_institutions").upsert(
+      await (supabase as any).from("pending_institutions").upsert(
         { type: "university", value: val, submitted_by: studentInfo.name || "Anonymous", status: "pending" },
         { onConflict: "type,value", ignoreDuplicates: true }
       );
@@ -207,7 +207,7 @@ export default function ExamStart() {
     if (!val) return;
     setSubmittingCourse(true);
     try {
-      await supabase.from("pending_institutions").upsert(
+      await (supabase as any).from("pending_institutions").upsert(
         { type: "course", value: val, submitted_by: studentInfo.name || "Anonymous", status: "pending" },
         { onConflict: "type,value", ignoreDuplicates: true }
       );

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, Bolt, AlertTriangle, Building2, Check, X } from "lucide-react";
+import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, Bolt, AlertTriangle, Building2, Check, X, Sparkles, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import {
 } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 
-type Tab = "create" | "articles" | "flashcards" | "mcqs" | "raw" | "exams" | "recycle" | "settings" | "institutions";
+type Tab = "create" | "articles" | "flashcards" | "mcqs" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade";
 type DirectType = "article" | "mcqs" | "flashcards";
 
 export default function Admin() {
@@ -381,6 +381,7 @@ export default function Admin() {
     { id: "mcqs", label: "MCQs", icon: ListChecks },
     { id: "exams", label: "Exam Results", icon: ListChecks },
     { id: "raw", label: "Raw", icon: AlertTriangle },
+    { id: "upgrade", label: "AI Upgrade", icon: Sparkles },
     { id: "recycle", label: "Recycle Bin", icon: Trash2 },
     { id: "institutions", label: "Institutions", icon: Building2 },
     { id: "settings", label: "Settings", icon: Settings },
@@ -646,6 +647,7 @@ export default function Admin() {
       {tab === "raw" && <RawContentTab geminiKey={geminiKey} />}
       {tab === "recycle" && <RecycleBinTab />}
       {tab === "institutions" && <InstitutionsTab />}
+      {tab === "upgrade" && <ContentUpgradeTab />}
       {tab === "settings" && <SettingsPanel setGeminiKey={setGeminiKey} />}
     </div>
   );
@@ -1488,11 +1490,11 @@ function InstitutionsTab() {
 
   const load = async () => {
     setLoading(true);
-    let query = supabase
+    let query = (supabase as any)
       .from("pending_institutions")
       .select("*")
       .order("submitted_at", { ascending: false });
-    if (filter !== "all") query = query.eq("status", filter) as typeof query;
+    if (filter !== "all") query = query.eq("status", filter);
     const { data } = await query;
     setItems((data as PendingInstitution[]) || []);
     setLoading(false);
@@ -1502,7 +1504,7 @@ function InstitutionsTab() {
 
   const updateStatus = async (id: string, status: "approved" | "rejected") => {
     setUpdating(id);
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("pending_institutions")
       .update({ status, reviewed_at: new Date().toISOString() })
       .eq("id", id);
@@ -1585,3 +1587,179 @@ function InstitutionsTab() {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Content Upgrade Tab (Gemini AI)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface UpgradeSuggestion {
+  id: string;
+  title: string;
+  suggestion: string;
+  type: string;
+  priority: string;
+  auto_safe: boolean;
+}
+
+function ContentUpgradeTab() {
+  const [scanning, setScanning] = useState(false);
+  const [suggestions, setSuggestions] = useState<UpgradeSuggestion[]>([]);
+  const [upgrading, setUpgrading] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ id: string; title: string; content: string } | null>(null);
+  const [applying, setApplying] = useState(false);
+  const { toast } = useToast();
+
+  const handleScan = async () => {
+    setScanning(true);
+    setSuggestions([]);
+    try {
+      const { data, error } = await supabase.functions.invoke("content-upgrade", {
+        body: { action: "scan" },
+      });
+      if (error) throw new Error(error.message);
+      setSuggestions(data?.suggestions || []);
+      if (!data?.suggestions?.length) {
+        toast({ title: "All content looks good! No upgrades needed." });
+      }
+    } catch (err: any) {
+      toast({ title: "Scan failed", description: err.message, variant: "destructive" });
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const handleUpgrade = async (s: UpgradeSuggestion) => {
+    setUpgrading(s.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("content-upgrade", {
+        body: { action: "upgrade", id: s.id, type: s.type },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      setPreview({ id: data.id, title: data.title, content: data.improved_content });
+      toast({ title: "Upgrade preview ready — review before applying." });
+    } catch (err: any) {
+      toast({ title: "Upgrade failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUpgrading(null);
+    }
+  };
+
+  const handleApply = async () => {
+    if (!preview) return;
+    setApplying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("content-upgrade", {
+        body: { action: "apply", id: preview.id, content: preview.content },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "Upgrade applied successfully!" });
+      setPreview(null);
+      setSuggestions((prev) => prev.filter((s) => s.id !== preview.id));
+    } catch (err: any) {
+      toast({ title: "Apply failed", description: err.message, variant: "destructive" });
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const autoApplyAll = async () => {
+    const safeSuggestions = suggestions.filter((s) => s.auto_safe);
+    if (!safeSuggestions.length) {
+      toast({ title: "No auto-safe upgrades to apply" });
+      return;
+    }
+    for (const s of safeSuggestions) {
+      setUpgrading(s.id);
+      try {
+        const { data } = await supabase.functions.invoke("content-upgrade", {
+          body: { action: "upgrade", id: s.id, type: s.type },
+        });
+        if (data?.improved_content) {
+          await supabase.functions.invoke("content-upgrade", {
+            body: { action: "apply", id: s.id, content: data.improved_content },
+          });
+        }
+      } catch { /* skip */ }
+      setUpgrading(null);
+    }
+    setSuggestions((prev) => prev.filter((s) => !s.auto_safe));
+    toast({ title: "Auto-safe upgrades applied!" });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <Sparkles className="h-5 w-5 text-primary" />
+          <h3 className="font-display text-lg font-bold text-foreground">AI Content Upgrade</h3>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          Scan your published articles for formatting issues, missing details, and suggest AI-powered improvements.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={handleScan} disabled={scanning} className="gap-2">
+            {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {scanning ? "Scanning..." : "Scan Content"}
+          </Button>
+          {suggestions.filter((s) => s.auto_safe).length > 0 && (
+            <Button onClick={autoApplyAll} variant="outline" className="gap-2">
+              <Zap className="h-4 w-4" /> Auto-Apply Safe Upgrades ({suggestions.filter((s) => s.auto_safe).length})
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {preview && (
+        <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="font-bold text-foreground flex items-center gap-2">
+              <Eye className="h-4 w-4 text-primary" /> Preview: {preview.title}
+            </h4>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleApply} disabled={applying} className="gap-1">
+                {applying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                Apply Upgrade
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setPreview(null)}>Discard</Button>
+            </div>
+          </div>
+          <div className="max-h-96 overflow-y-auto rounded-lg border border-border bg-card p-4 text-sm text-foreground whitespace-pre-wrap">
+            {preview.content.slice(0, 3000)}
+            {preview.content.length > 3000 && <span className="text-muted-foreground">... ({preview.content.length} chars total)</span>}
+          </div>
+        </div>
+      )}
+
+      {suggestions.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{suggestions.length} upgrade suggestions</p>
+          {suggestions.map((s) => (
+            <div key={s.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                    s.priority === "high" ? "bg-destructive/10 text-destructive"
+                    : s.priority === "medium" ? "bg-amber-500/10 text-amber-600"
+                    : "bg-muted text-muted-foreground"
+                  }`}>{s.priority}</span>
+                  <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-primary">{s.type}</span>
+                  {s.auto_safe && <span className="rounded bg-green-500/10 px-1.5 py-0.5 text-[10px] font-bold text-green-600">AUTO-SAFE</span>}
+                </div>
+                <h5 className="font-medium text-foreground text-sm truncate">{s.title}</h5>
+                <p className="text-xs text-muted-foreground">{s.suggestion}</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => handleUpgrade(s)}
+                disabled={upgrading === s.id} className="ml-3 gap-1 shrink-0">
+                {upgrading === s.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                Upgrade
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+

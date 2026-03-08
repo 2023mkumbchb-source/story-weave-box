@@ -70,7 +70,6 @@ export default function McqStudy() {
           questions={set.questions}
           title={set.title}
           setId={set.id}
-          hideAnswers={hideAnswers}
           onExit={() => setExamMode(false)}
         />
       </div>

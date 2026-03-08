@@ -1,22 +1,24 @@
 import { Link, useLocation } from "react-router-dom";
-import { BookOpen, GraduationCap, LayoutDashboard, ListChecks, Menu, X, Trophy, FileText } from "lucide-react";
+import { BookOpen, GraduationCap, LayoutDashboard, ListChecks, Menu, X, Trophy } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ThemeToggle from "./ThemeToggle";
 
 const links = [
-  { to: "/", label: "Home", icon: BookOpen },
   { to: "/blog", label: "Blog", icon: BookOpen },
   { to: "/flashcards", label: "Flashcards", icon: GraduationCap },
   { to: "/mcqs", label: "MCQs", icon: ListChecks },
   { to: "/exams", label: "Exams", icon: Trophy },
-  { to: "/essays", label: "Essays", icon: FileText },
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
 ];
 
 export default function Navbar() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
+
+  // Hide navbar completely on exam start/active pages
+  const isExamPage = /^\/exams\/[^/]+\/start/.test(location.pathname);
+  if (isExamPage) return null;
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-xl">
