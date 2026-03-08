@@ -24,7 +24,6 @@ export default function Navbar() {
   const [year, setYear] = useState<string>(() => sessionStorage.getItem(STORAGE_KEY) || "All");
 
   const isExamPage = /^\/exams\/[^/]+\/start/.test(location.pathname);
-  if (isExamPage) return null;
 
   useEffect(() => {
     const qpYear = new URLSearchParams(location.search).get("year");
