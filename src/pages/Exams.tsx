@@ -279,10 +279,10 @@ export default function Exams() {
                         <Input
                           type="tel"
                           placeholder="07XX XXX XXX"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
+                          value={phoneByExamId[exam.id] || ""}
+                          onChange={(e) => setPhoneByExamId((prev) => ({ ...prev, [exam.id]: e.target.value }))}
                         />
-                        <Button onClick={() => handlePay(exam)} disabled={paying || !phone.trim()} className="gap-2">
+                        <Button onClick={() => handlePay(exam)} disabled={paying || !(phoneByExamId[exam.id] || "").trim()} className="gap-2">
                           <Phone className="h-4 w-4" /> Pay KES {examPrice}
                         </Button>
                       </div>
