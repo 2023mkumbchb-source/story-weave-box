@@ -355,7 +355,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           className={`rounded-2xl border ${grade.bg} p-6 text-center`}>
           <div className="text-5xl mb-3">{grade.emoji}</div>
-          <h2 className="font-display text-2xl font-bold text-foreground mb-1">{grade.label}</h2>
+          <h2 className="font-serif text-2xl font-bold text-foreground mb-1">{grade.label}</h2>
           <p className="text-sm text-muted-foreground mb-6 truncate">{title}</p>
           <div className="flex items-center justify-center gap-6 sm:gap-10 mb-5">
             <div>
