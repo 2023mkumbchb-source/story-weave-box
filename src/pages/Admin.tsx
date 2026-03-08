@@ -384,6 +384,7 @@ export default function Admin() {
     { id: "upgrade", label: "AI Upgrade", icon: Sparkles },
     { id: "recycle", label: "Recycle Bin", icon: Trash2 },
     { id: "institutions", label: "Institutions", icon: Building2 },
+    { id: "import", label: "Import", icon: Upload },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
