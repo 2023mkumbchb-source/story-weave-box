@@ -307,13 +307,13 @@ export default function ExamMode({
               <h3 className="font-serif text-base font-bold text-foreground">Exit Exam?</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-1">
-              Your progress will be <strong className="text-foreground">lost</strong> — this will be an incomplete attempt.
+              Your progress is <strong className="text-foreground">saved automatically</strong>.
             </p>
             <p className="text-xs text-muted-foreground mb-5">
-              You will <strong className="text-foreground">not</strong> see answers — they are only available after midnight.
+              You can come back and continue this exam from where you stopped.
             </p>
             <div className="flex gap-3">
-              <button onClick={() => { setShowExitConfirm(false); onExit(); }} style={{animation:"none",transition:"none"}} className="flex-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2.5">Yes, Exit</button>
+              <Button variant="destructive" onClick={handleExitWithSave} className="flex-1">Save & Exit</Button>
               <Button variant="outline" onClick={() => setShowExitConfirm(false)} className="flex-1">Keep Going</Button>
             </div>
           </motion.div>
