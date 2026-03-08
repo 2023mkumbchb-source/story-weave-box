@@ -79,16 +79,29 @@ export default function Blog() {
   }, [selectedYear]);
 
   useEffect(() => {
-    if (!search.trim()) { setSearchMatches(null); return; }
+    const normalizedSearch = search.trim();
+    if (!normalizedSearch) {
+      setSearchMatches(null);
+      return;
+    }
+
     const t = setTimeout(async () => {
       setSearchLoading(true);
       try {
-        const results = await searchPublishedArticles(search, selectedYear === "All" ? undefined : selectedYear, selectedUnit || undefined);
-        setSearchMatches(results.filter(a => a.category !== "Stories"));
-      } finally { setSearchLoading(false); }
+        // Search across the whole selected year so unit tabs don't hide valid content hits
+        const results = await searchPublishedArticles(
+          normalizedSearch,
+          selectedYear === "All" ? undefined : selectedYear,
+          undefined,
+        );
+        setSearchMatches(results.filter((a) => a.category !== "Stories"));
+      } finally {
+        setSearchLoading(false);
+      }
     }, 220);
+
     return () => clearTimeout(t);
-  }, [search, selectedYear, selectedUnit]);
+  }, [search, selectedYear]);
 
   const setYear = (year: string) => {
     sessionStorage.setItem("nav_year_filter", year);
