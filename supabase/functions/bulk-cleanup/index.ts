@@ -513,6 +513,7 @@ serve(async (req) => {
     const batchSize = Math.min(Math.max(Number(body?.batch_size || 6), 1), 25);
     const cursor = typeof body?.cursor === "string" && body.cursor.length ? body.cursor : null;
     const yearFilter = normalizeYearFilter(body?.year);
+    const includeUnpublished = body?.include_unpublished !== false;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
