@@ -151,6 +151,16 @@ export default function ExamMode({
     return () => clearInterval(id);
   }, [startTime, submitted]);
 
+  // ── Persist in-progress session ──
+  useEffect(() => {
+    if (submitted) return;
+    saveSessionToStorage({
+      sessionId,
+      answers: [...answers.entries()],
+      elapsed,
+    });
+  }, [answers, elapsed, submitted, sessionId]);
+
   // ── Midnight unlock polling ──
   useEffect(() => {
     if (!submitted || !submittedAt) return;
