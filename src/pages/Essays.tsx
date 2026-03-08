@@ -39,7 +39,7 @@ export default function Essays() {
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-4 py-1.5 text-xs font-semibold text-accent-foreground">
               <FileText className="h-3.5 w-3.5" /> SAQs & LAQs
             </div>
-            <h1 className="mb-3 font-display text-3xl font-bold text-foreground sm:text-4xl">
+            <h1 className="mb-3 font-serif text-3xl font-bold text-foreground sm:text-4xl">
               Essays & Written Questions
             </h1>
             <p className="mx-auto max-w-lg text-sm text-muted-foreground leading-relaxed">
