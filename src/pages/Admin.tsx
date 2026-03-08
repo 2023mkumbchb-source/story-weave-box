@@ -398,10 +398,54 @@ export default function Admin() {
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
+  const activeTab = tabs.find(t => t.id === tab);
+
+  const tabGroups = [
+    { label: "Content", items: tabs.filter(t => ["create","articles","flashcards","mcqs","stories","exams"].includes(t.id)) },
+    { label: "Tools", items: tabs.filter(t => ["upgrade","cleanup","seo"].includes(t.id)) },
+    { label: "Data", items: tabs.filter(t => ["raw","import","recycle"].includes(t.id)) },
+    { label: "System", items: tabs.filter(t => ["institutions","settings"].includes(t.id)) },
+  ];
+
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8">
-      <h1 className="mb-6 font-serif text-3xl font-bold text-foreground">Dashboard</h1>
-      <div className="mb-8 flex gap-1 rounded-xl border border-border bg-secondary/50 p-1 overflow-x-auto">
+    <div className="mx-auto max-w-5xl px-3 sm:px-6 py-4 sm:py-8">
+      <h1 className="mb-4 sm:mb-6 font-serif text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
+
+      {/* Mobile: Dropdown + grid */}
+      <div className="mb-6 sm:hidden">
+        <button
+          onClick={() => {
+            const el = document.getElementById("admin-nav-panel");
+            if (el) el.classList.toggle("hidden");
+          }}
+          className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-sm"
+        >
+          <span className="flex items-center gap-2">
+            {activeTab && <activeTab.icon className="h-4 w-4 text-primary" />}
+            {activeTab?.label || "Navigate"}
+          </span>
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        </button>
+        <div id="admin-nav-panel" className="hidden mt-2 rounded-xl border border-border bg-card p-3 shadow-lg space-y-3">
+          {tabGroups.map(group => (
+            <div key={group.label}>
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{group.label}</p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {group.items.map(t => (
+                  <button key={t.id} onClick={() => { setTab(t.id); document.getElementById("admin-nav-panel")?.classList.add("hidden"); }}
+                    className={`flex flex-col items-center gap-1 rounded-lg px-2 py-2.5 text-[11px] font-medium transition-colors ${tab === t.id ? "bg-primary/10 text-primary ring-1 ring-primary/30" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                    <t.icon className="h-4 w-4" />
+                    <span className="text-center leading-tight">{t.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop: Horizontal tabs */}
+      <div className="mb-8 hidden sm:flex gap-1 rounded-xl border border-border bg-secondary/50 p-1 overflow-x-auto">
         {tabs.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${tab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
