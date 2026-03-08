@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, Bolt, AlertTriangle, Building2, Check, X, Sparkles, Eye, Upload, Wrench, Globe, Search, Copy, ExternalLink, BookOpen } from "lucide-react";
+import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, Bolt, AlertTriangle, Building2, Check, X, Sparkles, Eye, Upload, Wrench, Globe, Search, Copy, ExternalLink, BookOpen, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -398,10 +398,54 @@ export default function Admin() {
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
+  const activeTab = tabs.find(t => t.id === tab);
+
+  const tabGroups = [
+    { label: "Content", items: tabs.filter(t => ["create","articles","flashcards","mcqs","stories","exams"].includes(t.id)) },
+    { label: "Tools", items: tabs.filter(t => ["upgrade","cleanup","seo"].includes(t.id)) },
+    { label: "Data", items: tabs.filter(t => ["raw","import","recycle"].includes(t.id)) },
+    { label: "System", items: tabs.filter(t => ["institutions","settings"].includes(t.id)) },
+  ];
+
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8">
-      <h1 className="mb-6 font-serif text-3xl font-bold text-foreground">Dashboard</h1>
-      <div className="mb-8 flex gap-1 rounded-xl border border-border bg-secondary/50 p-1 overflow-x-auto">
+    <div className="mx-auto max-w-5xl px-3 sm:px-6 py-4 sm:py-8">
+      <h1 className="mb-4 sm:mb-6 font-serif text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
+
+      {/* Mobile: Dropdown + grid */}
+      <div className="mb-6 sm:hidden">
+        <button
+          onClick={() => {
+            const el = document.getElementById("admin-nav-panel");
+            if (el) el.classList.toggle("hidden");
+          }}
+          className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-sm"
+        >
+          <span className="flex items-center gap-2">
+            {activeTab && <activeTab.icon className="h-4 w-4 text-primary" />}
+            {activeTab?.label || "Navigate"}
+          </span>
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        </button>
+        <div id="admin-nav-panel" className="hidden mt-2 rounded-xl border border-border bg-card p-3 shadow-lg space-y-3">
+          {tabGroups.map(group => (
+            <div key={group.label}>
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{group.label}</p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {group.items.map(t => (
+                  <button key={t.id} onClick={() => { setTab(t.id); document.getElementById("admin-nav-panel")?.classList.add("hidden"); }}
+                    className={`flex flex-col items-center gap-1 rounded-lg px-2 py-2.5 text-[11px] font-medium transition-colors ${tab === t.id ? "bg-primary/10 text-primary ring-1 ring-primary/30" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                    <t.icon className="h-4 w-4" />
+                    <span className="text-center leading-tight">{t.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop: Horizontal tabs */}
+      <div className="mb-8 hidden sm:flex gap-1 rounded-xl border border-border bg-secondary/50 p-1 overflow-x-auto">
         {tabs.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${tab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
@@ -815,16 +859,16 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
           <h4 className="mb-3 text-sm font-bold text-foreground uppercase tracking-wide">Articles ({articles.length})</h4>
           <div className="space-y-2">
             {articles.map((a) => (
-              <div key={a.id} className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-card p-4">
-                <div className="min-w-0 flex-1">
-                  <h5 className="font-medium text-foreground truncate">{a.title}</h5>
-                  <p className="text-xs text-muted-foreground">{a.category} · {new Date(a.created_at).toLocaleDateString()}</p>
+              <div key={a.id} className="rounded-xl border border-amber-500/20 bg-card p-3 sm:p-4">
+                <div className="min-w-0">
+                  <h5 className="font-medium text-foreground text-sm break-words">{a.title}</h5>
+                  <p className="text-xs text-muted-foreground mt-0.5">{a.category} · {new Date(a.created_at).toLocaleDateString()}</p>
                 </div>
-                <div className="flex gap-2 ml-3 shrink-0">
-                  <Button size="sm" onClick={() => handleFormatOne("article", a)} disabled={formatting || currentItem === a.id} className="gap-1 text-xs">
+                <div className="flex gap-2 mt-2 pt-2 border-t border-border/50">
+                  <Button size="sm" onClick={() => handleFormatOne("article", a)} disabled={formatting || currentItem === a.id} className="gap-1 text-xs h-8">
                     {currentItem === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />} Format
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => handleDelete("article", a.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                  <Button size="sm" variant="ghost" onClick={() => handleDelete("article", a.id)} className="text-destructive h-8 ml-auto"><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
             ))}
@@ -836,16 +880,16 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
           <h4 className="mb-3 text-sm font-bold text-foreground uppercase tracking-wide">Flashcard Sets ({flashcardSets.length})</h4>
           <div className="space-y-2">
             {flashcardSets.map((s) => (
-              <div key={s.id} className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-card p-4">
-                <div className="min-w-0 flex-1">
-                  <h5 className="font-medium text-foreground truncate">{s.title}</h5>
-                  <p className="text-xs text-muted-foreground">{s.category} · {s.cards.length} cards · {new Date(s.created_at).toLocaleDateString()}</p>
+              <div key={s.id} className="rounded-xl border border-amber-500/20 bg-card p-3 sm:p-4">
+                <div className="min-w-0">
+                  <h5 className="font-medium text-foreground text-sm break-words">{s.title}</h5>
+                  <p className="text-xs text-muted-foreground mt-0.5">{s.category} · {s.cards.length} cards · {new Date(s.created_at).toLocaleDateString()}</p>
                 </div>
-                <div className="flex gap-2 ml-3 shrink-0">
-                  <Button size="sm" onClick={() => handleFormatOne("flashcards", s)} disabled={formatting || currentItem === s.id} className="gap-1 text-xs">
+                <div className="flex gap-2 mt-2 pt-2 border-t border-border/50">
+                  <Button size="sm" onClick={() => handleFormatOne("flashcards", s)} disabled={formatting || currentItem === s.id} className="gap-1 text-xs h-8">
                     {currentItem === s.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />} Format
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => handleDelete("flashcards", s.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                  <Button size="sm" variant="ghost" onClick={() => handleDelete("flashcards", s.id)} className="text-destructive h-8 ml-auto"><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
             ))}
@@ -857,16 +901,16 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
           <h4 className="mb-3 text-sm font-bold text-foreground uppercase tracking-wide">MCQ Sets ({mcqSets.length})</h4>
           <div className="space-y-2">
             {mcqSets.map((s) => (
-              <div key={s.id} className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-card p-4">
-                <div className="min-w-0 flex-1">
-                  <h5 className="font-medium text-foreground truncate">{s.title}</h5>
-                  <p className="text-xs text-muted-foreground">{s.category} · {s.questions.length} questions · {new Date(s.created_at).toLocaleDateString()}</p>
+              <div key={s.id} className="rounded-xl border border-amber-500/20 bg-card p-3 sm:p-4">
+                <div className="min-w-0">
+                  <h5 className="font-medium text-foreground text-sm break-words">{s.title}</h5>
+                  <p className="text-xs text-muted-foreground mt-0.5">{s.category} · {s.questions.length} questions · {new Date(s.created_at).toLocaleDateString()}</p>
                 </div>
-                <div className="flex gap-2 ml-3 shrink-0">
-                  <Button size="sm" onClick={() => handleFormatOne("mcqs", s)} disabled={formatting || currentItem === s.id} className="gap-1 text-xs">
+                <div className="flex gap-2 mt-2 pt-2 border-t border-border/50">
+                  <Button size="sm" onClick={() => handleFormatOne("mcqs", s)} disabled={formatting || currentItem === s.id} className="gap-1 text-xs h-8">
                     {currentItem === s.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />} Format
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => handleDelete("mcqs", s.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                  <Button size="sm" variant="ghost" onClick={() => handleDelete("mcqs", s.id)} className="text-destructive h-8 ml-auto"><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
             ))}
@@ -1058,25 +1102,27 @@ function ArticlesList({
           <h4 className="mb-3 text-xs font-bold text-primary uppercase tracking-wide">{getCategoryDisplayName(cat)} ({arts.length})</h4>
           <div className="space-y-2">
             {arts.map(a => (
-              <div key={a.id} className={`flex items-center justify-between rounded-xl border bg-card p-4 transition-colors ${updatedIds.has(a.id) ? "border-primary/40 bg-primary/5" : "border-border"}`}>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h5 className="font-medium text-foreground truncate">{a.title}</h5>
-                    {updatedIds.has(a.id) && (
-                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
-                        <Check className="h-2.5 w-2.5" /> Updated
-                      </span>
-                    )}
+              <div key={a.id} className={`rounded-xl border bg-card p-3 sm:p-4 transition-colors ${updatedIds.has(a.id) ? "border-primary/40 bg-primary/5" : "border-border"}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h5 className="font-medium text-foreground text-sm leading-snug break-words">{a.title}</h5>
+                      {updatedIds.has(a.id) && (
+                        <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
+                          <Check className="h-2.5 w-2.5" /> Updated
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {new Date(a.created_at).toLocaleDateString()} · {a.published ? "Published" : "Draft"}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(a.created_at).toLocaleDateString()} · {a.published ? "Published" : "Draft"}
-                  </p>
                 </div>
-                <div className="flex gap-1 ml-2 shrink-0">
-                  <Button size="sm" variant="ghost" asChild className="text-xs"><a href={buildBlogPath(a)} target="_blank" rel="noopener"><Eye className="h-3.5 w-3.5" /></a></Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditing(a)}><Pencil className="h-4 w-4" /></Button>
-                  <Button size="sm" variant="ghost" onClick={() => togglePublish(a)}>{a.published ? "Unpublish" : "Publish"}</Button>
-                  <Button size="sm" variant="ghost" onClick={() => handleDelete(a.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                <div className="flex gap-1 mt-2 pt-2 border-t border-border/50 flex-wrap">
+                  <Button size="sm" variant="ghost" asChild className="text-xs h-8"><a href={buildBlogPath(a)} target="_blank" rel="noopener"><Eye className="h-3.5 w-3.5 mr-1" /><span className="sm:inline hidden">View</span></a></Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditing(a)} className="h-8"><Pencil className="h-3.5 w-3.5 mr-1" /><span className="sm:inline hidden">Edit</span></Button>
+                  <Button size="sm" variant="ghost" onClick={() => togglePublish(a)} className="h-8 text-xs">{a.published ? "Unpublish" : "Publish"}</Button>
+                  <Button size="sm" variant="ghost" onClick={() => handleDelete(a.id)} className="text-destructive h-8 ml-auto"><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
             ))}
@@ -1127,18 +1173,18 @@ function FlashcardsList() {
   return (
     <div className="space-y-3">
       {sets.map((s) => (
-        <div key={s.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
-          <div className="min-w-0 flex-1">
-            <h4 className="font-medium text-foreground truncate">{s.title}</h4>
-            <p className="text-xs text-muted-foreground">
+        <div key={s.id} className="rounded-xl border border-border bg-card p-3 sm:p-4">
+          <div className="min-w-0">
+            <h4 className="font-medium text-foreground text-sm break-words">{s.title}</h4>
+            <p className="text-xs text-muted-foreground mt-0.5">
               {s.category !== "Uncategorized" && <span className="text-primary">{getCategoryDisplayName(s.category)} · </span>}
               {s.cards.length} cards · {new Date(s.created_at).toLocaleDateString()} · {s.published ? "Published" : "Draft"}
             </p>
           </div>
-          <div className="flex gap-2 ml-2">
-            <Button size="sm" variant="ghost" onClick={() => setEditing(s)}><Pencil className="h-4 w-4" /></Button>
-            <Button size="sm" variant="ghost" onClick={() => togglePublish(s)}>{s.published ? "Unpublish" : "Publish"}</Button>
-            <Button size="sm" variant="ghost" onClick={() => handleDelete(s.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+          <div className="flex gap-1 mt-2 pt-2 border-t border-border/50 flex-wrap">
+            <Button size="sm" variant="ghost" onClick={() => setEditing(s)} className="h-8"><Pencil className="h-3.5 w-3.5 mr-1" /><span className="text-xs">Edit</span></Button>
+            <Button size="sm" variant="ghost" onClick={() => togglePublish(s)} className="h-8 text-xs">{s.published ? "Unpublish" : "Publish"}</Button>
+            <Button size="sm" variant="ghost" onClick={() => handleDelete(s.id)} className="text-destructive h-8 ml-auto"><Trash2 className="h-3.5 w-3.5" /></Button>
           </div>
         </div>
       ))}
@@ -1198,28 +1244,26 @@ function McqsList() {
   return (
     <div className="space-y-3">
       {sets.map((s) => (
-        <div key={s.id} className="rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h4 className="font-medium text-foreground truncate">{s.title}</h4>
-                {s.access_password && s.access_password !== "" && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                    <Key className="h-2.5 w-2.5" /> Locked
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {s.category !== "Uncategorized" && <span className="text-primary">{getCategoryDisplayName(s.category)} · </span>}
-                {s.questions.length} questions · {new Date(s.created_at).toLocaleDateString()} · {s.published ? "Published" : "Draft"}
-              </p>
+        <div key={s.id} className="rounded-xl border border-border bg-card p-3 sm:p-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="font-medium text-foreground text-sm break-words">{s.title}</h4>
+              {s.access_password && s.access_password !== "" && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                  <Key className="h-2.5 w-2.5" /> Locked
+                </span>
+              )}
             </div>
-            <div className="flex gap-1 ml-2 flex-wrap justify-end">
-              <Button size="sm" variant="ghost" onClick={() => { setPasswordSetId(passwordSetId === s.id ? null : s.id); setPasswordValue(s.access_password || ""); }}><Key className="h-4 w-4" /></Button>
-              <Button size="sm" variant="ghost" onClick={() => setEditing(s)}><Pencil className="h-4 w-4" /></Button>
-              <Button size="sm" variant="ghost" onClick={() => togglePublish(s)}>{s.published ? "Unpublish" : "Publish"}</Button>
-              <Button size="sm" variant="ghost" onClick={() => handleDelete(s.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
-            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {s.category !== "Uncategorized" && <span className="text-primary">{getCategoryDisplayName(s.category)} · </span>}
+              {s.questions.length} questions · {new Date(s.created_at).toLocaleDateString()} · {s.published ? "Published" : "Draft"}
+            </p>
+          </div>
+          <div className="flex gap-1 mt-2 pt-2 border-t border-border/50 flex-wrap">
+            <Button size="sm" variant="ghost" onClick={() => { setPasswordSetId(passwordSetId === s.id ? null : s.id); setPasswordValue(s.access_password || ""); }} className="h-8"><Key className="h-3.5 w-3.5" /></Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing(s)} className="h-8"><Pencil className="h-3.5 w-3.5 mr-1" /><span className="text-xs">Edit</span></Button>
+            <Button size="sm" variant="ghost" onClick={() => togglePublish(s)} className="h-8 text-xs">{s.published ? "Unpublish" : "Publish"}</Button>
+            <Button size="sm" variant="ghost" onClick={() => handleDelete(s.id)} className="text-destructive h-8 ml-auto"><Trash2 className="h-3.5 w-3.5" /></Button>
           </div>
           {passwordSetId === s.id && (
             <div className="mt-3 pt-3 border-t border-border">
