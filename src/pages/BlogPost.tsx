@@ -476,7 +476,7 @@ function ArticleContent({ content }: { content: string }) {
 
 /* ─── Sidebar TOC ─── */
 function SidebarToc({ items, activeId }: { items: TocItem[]; activeId: string }) {
-  if (items.length < 2) return null;
+  if (items.length < 1) return null;
   return (
     <nav className="sticky top-20 space-y-0.5">
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Contents</p>
