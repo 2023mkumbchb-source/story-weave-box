@@ -216,6 +216,8 @@ export default function ExamMode({
       });
     }
 
+    clearSessionFromStorage(sessionId);
+
     // Save student credentials so they don't need to re-enter next time
     if (studentInfo) {
       try {
