@@ -863,8 +863,38 @@ serve(async (req) => {
             processedArticles.push({ id: article.id, title: article.title, action: "no_change" });
           }
         } catch (err: any) {
+          const message = String(err?.message || "Unknown");
+          const isRateLimited = /429|rate-?limit/i.test(message);
+
+          if (isRateLimited) {
+            try {
+              const fallback = await processNonAiArticle(sb, article);
+              if (fallback.action === "updated") fixed++;
+              else if (fallback.action === "migrated_mcq") migrated_mcqs++;
+              else if (fallback.action === "migrated_essay") migrated_essays++;
+              else if (fallback.action === "deleted") deleted++;
+
+              processedArticles.push({
+                id: fallback.id,
+                title: fallback.title,
+                action: `${fallback.action}_fallback`,
+                details: "AI rate-limited",
+              });
+              continue;
+            } catch (fallbackErr: any) {
+              failed++;
+              processedArticles.push({
+                id: article.id,
+                title: article.title,
+                action: "failed",
+                error: fallbackErr?.message || message,
+              });
+              continue;
+            }
+          }
+
           failed++;
-          processedArticles.push({ id: article.id, title: article.title, action: "failed", error: err?.message || "Unknown" });
+          processedArticles.push({ id: article.id, title: article.title, action: "failed", error: message });
         }
 
         if (Date.now() - startedAt > CPU_BUDGET_MS) {
