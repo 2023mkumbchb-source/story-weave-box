@@ -76,7 +76,51 @@ function json(data: unknown, status = 200) {
   });
 }
 
-serve(async (req) => {
+function extractJsonFromResponse(responseText: string): any {
+  let cleaned = (responseText || "")
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
+  const jsonStart = cleaned.search(/[\{\[]/);
+  if (jsonStart === -1) throw new Error("No JSON found in AI response");
+
+  const firstChar = cleaned[jsonStart];
+  const jsonEnd = cleaned.lastIndexOf(firstChar === "[" ? "]" : "}");
+  if (jsonEnd === -1) throw new Error("No JSON closing token found");
+
+  cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const normalized = cleaned
+      .replace(/,\s*}/g, "}")
+      .replace(/,\s*]/g, "]")
+      .replace(/[\x00-\x1F\x7F]/g, "");
+    return JSON.parse(normalized);
+  }
+}
+
+function toSlug(value: string): string {
+  return (value || "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 60);
+}
+
+function extractFirstImageUrl(markdown: string): string | null {
+  if (!markdown) return null;
+  const mdImage = markdown.match(/!\[[^\]]*\]\((https?:\/\/[^\s)]+|data:image\/[^\s)]+)\)/i)?.[1];
+  if (mdImage) return mdImage;
+
+  const htmlImage = markdown.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i)?.[1];
+  return htmlImage || null;
+}
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
