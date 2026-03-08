@@ -44,7 +44,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const baseUrl = 'https://ompathstud.lovable.app';
+    const baseUrl = 'https://medicine.kenyaadverts.co.ke';
     const title = article.meta_title || article.title;
     const description = article.meta_description || `Study ${article.title} - medical notes on Ompath Study.`;
     const image = article.og_image_url || `${baseUrl}/icon-512.png`;

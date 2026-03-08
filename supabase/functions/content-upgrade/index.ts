@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"];
-const DEFAULT_SITE_URL = "https://ompathstud.lovable.app";
+const DEFAULT_SITE_URL = "https://medicine.kenyaadverts.co.ke";
 
 function normalizeBaseUrl(url: string | null | undefined): string {
   const trimmed = String(url || "").trim();
