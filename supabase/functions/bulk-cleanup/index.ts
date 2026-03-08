@@ -449,7 +449,8 @@ async function processNonAiArticle(
   }
 
   const mcqs = extractMcqsFromContent(analysisContent);
-  if (mcqs.length >= 5) {
+  const likelyMcqByTitle = /\bmcq\b|multiple\s+choice/i.test(`${article.title} ${newTitle}`);
+  if (mcqs.length >= 3 || (likelyMcqByTitle && mcqs.length >= 1)) {
     const { error: mcqError } = await sb.from("mcq_sets").insert({
       title: normalizeTitle(newTitle),
       questions: mcqs,
