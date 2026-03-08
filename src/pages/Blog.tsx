@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Search, X, Loader2, BookOpen, Clock, ArrowRight } from "lucide-react";
-import { getPublishedArticles, getCategories, getCategoryDisplayName, type Article } from "@/lib/store";
+import { Search, X, Loader2, BookOpen, Clock, ArrowRight, GraduationCap } from "lucide-react";
+import { getPublishedArticles, getCategories, getCategoryDisplayName, getYearFromCategory, getYearNumber, type Article } from "@/lib/store";
 import ArticleCard from "@/components/ArticleCard";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
-import CategoryTabs from "@/components/CategoryTabs";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+
+const YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5"];
 
 function timeAgo(ms: number): string {
   const diff = Date.now() - ms;
@@ -21,37 +22,84 @@ function timeAgo(ms: number): string {
 export default function Blog() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [articles, setArticles] = useState<Article[]>([]);
-  const [categories, setCategories] = useState<{ name: string; count: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [recentArticles, setRecentArticles] = useState<RecentArticle[]>([]);
-  const selectedCategory = searchParams.get("category");
+  const selectedYear = searchParams.get("year") || "All";
+  const selectedUnit = searchParams.get("unit");
 
   useEffect(() => {
-    Promise.all([getPublishedArticles(), getCategories()]).then(([a, c]) => {
-      setArticles(a);
-      setCategories(c);
-    }).finally(() => setLoading(false));
+    getPublishedArticles().then(setArticles).finally(() => setLoading(false));
     setRecentArticles(getRecentArticles());
   }, []);
 
-  const setSelectedCategory = (cat: string | null) => {
-    if (cat) setSearchParams({ category: cat });
+  const setYear = (year: string) => {
+    if (year === "All") setSearchParams({});
+    else setSearchParams({ year });
+  };
+
+  const setUnit = (unit: string | null) => {
+    if (unit) setSearchParams({ year: selectedYear, unit });
+    else if (selectedYear !== "All") setSearchParams({ year: selectedYear });
     else setSearchParams({});
   };
 
+  // Get unique units for the selected year
+  const unitsForYear = useMemo(() => {
+    if (selectedYear === "All") return [];
+    const units = new Map<string, number>();
+    articles.forEach(a => {
+      const year = getYearFromCategory(a.category);
+      if (year === selectedYear) {
+        const unitName = getCategoryDisplayName(a.category);
+        units.set(a.category, (units.get(a.category) || 0) + 1);
+      }
+    });
+    return Array.from(units.entries())
+      .map(([cat, count]) => ({ category: cat, name: getCategoryDisplayName(cat), count }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [articles, selectedYear]);
+
   const filtered = useMemo(() => articles.filter((a) => {
+    if (a.category === "Stories") return false;
     const matchesSearch = !search.trim() ||
       a.title.toLowerCase().includes(search.toLowerCase()) ||
       getCategoryDisplayName(a.category).toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = !selectedCategory || a.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  }), [articles, search, selectedCategory]);
+    const matchesYear = selectedYear === "All" || getYearFromCategory(a.category) === selectedYear;
+    const matchesUnit = !selectedUnit || a.category === selectedUnit;
+    return matchesSearch && matchesYear && matchesUnit;
+  }), [articles, search, selectedYear, selectedUnit]);
 
-  const categoryNames = categories.map((c) => c.name);
-  const categoryCounts = Object.fromEntries(categories.map((c) => [c.name, c.count]));
-  const isSearching = search.trim().length > 0;
+  // Group by unit when showing "All" or a year without unit selected
+  const groupedArticles = useMemo(() => {
+    if (selectedUnit || search.trim()) return null;
+    const groups = new Map<string, Article[]>();
+    filtered.forEach(a => {
+      const key = a.category || "Uncategorized";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(a);
+    });
+    return Array.from(groups.entries())
+      .map(([cat, arts]) => ({ category: cat, name: getCategoryDisplayName(cat), articles: arts }))
+      .sort((a, b) => {
+        const ya = getYearNumber(a.category);
+        const yb = getYearNumber(b.category);
+        if (ya !== yb) return ya - yb;
+        return a.name.localeCompare(b.name);
+      });
+  }, [filtered, selectedUnit, search]);
+
+  const yearCounts = useMemo(() => {
+    const counts: Record<string, number> = { All: 0 };
+    articles.forEach(a => {
+      if (a.category === "Stories") return;
+      counts.All++;
+      const year = getYearFromCategory(a.category);
+      if (year) counts[year] = (counts[year] || 0) + 1;
+    });
+    return counts;
+  }, [articles]);
 
   if (loading) {
     return (
@@ -62,21 +110,30 @@ export default function Blog() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-5 sm:px-6 py-10 sm:py-12">
-      <div className="mb-7">
-        <h1 className="mb-1 font-display text-3xl sm:text-4xl font-bold text-foreground">Articles</h1>
-        <p className="text-muted-foreground text-sm sm:text-base">Study articles generated from notes</p>
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-12">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+            <GraduationCap className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">Study Notes</h1>
+            <p className="text-muted-foreground text-sm">{yearCounts.All} articles across {YEARS.length - 1} years</p>
+          </div>
+        </div>
       </div>
 
-      {!isSearching && !selectedCategory && recentArticles.length > 0 && (
+      {/* Recently Read */}
+      {!search.trim() && selectedYear === "All" && !selectedUnit && recentArticles.length > 0 && (
         <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
           className="mb-8 rounded-2xl border border-border bg-card/60 p-4 sm:p-5">
           <div className="mb-3 flex items-center gap-2">
             <Clock className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-semibold text-foreground">Recently Read</h2>
+            <h2 className="text-sm font-semibold text-foreground">Continue Reading</h2>
           </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {recentArticles.slice(0, 5).map((ra, i) => (
+            {recentArticles.slice(0, 3).map((ra, i) => (
               <motion.div key={ra.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
                 <Link to={`/blog/${ra.id}`}
                   className="group flex items-start gap-3 rounded-xl border border-border bg-background px-3 py-2.5 hover:border-primary/40 hover:bg-primary/5 transition-colors">
@@ -85,15 +142,7 @@ export default function Blog() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-1 text-sm font-medium text-foreground group-hover:text-primary transition-colors leading-snug">{ra.title}</p>
-                    <div className="mt-0.5 flex items-center gap-1.5">
-                      {ra.category && ra.category !== "Uncategorized" && (
-                        <span className="text-[10px] text-primary/70 font-medium">{getCategoryDisplayName(ra.category)}</span>
-                      )}
-                      {ra.category && ra.category !== "Uncategorized" && (
-                        <span className="text-[10px] text-muted-foreground">·</span>
-                      )}
-                      <span className="text-[10px] text-muted-foreground">{timeAgo(ra.visitedAt)}</span>
-                    </div>
+                    <span className="text-[10px] text-muted-foreground">{timeAgo(ra.visitedAt)}</span>
                   </div>
                   <ArrowRight className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground/50 group-hover:text-primary transition-colors" />
                 </Link>
@@ -103,6 +152,7 @@ export default function Blog() {
         </motion.div>
       )}
 
+      {/* Search */}
       <div className="mb-5">
         <div className={`relative flex items-center rounded-xl border transition-all ${
           searchFocused ? "border-primary ring-2 ring-primary/20" : "border-border"
@@ -118,37 +168,110 @@ export default function Blog() {
             </button>
           )}
         </div>
-        {isSearching && (
+        {search.trim() && (
           <p className="mt-2 px-1 text-sm text-muted-foreground">
             {filtered.length === 0
               ? <span className="text-destructive">No articles match "<strong>{search}</strong>"</span>
-              : <><strong className="text-foreground">{filtered.length}</strong> of {articles.length} articles match</>
+              : <><strong className="text-foreground">{filtered.length}</strong> results</>
             }
           </p>
         )}
       </div>
 
-      <CategoryTabs
-        categories={categoryNames}
-        counts={categoryCounts}
-        totalCount={articles.length}
-        selected={selectedCategory}
-        onChange={setSelectedCategory}
-      />
+      {/* Year Tabs */}
+      <div className="mb-6">
+        <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+          {YEARS.map(year => {
+            const count = yearCounts[year] || 0;
+            const active = selectedYear === year;
+            return (
+              <button
+                key={year}
+                onClick={() => { setYear(year); }}
+                className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-all whitespace-nowrap ${
+                  active
+                    ? "bg-primary text-primary-foreground shadow-md"
+                    : "bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80"
+                }`}
+              >
+                {year}
+                {count > 0 && (
+                  <span className={`ml-1.5 text-xs ${active ? "opacity-80" : "opacity-50"}`}>{count}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
+      {/* Unit filter chips (when a year is selected) */}
+      {selectedYear !== "All" && unitsForYear.length > 0 && (
+        <div className="mb-6">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setUnit(null)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                !selectedUnit
+                  ? "bg-primary/10 text-primary border border-primary/30"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              All Units
+            </button>
+            {unitsForYear.map(u => (
+              <button
+                key={u.category}
+                onClick={() => setUnit(selectedUnit === u.category ? null : u.category)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  selectedUnit === u.category
+                    ? "bg-primary/10 text-primary border border-primary/30"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {u.name} <span className="opacity-50">{u.count}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Content */}
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-12 text-center">
           <BookOpen className="mx-auto mb-4 h-10 w-10 text-muted-foreground opacity-30" />
-          <p className="font-medium text-foreground">
-            {articles.length === 0 ? "No articles yet" : "No articles match your search"}
-          </p>
-          {articles.length === 0 && (
-            <p className="mt-1 text-sm text-muted-foreground">Create some from the dashboard!</p>
-          )}
+          <p className="font-medium text-foreground">No articles found</p>
+          <p className="mt-1 text-sm text-muted-foreground">Try a different year or search term</p>
+        </div>
+      ) : groupedArticles && !search.trim() ? (
+        <div className="space-y-10">
+          {groupedArticles.map(group => (
+            <motion.div
+              key={group.category}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <div className="mb-4 flex items-center gap-3">
+                <h2 className="font-display text-lg font-bold text-foreground">{group.name}</h2>
+                <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">{group.articles.length}</span>
+                <div className="flex-1 border-b border-border" />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {group.articles.slice(0, 6).map(a => <ArticleCard key={a.id} article={a} />)}
+              </div>
+              {group.articles.length > 6 && (
+                <button
+                  onClick={() => setUnit(group.category)}
+                  className="mt-3 text-sm font-medium text-primary hover:underline"
+                >
+                  View all {group.articles.length} articles →
+                </button>
+              )}
+            </motion.div>
+          ))}
         </div>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((a) => <ArticleCard key={a.id} article={a} />)}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map(a => <ArticleCard key={a.id} article={a} />)}
         </div>
       )}
     </div>
