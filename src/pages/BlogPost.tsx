@@ -467,7 +467,7 @@ function ArticleContent({ content }: { content: string }) {
     }
 
     // Paragraph
-    els.push(<p key={`p-${i}`} className="mb-4 text-[15px] leading-[1.8] text-foreground/85"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
+    els.push(<p key={`p-${i}`} className="mb-5 text-base leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
   });
 
   flushList(); flushTable(); flushPractice();
