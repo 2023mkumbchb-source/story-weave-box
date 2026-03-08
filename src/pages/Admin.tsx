@@ -2700,6 +2700,7 @@ function SeoIndexingTab() {
   const handleLoadBatches = async () => {
     setLoadingBatches(true);
     try {
+      await syncSiteUrlConfig();
       const { data, error } = await supabase.functions.invoke("google-indexing", {
         body: { action: "list_all_urls", year: seoYear === "All" ? null : seoYear, content_type: contentTypeFilter, site_url: siteUrlInput },
       });
