@@ -42,7 +42,17 @@ interface RelatedResult {
   mcqs: { set: any; startIndex: number }[];
 }
 
-// ── Storage ────────────────────────────────────────────────────────────────────
+// Strip markdown headers and "Choices:" suffix from question text
+function cleanQuestionText(text: string | undefined): string {
+  if (!text) return "";
+  return text
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^Question\s*\d+\s*/i, "")
+    .replace(/\s*Choices:\s*$/i, "")
+    .trim();
+}
+
+
 const HISTORY_KEY  = "mcq_history_";
 const PROGRESS_KEY = "mcq_progress_";
 
@@ -475,7 +485,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
           <div className="mb-4 rounded-2xl border border-border bg-card p-5 sm:p-6"
             style={{ boxShadow: "var(--shadow-elevated)" }}>
             <span className="mb-3 block text-xs font-medium uppercase tracking-wider text-primary">Question</span>
-            <p className="text-base sm:text-lg font-medium text-foreground leading-relaxed break-words">{q?.question}</p>
+            <p className="text-base sm:text-lg font-medium text-foreground leading-relaxed break-words">{cleanQuestionText(q?.question)}</p>
           </div>
 
           {/* Options */}
@@ -674,7 +684,7 @@ function MiniQuiz({ set, startIndex = 0, onDone }: { set: any; startIndex?: numb
         </p>
         <span className="text-[10px] text-muted-foreground">{score.correct}/{score.total}</span>
       </div>
-      <p className="text-xs font-medium text-foreground leading-snug mb-2 break-words">{q.question}</p>
+      <p className="text-xs font-medium text-foreground leading-snug mb-2 break-words">{cleanQuestionText(q.question)}</p>
       <div className="space-y-1 mb-2">
         {(q.options ?? []).map((opt: string, i: number) => {
           const isCorrect = revealed && i === q.correct_answer;
