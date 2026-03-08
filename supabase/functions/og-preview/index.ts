@@ -75,10 +75,7 @@ serve(async (req) => {
     }
 
     const baseUrl = 'https://medicine.kenyaadverts.co.ke';
-    const title = article.meta_title || article.title;
-    const description = article.meta_description || `Study ${article.title} - medical notes on Ompath Study.`;
-    const image = article.og_image_url || `${baseUrl}/icon-512.png`;
-    const canonicalPath = article.slug ? `/blog/${article.slug}` : `/blog/${article.id}`;
+    const ogImage = image || `${baseUrl}/icon-512.png`;
     const canonical = `${baseUrl}${canonicalPath}`;
 
     // Return HTML page with meta tags that redirects to the SPA
