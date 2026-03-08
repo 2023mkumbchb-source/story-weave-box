@@ -411,8 +411,8 @@ function ArticleContent({ content }: { content: string }) {
       if (!listBuf || listBuf.type !== "ol") { flushList(); listBuf = { type: "ol", items: [] }; }
       const num = t.match(/^(\d+)/)?.[1] ?? "";
       listBuf.items.push(
-        <li key={`ol-${i}`} className="flex items-start gap-2.5 text-[15px] text-foreground/85 leading-relaxed">
-          <span className="shrink-0 flex items-center justify-center rounded-full border border-primary/40 bg-primary/5 text-primary text-xs font-semibold w-6 h-6 mt-0.5">{num}</span>
+        <li key={`ol-${i}`} className="flex items-start gap-2.5 text-base text-foreground/90 leading-8">
+          <span className="shrink-0 flex items-center justify-center rounded-full border border-primary/40 bg-primary/5 text-primary text-xs font-semibold w-6 h-6 mt-1">{num}</span>
           <span className="flex-1"><Inline text={t.replace(/^\d+\.\s/, "")} /></span>
         </li>
       );
