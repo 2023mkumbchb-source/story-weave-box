@@ -111,11 +111,34 @@ function detectBestCategory(title: string, content: string): string | null {
   return bestScore >= 2 ? bestMatch : null;
 }
 
+type ExtractedMcq = { question: string; options: string[]; correct_answer: number; explanation?: string };
+
+function looksLikeEssayContent(content: string): boolean {
+  const text = content || "";
+  const longEssaySignals = (text.match(/\blong\s+essay\s+question\b/gi) || []).length;
+  const shortAnswerSignals = (text.match(/\bshort\s+answer\s+questions?\b/gi) || []).length;
+  const marksSignals = (text.match(/\(\s*\d+\s*marks?\s*\)/gi) || []).length;
+  const subQuestionSignals = (text.match(/^\s*[a-e][\).]\s+.+$/gim) || []).length;
+  const essayDirectiveSignals = (text.match(/\b(?:discuss|outline|describe|explain|classify|differentiate|calculate)\b/gi) || []).length;
+  const explicitEssayKeywords = /\b(?:essay|saq|laq|short\s+answer|long\s+answer)\b/i.test(text);
+
+  return (
+    explicitEssayKeywords ||
+    longEssaySignals >= 1 ||
+    shortAnswerSignals >= 1 ||
+    (marksSignals >= 5 && subQuestionSignals >= 5 && essayDirectiveSignals >= 4)
+  );
+}
+
 function isMcqContent(content: string): boolean {
   const text = content || "";
+  const lines = text.split("\n");
   const questionHeadings = (text.match(/^\s*(?:#+\s*)?(?:\*\*)?question\s*\d+/gim) || []).length;
   const answerLines = (text.match(/^\s*\*{0,2}answer\s*[:\-]\s*[A-E](?:[\).]|\b)/gim) || []).length;
-  const optionLines = (text.match(/^\s*[A-Ea-e][\).]\s+/gm) || []).length;
+  const optionLines = lines.filter((line) => {
+    const trimmed = line.trim();
+    return /^[A-Ea-e][\).]\s+/.test(trimmed) && trimmed.length <= 140 && !/\bmarks?\b/i.test(trimmed);
+  }).length;
   const inlineOptionRuns = (text.match(/\b[a-e][\).]\s+[^\n]{2,120}(?=\s+[b-e][\).]\s+)/gi) || []).length;
   const hasMcqKeywords = /\bmcq|multiple choice|choose the (?:best|correct) answer\b/i.test(text);
 
@@ -128,7 +151,22 @@ function isMcqContent(content: string): boolean {
   );
 }
 
-function extractMcqsFromContent(content: string): { question: string; options: string[]; correct_answer: number; explanation?: string }[] {
+function isLikelyValidMcqItem(item: ExtractedMcq): boolean {
+  if (!item.question || item.question.trim().length < 8 || item.question.trim().length > 320) return false;
+  if (!Array.isArray(item.options) || item.options.length < 4 || item.options.length > 6) return false;
+
+  const optionLengths = item.options.map((opt) => opt.trim().length);
+  const avgOptionLength = optionLengths.reduce((acc, len) => acc + len, 0) / optionLengths.length;
+  const maxOptionLength = Math.max(...optionLengths);
+  const essayishText = `${item.question} ${item.options.join(" ")}`;
+
+  if (maxOptionLength > 180 || avgOptionLength > 90) return false;
+  if (/\b(?:long\s+essay|short\s+answer|\(\s*\d+\s*marks?\s*\)|discuss|describe|outline|explain)\b/i.test(essayishText)) return false;
+
+  return true;
+}
+
+function extractMcqsFromContent(content: string): ExtractedMcq[] {
   const questions: Array<{ question: string; options: string[]; correct_answer: number; explanation?: string }> = [];
   const seenQuestions = new Set<string>();
   const normalizedContent = (content || "").replace(/\r/g, "");
