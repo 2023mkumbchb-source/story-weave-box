@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
-import { Search, X, Loader2, BookOpen, Clock, ArrowRight, ArrowLeft } from "lucide-react";
+import { Search, X, Loader2, BookOpen, Clock, ArrowRight, ArrowLeft, Bone, Brain, FlaskConical, HeartPulse, Microscope } from "lucide-react";
 import {
   getCategoryDisplayName,
   getYearFromCategory,
