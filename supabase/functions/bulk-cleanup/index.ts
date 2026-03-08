@@ -60,7 +60,7 @@ type AiCleanupOutput = {
 };
 
 function normalizeTitle(title: string): string {
-  const trimmed = title.replace(/\s+/g, " ").trim();
+  const trimmed = (title || "").replace(/\s+/g, " ").trim();
   const withoutNoise = trimmed
     .replace(/^\d{4}\s+(end\s+year|mid\s+year|supplementary)\s+/i, "")
     .replace(/^yr\s*\d+\s+/i, "")
@@ -68,7 +68,7 @@ function normalizeTitle(title: string): string {
     .trim();
 
   const likelyAllCaps = withoutNoise.length > 10 && withoutNoise === withoutNoise.toUpperCase();
-  if (!likelyAllCaps) return withoutNoise || trimmed;
+  if (!likelyAllCaps) return withoutNoise || trimmed || "Untitled Study Note";
 
   return (withoutNoise || trimmed)
     .toLowerCase()
@@ -78,9 +78,22 @@ function normalizeTitle(title: string): string {
     .replace(/\bCvs\b/g, "CVS");
 }
 
+function inferTitleFromContent(content: string): string {
+  const firstLine = (content || "")
+    .split("\n")
+    .map((l) => l.trim())
+    .find((l) => l.length > 0);
+  const cleaned = (firstLine || "Untitled Study Note")
+    .replace(/^#+\s*/, "")
+    .replace(/^[\-*\d.)\s]+/, "")
+    .replace(/\*\*/g, "")
+    .slice(0, 90)
+    .trim();
+  return normalizeTitle(cleaned || "Untitled Study Note");
+}
+
 function detectBestCategory(title: string, content: string): string | null {
   const text = `${title} ${content.slice(0, 3000)}`.toLowerCase();
-
   let bestMatch: string | null = null;
   let bestScore = 0;
 
@@ -99,24 +112,25 @@ function detectBestCategory(title: string, content: string): string | null {
 }
 
 function isMcqContent(content: string): boolean {
-  const mcqPatterns = [
-    /\bA\)\s/g, /\bB\)\s/g, /\bC\)\s/g, /\bD\)\s/g,
-    /\*\*Answer:\s*[A-E]\)/gi,
-    /correct answer/gi,
-  ];
+  const mcqPatterns = [/\bA\)\s/g, /\bB\)\s/g, /\bC\)\s/g, /\bD\)\s/g, /\*\*Answer:\s*[A-E]\)/gi, /correct answer/gi];
   let mcqSignals = 0;
   for (const pat of mcqPatterns) {
     const matches = content.match(pat);
     if (matches && matches.length >= 3) mcqSignals++;
   }
-
   const hasQuestionNumbers = (content.match(/\*\*Question \d+/g) || []).length >= 5;
   return mcqSignals >= 2 || hasQuestionNumbers;
 }
 
+function looksLikeEssayContent(content: string): boolean {
+  const text = (content || "").toLowerCase();
+  const hasEssayHeaders = /(short answer|long answer|saq|laq|essay question|section a|section b)/i.test(text);
+  const numberedQuestions = (content.match(/^\s*(?:question\s*)?\d+[.)\-:]/gim) || []).length;
+  return hasEssayHeaders && numberedQuestions >= 3;
+}
+
 function extractMcqsFromContent(content: string): { question: string; options: string[]; correct_answer: number; explanation?: string }[] {
   const questions: any[] = [];
-
   const qBlocks = content.split(/(?=\*\*Question \d+|###\s*Question \d+|\d+\.\s*\*\*)/);
 
   for (const block of qBlocks) {
@@ -132,12 +146,9 @@ function extractMcqsFromContent(content: string): { question: string; options: s
     if (!optionMatches || optionMatches.length < 3) continue;
 
     const options = optionMatches.map((o) => o.replace(/^[A-E]\)\s*/, "").trim());
-
     const ansMatch = block.match(/\*\*Answer:\s*([A-E])\)/i) || block.match(/correct.*?([A-E])\)/i);
     let correctAnswer = 0;
-    if (ansMatch) {
-      correctAnswer = ansMatch[1].charCodeAt(0) - 65;
-    }
+    if (ansMatch) correctAnswer = ansMatch[1].charCodeAt(0) - 65;
 
     const expMatch = block.match(/\*\*Explanation:\*\*\s*(.+?)(?=\n\n|\*\*Question|$)/s);
     const explanation = expMatch ? expMatch[1].trim() : undefined;
@@ -148,21 +159,109 @@ function extractMcqsFromContent(content: string): { question: string; options: s
   return questions;
 }
 
+function extractEssayQuestions(content: string): { saqs: any[]; laqs: any[] } {
+  const blocks = content
+    .replace(/\r/g, "")
+    .split(/(?=^\s*(?:question\s*)?\d+[.)\-:])/gim)
+    .map((b) => b.trim())
+    .filter((b) => b.length > 20);
+
+  const saqs: any[] = [];
+  const laqs: any[] = [];
+
+  for (const block of blocks) {
+    const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (!lines.length) continue;
+    const q = lines[0].replace(/^question\s*/i, "").replace(/^\d+[.)\-:]\s*/, "").trim();
+    const answer = lines.slice(1).join(" ").trim();
+    const marksMatch = block.match(/(\d+)\s*marks?/i);
+    const marks = marksMatch ? Number(marksMatch[1]) : 5;
+
+    const longSignal = /(long answer|essay|discuss|describe in detail|explain in detail)/i.test(block);
+    if (longSignal || marks >= 12) {
+      laqs.push({ question: q, answer: answer || "Model answer pending", marks: marks || 20 });
+    } else {
+      saqs.push({ question: q, answer: answer || "Model answer pending", marks: marks || 5 });
+    }
+  }
+
+  return { saqs: saqs.slice(0, 20), laqs: laqs.slice(0, 10) };
+}
+
 function cleanContent(content: string): string {
-  let cleaned = content;
-
+  let cleaned = content || "";
   cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2702}-\u{27B0}]|[\u{FE00}-\u{FE0F}]|[\u{1F900}-\u{1F9FF}]|[\u{200D}]|[\u{20E3}]|[\u{FE0F}]/gu, "");
-
   cleaned = cleaned.replace(/Mount Kenya University/gi, "");
-  cleaned = cleaned.replace(/MKU\s+/gi, "");
-
+  cleaned = cleaned.replace(/\bMKU\b\s*/gi, "");
   cleaned = cleaned.replace(/([A-E]\))\s*([^\n]{3,}?)(?=\s*[B-E]\))/g, "$1 $2\n");
-
   cleaned = cleaned.replace(/\n{4,}/g, "\n\n\n");
-
   cleaned = cleaned.replace(/[ \t]+$/gm, "");
-
   return cleaned.trim();
+}
+
+function extractFirstJsonObject(text: string): any | null {
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[0]);
+  } catch {
+    return null;
+  }
+}
+
+async function callLovableAiCleanup(article: ArticleLite): Promise<AiCleanupOutput | null> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) return null;
+
+  const allowedCategories = Object.keys(CATEGORY_KEYWORDS).join("\n");
+  const contentForAi = article.content.slice(0, AI_MAX_CONTENT_CHARS);
+
+  const payload = {
+    model: AI_MODEL,
+    messages: [
+      {
+        role: "system",
+        content: `You clean and classify MBChB study notes. Return ONLY valid JSON with this exact schema:
+{"title":"string","category":"string","content_type":"article|mcq|essay|delete","clean_content":"string","reason":"string"}
+Rules:
+- title must be concise, no emojis, no university names.
+- category must be one of the allowed categories below.
+- content_type = mcq if mostly MCQ exam items; essay if SAQ/LAQ style; delete only if empty/garbage.
+- clean_content must preserve content but improve formatting and remove emojis/university mentions.
+Allowed categories:\n${allowedCategories}`,
+      },
+      {
+        role: "user",
+        content: `Current title: ${article.title}\nCurrent category: ${article.category}\n\nContent:\n${contentForAi}`,
+      },
+    ],
+    temperature: 0.1,
+  };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+
+    if (response.status === 429) throw new Error("Lovable AI rate-limited (429)");
+    if (response.status === 402) throw new Error("Lovable AI credits exhausted (402)");
+    if (!response.ok) throw new Error(`Lovable AI failed (${response.status})`);
+
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content || "";
+    return extractFirstJsonObject(content);
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function fetchArticleBatch(
@@ -178,9 +277,7 @@ async function fetchArticleBatch(
     .order("id", { ascending: true })
     .limit(batchSize);
 
-  if (cursor) {
-    query = query.gt("id", cursor);
-  }
+  if (cursor) query = query.gt("id", cursor);
 
   const { data, error } = await query;
   if (error) throw error;
@@ -199,6 +296,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, supabaseKey);
+    const startedAt = Date.now();
 
     if (action === "scan") {
       const articles = await fetchArticleBatch(sb, batchSize, cursor);
@@ -209,15 +307,31 @@ serve(async (req) => {
       }
 
       const results = [];
+      let processed = 0;
+      let lastCursor: string | null = cursor;
+      let timedOut = false;
+
       for (const article of articles) {
+        processed++;
+        lastCursor = article.id;
+
         const issues: string[] = [];
         const fixes: Record<string, any> = {};
-
         const analysisContent = article.content.slice(0, MAX_ANALYZE_CHARS);
 
         if (article.content.length > OVERSIZED_ARTICLE_CHARS) {
           issues.push("Very large article - open in editor for manual review");
           fixes.manual_review = true;
+        }
+
+        if (!article.title?.trim()) {
+          issues.push("Missing title");
+          fixes.new_title = inferTitleFromContent(article.content);
+        }
+
+        if (analysisContent.replace(/\s+/g, "").length < 40) {
+          issues.push("Content is empty or too short");
+          fixes.delete_empty = true;
         }
 
         if (isMcqContent(analysisContent)) {
@@ -229,9 +343,14 @@ serve(async (req) => {
           }
         }
 
+        if (looksLikeEssayContent(analysisContent)) {
+          issues.push("Contains SAQ/LAQ style content - should migrate to Essays section");
+          fixes.migrate_essays = true;
+        }
+
         const betterCategory = detectBestCategory(article.title, analysisContent);
         if (betterCategory && betterCategory !== article.category) {
-          issues.push(`Category mismatch: "${article.category}" → "${betterCategory}"`);
+          issues.push(`Category mismatch: \"${article.category}\" → \"${betterCategory}\"");
           fixes.new_category = betterCategory;
         }
 
@@ -247,7 +366,7 @@ serve(async (req) => {
           fixes.clean_emojis = true;
         }
 
-        const hasMKU = /Mount Kenya University|MKU\s/i.test(analysisContent);
+        const hasMKU = /Mount Kenya University|\bMKU\b\s/i.test(analysisContent);
         if (hasMKU) {
           issues.push("Contains university references");
           fixes.clean_mku = true;
@@ -255,7 +374,12 @@ serve(async (req) => {
 
         const brokenOptions = (analysisContent.match(/[A-E]\)\s*[^\n]{3,}[B-E]\)/g) || []).length;
         if (brokenOptions > 2) {
-          issues.push("Broken option formatting (options on same line)");
+          issues.push("Broken option formatting");
+          fixes.fix_formatting = true;
+        }
+
+        if ((analysisContent.match(/\n{4,}/g) || []).length > 3) {
+          issues.push("Excessive blank lines");
           fixes.fix_formatting = true;
         }
 
@@ -265,28 +389,21 @@ serve(async (req) => {
           fixes.too_short = true;
         }
 
-        if ((analysisContent.match(/\n{4,}/g) || []).length > 3) {
-          issues.push("Excessive blank lines");
-          fixes.fix_formatting = true;
+        if (issues.length > 0) {
+          results.push({ id: article.id, title: article.title, category: article.category, issues, fixes, word_count: wordCount });
         }
 
-        if (issues.length > 0) {
-          results.push({
-            id: article.id,
-            title: article.title,
-            category: article.category,
-            issues,
-            fixes,
-            word_count: wordCount,
-          });
+        if (Date.now() - startedAt > CPU_BUDGET_MS) {
+          timedOut = true;
+          break;
         }
       }
 
       return new Response(JSON.stringify({
         results,
-        done: articles.length < batchSize,
-        processed: articles.length,
-        next_cursor: articles[articles.length - 1]?.id ?? null,
+        done: articles.length < batchSize && !timedOut,
+        processed,
+        next_cursor: lastCursor,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -294,19 +411,20 @@ serve(async (req) => {
 
     if (action === "fix") {
       const { article_id, fixes = {} } = body;
-
-      const { data: article, error } = await sb
-        .from("articles")
-        .select("*")
-        .eq("id", article_id)
-        .single();
-
+      const { data: article, error } = await sb.from("articles").select("*").eq("id", article_id).single();
       if (error || !article) throw new Error("Article not found");
 
       let content = article.content;
       let category = article.category;
       let title = article.title;
       const changes: string[] = [];
+
+      if (fixes.delete_empty || content.replace(/\s+/g, "").length < 40) {
+        await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article_id);
+        return new Response(JSON.stringify({ success: true, changes: ["Deleted empty article"], deleted_article: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       if (fixes.clean_emojis || fixes.clean_mku || fixes.fix_formatting) {
         content = cleanContent(content);
@@ -328,7 +446,7 @@ serve(async (req) => {
         const mcqs = extractMcqsFromContent(mcqSource);
         if (mcqs.length >= 3) {
           const { error: mcqError } = await sb.from("mcq_sets").insert({
-            title: title.replace(/MCQ.*$/i, "MCQs").replace(/Question.*$/i, "MCQs"),
+            title: normalizeTitle(title.replace(/MCQ.*$/i, "MCQs").replace(/Question.*$/i, "MCQs")),
             questions: mcqs,
             published: true,
             original_notes: "",
@@ -339,12 +457,29 @@ serve(async (req) => {
           if (!mcqError) {
             changes.push(`Migrated ${mcqs.length} MCQs to MCQ section`);
             await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article_id);
-            return new Response(JSON.stringify({
-              success: true,
-              changes,
-              migrated_mcqs: mcqs.length,
-              deleted_article: true,
-            }), {
+            return new Response(JSON.stringify({ success: true, changes, migrated_mcqs: mcqs.length, deleted_article: true }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+      }
+
+      if (fixes.migrate_essays) {
+        const essays = extractEssayQuestions(content);
+        if (essays.saqs.length + essays.laqs.length >= 3) {
+          const { error: essayErr } = await sb.from("essays").insert({
+            title: normalizeTitle(title),
+            short_answer_questions: essays.saqs,
+            long_answer_questions: essays.laqs,
+            category,
+            published: true,
+            article_id: article_id,
+          });
+
+          if (!essayErr) {
+            changes.push(`Migrated to Essays (${essays.saqs.length} SAQs, ${essays.laqs.length} LAQs)`);
+            await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article_id);
+            return new Response(JSON.stringify({ success: true, changes, migrated_essays: true, deleted_article: true }), {
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
           }
@@ -352,11 +487,7 @@ serve(async (req) => {
       }
 
       if (content !== article.content || category !== article.category || title !== article.title) {
-        const { error: updateError } = await sb
-          .from("articles")
-          .update({ content, category, title })
-          .eq("id", article_id);
-
+        const { error: updateError } = await sb.from("articles").update({ content, category, title }).eq("id", article_id);
         if (updateError) throw updateError;
       }
 
@@ -365,10 +496,10 @@ serve(async (req) => {
       });
     }
 
-    if (action === "fix_all_safe") {
+    if (action === "fix_all_safe" || action === "migrate_mcqs") {
       const articles = await fetchArticleBatch(sb, batchSize, cursor);
       if (articles.length === 0) {
-        return new Response(JSON.stringify({ fixed: 0, failed: 0, skipped: 0, done: true, processed: 0, next_cursor: null }), {
+        return new Response(JSON.stringify({ fixed: 0, failed: 0, skipped: 0, migrated: 0, done: true, processed: 0, next_cursor: null }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -376,38 +507,81 @@ serve(async (req) => {
       let fixed = 0;
       let failed = 0;
       let skipped = 0;
+      let migrated = 0;
+      let processed = 0;
+      let lastCursor: string | null = cursor;
+      const migratedArticles: string[] = [];
+      const processedTitles: string[] = [];
+      let timedOut = false;
 
       for (const article of articles) {
+        processed++;
+        lastCursor = article.id;
+
         try {
-          const cleaned = cleanContent(article.content);
-          const betterCat = detectBestCategory(article.title, article.content.slice(0, MAX_ANALYZE_CHARS));
-          const betterTitle = normalizeTitle(article.title);
+          if (action === "migrate_mcqs") {
+            const mcqSource = article.content.length > MAX_MCQ_EXTRACT_CHARS ? article.content.slice(0, MAX_MCQ_EXTRACT_CHARS) : article.content;
+            if (!isMcqContent(mcqSource)) {
+              skipped++;
+            } else {
+              const mcqs = extractMcqsFromContent(mcqSource);
+              if (mcqs.length >= 5) {
+                const { error: mcqError } = await sb.from("mcq_sets").insert({
+                  title: normalizeTitle(article.title),
+                  questions: mcqs,
+                  published: true,
+                  original_notes: "",
+                  category: article.category,
+                  access_password: "",
+                });
 
-          let needsUpdate = cleaned !== article.content;
-          const updates: Record<string, any> = {};
+                if (!mcqError) {
+                  await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
+                  migrated++;
+                  migratedArticles.push(`${article.title} (${mcqs.length} MCQs)`);
+                }
+              } else {
+                skipped++;
+              }
+            }
+          } else {
+            const cleaned = cleanContent(article.content);
+            const betterCat = detectBestCategory(article.title, article.content.slice(0, MAX_ANALYZE_CHARS));
+            const betterTitle = normalizeTitle(article.title || inferTitleFromContent(article.content));
 
-          if (needsUpdate) updates.content = cleaned;
-          if (betterCat && betterCat !== article.category) {
-            updates.category = betterCat;
-            needsUpdate = true;
-          }
-          if (betterTitle !== article.title) {
-            updates.title = betterTitle;
-            needsUpdate = true;
-          }
+            let needsUpdate = cleaned !== article.content;
+            const updates: Record<string, any> = {};
 
-          if (article.content.length > OVERSIZED_ARTICLE_CHARS && !needsUpdate) {
-            skipped++;
-            continue;
-          }
+            if (needsUpdate) updates.content = cleaned;
+            if (betterCat && betterCat !== article.category) {
+              updates.category = betterCat;
+              needsUpdate = true;
+            }
+            if (betterTitle !== article.title) {
+              updates.title = betterTitle;
+              needsUpdate = true;
+            }
 
-          if (needsUpdate) {
-            const { error: updateErr } = await sb.from("articles").update(updates).eq("id", article.id);
-            if (updateErr) throw updateErr;
-            fixed++;
+            if (cleaned.replace(/\s+/g, "").length < 40) {
+              await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
+              fixed++;
+              processedTitles.push(`${article.title || "(untitled)"} → deleted empty`);
+            } else if (needsUpdate) {
+              const { error: updateErr } = await sb.from("articles").update(updates).eq("id", article.id);
+              if (updateErr) throw updateErr;
+              fixed++;
+              processedTitles.push(article.title || "(untitled)");
+            } else {
+              skipped++;
+            }
           }
         } catch {
           failed++;
+        }
+
+        if (Date.now() - startedAt > CPU_BUDGET_MS) {
+          timedOut = true;
+          break;
         }
       }
 
@@ -415,54 +589,138 @@ serve(async (req) => {
         fixed,
         failed,
         skipped,
-        done: articles.length < batchSize,
-        processed: articles.length,
-        next_cursor: articles[articles.length - 1]?.id ?? null,
+        migrated,
+        migratedArticles,
+        processed_titles: processedTitles,
+        done: articles.length < batchSize && !timedOut,
+        processed,
+        next_cursor: lastCursor,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (action === "migrate_mcqs") {
-      const articles = await fetchArticleBatch(sb, batchSize, cursor);
+    if (action === "ai_fix_batch") {
+      const aiBatchSize = Math.min(Math.max(Number(body?.batch_size || 1), 1), 2);
+      const articles = await fetchArticleBatch(sb, aiBatchSize, cursor);
+
       if (articles.length === 0) {
-        return new Response(JSON.stringify({ migrated: 0, done: true, processed: 0, next_cursor: null, migratedArticles: [] }), {
+        return new Response(JSON.stringify({ fixed: 0, migrated_mcqs: 0, migrated_essays: 0, deleted: 0, failed: 0, processed: 0, done: true, next_cursor: null, processed_articles: [] }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      let migrated = 0;
-      const migratedArticles: string[] = [];
+      let fixed = 0;
+      let migrated_mcqs = 0;
+      let migrated_essays = 0;
+      let deleted = 0;
+      let failed = 0;
+      let processed = 0;
+      let lastCursor: string | null = cursor;
+      const processedArticles: any[] = [];
+      let timedOut = false;
 
       for (const article of articles) {
-        const mcqSource = article.content.length > MAX_MCQ_EXTRACT_CHARS ? article.content.slice(0, MAX_MCQ_EXTRACT_CHARS) : article.content;
-        if (!isMcqContent(mcqSource)) continue;
+        processed++;
+        lastCursor = article.id;
 
-        const mcqs = extractMcqsFromContent(mcqSource);
-        if (mcqs.length < 5) continue;
+        try {
+          const baseContent = cleanContent(article.content);
+          const ai = await callLovableAiCleanup({ ...article, content: baseContent });
 
-        const { error: mcqError } = await sb.from("mcq_sets").insert({
-          title: normalizeTitle(article.title),
-          questions: mcqs,
-          published: true,
-          original_notes: "",
-          category: article.category,
-          access_password: "",
-        });
+          let newTitle = normalizeTitle(ai?.title || article.title || inferTitleFromContent(baseContent));
+          if (!newTitle) newTitle = inferTitleFromContent(baseContent);
 
-        if (!mcqError) {
-          await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
-          migrated++;
-          migratedArticles.push(`${article.title} (${mcqs.length} MCQs)`);
+          const suggestedCat = ai?.category && CATEGORY_KEYWORDS[ai.category] ? ai.category : null;
+          const detectedCat = detectBestCategory(newTitle, baseContent);
+          const newCategory = suggestedCat || detectedCat || article.category;
+          const contentType = ai?.content_type || (isMcqContent(baseContent) ? "mcq" : looksLikeEssayContent(baseContent) ? "essay" : "article");
+          const newContent = cleanContent(ai?.clean_content || baseContent);
+
+          if (contentType === "delete" || newContent.replace(/\s+/g, "").length < 40) {
+            await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
+            deleted++;
+            processedArticles.push({ id: article.id, title: newTitle, action: "deleted", reason: ai?.reason || "empty/garbage" });
+            continue;
+          }
+
+          if (contentType === "mcq") {
+            const mcqs = extractMcqsFromContent(newContent.slice(0, MAX_MCQ_EXTRACT_CHARS));
+            if (mcqs.length >= 5) {
+              const { error: mcqError } = await sb.from("mcq_sets").insert({
+                title: normalizeTitle(newTitle),
+                questions: mcqs,
+                published: true,
+                original_notes: "",
+                category: newCategory,
+                access_password: "",
+              });
+
+              if (!mcqError) {
+                await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
+                migrated_mcqs++;
+                processedArticles.push({ id: article.id, title: newTitle, action: "migrated_mcq", count: mcqs.length });
+                continue;
+              }
+            }
+          }
+
+          if (contentType === "essay") {
+            const essays = extractEssayQuestions(newContent);
+            if (essays.saqs.length + essays.laqs.length >= 3) {
+              const { error: essayErr } = await sb.from("essays").insert({
+                title: normalizeTitle(newTitle),
+                short_answer_questions: essays.saqs,
+                long_answer_questions: essays.laqs,
+                category: newCategory,
+                published: true,
+                article_id: article.id,
+              });
+
+              if (!essayErr) {
+                await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
+                migrated_essays++;
+                processedArticles.push({ id: article.id, title: newTitle, action: "migrated_essay", saqs: essays.saqs.length, laqs: essays.laqs.length });
+                continue;
+              }
+            }
+          }
+
+          const updates: Record<string, any> = {};
+          if (newContent !== article.content) updates.content = newContent;
+          if (newCategory !== article.category) updates.category = newCategory;
+          if (newTitle !== article.title) updates.title = newTitle;
+
+          if (Object.keys(updates).length > 0) {
+            const { error: updateErr } = await sb.from("articles").update(updates).eq("id", article.id);
+            if (updateErr) throw updateErr;
+            fixed++;
+            processedArticles.push({ id: article.id, title: newTitle, action: "updated", category: newCategory });
+          } else {
+            processedArticles.push({ id: article.id, title: article.title, action: "no_change" });
+          }
+        } catch (err: any) {
+          failed++;
+          processedArticles.push({ id: article.id, title: article.title, action: "failed", error: err?.message || "Unknown" });
+        }
+
+        if (Date.now() - startedAt > CPU_BUDGET_MS) {
+          timedOut = true;
+          break;
         }
       }
 
       return new Response(JSON.stringify({
-        migrated,
-        migratedArticles,
-        done: articles.length < batchSize,
-        processed: articles.length,
-        next_cursor: articles[articles.length - 1]?.id ?? null,
+        fixed,
+        migrated_mcqs,
+        migrated_essays,
+        deleted,
+        failed,
+        processed,
+        processed_ids: processedArticles.map((a) => a.id),
+        processed_articles: processedArticles,
+        done: articles.length < aiBatchSize && !timedOut,
+        next_cursor: lastCursor,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
