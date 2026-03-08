@@ -868,8 +868,6 @@ export default function BlogPost() {
             )}
           </article>
 
-          {/* Right sidebar: placeholder for future recommended reading */}
-          <aside className="hidden lg:block" />
         </div>
       </div>
     </>
