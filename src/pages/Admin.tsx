@@ -2773,7 +2773,7 @@ function SeoIndexingTab() {
       <div className="rounded-xl border border-border bg-card p-5 space-y-3">
         <div className="flex items-center gap-2">
           <Globe className="h-5 w-5 text-primary" />
-          <h3 className="font-serif text-lg font-bold text-foreground">Google Indexing</h3>
+          <h3 className="font-serif text-lg font-bold text-foreground">Google Indexing – All Content</h3>
         </div>
         <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
           <p className="text-xs font-semibold text-primary mb-1">Sitemap URL</p>
@@ -2784,20 +2784,25 @@ function SeoIndexingTab() {
             </Button>
           </div>
         </div>
-        <Button onClick={handleLoadBatches} disabled={loadingBatches} className="gap-2">
-          {loadingBatches ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
-          {loadingBatches ? "Loading..." : "Load Article Batches"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <select value={contentTypeFilter} onChange={(e) => setContentTypeFilter(e.target.value)} className="rounded-lg border border-input bg-background px-3 py-2 text-xs font-medium text-foreground">
+            {CONTENT_TYPES.map((t) => <option key={t} value={t}>{t === "all" ? "All Content" : t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+          </select>
+          <Button onClick={handleLoadBatches} disabled={loadingBatches} className="gap-2">
+            {loadingBatches ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+            {loadingBatches ? "Loading..." : "Load All URLs"}
+          </Button>
+        </div>
       </div>
 
       {batches.length > 0 && (
         <div className="space-y-3">
           {batches.map((batch) => (
             <div key={batch.batch_number} className="rounded-xl border border-border bg-card p-4">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-3">
                 <div>
                   <h5 className="font-medium text-foreground">Batch {batch.batch_number}</h5>
-                  <p className="text-xs text-muted-foreground">{batch.count} articles</p>
+                  <p className="text-xs text-muted-foreground">{batch.count} URLs</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button size="sm" variant="outline" onClick={() => handleCopyBatchUrls(batch.batch_number)} className="gap-1">
@@ -2808,6 +2813,21 @@ function SeoIndexingTab() {
                     {submitting === batch.batch_number ? <Loader2 className="h-3 w-3 animate-spin" /> : <ExternalLink className="h-3 w-3" />} Submit
                   </Button>
                 </div>
+              </div>
+              <div className="max-h-40 overflow-auto space-y-1">
+                {batch.urls.map((u: any) => (
+                  <div key={u.id} className="flex items-center gap-2 text-xs">
+                    <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                      u.type === "article" ? "bg-primary/10 text-primary"
+                      : u.type === "story" ? "bg-purple-500/10 text-purple-600"
+                      : u.type === "mcq" ? "bg-amber-500/10 text-amber-600"
+                      : u.type === "flashcard" ? "bg-blue-500/10 text-blue-600"
+                      : "bg-green-500/10 text-green-600"
+                    }`}>{u.type}</span>
+                    <span className="truncate text-muted-foreground">{u.title}</span>
+                    {!u.has_meta && <span className="shrink-0 text-[10px] text-destructive font-semibold">SEO ✗</span>}
+                  </div>
+                ))}
               </div>
             </div>
           ))}
