@@ -2437,6 +2437,9 @@ function SeoIndexingTab() {
             <option value="missing">Only missing SEO</option>
             <option value="all">Regenerate all articles</option>
           </select>
+          <label className="flex items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-xs font-medium text-foreground">
+            <input type="checkbox" checked={includeUnpublished} onChange={(e) => setIncludeUnpublished(e.target.checked)} /> Include drafts/raw
+          </label>
           <Button onClick={handleGenerateSeo} disabled={generating} className="gap-2">
             {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {generating ? "Generating..." : "Generate SEO"}
@@ -2444,6 +2447,19 @@ function SeoIndexingTab() {
           <Button onClick={handleLoadSeoArticles} disabled={loadingArticles} variant="outline" className="gap-2">
             {loadingArticles ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Refresh list
           </Button>
+        </div>
+
+        <div className="grid gap-2 md:grid-cols-2">
+          <Input value={siteUrlInput} onChange={(e) => setSiteUrlInput(e.target.value)} placeholder="https://yourdomain.com" />
+          <Input value={googleApiKey} onChange={(e) => setGoogleApiKey(e.target.value)} placeholder="Google API key (optional for direct submit)" />
+        </div>
+
+        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+          <label className="flex items-center gap-1"><input type="checkbox" checked={seoFields.title} onChange={(e) => setSeoFields((p) => ({ ...p, title: e.target.checked }))} /> Title</label>
+          <label className="flex items-center gap-1"><input type="checkbox" checked={seoFields.meta_title} onChange={(e) => setSeoFields((p) => ({ ...p, meta_title: e.target.checked }))} /> Meta title</label>
+          <label className="flex items-center gap-1"><input type="checkbox" checked={seoFields.meta_description} onChange={(e) => setSeoFields((p) => ({ ...p, meta_description: e.target.checked }))} /> Meta description</label>
+          <label className="flex items-center gap-1"><input type="checkbox" checked={seoFields.slug} onChange={(e) => setSeoFields((p) => ({ ...p, slug: e.target.checked }))} /> Slug</label>
+          <label className="flex items-center gap-1"><input type="checkbox" checked={seoFields.og_image_url} onChange={(e) => setSeoFields((p) => ({ ...p, og_image_url: e.target.checked }))} /> Thumbnail URL</label>
         </div>
 
         <p className="text-xs text-muted-foreground">{seoArticles.length} articles · {completeCount} complete · {seoArticles.length - completeCount} missing fields</p>
