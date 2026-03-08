@@ -2515,7 +2515,8 @@ function ContentUpgradeTab() {
 // SEO & Indexing Tab
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CLEANUP_SEO_YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5"] as const;
+const CLEANUP_SEO_YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"] as const;
+const CONTENT_TYPES = ["all", "articles", "stories", "mcqs", "flashcards", "essays"] as const;
 
 function SeoIndexingTab() {
   const { toast } = useToast();
