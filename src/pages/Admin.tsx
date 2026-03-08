@@ -953,7 +953,7 @@ function FlashcardsList() {
   if (editing) {
     return (
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-4 font-display text-lg font-bold text-foreground">Edit Flashcard Set</h3>
+        <h3 className="mb-4 font-serif text-lg font-bold text-foreground">Edit Flashcard Set</h3>
         <Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="mb-4 font-bold" placeholder="Title" />
         <div className="mb-4 max-h-96 overflow-y-auto space-y-2">
           {editing.cards.map((c, i) => (
