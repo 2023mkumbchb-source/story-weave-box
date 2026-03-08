@@ -2268,6 +2268,8 @@ function SeoIndexingTab() {
           body: {
             action: "list_articles_seo",
             year: seoYear === "All" ? null : seoYear,
+            include_unpublished: includeUnpublished,
+            site_url: siteUrlInput,
             batch_size: 150,
             cursor,
           },
