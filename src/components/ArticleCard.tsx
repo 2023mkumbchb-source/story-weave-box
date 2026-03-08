@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { ArrowRight, Clock3 } from "lucide-react";
 import type { Article } from "@/lib/store";
 import { buildBlogPath, getCategoryDisplayName, getYearFromCategory } from "@/lib/store";
