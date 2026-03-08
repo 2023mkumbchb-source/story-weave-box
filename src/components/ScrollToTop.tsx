@@ -1,28 +1,29 @@
-import { useEffect } from "react";
-import { useLocation, useNavigationType } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 
 export default function ScrollToTop() {
   const { pathname, hash } = useLocation();
-  const navType = useNavigationType();
+  const previousPathRef = useRef(pathname);
 
   useEffect(() => {
-    if (navType === "POP") return;
+    const pathnameChanged = previousPathRef.current !== pathname;
 
-    if (hash) {
-      requestAnimationFrame(() => {
-        const id = hash.replace("#", "");
-        const el = document.getElementById(id);
-        if (el) {
-          el.scrollIntoView({ block: "start" });
-          return;
-        }
-        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-      });
+    if (pathnameChanged) {
+      previousPathRef.current = pathname;
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
       return;
     }
 
-    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-  }, [pathname, hash, navType]);
+    if (!hash) return;
+
+    requestAnimationFrame(() => {
+      const id = hash.replace("#", "");
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ block: "start", behavior: "auto" });
+      }
+    });
+  }, [pathname, hash]);
 
   return null;
 }
