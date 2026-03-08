@@ -292,7 +292,7 @@ serve(async (req) => {
       ];
 
       try {
-        const category = (await callAI(messages, geminiKey)).trim().replace(/^"|"$/g, "");
+        const category = (await callAI(messages, geminiKey, allKeys)).trim().replace(/^"|"$/g, "");
         const exact = UNIT_CATEGORIES.find((c) => c.toLowerCase() === category.toLowerCase());
         if (exact) {
           return new Response(JSON.stringify({ category: exact }), {
