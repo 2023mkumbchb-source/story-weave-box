@@ -77,7 +77,8 @@ export default function Blog() {
       const matchesSearch = !search.trim() ||
         a.title.toLowerCase().includes(search.toLowerCase()) ||
         getCategoryDisplayName(a.category).toLowerCase().includes(search.toLowerCase());
-      const matchesYear = selectedYear === "All" || getYearFromCategory(a.category) === selectedYear;
+      const articleYear = normalizeYear(getYearFromCategory(a.category));
+      const matchesYear = selectedYear === "All" || articleYear === selectedYear;
       const matchesUnit = !selectedUnit || a.category === selectedUnit;
       return matchesSearch && matchesYear && matchesUnit;
     });
