@@ -9,6 +9,10 @@ export interface Article {
   original_notes: string;
   category: string;
   is_raw?: boolean;
+  meta_title?: string;
+  meta_description?: string;
+  og_image_url?: string;
+  slug?: string;
 }
 
 export interface FlashcardSet {

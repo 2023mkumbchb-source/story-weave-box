@@ -246,6 +246,146 @@ Style requirements:
       return json({ success: true });
     }
 
+    // Generate SEO metadata for articles using Lovable AI
+    if (action === "generate_seo") {
+      const yearFilter = body?.year || null;
+      const batchSize = body?.batch_size || 10;
+      const cursor = body?.cursor || null;
+
+      let query = sb
+        .from("articles")
+        .select("id, title, content, category, meta_title, meta_description, slug")
+        .eq("published", true)
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .limit(batchSize);
+
+      if (yearFilter && /^Year [1-5]$/.test(yearFilter)) {
+        query = query.like("category", `${yearFilter}:%`);
+      }
+      if (cursor) query = query.gt("id", cursor);
+
+      // Only process articles missing SEO data
+      query = query.or("meta_title.eq.,meta_description.eq.,slug.eq.");
+
+      const { data: articles, error: fetchError } = await query;
+      if (fetchError) throw fetchError;
+
+      if (!articles?.length) return json({ done: true, updated: 0 });
+
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not set");
+
+      const processedArticles: Array<{ id: string; title: string; action: string }> = [];
+      let updated = 0;
+
+      for (const article of articles) {
+        try {
+          const contentSnippet = (article.content || "").slice(0, 3000);
+          const seoPrompt = `Generate SEO metadata for this medical study article. Return ONLY valid JSON:
+{"meta_title":"string (max 60 chars, include key medical term)","meta_description":"string (max 155 chars, compelling description for search results)","slug":"string (url-friendly, lowercase, hyphens, max 60 chars)"}
+
+Article title: ${article.title}
+Category: ${article.category}
+Content preview: ${contentSnippet}`;
+
+          const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-3-flash-preview",
+              messages: [{ role: "user", content: seoPrompt }],
+              temperature: 0.1,
+            }),
+          });
+
+          if (response.status === 429) throw new Error("Rate limited");
+          if (response.status === 402) throw new Error("Credits exhausted");
+          if (!response.ok) throw new Error(`AI error ${response.status}`);
+
+          const data = await response.json();
+          const text = data?.choices?.[0]?.message?.content || "";
+          const match = text.match(/\{[\s\S]*\}/);
+          if (!match) { processedArticles.push({ id: article.id, title: article.title, action: "parse_failed" }); continue; }
+
+          const seo = JSON.parse(match[0]);
+          const updateData: Record<string, string> = {};
+          if (seo.meta_title) updateData.meta_title = seo.meta_title.slice(0, 60);
+          if (seo.meta_description) updateData.meta_description = seo.meta_description.slice(0, 160);
+          if (seo.slug) updateData.slug = seo.slug.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 60);
+
+          if (Object.keys(updateData).length) {
+            await sb.from("articles").update(updateData).eq("id", article.id);
+            updated++;
+            processedArticles.push({ id: article.id, title: article.title, action: `seo_updated` });
+          }
+        } catch (e: any) {
+          processedArticles.push({ id: article.id, title: article.title, action: `error: ${e.message}` });
+          if (e.message.includes("Rate limited") || e.message.includes("Credits")) break;
+        }
+      }
+
+      const lastId = articles[articles.length - 1]?.id || null;
+      return json({ updated, processed_articles: processedArticles, next_cursor: lastId, done: articles.length < batchSize });
+    }
+
+    // Generate SEO for a single article
+    if (action === "generate_seo_single") {
+      const id = body?.id;
+      if (!id) throw new Error("Missing article id");
+
+      const { data: article } = await sb.from("articles").select("id, title, content, category").eq("id", id).single();
+      if (!article) throw new Error("Article not found");
+
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not set");
+
+      const contentSnippet = (article.content || "").slice(0, 3000);
+      const seoPrompt = `Generate SEO metadata for this medical study article. Return ONLY valid JSON:
+{"meta_title":"string (max 60 chars, include key medical term)","meta_description":"string (max 155 chars, compelling description for search results)","slug":"string (url-friendly, lowercase, hyphens, max 60 chars)","og_image_prompt":"string (describe ideal medical illustration for this article in 1 sentence)"}
+
+Article title: ${article.title}
+Category: ${article.category}
+Content preview: ${contentSnippet}`;
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [{ role: "user", content: seoPrompt }],
+          temperature: 0.1,
+        }),
+      });
+
+      if (response.status === 429) return json({ error: "Rate limited. Try again in a moment." }, 429);
+      if (response.status === 402) return json({ error: "AI credits exhausted." }, 402);
+      if (!response.ok) throw new Error("AI generation failed");
+
+      const data = await response.json();
+      const text = data?.choices?.[0]?.message?.content || "";
+      const match = text.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error("Failed to parse AI response");
+
+      const seo = JSON.parse(match[0]);
+      const updateData: Record<string, string> = {};
+      if (seo.meta_title) updateData.meta_title = seo.meta_title.slice(0, 60);
+      if (seo.meta_description) updateData.meta_description = seo.meta_description.slice(0, 160);
+      if (seo.slug) updateData.slug = seo.slug.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 60);
+
+      if (Object.keys(updateData).length) {
+        await sb.from("articles").update(updateData).eq("id", article.id);
+      }
+
+      return json({ success: true, seo: updateData });
+    }
+
     throw new Error("Unknown action");
   } catch (e: any) {
     return json({ error: e?.message || "Unknown error" }, 500);
