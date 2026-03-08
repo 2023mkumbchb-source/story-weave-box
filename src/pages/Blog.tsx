@@ -93,6 +93,16 @@ export default function Blog() {
     return base;
   }, [articles, search, selectedYear, selectedUnit, sortBy]);
 
+  const filteredRecentArticles = useMemo(() => {
+    if (selectedYear === "All") return recentArticles;
+    const byId = new Map(articles.map((article) => [article.id, article]));
+    return recentArticles.filter((recent) => {
+      const article = byId.get(recent.id);
+      if (!article) return false;
+      return normalizeYear(getYearFromCategory(article.category)) === selectedYear;
+    });
+  }, [articles, recentArticles, selectedYear]);
+
   // Group by unit - ONLY show groups from selected year when year is selected
   const groupedArticles = useMemo(() => {
     if (selectedUnit || search.trim()) return null;
