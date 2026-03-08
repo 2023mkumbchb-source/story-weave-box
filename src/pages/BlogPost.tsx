@@ -14,10 +14,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
 /* ─── Inline text: bold/italic ─── */
-function Inline({ text }: { text: string }) {
+const Inline = forwardRef<HTMLSpanElement, { text: string }>(({ text }, ref) => {
   const parts = text.replace(/⭐+/g, "").split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
   return (
-    <>
+    <span ref={ref}>
       {parts.map((part, j) => {
         if (part.startsWith("**") && part.endsWith("**"))
           return <strong key={j} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
@@ -25,9 +25,10 @@ function Inline({ text }: { text: string }) {
           return <em key={j} className="text-foreground/80">{part.slice(1, -1)}</em>;
         return <span key={j}>{part.replace(/\*/g, "")}</span>;
       })}
-    </>
+    </span>
   );
-}
+});
+Inline.displayName = "Inline";
 
 /* ─── Reading progress bar + dot ─── */
 function ReadingProgress() {
