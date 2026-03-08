@@ -2620,7 +2620,7 @@ function SeoIndexingTab() {
   const [loadingConfig, setLoadingConfig] = useState(false);
   const [savingSiteUrl, setSavingSiteUrl] = useState(false);
 
-  const sitemapUrl = `${siteUrlInput.replace(/\/+$/, "")}/dynamic-sitemap.xml`;
+  const sitemapUrl = `${siteUrlInput.replace(/\/+$/, "")}/sitemap-dynamic.xml`;
 
   const syncSiteUrlConfig = async (showToast = false) => {
     const normalized = siteUrlInput.trim() || "https://medicine.kenyaadverts.co.ke";
