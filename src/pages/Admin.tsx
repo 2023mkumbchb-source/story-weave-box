@@ -859,16 +859,16 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
           <h4 className="mb-3 text-sm font-bold text-foreground uppercase tracking-wide">Articles ({articles.length})</h4>
           <div className="space-y-2">
             {articles.map((a) => (
-              <div key={a.id} className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-card p-4">
-                <div className="min-w-0 flex-1">
-                  <h5 className="font-medium text-foreground truncate">{a.title}</h5>
-                  <p className="text-xs text-muted-foreground">{a.category} · {new Date(a.created_at).toLocaleDateString()}</p>
+              <div key={a.id} className="rounded-xl border border-amber-500/20 bg-card p-3 sm:p-4">
+                <div className="min-w-0">
+                  <h5 className="font-medium text-foreground text-sm break-words">{a.title}</h5>
+                  <p className="text-xs text-muted-foreground mt-0.5">{a.category} · {new Date(a.created_at).toLocaleDateString()}</p>
                 </div>
-                <div className="flex gap-2 ml-3 shrink-0">
-                  <Button size="sm" onClick={() => handleFormatOne("article", a)} disabled={formatting || currentItem === a.id} className="gap-1 text-xs">
+                <div className="flex gap-2 mt-2 pt-2 border-t border-border/50">
+                  <Button size="sm" onClick={() => handleFormatOne("article", a)} disabled={formatting || currentItem === a.id} className="gap-1 text-xs h-8">
                     {currentItem === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />} Format
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => handleDelete("article", a.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                  <Button size="sm" variant="ghost" onClick={() => handleDelete("article", a.id)} className="text-destructive h-8 ml-auto"><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
             ))}
