@@ -667,7 +667,8 @@ serve(async (req) => {
       if (fixes.migrate_mcqs) {
         const mcqSource = content.length > MAX_MCQ_EXTRACT_CHARS ? content.slice(0, MAX_MCQ_EXTRACT_CHARS) : content;
         const mcqs = extractMcqsFromContent(mcqSource);
-        if (mcqs.length >= 3) {
+        const titleSuggestsMcq = /\bmcq\b|multiple\s+choice/i.test(title || "");
+        if (mcqs.length >= 3 || (titleSuggestsMcq && mcqs.length >= 1)) {
           const { error: mcqError } = await sb.from("mcq_sets").insert({
             title: normalizeTitle(title.replace(/MCQ.*$/i, "MCQs").replace(/Question.*$/i, "MCQs")),
             questions: mcqs,
@@ -686,12 +687,14 @@ serve(async (req) => {
           }
         }
         // Fallback: if MCQ parse failed and fallback_to_raw is requested, move to raw
-        if (mcqs.length < 3 && fixes.fallback_to_raw) {
-          await sb.from("articles").update({ is_raw: true, published: false }).eq("id", article_id);
-          changes.push("MCQ parse failed — moved to Raw (unpublished)");
-          return new Response(JSON.stringify({ success: true, changes, moved_to_raw: true }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+        if ((mcqs.length < 3 && !titleSuggestsMcq) || (titleSuggestsMcq && mcqs.length < 1)) {
+          if (fixes.fallback_to_raw) {
+            await sb.from("articles").update({ is_raw: true, published: false }).eq("id", article_id);
+            changes.push("MCQ parse failed — moved to Raw (unpublished)");
+            return new Response(JSON.stringify({ success: true, changes, moved_to_raw: true }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
         }
       }
 
