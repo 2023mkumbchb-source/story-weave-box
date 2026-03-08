@@ -653,6 +653,7 @@ export default function Admin() {
       {tab === "institutions" && <InstitutionsTab />}
       {tab === "upgrade" && <ContentUpgradeTab />}
       {tab === "cleanup" && <BulkCleanupTab onEditArticle={(id) => { setArticleEditId(id); setTab("articles"); }} />}
+      {tab === "seo" && <SeoIndexingTab />}
       {tab === "import" && <ImportTab />}
       {tab === "settings" && <SettingsPanel setGeminiKey={setGeminiKey} />}
     </div>
