@@ -1502,7 +1502,7 @@ function InstitutionsTab() {
 
   const updateStatus = async (id: string, status: "approved" | "rejected") => {
     setUpdating(id);
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("pending_institutions")
       .update({ status, reviewed_at: new Date().toISOString() })
       .eq("id", id);
