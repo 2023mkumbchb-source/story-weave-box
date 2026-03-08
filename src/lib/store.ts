@@ -9,6 +9,10 @@ export interface Article {
   original_notes: string;
   category: string;
   is_raw?: boolean;
+  meta_title?: string;
+  meta_description?: string;
+  og_image_url?: string;
+  slug?: string;
 }
 
 export interface FlashcardSet {
@@ -128,8 +132,8 @@ export function slugifyTitle(title: string): string {
     .replace(/^-|-$/g, "");
 }
 
-export function buildBlogPath(article: Pick<Article, "id" | "title">): string {
-  const slug = slugifyTitle(article.title);
+export function buildBlogPath(article: Pick<Article, "id" | "title"> & { slug?: string }): string {
+  const slug = article.slug || slugifyTitle(article.title);
   return `/blog/${slug || article.id}`;
 }
 
@@ -232,6 +236,18 @@ export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | 
   if (!slugOrId) return null;
   if (UUID_REGEX.test(slugOrId)) return getArticleById(slugOrId);
 
+  // Check DB slug column first
+  const { data: slugMatch } = await supabase
+    .from("articles")
+    .select("id")
+    .eq("slug", slugOrId)
+    .eq("published", true)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (slugMatch) return getArticleById(slugMatch.id);
+
+  // Fallback: match by title slug
   const { data, error } = await supabase
     .from("articles")
     .select("id, title")

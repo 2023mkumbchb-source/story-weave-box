@@ -759,7 +759,58 @@ export default function BlogPost() {
   const yearName = getYearFromCategory(article.category);
   const hasRelated = related.flashcards.length > 0 || related.mcqs.length > 0;
 
-  document.title = `${article.title} | Ompath Study`;
+  // Dynamic OG meta tags for sharing
+  useEffect(() => {
+    if (!article) return;
+    const metaTitle = article.meta_title || article.title;
+    const metaDesc = article.meta_description || `Study ${article.title} - medical notes, key concepts and practice questions on Ompath Study.`;
+    const ogImage = article.og_image_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/DTJcZaGrXOdbkxHTBlH6J3GsJMm2/social-images/social-1771239382592-WhatsApp_Image_2026-02-09_at_10.50.50_PM.webp";
+    const canonicalUrl = `https://ompathstud.lovable.app${buildBlogPath(article)}`;
+
+    document.title = `${metaTitle} | Ompath Study`;
+
+    const setMeta = (attr: string, key: string, content: string) => {
+      let el = document.querySelector(`meta[${attr}="${key}"]`) as HTMLMetaElement | null;
+      if (!el) { el = document.createElement("meta"); el.setAttribute(attr, key); document.head.appendChild(el); }
+      el.content = content;
+    };
+
+    setMeta("name", "description", metaDesc);
+    setMeta("property", "og:title", metaTitle);
+    setMeta("property", "og:description", metaDesc);
+    setMeta("property", "og:image", ogImage);
+    setMeta("property", "og:url", canonicalUrl);
+    setMeta("property", "og:type", "article");
+    setMeta("name", "twitter:card", "summary_large_image");
+    setMeta("name", "twitter:title", metaTitle);
+    setMeta("name", "twitter:description", metaDesc);
+    setMeta("name", "twitter:image", ogImage);
+
+    // Canonical link
+    let canonical = document.querySelector("link[rel='canonical']") as HTMLLinkElement | null;
+    if (!canonical) { canonical = document.createElement("link"); canonical.rel = "canonical"; document.head.appendChild(canonical); }
+    canonical.href = canonicalUrl;
+
+    // JSON-LD
+    let ldScript = document.querySelector("script[data-article-ld]") as HTMLScriptElement | null;
+    if (!ldScript) { ldScript = document.createElement("script"); ldScript.type = "application/ld+json"; ldScript.setAttribute("data-article-ld", "true"); document.head.appendChild(ldScript); }
+    ldScript.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": metaTitle,
+      "description": metaDesc,
+      "image": ogImage,
+      "url": canonicalUrl,
+      "datePublished": article.created_at,
+      "author": { "@type": "Organization", "name": "Ompath Study" },
+      "publisher": { "@type": "Organization", "name": "Ompath Study" },
+    });
+
+    return () => {
+      const ldEl = document.querySelector("script[data-article-ld]");
+      if (ldEl) ldEl.remove();
+    };
+  }, [article]);
 
   return (
     <>
@@ -815,6 +866,19 @@ export default function BlogPost() {
                 <DropdownMenuItem onClick={runGenerateCoverImage}><ImagePlus className="mr-2 h-3.5 w-3.5" />Generate article image</DropdownMenuItem>
                 <DropdownMenuItem onClick={runTitleAndSubtitleCleanup}>Update title + subtitles only</DropdownMenuItem>
                 <DropdownMenuItem onClick={runGenerateSaqs}>Generate SAQs at article end</DropdownMenuItem>
+                <DropdownMenuItem onClick={async () => {
+                  if (!article) return;
+                  setActionLoading("seo");
+                  try {
+                    const { data, error } = await supabase.functions.invoke("content-upgrade", { body: { action: "generate_seo_single", id: article.id } });
+                    if (error) throw new Error(error.message);
+                    if (data?.error) throw new Error(data.error);
+                    toast({ title: "SEO metadata generated", description: `Title: ${data?.seo?.meta_title || ""}` });
+                    await reloadCurrentArticle(article.id);
+                  } catch (err: any) {
+                    toast({ title: "SEO generation failed", description: err?.message, variant: "destructive" });
+                  } finally { setActionLoading(null); }
+                }}>Generate SEO metadata</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
