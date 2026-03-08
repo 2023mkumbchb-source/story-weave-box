@@ -402,7 +402,7 @@ Style requirements:
         .limit(batchSize);
 
       if (!includeUnpublished) query = query.eq("published", true);
-      if (yearFilter && /^Year [1-5]$/.test(yearFilter)) query = query.like("category", `${yearFilter}:%`);
+      if (yearFilter && /^Year [1-6]$/.test(yearFilter)) query = query.like("category", `${yearFilter}:%`);
       if (cursor) query = query.gt("id", cursor);
 
       if (!includeAll) {

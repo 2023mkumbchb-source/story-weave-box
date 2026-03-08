@@ -1072,7 +1072,7 @@ function ArticlesList({
                   </p>
                 </div>
                 <div className="flex gap-1 ml-2 shrink-0">
-                  <Button size="sm" variant="ghost" asChild className="text-xs"><a href={`/blog/${a.slug || a.id}`} target="_blank" rel="noopener"><Eye className="h-3.5 w-3.5" /></a></Button>
+                  <Button size="sm" variant="ghost" asChild className="text-xs"><a href={buildBlogPath(a)} target="_blank" rel="noopener"><Eye className="h-3.5 w-3.5" /></a></Button>
                   <Button size="sm" variant="ghost" onClick={() => setEditing(a)}><Pencil className="h-4 w-4" /></Button>
                   <Button size="sm" variant="ghost" onClick={() => togglePublish(a)}>{a.published ? "Unpublish" : "Publish"}</Button>
                   <Button size="sm" variant="ghost" onClick={() => handleDelete(a.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>

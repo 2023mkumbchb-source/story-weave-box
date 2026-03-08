@@ -139,7 +139,7 @@ serve(async (req) => {
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
-      if (yearFilter && /^Year [1-5]$/.test(yearFilter)) {
+      if (yearFilter && /^Year [1-6]$/.test(yearFilter)) {
         query = query.like("category", `${yearFilter}:%`);
       }
 
