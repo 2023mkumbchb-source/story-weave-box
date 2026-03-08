@@ -150,13 +150,13 @@ export default function StoryRead() {
         <h1 className="font-serif text-2xl font-bold leading-tight text-foreground sm:text-4xl">
           {story.title}
         </h1>
-        <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
-          <span>{new Date(story.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</span>
-          <span>·</span>
-          <span>{readTime} min read</span>
-          <button onClick={handleShare} className="ml-auto inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs transition-colors hover:bg-secondary">
-            <Share2 className="h-3 w-3" /> Share
-          </button>
+        <div className="mt-3 flex flex-col gap-3">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span>{new Date(story.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</span>
+            <span>·</span>
+            <span>{readTime} min read</span>
+          </div>
+          <ShareButtons url={storyUrl} title={story.title} variant="full" />
         </div>
       </header>
 
