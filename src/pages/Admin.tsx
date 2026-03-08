@@ -2393,7 +2393,7 @@ function SeoIndexingTab() {
     setSubmitting(batchNumber);
     try {
       const { data: urlData, error: urlError } = await supabase.functions.invoke("google-indexing", {
-        body: { action: "generate_urls", batch_number: batchNumber, year: seoYear === "All" ? null : seoYear },
+        body: { action: "generate_urls", batch_number: batchNumber, year: seoYear === "All" ? null : seoYear, site_url: siteUrlInput },
       });
       if (urlError) throw new Error(urlError.message);
 
