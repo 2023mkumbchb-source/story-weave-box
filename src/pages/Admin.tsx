@@ -1593,6 +1593,232 @@ function InstitutionsTab() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Bulk Cleanup Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface CleanupResult {
+  id: string;
+  title: string;
+  category: string;
+  issues: string[];
+  fixes: Record<string, any>;
+  word_count: number;
+}
+
+function BulkCleanupTab() {
+  const { toast } = useToast();
+  const [scanning, setScanning] = useState(false);
+  const [results, setResults] = useState<CleanupResult[]>([]);
+  const [fixing, setFixing] = useState<string | null>(null);
+  const [autoFixing, setAutoFixing] = useState(false);
+  const [migratingMcqs, setMigratingMcqs] = useState(false);
+  const [scanProgress, setScanProgress] = useState({ scanned: 0, done: false });
+  const [fixLog, setFixLog] = useState<string[]>([]);
+
+  const handleScan = async () => {
+    setScanning(true);
+    setResults([]);
+    setScanProgress({ scanned: 0, done: false });
+    setFixLog([]);
+    
+    let offset = 0;
+    const batchSize = 30;
+    const allResults: CleanupResult[] = [];
+    
+    while (true) {
+      try {
+        const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
+          body: { action: "scan", batch_size: batchSize, offset },
+        });
+        if (error) throw new Error(error.message);
+        if (data?.results) allResults.push(...data.results);
+        setScanProgress({ scanned: offset + (data?.processed || 0), done: data?.done || false });
+        setResults([...allResults]);
+        
+        if (data?.done) break;
+        offset += batchSize;
+      } catch (err: any) {
+        toast({ title: "Scan error", description: err.message, variant: "destructive" });
+        break;
+      }
+    }
+    
+    setScanning(false);
+    toast({ title: `Scan complete: ${allResults.length} articles need fixes` });
+  };
+
+  const handleFix = async (item: CleanupResult) => {
+    setFixing(item.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
+        body: { action: "fix", article_id: item.id, fixes: item.fixes },
+      });
+      if (error) throw new Error(error.message);
+      setFixLog(prev => [...prev, `✅ ${item.title}: ${(data?.changes || []).join(", ")}`]);
+      setResults(prev => prev.filter(r => r.id !== item.id));
+      toast({ title: "Fixed!", description: (data?.changes || []).join(", ") });
+    } catch (err: any) {
+      setFixLog(prev => [...prev, `❌ ${item.title}: ${err.message}`]);
+      toast({ title: "Fix failed", description: err.message, variant: "destructive" });
+    } finally {
+      setFixing(null);
+    }
+  };
+
+  const handleAutoFixAll = async () => {
+    setAutoFixing(true);
+    setFixLog([]);
+    let offset = 0;
+    let totalFixed = 0;
+    
+    while (true) {
+      try {
+        const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
+          body: { action: "fix_all_safe", batch_size: 20, offset },
+        });
+        if (error) throw new Error(error.message);
+        totalFixed += data?.fixed || 0;
+        setFixLog(prev => [...prev, `Batch: ${data?.fixed || 0} fixed (${data?.processed || 0} checked)`]);
+        if (data?.done) break;
+        offset += 20;
+      } catch (err: any) {
+        setFixLog(prev => [...prev, `Error: ${err.message}`]);
+        break;
+      }
+    }
+    
+    setAutoFixing(false);
+    toast({ title: `Auto-fix complete: ${totalFixed} articles updated` });
+  };
+
+  const handleMigrateMcqs = async () => {
+    setMigratingMcqs(true);
+    setFixLog([]);
+    let offset = 0;
+    let totalMigrated = 0;
+    
+    while (true) {
+      try {
+        const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
+          body: { action: "migrate_mcqs", batch_size: 20, offset },
+        });
+        if (error) throw new Error(error.message);
+        totalMigrated += data?.migrated || 0;
+        if (data?.migratedArticles?.length) {
+          setFixLog(prev => [...prev, ...data.migratedArticles.map((a: string) => `📝→📋 ${a}`)]);
+        }
+        if (data?.done) break;
+        offset += 20;
+      } catch (err: any) {
+        setFixLog(prev => [...prev, `Error: ${err.message}`]);
+        break;
+      }
+    }
+    
+    setMigratingMcqs(false);
+    toast({ title: `MCQ migration complete: ${totalMigrated} articles converted to MCQ sets` });
+  };
+
+  const mcqArticles = results.filter(r => r.fixes.migrate_mcqs);
+  const formatIssues = results.filter(r => !r.fixes.migrate_mcqs);
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <Wrench className="h-5 w-5 text-primary" />
+          <h3 className="font-display text-lg font-bold text-foreground">Bulk Article Cleanup</h3>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          Scan all articles for formatting issues, wrong categories, emojis, MCQ content that should be migrated, and more.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={handleScan} disabled={scanning || autoFixing || migratingMcqs} className="gap-2">
+            {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {scanning ? `Scanning... (${scanProgress.scanned} checked)` : "Scan All Articles"}
+          </Button>
+          <Button onClick={handleAutoFixAll} disabled={scanning || autoFixing || migratingMcqs} variant="outline" className="gap-2">
+            {autoFixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+            {autoFixing ? "Fixing..." : "Auto-Fix Formatting"}
+          </Button>
+          <Button onClick={handleMigrateMcqs} disabled={scanning || autoFixing || migratingMcqs} variant="outline" className="gap-2 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950">
+            {migratingMcqs ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bolt className="h-4 w-4" />}
+            {migratingMcqs ? "Migrating..." : "Migrate MCQ Articles"}
+          </Button>
+        </div>
+      </div>
+
+      {fixLog.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <h4 className="text-sm font-bold text-foreground mb-2">Activity Log</h4>
+          <div className="max-h-48 overflow-y-auto space-y-0.5 text-xs text-muted-foreground font-mono">
+            {fixLog.map((log, i) => <p key={i}>{log}</p>)}
+          </div>
+        </div>
+      )}
+
+      {mcqArticles.length > 0 && (
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-600 mb-2">
+            {mcqArticles.length} articles contain MCQs (should migrate)
+          </p>
+          <div className="space-y-2">
+            {mcqArticles.map((item) => (
+              <div key={item.id} className="flex items-center justify-between rounded-xl border border-amber-300/30 bg-amber-50/50 dark:bg-amber-950/20 p-4">
+                <div className="min-w-0 flex-1">
+                  <h5 className="font-medium text-foreground text-sm truncate">{item.title}</h5>
+                  <p className="text-xs text-muted-foreground">{item.category} · {item.fixes.mcq_count} MCQs detected · {item.word_count} words</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => handleFix(item)}
+                  disabled={fixing === item.id} className="ml-3 gap-1 shrink-0">
+                  {fixing === item.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bolt className="h-3 w-3" />}
+                  Migrate
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {formatIssues.length > 0 && (
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+            {formatIssues.length} articles with formatting/category issues
+          </p>
+          <div className="space-y-2">
+            {formatIssues.map((item) => (
+              <div key={item.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
+                <div className="min-w-0 flex-1">
+                  <h5 className="font-medium text-foreground text-sm truncate">{item.title}</h5>
+                  <p className="text-xs text-muted-foreground">{item.category} · {item.word_count} words</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {item.issues.map((issue, i) => (
+                      <span key={i} className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{issue}</span>
+                    ))}
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => handleFix(item)}
+                  disabled={fixing === item.id} className="ml-3 gap-1 shrink-0">
+                  {fixing === item.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wrench className="h-3 w-3" />}
+                  Fix
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {results.length === 0 && !scanning && scanProgress.done && (
+        <div className="text-center py-16 text-muted-foreground">
+          <p className="text-4xl mb-3">✨</p>
+          <p className="font-medium text-foreground">All articles look clean!</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Content Upgrade Tab (Gemini AI)
 // ─────────────────────────────────────────────────────────────────────────────
 
