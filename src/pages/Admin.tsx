@@ -529,7 +529,7 @@ export default function Admin() {
           {previewCards && (
             <div className="rounded-xl border border-border bg-card p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-display text-lg font-bold text-foreground">Flashcard Preview ({previewCards.length})</h3>
+                <h3 className="font-serif text-lg font-bold text-foreground">Flashcard Preview ({previewCards.length})</h3>
                 <Button size="sm" variant="ghost" onClick={() => handleGenerate("flashcards")} disabled={loading} className="gap-1"><RefreshCw className="h-3 w-3" /> Regenerate</Button>
               </div>
               <Input value={previewTitle} onChange={(e) => setPreviewTitle(e.target.value)} className="mb-4" placeholder="Set title" />
