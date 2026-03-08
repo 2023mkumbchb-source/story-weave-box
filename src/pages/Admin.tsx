@@ -1271,7 +1271,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
       } else {
         setGeminiKeys(singleKey ? [singleKey] : [""]);
       }
-      setExamPassword(pwd || ""); setExamPrice(price || "5"); setExamAward(award || "1000"); setLoading(false);
+      setExamPassword(pwd || ""); setExamPrice(price || "5"); setExamAward(award || "1000"); setMcqFreeLimit(freeLimit || "10"); setMcqPrice(mPrice || "10"); setLoading(false);
     });
   }, []);
 
