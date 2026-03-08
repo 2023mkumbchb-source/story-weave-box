@@ -1,230 +1,133 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
-  BookOpen,
-  GraduationCap,
-  ListChecks,
-  Loader2,
-  Stethoscope,
-  ArrowRight,
-  Lightbulb,
-  FlaskConical,
-  Sparkles,
-  Phone,
-  MessageCircle,
-  Heart,
+  BookOpen, GraduationCap, ListChecks, Loader2,
+  Stethoscope, ArrowRight, Sparkles, Phone,
+  MessageCircle, Heart, Trophy, BookMarked,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { getAllCategories, getCategoryDisplayName } from "@/lib/store";
+import { getAllCategories, getCategoryDisplayName, getYearFromCategory, YEAR_CATEGORIES } from "@/lib/store";
 
-const unitIcons = [Stethoscope, GraduationCap, BookOpen, FlaskConical, Lightbulb, ListChecks];
+const YEAR_COLORS: Record<string, { bg: string; border: string; text: string; accent: string }> = {
+  "Year 1": { bg: "bg-emerald-500/10", border: "border-emerald-500/20", text: "text-emerald-400", accent: "from-emerald-600 to-emerald-500" },
+  "Year 2": { bg: "bg-blue-500/10", border: "border-blue-500/20", text: "text-blue-400", accent: "from-blue-600 to-blue-500" },
+  "Year 3": { bg: "bg-purple-500/10", border: "border-purple-500/20", text: "text-purple-400", accent: "from-purple-600 to-purple-500" },
+  "Year 4": { bg: "bg-orange-500/10", border: "border-orange-500/20", text: "text-orange-400", accent: "from-orange-600 to-orange-500" },
+  "Year 5": { bg: "bg-rose-500/10", border: "border-rose-500/20", text: "text-rose-400", accent: "from-rose-600 to-rose-500" },
+};
 
-const TABS = [
-  { key: "articles"   as const, label: "Articles",   Icon: BookOpen,   to: "/blog" },
-  { key: "flashcards" as const, label: "Flashcards", Icon: Lightbulb,  to: "/flashcards" },
-  { key: "quizzes"    as const, label: "Quizzes",    Icon: ListChecks, to: "/mcqs" },
+const NAV_ITEMS = [
+  { to: "/blog", label: "Articles", icon: BookOpen, desc: "Study notes" },
+  { to: "/flashcards", label: "Flashcards", icon: GraduationCap, desc: "Quick review" },
+  { to: "/mcqs", label: "MCQs", icon: ListChecks, desc: "Test yourself" },
+  { to: "/exams", label: "Exams", icon: Trophy, desc: "Mock exams" },
+  { to: "/stories", label: "Stories", icon: BookMarked, desc: "Creative writing" },
 ];
 
 export default function Index() {
-  const [categories, setCategories] = useState<
-    { name: string; articles: number; flashcards: number; mcqs: number }[]
-  >([]);
+  const [categories, setCategories] = useState<{ name: string; articles: number; flashcards: number; mcqs: number }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"articles" | "flashcards" | "quizzes">("articles");
 
   useEffect(() => {
     getAllCategories().then(setCategories).finally(() => setLoading(false));
   }, []);
 
+  // Group categories by year
+  const yearGroups = Object.keys(YEAR_CATEGORIES).map(year => {
+    const yearCats = categories.filter(c => getYearFromCategory(c.name) === year);
+    const total = yearCats.reduce((sum, c) => sum + c.articles + c.flashcards + c.mcqs, 0);
+    return { year, categories: yearCats, total };
+  }).filter(g => g.total > 0);
+
   return (
-    <div style={{
-      minHeight: "100dvh",
-      background: "linear-gradient(175deg, #0e1f38 0%, #111827 60%, #0c1a2e 100%)",
-      fontFamily: "'Inter', 'Segoe UI', sans-serif",
-      display: "flex",
-      flexDirection: "column",
-    }}>
+    <div className="min-h-dvh bg-background">
+      {/* Hero */}
+      <section className="relative overflow-hidden border-b border-border bg-card">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
+        <div className="relative mx-auto max-w-5xl px-5 py-12 sm:py-16">
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 border border-primary/20 px-3.5 py-1.5 mb-5">
+              <Stethoscope className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-semibold text-primary">MBChB Study Platform</span>
+            </div>
+            <h1 className="font-display text-3xl sm:text-5xl font-bold text-foreground mb-2 leading-tight">
+              MedLife <span className="text-primary">Echo's</span>
+            </h1>
+            <p className="text-muted-foreground text-base sm:text-lg max-w-xl leading-relaxed">
+              Comprehensive medical study notes, flashcards, MCQs, and exam preparation — organized by year and unit.
+            </p>
+          </motion.div>
 
-      {/* ── HERO ── */}
-      <section style={{ padding: "32px 22px 8px" }}>
-
-        {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            background: "rgba(37,99,235,0.15)",
-            border: "1px solid rgba(59,130,246,0.3)",
-            borderRadius: 999, padding: "5px 14px",
-            marginBottom: 18,
-          }}
-        >
-          <Stethoscope style={{ width: 13, height: 13, color: "#60a5fa" }} />
-          <span style={{ color: "#93c5fd", fontSize: 12, fontWeight: 600 }}>Medical Study Platform</span>
-        </motion.div>
-
-        {/* Title */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.05 }}
-        >
-          <h1 style={{
-            color: "#ffffff", fontSize: 34, fontWeight: 900,
-            lineHeight: 1.1, margin: "0 0 4px",
-            letterSpacing: "-1px",
-          }}>
-            MedLife
-          </h1>
-          <h1 style={{
-            fontSize: 34, fontWeight: 900,
-            lineHeight: 1.1, margin: "0 0 14px",
-            letterSpacing: "-1px",
-            background: "linear-gradient(90deg, #3b82f6 0%, #06b6d4 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-          }}>
-            Echo's
-          </h1>
-        </motion.div>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          style={{ color: "#64748b", fontSize: 14, lineHeight: 1.65, margin: "0 0 28px" }}
-        >
-          Transform your medical notes into comprehensive articles, flashcards, and MCQ quizzes. Study smarter for your exams.
-        </motion.p>
-
-        {/* ── CIRCLE TABS ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.15 }}
-          style={{ display: "flex", gap: 0, marginBottom: 36 }}
-        >
-          {TABS.map(({ key, label, Icon, to }) => {
-            const active = activeTab === key;
-            return (
+          {/* Quick nav */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="mt-8 flex flex-wrap gap-2.5"
+          >
+            {NAV_ITEMS.map(item => (
               <Link
-                key={key}
-                to={to}
-                onClick={() => setActiveTab(key)}
-                style={{
-                  textDecoration: "none", flex: 1,
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
-                }}
+                key={item.to}
+                to={item.to}
+                className="group flex items-center gap-2.5 rounded-xl border border-border bg-background px-4 py-3 hover:border-primary/40 hover:bg-primary/5 transition-all"
               >
-                <motion.div
-                  whileTap={{ scale: 0.88 }}
-                  style={{
-                    width: 76, height: 76, borderRadius: "50%",
-                    border: active ? "2.5px solid #3b82f6" : "2px solid rgba(255,255,255,0.12)",
-                    background: active
-                      ? "linear-gradient(145deg, #1d4ed8, #2563eb)"
-                      : "rgba(255,255,255,0.04)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    boxShadow: active
-                      ? "0 0 0 6px rgba(37,99,235,0.15), 0 6px 20px rgba(37,99,235,0.35)"
-                      : "none",
-                    transition: "all 0.25s ease",
-                  }}
-                >
-                  <Icon style={{ width: 26, height: 26, color: active ? "#fff" : "#475569" }} />
-                </motion.div>
-                <span style={{
-                  fontSize: 13, fontWeight: 600,
-                  color: active ? "#60a5fa" : "#475569",
-                  transition: "color 0.2s",
-                }}>
-                  {label}
-                </span>
+                <item.icon className="h-4.5 w-4.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{item.label}</p>
+                  <p className="text-[11px] text-muted-foreground">{item.desc}</p>
+                </div>
               </Link>
-            );
-          })}
-        </motion.div>
+            ))}
+          </motion.div>
+        </div>
       </section>
 
-      {/* ── BROWSE BY UNIT ── */}
-      <section style={{ padding: "0 22px" }}>
-        <p style={{
-          color: "#3b82f6", fontSize: 11, fontWeight: 800,
-          letterSpacing: 2.5, textTransform: "uppercase", margin: "0 0 14px",
-        }}>
-          Browse by Unit
-        </p>
+      {/* Year sections */}
+      <section className="mx-auto max-w-5xl px-5 py-10">
+        <div className="mb-6 flex items-center gap-3">
+          <h2 className="font-display text-xl font-bold text-foreground">Browse by Year</h2>
+          <div className="flex-1 border-b border-border" />
+        </div>
 
         {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
-            <Loader2 style={{ width: 28, height: 28, color: "#3b82f6", animation: "spin 1s linear infinite" }} />
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : categories.length === 0 ? (
-          <p style={{ color: "#475569", textAlign: "center", padding: "48px 0", fontSize: 14 }}>
-            No content yet. Create some from the dashboard!
-          </p>
+        ) : yearGroups.length === 0 ? (
+          <p className="text-center text-muted-foreground py-16">No content yet.</p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {categories.map((cat, i) => {
-              const displayName = getCategoryDisplayName(cat.name);
-              const Icon = unitIcons[i % unitIcons.length];
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {yearGroups.map((group, i) => {
+              const colors = YEAR_COLORS[group.year] || YEAR_COLORS["Year 1"];
               return (
                 <motion.div
-                  key={cat.name}
+                  key={group.year}
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.06, duration: 0.35 }}
+                  transition={{ delay: i * 0.08 }}
                 >
                   <Link
-                    to={`/blog?category=${encodeURIComponent(cat.name)}`}
-                    style={{ textDecoration: "none" }}
+                    to={`/blog?year=${encodeURIComponent(group.year)}`}
+                    className={`group block rounded-2xl border ${colors.border} ${colors.bg} p-5 hover:shadow-lg transition-all`}
                   >
-                    <motion.div
-                      whileTap={{ scale: 0.975 }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 14,
-                        padding: "14px 16px", borderRadius: 18,
-                        background: "rgba(255,255,255,0.05)",
-                        border: "1px solid rgba(255,255,255,0.07)",
-                        transition: "background 0.2s",
-                      }}
-                    >
-                      <div style={{
-                        width: 50, height: 50, borderRadius: 13, flexShrink: 0,
-                        background: "linear-gradient(135deg, #1e3a6e, #2563eb)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: "0 3px 12px rgba(37,99,235,0.3)",
-                      }}>
-                        <Icon style={{ width: 22, height: 22, color: "#93c5fd" }} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ color: "#f1f5f9", fontWeight: 700, fontSize: 15, margin: 0, lineHeight: 1.4 }}>
-                          {displayName}
+                    <div className="flex items-center justify-between mb-4">
+                      <span className={`text-2xl font-bold font-display ${colors.text}`}>{group.year}</span>
+                      <ArrowRight className={`h-5 w-5 ${colors.text} opacity-0 group-hover:opacity-100 transition-opacity`} />
+                    </div>
+                    <div className="space-y-1.5">
+                      {group.categories.slice(0, 4).map(cat => (
+                        <p key={cat.name} className="text-sm text-foreground/80 truncate">
+                          {getCategoryDisplayName(cat.name)}
+                          <span className="ml-1.5 text-xs text-muted-foreground">({cat.articles})</span>
                         </p>
-                      </div>
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        {cat.articles > 0 && (
-                          <p style={{ color: "#60a5fa", fontSize: 12, margin: "0 0 1px", fontWeight: 600 }}>
-                            {cat.articles} article{cat.articles !== 1 ? "s" : ""}
-                          </p>
-                        )}
-                        {cat.flashcards > 0 && (
-                          <p style={{ color: "#60a5fa", fontSize: 12, margin: "0 0 1px", fontWeight: 600 }}>
-                            {cat.flashcards} set{cat.flashcards !== 1 ? "s" : ""}
-                          </p>
-                        )}
-                        {cat.mcqs > 0 && (
-                          <p style={{ color: "#60a5fa", fontSize: 12, margin: 0, fontWeight: 600 }}>
-                            {cat.mcqs} quiz{cat.mcqs !== 1 ? "zes" : ""}
-                          </p>
-                        )}
-                        {cat.articles === 0 && cat.flashcards === 0 && cat.mcqs === 0 && (
-                          <p style={{ color: "#334155", fontSize: 12, margin: 0 }}>Empty</p>
-                        )}
-                      </div>
-                    </motion.div>
+                      ))}
+                      {group.categories.length > 4 && (
+                        <p className="text-xs text-muted-foreground">+{group.categories.length - 4} more units</p>
+                      )}
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-border/50 flex items-center gap-3">
+                      <span className="text-xs font-semibold text-muted-foreground">{group.total} items total</span>
+                    </div>
                   </Link>
                 </motion.div>
               );
@@ -233,148 +136,43 @@ export default function Index() {
         )}
       </section>
 
-      {/* ── CTA ── */}
-      <section style={{ padding: "28px 22px 0", textAlign: "center" }}>
-        <p style={{ color: "#475569", fontSize: 13, marginBottom: 18, lineHeight: 1.6 }}>
-          Ready to study? Head to the dashboard to generate content from your notes.
-        </p>
-        <Link to="/admin" style={{ textDecoration: "none" }}>
-          <motion.button
-            whileTap={{ scale: 0.96 }}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              padding: "15px 34px", borderRadius: 999,
-              background: "linear-gradient(135deg, #2563eb, #0891b2)",
-              boxShadow: "0 6px 28px rgba(37,99,235,0.45)",
-              color: "#fff", fontWeight: 700, fontSize: 15,
-              border: "none", cursor: "pointer", fontFamily: "inherit",
-            }}
-          >
-            Go to Dashboard
-            <ArrowRight style={{ width: 17, height: 17 }} />
-          </motion.button>
-        </Link>
-      </section>
-
-      {/* ── FOOTER ── */}
-      <footer style={{
-        marginTop: "auto",
-        padding: "40px 22px 36px",
-        background: "linear-gradient(180deg, transparent 0%, rgba(6,12,28,0.95) 30%)",
-        borderTop: "1px solid rgba(59,130,246,0.15)",
-      }}>
-
-        {/* Brand */}
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            marginBottom: 6,
-          }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: "linear-gradient(135deg, #2563eb, #0891b2)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <Stethoscope style={{ width: 18, height: 18, color: "#fff" }} />
+      {/* Footer */}
+      <footer className="border-t border-border bg-card/50">
+        <div className="mx-auto max-w-5xl px-5 py-10">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                <Stethoscope className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-display font-bold text-foreground">MedLife Echo's</p>
+                <p className="text-xs text-muted-foreground">Medical Study Platform</p>
+              </div>
             </div>
-            <div style={{ textAlign: "left" }}>
-              <p style={{ color: "#fff", fontWeight: 800, fontSize: 16, margin: 0, letterSpacing: "-0.3px" }}>
-                MedLife Echo's
-              </p>
-              <p style={{ color: "#3b82f6", fontSize: 10, margin: 0, fontWeight: 600, letterSpacing: 1 }}>
-                MEDICAL STUDY PLATFORM
-              </p>
-            </div>
-          </div>
-          <p style={{ color: "#334155", fontSize: 12, margin: 0, lineHeight: 1.5 }}>
-            Smarter studying for medical students
-          </p>
-        </div>
 
-        {/* Divider */}
-        <div style={{
-          height: 1,
-          background: "linear-gradient(90deg, transparent, rgba(59,130,246,0.3), transparent)",
-          marginBottom: 24,
-        }} />
-
-        {/* Creator card */}
-        <div style={{
-          background: "rgba(37,99,235,0.08)",
-          border: "1px solid rgba(59,130,246,0.2)",
-          borderRadius: 18,
-          padding: "18px 20px",
-          marginBottom: 20,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-            {/* Avatar initials */}
-            <div style={{
-              width: 46, height: 46, borderRadius: "50%", flexShrink: 0,
-              background: "linear-gradient(135deg, #1d4ed8, #0891b2)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 16, fontWeight: 800, color: "#fff",
-              boxShadow: "0 3px 12px rgba(37,99,235,0.4)",
-            }}>
-              AD
-            </div>
-            <div>
-              <p style={{ color: "#f1f5f9", fontWeight: 700, fontSize: 15, margin: "0 0 2px" }}>
-                Abongo Davis
-              </p>
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <Sparkles style={{ width: 12, height: 12, color: "#60a5fa" }} />
-                <p style={{ color: "#60a5fa", fontSize: 12, margin: 0, fontWeight: 600 }}>
-                  MBChB · Innovative Medical Student
-                </p>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                <span className="text-sm font-medium text-foreground">Abongo Davis</span>
+                <span className="text-xs text-muted-foreground">MBChB</span>
+              </div>
+              <div className="flex gap-2">
+                <a href="tel:+254115475543"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                  <Phone className="h-4 w-4" />
+                </a>
+                <a href="https://wa.me/254115475543" target="_blank" rel="noopener noreferrer"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-colors">
+                  <MessageCircle className="h-4 w-4" />
+                </a>
               </div>
             </div>
           </div>
-
-          {/* Contact buttons */}
-          <div style={{ display: "flex", gap: 10 }}>
-            <a
-              href="tel:+254115475543"
-              style={{
-                flex: 1, textDecoration: "none",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-                padding: "10px 0", borderRadius: 12,
-                background: "rgba(37,99,235,0.2)",
-                border: "1px solid rgba(59,130,246,0.25)",
-                color: "#93c5fd", fontSize: 13, fontWeight: 600,
-              }}
-            >
-              <Phone style={{ width: 14, height: 14 }} />
-              Call
-            </a>
-            <a
-              href="https://wa.me/254115475543"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                flex: 1, textDecoration: "none",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-                padding: "10px 0", borderRadius: 12,
-                background: "rgba(34,197,94,0.15)",
-                border: "1px solid rgba(34,197,94,0.25)",
-                color: "#86efac", fontSize: 13, fontWeight: 600,
-              }}
-            >
-              <MessageCircle style={{ width: 14, height: 14 }} />
-              WhatsApp
-            </a>
-          </div>
+          <p className="mt-6 text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
+            Built with <Heart className="h-3 w-3 text-primary fill-primary" /> for medical students · {new Date().getFullYear()}
+          </p>
         </div>
-
-        {/* Bottom note */}
-        <p style={{
-          textAlign: "center", color: "#1e293b", fontSize: 11,
-          margin: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-        }}>
-          Built with <Heart style={{ width: 10, height: 10, color: "#3b82f6", fill: "#3b82f6" }} /> for medical students · {new Date().getFullYear()}
-        </p>
       </footer>
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

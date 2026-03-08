@@ -40,19 +40,74 @@ export function authenticate(password: string): boolean {
   return password === ADMIN_PASSWORD;
 }
 
-// Medical unit categories
-export const UNIT_CATEGORIES = [
-  "Basic Pharmacology II",
-  "Hematopathology",
-  "Research Methodology and Proposal Writing",
-  "Endocrine and Metabolic Pathology",
-  "Chemical Pathology",
-  "Respiratory System Pathology",
-  "Junior Clerkship/Practicals in General Pathology I",
-  "Gastrointestinal Pathology",
-  "Female Reproductive System Pathology",
-  "Cardiovascular System Pathology",
-];
+// Medical unit categories organized by year
+export const YEAR_CATEGORIES: Record<string, string[]> = {
+  "Year 1": [
+    "Anatomy",
+    "Embryology",
+    "Enzymes, Vitamins and Minerals",
+    "Biochemical Techniques and Instrumentation",
+    "Cardiovascular Physiology",
+  ],
+  "Year 2": [
+    "Molecular Biology",
+    "Molecular Genetics and Cytogenetics",
+    "Clinical Biochemistry",
+    "Physiology",
+    "GIT Physiology",
+    "Parasitology",
+    "Cellular Immunology",
+    "Microbiology",
+    "Epidemiology and Statistics",
+    "Human Communication Skills",
+  ],
+  "Year 3": [
+    "Basic Pharmacology II",
+    "Hematopathology",
+    "Research Methodology and Proposal Writing",
+    "Endocrine and Metabolic Pathology",
+    "Chemical Pathology",
+    "Respiratory System Pathology",
+    "Junior Clerkship/Practicals in General Pathology I",
+    "Gastrointestinal Pathology",
+    "Female Reproductive System Pathology",
+    "Cardiovascular System Pathology",
+    "General Pathology",
+    "Nutrition and Dietetics",
+  ],
+  "Year 4": [
+    "General Surgery",
+    "Internal Medicine",
+    "Obstetrics and Gynaecology",
+    "Pediatrics and Child Health",
+    "Mental Health/Psychiatry",
+    "Clinical Pharmacology",
+  ],
+  "Year 5": [
+    "Orthopedics and Trauma",
+    "Ophthalmology",
+    "ENT",
+    "Radiology and Imaging",
+    "Anaesthesiology and Critical Care",
+    "Public Health",
+    "Dental Health",
+  ],
+};
+
+export const UNIT_CATEGORIES = Object.entries(YEAR_CATEGORIES).flatMap(([year, units]) =>
+  units.map(u => `${year}: ${u}`)
+);
+
+export function getYearFromCategory(category: string): string | null {
+  if (!category) return null;
+  const match = category.match(/^(Year \d)/);
+  return match ? match[1] : null;
+}
+
+export function getYearNumber(category: string): number {
+  const match = category.match(/^Year (\d)/);
+  return match ? parseInt(match[1]) : 0;
+}
 
 export function getCategoryDisplayName(category: string): string {
   if (!category || category === "Uncategorized") return category;
