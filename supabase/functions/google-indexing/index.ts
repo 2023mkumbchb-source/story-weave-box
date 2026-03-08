@@ -48,7 +48,7 @@ function buildStoryUrl(base: string, s: { id: string; title: string }) {
 }
 
 async function pingSearchEngines(baseUrl: string) {
-  const sitemapUrl = `${baseUrl}/dynamic-sitemap.xml`;
+  const sitemapUrl = `${baseUrl}/sitemap-dynamic.xml`;
   const targets = [
     `https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`,
     `https://www.bing.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`,
