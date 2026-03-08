@@ -1053,9 +1053,14 @@ serve(async (req) => {
 
           const parsedMcqs = extractMcqsFromContent(newContent.slice(0, MAX_MCQ_EXTRACT_CHARS));
           const parsedEssays = extractEssayQuestions(newContent.slice(0, MAX_MCQ_EXTRACT_CHARS));
-          const forcedType = parsedMcqs.length >= 5
+          const parsedEssayCount = parsedEssays.saqs.length + parsedEssays.laqs.length;
+          const essaySignal = looksLikeEssayContent(newContent) || /\bessay|saq|laq|short\s+answer|long\s+answer\b/i.test(newTitle);
+
+          const forcedType = essaySignal && parsedEssayCount >= 3 && parsedMcqs.length < 8
+            ? "essay"
+            : parsedMcqs.length >= 5
             ? "mcq"
-            : parsedEssays.saqs.length + parsedEssays.laqs.length >= 3
+            : parsedEssayCount >= 3
             ? "essay"
             : null;
 
