@@ -1102,25 +1102,27 @@ function ArticlesList({
           <h4 className="mb-3 text-xs font-bold text-primary uppercase tracking-wide">{getCategoryDisplayName(cat)} ({arts.length})</h4>
           <div className="space-y-2">
             {arts.map(a => (
-              <div key={a.id} className={`flex items-center justify-between rounded-xl border bg-card p-4 transition-colors ${updatedIds.has(a.id) ? "border-primary/40 bg-primary/5" : "border-border"}`}>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h5 className="font-medium text-foreground truncate">{a.title}</h5>
-                    {updatedIds.has(a.id) && (
-                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
-                        <Check className="h-2.5 w-2.5" /> Updated
-                      </span>
-                    )}
+              <div key={a.id} className={`rounded-xl border bg-card p-3 sm:p-4 transition-colors ${updatedIds.has(a.id) ? "border-primary/40 bg-primary/5" : "border-border"}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h5 className="font-medium text-foreground text-sm leading-snug break-words">{a.title}</h5>
+                      {updatedIds.has(a.id) && (
+                        <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
+                          <Check className="h-2.5 w-2.5" /> Updated
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {new Date(a.created_at).toLocaleDateString()} · {a.published ? "Published" : "Draft"}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(a.created_at).toLocaleDateString()} · {a.published ? "Published" : "Draft"}
-                  </p>
                 </div>
-                <div className="flex gap-1 ml-2 shrink-0">
-                  <Button size="sm" variant="ghost" asChild className="text-xs"><a href={buildBlogPath(a)} target="_blank" rel="noopener"><Eye className="h-3.5 w-3.5" /></a></Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditing(a)}><Pencil className="h-4 w-4" /></Button>
-                  <Button size="sm" variant="ghost" onClick={() => togglePublish(a)}>{a.published ? "Unpublish" : "Publish"}</Button>
-                  <Button size="sm" variant="ghost" onClick={() => handleDelete(a.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                <div className="flex gap-1 mt-2 pt-2 border-t border-border/50 flex-wrap">
+                  <Button size="sm" variant="ghost" asChild className="text-xs h-8"><a href={buildBlogPath(a)} target="_blank" rel="noopener"><Eye className="h-3.5 w-3.5 mr-1" /><span className="sm:inline hidden">View</span></a></Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditing(a)} className="h-8"><Pencil className="h-3.5 w-3.5 mr-1" /><span className="sm:inline hidden">Edit</span></Button>
+                  <Button size="sm" variant="ghost" onClick={() => togglePublish(a)} className="h-8 text-xs">{a.published ? "Unpublish" : "Publish"}</Button>
+                  <Button size="sm" variant="ghost" onClick={() => handleDelete(a.id)} className="text-destructive h-8 ml-auto"><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
             ))}
