@@ -15,7 +15,7 @@ import {
 } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 
-type Tab = "create" | "articles" | "flashcards" | "mcqs" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade" | "import" | "cleanup";
+type Tab = "create" | "articles" | "flashcards" | "mcqs" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo";
 type DirectType = "article" | "mcqs" | "flashcards";
 
 export default function Admin() {
