@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getArticleById, getRelatedContent, getCategoryDisplayName, type Article } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { markArticleVisited } from "@/lib/progress-store";
+import BlogAudioPlayer from "@/components/BlogAudioPlayer";
 
 function Inline({ text }: { text: string }) {
   const hasStar = text.includes("⭐");
