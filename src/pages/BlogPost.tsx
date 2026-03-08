@@ -805,6 +805,11 @@ export default function BlogPost() {
     );
   }
 
+  const date = new Date(article.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  const unitName = getCategoryDisplayName(article.category);
+  const yearName = getYearFromCategory(article.category);
+  const hasRelated = related.flashcards.length > 0 || related.mcqs.length > 0;
+
   return (
     <>
       <ReadingProgress />
