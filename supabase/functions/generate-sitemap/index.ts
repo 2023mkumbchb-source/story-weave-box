@@ -17,7 +17,7 @@ serve(async (req) => {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) throw new Error('Missing config');
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    const baseUrl = 'https://ompathstud.lovable.app';
+    const baseUrl = 'https://medicine.kenyaadverts.co.ke';
 
     const [{ data: articles }, { data: mcqs }, { data: flashcards }, { data: essays }] = await Promise.all([
       supabase.from('articles').select('id, created_at').eq('published', true),

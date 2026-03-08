@@ -751,7 +751,7 @@ export default function BlogPost() {
     const metaTitle = article.meta_title || article.title;
     const metaDesc = article.meta_description || `Study ${article.title} - medical notes, key concepts and practice questions on Ompath Study.`;
     const ogImage = article.og_image_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/DTJcZaGrXOdbkxHTBlH6J3GsJMm2/social-images/social-1771239382592-WhatsApp_Image_2026-02-09_at_10.50.50_PM.webp";
-    const canonicalUrl = `https://ompathstud.lovable.app${buildBlogPath(article)}`;
+    const canonicalUrl = `https://medicine.kenyaadverts.co.ke${buildBlogPath(article)}`;
 
     document.title = `${metaTitle} | Ompath Study`;
 

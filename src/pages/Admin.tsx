@@ -2550,7 +2550,7 @@ function SeoIndexingTab() {
   const [loadingBatches, setLoadingBatches] = useState(false);
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [copiedBatch, setCopiedBatch] = useState<number | null>(null);
-  const [siteUrlInput, setSiteUrlInput] = useState("https://ompathstud.lovable.app");
+  const [siteUrlInput, setSiteUrlInput] = useState("https://medicine.kenyaadverts.co.ke");
   const [googleApiKey, setGoogleApiKey] = useState("");
 
   const sitemapUrl = `${siteUrlInput.replace(/\/+$/, "")}/sitemap.xml`;
