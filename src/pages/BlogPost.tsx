@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Calendar, Loader2, GraduationCap, ListChecks,
   ChevronDown, FileText, HelpCircle,
@@ -383,6 +383,56 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
+    // QUESTION pattern: "QUESTION 1", "Question 1:", "Q1.", etc.
+    const questionMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)[:\s-]*(.*)/i);
+    if (questionMatch) {
+      flushList();
+      flushPractice();
+      inPractice = false;
+      underSubheading = false;
+      _sec++;
+      const qNum = questionMatch[2];
+      const qTitle = questionMatch[3]?.replace(/^\s*[-:]\s*/, "").trim() || "";
+      els.push(
+        <div key={`q-${i}`} className="mt-10 mb-5">
+          <div className="flex items-start gap-4 mb-4">
+            <div className="shrink-0 flex items-center justify-center rounded-xl border-2 border-primary/50 text-primary font-bold text-[15px] w-[48px] h-[48px] bg-primary/10">
+              Q{qNum}
+            </div>
+            <div className="flex-1 pt-1">
+              {qTitle ? (
+                <h2 className="font-bold text-[20px] sm:text-[24px] text-foreground leading-tight"><Inline text={qTitle} /></h2>
+              ) : (
+                <h2 className="font-bold text-[20px] sm:text-[24px] text-foreground leading-tight">Question {qNum}</h2>
+              )}
+            </div>
+          </div>
+          <div className="border-b border-border" />
+        </div>
+      );
+      return;
+    }
+
+    // Sub-question pattern: "a)", "b)", "i)", "ii)", "(a)", etc.
+    const subQMatch = t.match(/^(\(?[a-z]\)|[ivx]+\)|\([ivx]+\))\s*(.+)/i);
+    if (subQMatch) {
+      flushList();
+      underSubheading = false;
+      const label = subQMatch[1].replace(/[()]/g, "").toUpperCase();
+      const content = subQMatch[2];
+      els.push(
+        <div key={`subq-${i}`} className="my-4 flex items-start gap-3 pl-2">
+          <div className="shrink-0 flex items-center justify-center rounded-lg border border-primary/40 bg-primary/5 text-primary font-bold text-[13px] w-[32px] h-[32px]">
+            {label}
+          </div>
+          <div className="flex-1 pt-1">
+            <p className="text-[17px] font-medium text-foreground leading-relaxed"><Inline text={content} /></p>
+          </div>
+        </div>
+      );
+      return;
+    }
+
     // ## headings
     if (/^#{1,2}\s/.test(t)) {
       flushList();
@@ -525,11 +575,20 @@ function ArticleContent({ content }: { content: string }) {
 
 export default function BlogPost() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; mcqs: any[] }>({ articles: [], flashcards: [], mcqs: [] });
 
   const scrollKey = `scroll:${id}`;
+  
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/blog");
+    }
+  };
 
   useEffect(() => {
     if (id) {
@@ -599,9 +658,9 @@ export default function BlogPost() {
         return null;
       })()}
       <div className="mx-auto max-w-3xl px-5 sm:px-6 py-8 sm:py-12">
-        <Link to="/blog" className="inline-flex items-center gap-2 text-[15px] text-muted-foreground hover:text-foreground transition-colors mb-10">
-          <ArrowLeft className="h-4 w-4" /> Back to Blog
-        </Link>
+        <button onClick={handleBack} className="inline-flex items-center gap-2 text-[15px] text-muted-foreground hover:text-foreground transition-colors mb-10">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
         <div className="flex flex-wrap items-center gap-2 mb-4 text-[15px] text-muted-foreground">
           <Calendar className="h-4 w-4" />
           <span>{date}</span>

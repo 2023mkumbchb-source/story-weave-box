@@ -83,16 +83,22 @@ export default function Blog() {
     return base;
   }, [articles, search, selectedYear, selectedUnit, sortBy]);
 
-  // Group by unit when showing "All" or a year without unit selected
+  // Group by unit - ONLY show groups from selected year when year is selected
   const groupedArticles = useMemo(() => {
     if (selectedUnit || search.trim()) return null;
     const groups = new Map<string, Article[]>();
     filtered.forEach(a => {
+      // Double-check year filter for grouped view
+      if (selectedYear !== "All") {
+        const artYear = getYearFromCategory(a.category);
+        if (artYear !== selectedYear) return; // Skip articles not in selected year
+      }
       const key = a.category || "Uncategorized";
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(a);
     });
     return Array.from(groups.entries())
+      .filter(([_, arts]) => arts.length > 0) // Only show non-empty groups
       .map(([cat, arts]) => ({ category: cat, name: getCategoryDisplayName(cat), articles: arts }))
       .sort((a, b) => {
         const ya = getYearNumber(a.category);
@@ -100,7 +106,7 @@ export default function Blog() {
         if (ya !== yb) return ya - yb;
         return a.name.localeCompare(b.name);
       });
-  }, [filtered, selectedUnit, search]);
+  }, [filtered, selectedUnit, search, selectedYear]);
 
   const yearCounts = useMemo(() => {
     const counts: Record<string, number> = { All: 0 };
