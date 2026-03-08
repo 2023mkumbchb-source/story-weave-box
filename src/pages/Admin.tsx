@@ -649,6 +649,7 @@ export default function Admin() {
       {tab === "recycle" && <RecycleBinTab />}
       {tab === "institutions" && <InstitutionsTab />}
       {tab === "upgrade" && <ContentUpgradeTab />}
+      {tab === "import" && <ImportTab />}
       {tab === "settings" && <SettingsPanel setGeminiKey={setGeminiKey} />}
     </div>
   );
