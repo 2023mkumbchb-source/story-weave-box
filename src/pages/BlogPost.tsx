@@ -578,33 +578,113 @@ function ArticleContent({ content }: { content: string }) {
 }
 
 export default function BlogPost() {
-  const { id } = useParams();
+  const { slug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
+  const { isAdmin } = useAuth();
+
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; mcqs: any[] }>({ articles: [], flashcards: [], mcqs: [] });
 
-  const scrollKey = `scroll:${id}`;
-  
+  const scrollKey = `scroll:${slug || "article"}`;
+
   const handleBack = () => {
     if (window.history.length > 1) {
       navigate(-1);
+      return;
+    }
+
+    const savedYear = sessionStorage.getItem("nav_year_filter");
+    if (savedYear && /^Year [1-5]$/.test(savedYear)) {
+      navigate(`/blog?year=${encodeURIComponent(savedYear)}`);
     } else {
       navigate("/blog");
     }
   };
 
-  useEffect(() => {
-    if (id) {
-      getArticleById(id).then((a) => {
-        setArticle(a);
-        if (a) {
-          markArticleVisited({ id: a.id, title: a.title, category: a.category, visitedAt: Date.now() });
-          if (a.category) getRelatedContent(a.category, a.id).then(setRelated);
-        }
-      }).finally(() => setLoading(false));
+  const reloadCurrentArticle = async (id: string) => {
+    const refreshed = await getArticleBySlugOrId(id);
+    if (refreshed) {
+      setArticle(refreshed);
+      if (refreshed.category) {
+        const nextRelated = await getRelatedContent(refreshed.category, refreshed.id);
+        setRelated(nextRelated);
+      }
     }
-  }, [id]);
+  };
+
+  const runGeminiUpgrade = async (type: "format" | "expand") => {
+    if (!article) return;
+    setActionLoading(type);
+    try {
+      const { data, error } = await supabase.functions.invoke("content-upgrade", {
+        body: { action: "upgrade", id: article.id, type },
+      });
+      if (error) throw new Error(error.message);
+      if (!data?.improved_content) throw new Error("No upgraded content returned");
+
+      const { error: applyError } = await supabase.functions.invoke("content-upgrade", {
+        body: { action: "apply", id: article.id, content: data.improved_content },
+      });
+      if (applyError) throw new Error(applyError.message);
+
+      await reloadCurrentArticle(article.id);
+      toast({ title: type === "format" ? "Gemini formatting applied" : "Gemini expansion applied" });
+    } catch (err: any) {
+      toast({ title: "Gemini action failed", description: err?.message || "Try again.", variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const runCleanupFix = async (fixes: Record<string, any>, successMessage: string) => {
+    if (!article) return;
+    setActionLoading("fix");
+    try {
+      const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
+        body: { action: "fix", article_id: article.id, fixes },
+      });
+      if (error) throw new Error(error.message);
+
+      if (data?.deleted_article) {
+        toast({ title: successMessage });
+        navigate("/blog", { replace: true });
+        return;
+      }
+
+      await reloadCurrentArticle(article.id);
+      toast({ title: successMessage });
+    } catch (err: any) {
+      toast({ title: "Action failed", description: err?.message || "Try again.", variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!slug) {
+      setLoading(false);
+      return;
+    }
+
+    getArticleBySlugOrId(slug)
+      .then((a) => {
+        setArticle(a);
+        if (!a) return;
+
+        const canonicalPath = buildBlogPath(a);
+        if (location.pathname !== canonicalPath) {
+          navigate(canonicalPath, { replace: true });
+        }
+
+        markArticleVisited({ id: a.id, title: a.title, category: a.category, visitedAt: Date.now() });
+        if (a.category) getRelatedContent(a.category, a.id).then(setRelated);
+      })
+      .finally(() => setLoading(false));
+  }, [slug, navigate, location.pathname]);
 
   useEffect(() => {
     if (loading) return;
@@ -632,13 +712,26 @@ export default function BlogPost() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [loading, scrollKey]);
 
-  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
-  if (!article) return (
-    <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-      <h1 className="mb-4 font-bold text-3xl text-foreground">Article not found</h1>
-      <Button asChild variant="outline"><Link to="/blog"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Blog</Link></Button>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="flex min-h-[65vh] items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!article) {
+    return (
+      <div className="mx-auto max-w-3xl px-6 py-20 text-center">
+        <h1 className="mb-4 text-3xl font-bold text-foreground">Article not found</h1>
+        <Button asChild variant="outline">
+          <Link to="/blog">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Blog
+          </Link>
+        </Button>
+      </div>
+    );
+  }
 
   const date = new Date(article.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const unitName = getCategoryDisplayName(article.category);
@@ -647,7 +740,6 @@ export default function BlogPost() {
   return (
     <>
       <ReadingProgress />
-      {/* SEO meta tags */}
       {(() => {
         document.title = `${article.title} | Ompath Study`;
         const metaDesc = document.querySelector('meta[name="description"]');
@@ -661,57 +753,111 @@ export default function BlogPost() {
         }
         return null;
       })()}
-      <div className="mx-auto max-w-3xl px-5 sm:px-6 py-8 sm:py-12">
-        <button onClick={handleBack} className="inline-flex items-center gap-2 text-[15px] text-muted-foreground hover:text-foreground transition-colors mb-10">
+
+      <div className="mx-auto max-w-3xl px-5 py-8 sm:px-6 sm:py-12">
+        <button onClick={handleBack} className="mb-6 inline-flex items-center gap-2 text-[15px] text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
-        <div className="flex flex-wrap items-center gap-2 mb-4 text-[15px] text-muted-foreground">
+
+        {isAdmin && (
+          <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/80 p-2.5">
+            <Button
+              size="sm"
+              variant="secondary"
+              className="gap-2"
+              disabled={!!actionLoading}
+              onClick={() => runGeminiUpgrade("format")}
+            >
+              {actionLoading === "format" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Gemini
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" className="gap-2" disabled={!!actionLoading}>
+                  <GitMerge className="h-4 w-4" />
+                  Migrate
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => runCleanupFix({ migrate_mcqs: true }, "Migrated to MCQs")}>Migrate to MCQs</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => runCleanupFix({ migrate_essays: true }, "Migrated to Essays")}>Migrate to Essays</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" className="gap-2" disabled={!!actionLoading}>
+                  <Settings2 className="h-4 w-4" />
+                  Change
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => runGeminiUpgrade("format")}>Improve formatting (Gemini)</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => runGeminiUpgrade("expand")}>Expand content (Gemini)</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => runCleanupFix({ fix_formatting: true, clean_emojis: true, clean_mku: true }, "Clean formatting applied")}>Clean formatting</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-[15px] text-muted-foreground">
           <Calendar className="h-4 w-4" />
           <span>{date}</span>
-          {unitName && unitName !== "Uncategorized" && (<><span className="mx-1">·</span><span className="font-bold uppercase tracking-wider text-foreground/70">{unitName}</span></>)}
+          {unitName && unitName !== "Uncategorized" && (
+            <>
+              <span className="mx-1">·</span>
+              <span className="font-bold uppercase tracking-wider text-foreground/70">{unitName}</span>
+            </>
+          )}
         </div>
-        <h1 className="mb-6 font-bold text-[28px] sm:text-[36px] leading-tight text-foreground">
-          {article.title.replace(/^#+\s*/, "")}
-        </h1>
+
+        <h1 className="mb-6 text-[28px] font-bold leading-tight text-foreground sm:text-[36px]">{article.title.replace(/^#+\s*/, "")}</h1>
         <BlogAudioPlayer content={article.content} title={article.title} />
         <ArticleContent content={article.content} />
+
         {hasRelated && (
-          <div className="mt-14 rounded-2xl border border-border bg-card overflow-hidden">
-            <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+          <div className="mt-14 overflow-hidden rounded-2xl border border-border bg-card">
+            <div className="flex items-center gap-2 border-b border-border px-5 py-4">
               <FileText className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold text-[17px] text-foreground">Continue Learning</h3>
+              <h3 className="text-[17px] font-semibold text-foreground">Continue Learning</h3>
               {unitName && unitName !== "Uncategorized" && <span className="ml-auto text-[13px] text-muted-foreground">{unitName}</span>}
             </div>
-            <div className="p-5 space-y-5">
+            <div className="space-y-5 p-5">
               {related.flashcards.length > 0 && (
                 <div>
                   <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Flashcards</p>
                   <div className="space-y-2">
                     {related.flashcards.map((f: any) => (
-                      <Link key={f.id} to={`/flashcards/${f.id}`} className="flex items-center gap-4 rounded-xl border border-border bg-background p-4 hover:border-primary/40 hover:bg-primary/5 active:scale-[0.98] transition-all">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10"><GraduationCap className="h-5 w-5 text-amber-500" /></div>
+                      <Link key={f.id} to={`/flashcards/${f.id}`} className="flex items-center gap-4 rounded-xl border border-border bg-background p-4 transition-all hover:border-primary/40 hover:bg-primary/5 active:scale-[0.98]">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                          <GraduationCap className="h-5 w-5 text-primary" />
+                        </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-[16px] font-medium text-foreground truncate">{f.title}</p>
+                          <p className="truncate text-[16px] font-medium text-foreground">{f.title}</p>
                           <p className="text-[13px] text-muted-foreground">{(f.cards as any[])?.length || 0} cards</p>
                         </div>
-                        <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90 shrink-0" />
+                        <ChevronDown className="h-4 w-4 shrink-0 -rotate-90 text-muted-foreground" />
                       </Link>
                     ))}
                   </div>
                 </div>
               )}
+
               {related.mcqs.length > 0 && (
                 <div>
                   <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">MCQ Quizzes</p>
                   <div className="space-y-2">
                     {related.mcqs.map((m: any) => (
-                      <Link key={m.id} to={`/mcqs/${m.id}`} className="flex items-center gap-4 rounded-xl border border-border bg-background p-4 hover:border-primary/40 hover:bg-primary/5 active:scale-[0.98] transition-all">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10"><ListChecks className="h-5 w-5 text-emerald-500" /></div>
+                      <Link key={m.id} to={`/mcqs/${m.id}`} className="flex items-center gap-4 rounded-xl border border-border bg-background p-4 transition-all hover:border-primary/40 hover:bg-primary/5 active:scale-[0.98]">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                          <ListChecks className="h-5 w-5 text-primary" />
+                        </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-[16px] font-medium text-foreground truncate">{m.title}</p>
+                          <p className="truncate text-[16px] font-medium text-foreground">{m.title}</p>
                           <p className="text-[13px] text-muted-foreground">{(m.questions as any[])?.length || 0} questions</p>
                         </div>
-                        <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90 shrink-0" />
+                        <ChevronDown className="h-4 w-4 shrink-0 -rotate-90 text-muted-foreground" />
                       </Link>
                     ))}
                   </div>
