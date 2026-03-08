@@ -7,7 +7,33 @@ const corsHeaders = {
 };
 
 const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"];
-const SITE_URL = "https://ompathstud.lovable.app";
+const DEFAULT_SITE_URL = "https://ompathstud.lovable.app";
+
+function normalizeBaseUrl(url: string | null | undefined): string {
+  const trimmed = String(url || "").trim();
+  if (!trimmed) return DEFAULT_SITE_URL;
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  return withProtocol.replace(/\/+$/, "");
+}
+
+async function resolveSiteUrl(sb: ReturnType<typeof createClient>): Promise<string> {
+  const { data } = await sb
+    .from("app_settings")
+    .select("value")
+    .eq("key", "site_url")
+    .maybeSingle();
+
+  return normalizeBaseUrl(data?.value);
+}
+
+async function resolveSiteUrlFromBodyOrSettings(
+  sb: ReturnType<typeof createClient>,
+  provided: unknown,
+): Promise<string> {
+  if (typeof provided === "string" && provided.trim()) return normalizeBaseUrl(provided);
+  return resolveSiteUrl(sb);
+}
+
 async function callGemini(apiKey: string, prompt: string, maxTokens = 8000): Promise<string> {
   for (const model of GEMINI_MODELS) {
     try {
