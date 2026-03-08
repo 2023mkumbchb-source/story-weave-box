@@ -107,9 +107,15 @@ export default function Stories() {
                   className="group block h-full overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:[box-shadow:var(--shadow-card-hover)]"
                   style={{ boxShadow: "var(--shadow-card)" }}
                 >
-                  <div className="relative h-40 overflow-hidden border-b border-border bg-muted">
-                    <img src={thumb} alt={story.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
-                  </div>
+                  {thumb ? (
+                    <div className="relative h-40 overflow-hidden border-b border-border bg-muted">
+                      <img src={thumb} alt={story.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+                    </div>
+                  ) : (
+                    <div className="relative h-40 overflow-hidden border-b border-border bg-gradient-to-br from-primary/10 via-accent/10 to-secondary flex items-center justify-center">
+                      <BookOpen className="h-12 w-12 text-primary/30" />
+                    </div>
+                  )}
                   <div className="p-5">
                     {story.category && story.category !== "Uncategorized" && (
                       <span className="mb-3 inline-block rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium text-primary">{story.category}</span>
