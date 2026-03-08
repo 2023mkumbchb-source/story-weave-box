@@ -2,17 +2,18 @@ import { Link, useLocation } from "react-router-dom";
 import { BookOpen } from "lucide-react";
 
 const links = [
-  { to: "/blog", label: "Blog" },
-  { to: "/flashcards", label: "Flashcards" },
-  { to: "/mcqs", label: "MCQs" },
-  { to: "/exams", label: "Exams" },
+  { to: "/year/1", label: "Year 1" },
+  { to: "/year/2", label: "Year 2" },
+  { to: "/year/3", label: "Year 3" },
+  { to: "/year/4", label: "Year 4" },
+  { to: "/year/5", label: "Year 5" },
+  { to: "/stories", label: "Stories" },
   { to: "/admin", label: "Dashboard" },
 ];
 
 export default function SiteFooter() {
   const location = useLocation();
 
-  // Hide on home page and exam pages
   if (location.pathname === "/") return null;
   if (/^\/exams\/[^/]+\/start/.test(location.pathname)) return null;
 

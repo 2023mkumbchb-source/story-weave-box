@@ -1,20 +1,15 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, GraduationCap, LayoutDashboard, ListChecks, Menu, X, Trophy, BookMarked } from "lucide-react";
+import { BookOpen, LayoutDashboard, Menu, X, BookMarked } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ThemeToggle from "./ThemeToggle";
 
 const links = [
-  { to: "/blog", label: "Blog", icon: BookOpen },
-  { to: "/flashcards", label: "Flashcards", icon: GraduationCap },
-  { to: "/mcqs", label: "MCQs", icon: ListChecks },
-  { to: "/exams", label: "Exams", icon: Trophy },
   { to: "/stories", label: "Stories", icon: BookMarked },
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
 ];
 
 const YEAR_OPTIONS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5"];
-const YEAR_SCOPED_ROUTES = new Set(["/blog", "/flashcards", "/mcqs", "/exams"]);
 const STORAGE_KEY = "nav_year_filter";
 
 export default function Navbar() {
@@ -30,36 +25,36 @@ export default function Navbar() {
     if (qpYear && YEAR_OPTIONS.includes(qpYear)) {
       setYear(qpYear);
       sessionStorage.setItem(STORAGE_KEY, qpYear);
+      return;
     }
-  }, [location.search]);
 
-  const buildLink = (to: string) => {
-    if (!YEAR_SCOPED_ROUTES.has(to) || year === "All") return to;
-    return `${to}?year=${encodeURIComponent(year)}`;
-  };
+    const yearRoute = location.pathname.match(/^\/year\/(\d)$/);
+    if (yearRoute) {
+      const yr = `Year ${yearRoute[1]}`;
+      if (YEAR_OPTIONS.includes(yr)) {
+        setYear(yr);
+        sessionStorage.setItem(STORAGE_KEY, yr);
+      }
+    }
+  }, [location.pathname, location.search]);
 
-  const setYearEverywhere = (nextYear: string) => {
+  const setYearRoute = (nextYear: string) => {
     setYear(nextYear);
     sessionStorage.setItem(STORAGE_KEY, nextYear);
+    setOpen(false);
 
-    if (!YEAR_SCOPED_ROUTES.has(location.pathname)) return;
+    if (nextYear === "All") {
+      navigate("/");
+      return;
+    }
 
-    const params = new URLSearchParams(location.search);
-    if (nextYear === "All") params.delete("year");
-    else params.set("year", nextYear);
-
-    navigate({
-      pathname: location.pathname,
-      search: params.toString() ? `?${params.toString()}` : "",
-    });
+    const yearNum = nextYear.replace("Year ", "");
+    navigate(`/year/${yearNum}`);
   };
 
-  const renderedLinks = useMemo(
-    () => links.map((l) => ({ ...l, finalTo: buildLink(l.to) })),
-    [year],
-  );
-
   const isActive = (to: string) => location.pathname === to || location.pathname.startsWith(`${to}/`);
+
+  const currentYearLabel = useMemo(() => (year === "All" ? "Years" : year), [year]);
 
   if (isExamPage) return null;
 
@@ -74,9 +69,10 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden items-center gap-2 md:flex">
+          <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{currentYearLabel}</label>
           <select
             value={year}
-            onChange={(e) => setYearEverywhere(e.target.value)}
+            onChange={(e) => setYearRoute(e.target.value)}
             className="rounded-lg border border-input bg-background px-3 py-2 text-xs font-medium text-foreground"
             aria-label="Select study year"
           >
@@ -85,10 +81,10 @@ export default function Navbar() {
             ))}
           </select>
 
-          {renderedLinks.map((l) => (
+          {links.map((l) => (
             <Link
               key={l.to}
-              to={l.finalTo}
+              to={l.to}
               className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                 isActive(l.to)
                   ? "bg-primary text-primary-foreground"
@@ -120,7 +116,7 @@ export default function Navbar() {
             <div className="flex flex-col gap-2 p-4">
               <select
                 value={year}
-                onChange={(e) => setYearEverywhere(e.target.value)}
+                onChange={(e) => setYearRoute(e.target.value)}
                 className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
                 aria-label="Select study year"
               >
@@ -129,10 +125,10 @@ export default function Navbar() {
                 ))}
               </select>
 
-              {renderedLinks.map((l) => (
+              {links.map((l) => (
                 <Link
                   key={l.to}
-                  to={l.finalTo}
+                  to={l.to}
                   onClick={() => setOpen(false)}
                   className={`rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
                     isActive(l.to)

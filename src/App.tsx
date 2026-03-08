@@ -22,6 +22,7 @@ import Stories from "./pages/Stories";
 import StoryRead from "./pages/StoryRead";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
+import YearHub from "./pages/YearHub";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
             <Navbar />
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/year/:yearNumber" element={<YearHub />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:id" element={<BlogPost />} />
               <Route path="/flashcards" element={<Flashcards />} />

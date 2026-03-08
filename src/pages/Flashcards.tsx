@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { GraduationCap, Calendar, Layers, Loader2, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
-import { getPublishedFlashcardSets, getCategoryDisplayName, type FlashcardSet } from "@/lib/store";
+import { getPublishedFlashcardSets, getCategoryDisplayName, getYearFromCategory, type FlashcardSet } from "@/lib/store";
 import { getVisitedFlashcardIds } from "@/lib/progress-store";
 import CategoryTabs from "@/components/CategoryTabs";
 
@@ -11,22 +11,34 @@ export default function Flashcards() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
+  const [searchParams] = useSearchParams();
+  const selectedYear = searchParams.get("year") || "All";
 
   useEffect(() => {
     getPublishedFlashcardSets().then(setSets).finally(() => setLoading(false));
     setVisitedIds(getVisitedFlashcardIds());
   }, []);
 
+  useEffect(() => {
+    setSelectedCategory(null);
+  }, [selectedYear]);
+
+  const yearScopedSets = useMemo(() => {
+    if (selectedYear === "All") return sets;
+    return sets.filter((s) => getYearFromCategory(s.category) === selectedYear);
+  }, [sets, selectedYear]);
+
   const categories = useMemo(
-    () => [...new Set(sets.map((s) => s.category).filter((c) => c && c !== "Uncategorized"))],
-    [sets]
-  );
-  const categoryCounts = useMemo(
-    () => Object.fromEntries(categories.map((c) => [c, sets.filter((s) => s.category === c).length])),
-    [categories, sets]
+    () => [...new Set(yearScopedSets.map((s) => s.category).filter((c) => c && c !== "Uncategorized"))],
+    [yearScopedSets],
   );
 
-  const filtered = selectedCategory ? sets.filter((s) => s.category === selectedCategory) : sets;
+  const categoryCounts = useMemo(
+    () => Object.fromEntries(categories.map((c) => [c, yearScopedSets.filter((s) => s.category === c).length])),
+    [categories, yearScopedSets],
+  );
+
+  const filtered = selectedCategory ? yearScopedSets.filter((s) => s.category === selectedCategory) : yearScopedSets;
 
   if (loading) {
     return (
@@ -37,16 +49,18 @@ export default function Flashcards() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-5 sm:px-6 py-10 sm:py-12">
+    <div className="mx-auto max-w-5xl px-5 py-10 sm:px-6 sm:py-12">
       <div className="mb-7">
-        <h1 className="mb-1 font-display text-3xl sm:text-4xl font-bold text-foreground">Flashcards</h1>
-        <p className="text-muted-foreground text-sm sm:text-base">Interactive study sets generated from notes</p>
+        <h1 className="mb-1 font-display text-3xl font-bold text-foreground sm:text-4xl">Flashcards</h1>
+        <p className="text-sm text-muted-foreground sm:text-base">
+          {selectedYear === "All" ? "Interactive study sets generated from notes" : `${selectedYear} flashcard sets`}
+        </p>
       </div>
 
       <CategoryTabs
         categories={categories}
         counts={categoryCounts}
-        totalCount={sets.length}
+        totalCount={yearScopedSets.length}
         selected={selectedCategory}
         onChange={setSelectedCategory}
       />
@@ -54,7 +68,7 @@ export default function Flashcards() {
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-12 text-center">
           <GraduationCap className="mx-auto mb-4 h-10 w-10 text-muted-foreground" />
-          <p className="text-muted-foreground">No flashcard sets yet. Create some from the dashboard!</p>
+          <p className="text-muted-foreground">No flashcard sets found for this selection.</p>
         </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -62,12 +76,12 @@ export default function Flashcards() {
             <motion.div key={s.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
               <Link
                 to={`/flashcards/${s.id}`}
-                className="group relative block rounded-xl border border-border bg-card p-6 transition-shadow hover:[box-shadow:var(--shadow-card-hover)] h-full"
+                className="group relative block h-full rounded-xl border border-border bg-card p-6 transition-shadow hover:[box-shadow:var(--shadow-card-hover)]"
                 style={{ boxShadow: "var(--shadow-card)" }}
               >
                 {visitedIds.has(s.id) && (
-                  <div className="absolute top-3 right-3">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <div className="absolute right-3 top-3">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
                       <RotateCcw className="h-2.5 w-2.5" />
                       Continue
                     </span>
@@ -81,7 +95,7 @@ export default function Flashcards() {
                     {getCategoryDisplayName(s.category)}
                   </span>
                 )}
-                <h3 className="mb-2 font-display text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                <h3 className="mb-2 line-clamp-2 font-display text-base font-bold text-foreground transition-colors group-hover:text-primary">
                   {s.title}
                 </h3>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
