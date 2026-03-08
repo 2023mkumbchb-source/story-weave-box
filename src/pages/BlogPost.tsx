@@ -665,8 +665,41 @@ export default function BlogPost() {
         navigate("/blog", { replace: true });
         return;
       }
+      if (data?.moved_to_raw) {
+        toast({ title: "Could not parse MCQs — moved to Raw in Admin", description: "Open Admin panel to review this article manually." });
+        await reloadCurrentArticle(article.id);
+        return;
+      }
       await reloadCurrentArticle(article.id);
       toast({ title: successMessage });
+    } catch (err: any) {
+      toast({ title: "Action failed", description: err?.message, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  /* Direct migrate: try MCQ parse → if fails, move to raw */
+  const runDirectMigrate = async () => {
+    if (!article) return;
+    setActionLoading("fix");
+    try {
+      const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
+        body: { action: "fix", article_id: article.id, fixes: { migrate_mcqs: true, fallback_to_raw: true } },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.deleted_article) {
+        toast({ title: `Migrated ${data.migrated_mcqs || 0} MCQs → MCQ section` });
+        navigate("/blog", { replace: true });
+        return;
+      }
+      if (data?.moved_to_raw) {
+        toast({ title: "MCQ parse failed — moved to Raw in Admin" });
+        await reloadCurrentArticle(article.id);
+        return;
+      }
+      await reloadCurrentArticle(article.id);
+      toast({ title: "No MCQs found, article unchanged" });
     } catch (err: any) {
       toast({ title: "Action failed", description: err?.message, variant: "destructive" });
     } finally {
