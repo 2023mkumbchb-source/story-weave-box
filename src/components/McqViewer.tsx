@@ -27,6 +27,10 @@ interface Props {
   setId?: string;
   category?: string;
   hideAnswers?: boolean;
+  freeLimit?: number;
+  mcqPrice?: number;
+  isPaid?: boolean;
+  onPayRequest?: () => void;
 }
 interface AttemptRecord {
   date: string;
