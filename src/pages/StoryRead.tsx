@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
-import { Loader2, ArrowLeft, Share2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { buildStoryPath, extractStoryIdFromParam, SITE_URL, stripRichText } from "@/lib/seo";
+import ShareButtons from "@/components/ShareButtons";
 
 export default function StoryRead() {
   const { id } = useParams<{ id: string }>();
@@ -72,20 +73,7 @@ export default function StoryRead() {
       });
   }, [id, location.pathname, navigate]);
 
-  const handleShare = async () => {
-    if (!story) return;
-    const url = `${SITE_URL}${buildStoryPath({ id: story.id, title: story.title })}`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: story.title, url });
-      } catch {
-        // user cancelled
-      }
-    } else {
-      await navigator.clipboard.writeText(url);
-    }
-  };
+  const storyUrl = story ? `${SITE_URL}${buildStoryPath({ id: story.id, title: story.title })}` : "";
 
   if (loading) {
     return (
@@ -162,13 +150,13 @@ export default function StoryRead() {
         <h1 className="font-serif text-2xl font-bold leading-tight text-foreground sm:text-4xl">
           {story.title}
         </h1>
-        <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
-          <span>{new Date(story.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</span>
-          <span>·</span>
-          <span>{readTime} min read</span>
-          <button onClick={handleShare} className="ml-auto inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs transition-colors hover:bg-secondary">
-            <Share2 className="h-3 w-3" /> Share
-          </button>
+        <div className="mt-3 flex flex-col gap-3">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span>{new Date(story.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</span>
+            <span>·</span>
+            <span>{readTime} min read</span>
+          </div>
+          <ShareButtons url={storyUrl} title={story.title} variant="full" />
         </div>
       </header>
 
@@ -181,6 +169,10 @@ export default function StoryRead() {
       <article className="prose prose-sm max-w-none prose-blockquote:border-primary/30 prose-blockquote:text-muted-foreground prose-headings:font-serif prose-p:leading-[1.8] prose-p:text-foreground/90 dark:prose-invert">
         {isHtml ? <div dangerouslySetInnerHTML={{ __html: storyContent }} /> : renderMarkdown(storyContent)}
       </article>
+
+      <div className="mt-10 pt-6 border-t border-border">
+        <ShareButtons url={storyUrl} title={story.title} variant="full" />
+      </div>
     </motion.div>
   );
 }

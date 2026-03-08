@@ -4,6 +4,7 @@ import {
   ArrowLeft, Loader2, GraduationCap, ListChecks,
   ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2, ImagePlus,
 } from "lucide-react";
+import ShareButtons from "@/components/ShareButtons";
 import { motion, AnimatePresence } from "framer-motion";
 import { getArticleBySlugOrId, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, type Article } from "@/lib/store";
 import { extractFirstImageFromContent, SITE_URL, stripRichText } from "@/lib/seo";
@@ -973,10 +974,28 @@ export default function BlogPost() {
                   </>
                 )}
               </div>
+              <ShareButtons
+                url={`${SITE_URL}${buildBlogPath(article)}`}
+                title={article.title}
+                description={article.meta_description || ""}
+                variant="full"
+                className="mt-4"
+              />
             </header>
 
             <div className="prose-custom">
+
               <ArticleContent content={article.content} />
+            </div>
+
+            {/* Share after content */}
+            <div className="mt-10 pt-6 border-t border-border">
+              <ShareButtons
+                url={`${SITE_URL}${buildBlogPath(article)}`}
+                title={article.title}
+                description={article.meta_description || ""}
+                variant="full"
+              />
             </div>
 
             {/* Related content */}
