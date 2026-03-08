@@ -906,7 +906,7 @@ function ArticlesList({
   const handleSaveEdit = async () => { if (!editing) return; await saveArticle(editing); setEditing(null); refresh(); toast({ title: "Article updated!" }); };
 
   // Filter by year
-  const years = ["all", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5"];
+  const years = ["all", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
   const filteredArticles = activeYear === "all"
     ? articles
     : articles.filter(a => a.category.startsWith(activeYear));
