@@ -127,6 +127,7 @@ export type Database = {
           mcq_total: number
           saq_answers: Json
           student_name: string
+          submit_reason: string | null
           submitted_at: string
           time_taken_seconds: number
           unit: string
@@ -143,6 +144,7 @@ export type Database = {
           mcq_total?: number
           saq_answers?: Json
           student_name?: string
+          submit_reason?: string | null
           submitted_at?: string
           time_taken_seconds?: number
           unit?: string
@@ -159,6 +161,7 @@ export type Database = {
           mcq_total?: number
           saq_answers?: Json
           student_name?: string
+          submit_reason?: string | null
           submitted_at?: string
           time_taken_seconds?: number
           unit?: string
@@ -283,6 +286,36 @@ export type Database = {
           project_id?: string | null
           transaction_id?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      pending_institutions: {
+        Row: {
+          id: string
+          reviewed_at: string | null
+          status: string
+          submitted_at: string
+          submitted_by: string | null
+          type: string
+          value: string
+        }
+        Insert: {
+          id?: string
+          reviewed_at?: string | null
+          status?: string
+          submitted_at?: string
+          submitted_by?: string | null
+          type: string
+          value: string
+        }
+        Update: {
+          id?: string
+          reviewed_at?: string | null
+          status?: string
+          submitted_at?: string
+          submitted_by?: string | null
+          type?: string
+          value?: string
         }
         Relationships: []
       }
