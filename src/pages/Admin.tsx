@@ -1173,18 +1173,18 @@ function FlashcardsList() {
   return (
     <div className="space-y-3">
       {sets.map((s) => (
-        <div key={s.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
-          <div className="min-w-0 flex-1">
-            <h4 className="font-medium text-foreground truncate">{s.title}</h4>
-            <p className="text-xs text-muted-foreground">
+        <div key={s.id} className="rounded-xl border border-border bg-card p-3 sm:p-4">
+          <div className="min-w-0">
+            <h4 className="font-medium text-foreground text-sm break-words">{s.title}</h4>
+            <p className="text-xs text-muted-foreground mt-0.5">
               {s.category !== "Uncategorized" && <span className="text-primary">{getCategoryDisplayName(s.category)} · </span>}
               {s.cards.length} cards · {new Date(s.created_at).toLocaleDateString()} · {s.published ? "Published" : "Draft"}
             </p>
           </div>
-          <div className="flex gap-2 ml-2">
-            <Button size="sm" variant="ghost" onClick={() => setEditing(s)}><Pencil className="h-4 w-4" /></Button>
-            <Button size="sm" variant="ghost" onClick={() => togglePublish(s)}>{s.published ? "Unpublish" : "Publish"}</Button>
-            <Button size="sm" variant="ghost" onClick={() => handleDelete(s.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+          <div className="flex gap-1 mt-2 pt-2 border-t border-border/50 flex-wrap">
+            <Button size="sm" variant="ghost" onClick={() => setEditing(s)} className="h-8"><Pencil className="h-3.5 w-3.5 mr-1" /><span className="text-xs">Edit</span></Button>
+            <Button size="sm" variant="ghost" onClick={() => togglePublish(s)} className="h-8 text-xs">{s.published ? "Unpublish" : "Publish"}</Button>
+            <Button size="sm" variant="ghost" onClick={() => handleDelete(s.id)} className="text-destructive h-8 ml-auto"><Trash2 className="h-3.5 w-3.5" /></Button>
           </div>
         </div>
       ))}
