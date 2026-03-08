@@ -974,6 +974,13 @@ export default function BlogPost() {
                   </>
                 )}
               </div>
+              <ShareButtons
+                url={`${SITE_URL}${buildBlogPath(article)}`}
+                title={article.title}
+                description={article.meta_description || ""}
+                variant="full"
+                className="mt-4"
+              />
             </header>
 
             <div className="prose-custom">
