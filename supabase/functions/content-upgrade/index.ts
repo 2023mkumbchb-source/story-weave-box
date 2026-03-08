@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"];
-
+const SITE_URL = "https://ompathstud.lovable.app";
 async function callGemini(apiKey: string, prompt: string, maxTokens = 8000): Promise<string> {
   for (const model of GEMINI_MODELS) {
     try {
