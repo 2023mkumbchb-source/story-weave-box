@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Lock, Unlock, ListChecks } from "lucide-react";
 import { getMcqSetById, getCategoryDisplayName, type McqSet } from "@/lib/store";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,21 @@ import { markMcqVisited } from "@/lib/progress-store";
 
 export default function McqStudy() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [set, setSet] = useState<McqSet | null>(null);
   const [loading, setLoading] = useState(true);
   const [passwordUnlocked, setPasswordUnlocked] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordError, setPasswordError] = useState(false);
   const [examMode, setExamMode] = useState(false);
+
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/mcqs");
+    }
+  };
 
   useEffect(() => {
     if (id) {
@@ -42,7 +51,7 @@ export default function McqStudy() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex min-h-[65vh] items-center justify-center py-20">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
@@ -65,7 +74,7 @@ export default function McqStudy() {
 
   if (examMode) {
     return (
-      <div className="mx-auto max-w-3xl px-5 sm:px-6 py-10 sm:py-12 pb-20">
+      <div className="mx-auto max-w-3xl px-5 pb-20 pt-10 sm:px-6 sm:py-12">
         <ExamMode
           questions={set.questions}
           title={set.title}
@@ -77,10 +86,10 @@ export default function McqStudy() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-5 sm:px-6 py-10 sm:py-12 pb-20">
-      <div className="flex items-center justify-between mb-4">
-        <Button asChild variant="ghost" size="sm" className="gap-2 text-muted-foreground -ml-1">
-          <Link to="/mcqs"><ArrowLeft className="h-4 w-4" /> Back to MCQs</Link>
+    <div className="mx-auto max-w-3xl px-5 pb-20 pt-10 sm:px-6 sm:py-12">
+      <div className="mb-4 flex items-center justify-between">
+        <Button variant="ghost" size="sm" className="-ml-1 gap-2 text-muted-foreground" onClick={handleBack}>
+          <ArrowLeft className="h-4 w-4" /> Back
         </Button>
         <Button variant="outline" size="sm" className="gap-2" onClick={() => setExamMode(true)}>
           <ListChecks className="h-4 w-4" /> Exam Mode
@@ -96,26 +105,29 @@ export default function McqStudy() {
       )}
 
       {isLocked && (
-        <div className="mb-6 rounded-2xl border-2 border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 p-6 text-center">
+        <div className="mb-6 rounded-2xl border-2 border-amber-500/30 bg-amber-50 p-6 text-center dark:bg-amber-950/20">
           <Lock className="mx-auto mb-3 h-8 w-8 text-amber-600 dark:text-amber-400" />
           <h3 className="mb-2 font-display text-lg font-bold text-foreground">Password Protected</h3>
           <p className="mb-4 text-sm text-muted-foreground">
             This quiz is locked. Enter the password to view answers and explanations.
           </p>
-          <div className="flex items-center justify-center gap-2 max-w-xs mx-auto">
+          <div className="mx-auto flex max-w-xs items-center justify-center gap-2">
             <Input
               type="password"
               placeholder="Enter password"
               value={passwordInput}
-              onChange={(e) => { setPasswordInput(e.target.value); setPasswordError(false); }}
+              onChange={(e) => {
+                setPasswordInput(e.target.value);
+                setPasswordError(false);
+              }}
               onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
               className={passwordError ? "border-destructive" : ""}
             />
-            <Button onClick={handleUnlock} size="sm" className="gap-2 shrink-0">
+            <Button onClick={handleUnlock} size="sm" className="shrink-0 gap-2">
               <Unlock className="h-4 w-4" /> Unlock
             </Button>
           </div>
-          {passwordError && <p className="mt-2 text-sm text-destructive font-medium">Wrong password</p>}
+          {passwordError && <p className="mt-2 text-sm font-medium text-destructive">Wrong password</p>}
           <p className="mt-3 text-xs text-muted-foreground">Or continue without unlocking — answers will be hidden</p>
           <Button variant="ghost" size="sm" className="mt-2" onClick={() => setPasswordUnlocked(false)}>
             Continue without password →
@@ -133,3 +145,4 @@ export default function McqStudy() {
     </div>
   );
 }
+
