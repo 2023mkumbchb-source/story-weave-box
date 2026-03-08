@@ -478,7 +478,7 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
 
   flushList(); flushTable(); flushPractice();
   return <div>{els}</div>;
-}
+});
 
 /* ─── Sidebar TOC ─── */
 function SidebarToc({ items, activeId }: { items: TocItem[]; activeId: string }) {
