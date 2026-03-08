@@ -122,7 +122,7 @@ export default function Index() {
       <footer className="border-t border-border">
         <div className="mx-auto max-w-5xl px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Ompath Study · <span className="font-medium text-foreground">Abongo Davis</span> MBChB
+            © {new Date().getFullYear()} Ompath Study
           </div>
           <div className="flex gap-2">
             <a href="tel:+254115475543" className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors">
