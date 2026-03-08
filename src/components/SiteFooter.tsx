@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { BookOpen, Phone, MessageCircle, Download } from "lucide-react";
 
