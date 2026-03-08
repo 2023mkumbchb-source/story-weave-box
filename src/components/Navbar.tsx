@@ -92,9 +92,9 @@ export default function Navbar() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5 sm:px-6">
           <Link to="/" className="flex items-center gap-2 text-lg font-bold text-white">
             <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-white/10 p-1">
-              <img src={ompathLogo} alt="Ompath Study logo" className="h-full w-full object-contain" loading="lazy" />
+              <img src={kenyaMedsLogo} alt="Kenya Meds logo" className="h-full w-full object-contain" loading="lazy" />
             </div>
-            <span className="font-serif">Ompath Study</span>
+            <span className="font-serif">Kenya Meds</span>
           </Link>
 
           {/* Desktop nav */}
