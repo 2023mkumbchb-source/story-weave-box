@@ -1488,11 +1488,11 @@ function InstitutionsTab() {
 
   const load = async () => {
     setLoading(true);
-    let query = supabase
+    let query = (supabase as any)
       .from("pending_institutions")
       .select("*")
       .order("submitted_at", { ascending: false });
-    if (filter !== "all") query = query.eq("status", filter) as typeof query;
+    if (filter !== "all") query = query.eq("status", filter);
     const { data } = await query;
     setItems((data as PendingInstitution[]) || []);
     setLoading(false);
