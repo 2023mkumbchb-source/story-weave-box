@@ -5,6 +5,7 @@ import {
   ChevronLeft, ChevronRight, RotateCcw, Shuffle,
   Check, X, Lightbulb, BookOpen, GraduationCap,
   AlertCircle, Clock, Trophy, ListChecks, ChevronDown, ChevronUp,
+  Lock as LockIcon, Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
