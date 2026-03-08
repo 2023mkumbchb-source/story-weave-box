@@ -1453,7 +1453,7 @@ function RecycleBinTab() {
       <div className="mb-6 rounded-xl border border-border bg-card p-5">
         <div className="flex items-center gap-2 mb-1">
           <Trash2 className="h-5 w-5 text-muted-foreground" />
-          <h3 className="font-display text-lg font-bold text-foreground">Recycle Bin</h3>
+          <h3 className="font-serif text-lg font-bold text-foreground">Recycle Bin</h3>
         </div>
         <p className="text-sm text-muted-foreground">{items.length === 0 ? "Recycle bin is empty." : `${items.length} item(s) — auto-deleted after 7 days.`}</p>
       </div>
