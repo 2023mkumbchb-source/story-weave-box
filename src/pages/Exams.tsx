@@ -181,7 +181,7 @@ export default function Exams() {
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary">
               <Trophy className="h-3.5 w-3.5" /> Unit-Based Weekly Exams
             </div>
-            <h1 className="mb-3 font-display text-3xl font-bold text-foreground sm:text-4xl">Exam Center</h1>
+            <h1 className="mb-3 font-serif text-3xl font-bold text-foreground sm:text-4xl">Exam Center</h1>
             <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground">
               Timed, proctored MCQ exams drawn from your unit content. {selectedYear === "All" ? "Select a year from the menu to narrow exams." : `Currently viewing ${selectedYear} exams.`}
             </p>
