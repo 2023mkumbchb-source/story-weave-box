@@ -1627,6 +1627,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
   const [fixing, setFixing] = useState<string | null>(null);
   const [autoFixing, setAutoFixing] = useState(false);
   const [migratingMcqs, setMigratingMcqs] = useState(false);
+  const [aiFixing, setAiFixing] = useState(false);
   const [scanProgress, setScanProgress] = useState({ scanned: 0, done: false });
   const [fixLog, setFixLog] = useState<string[]>([]);
 
