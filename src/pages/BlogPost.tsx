@@ -47,18 +47,26 @@ function ReadingProgress() {
   }, []);
 
   const rounded = Math.max(0, Math.min(100, Math.round(pct)));
-  const toneClass = rounded < 35 ? "bg-muted-foreground" : rounded < 75 ? "bg-accent" : "bg-primary";
+
+  // Red → Orange → Yellow → Green
+  const getColor = (p: number) => {
+    if (p < 25) return { bg: "bg-red-500", bar: "from-red-500 to-red-400" };
+    if (p < 50) return { bg: "bg-orange-500", bar: "from-red-500 via-orange-500 to-orange-400" };
+    if (p < 75) return { bg: "bg-yellow-500", bar: "from-red-500 via-orange-500 to-yellow-500" };
+    return { bg: "bg-green-500", bar: "from-red-500 via-orange-500 via-yellow-500 to-green-500" };
+  };
+  const colors = getColor(rounded);
 
   return (
     <>
       <div className="fixed left-0 right-0 top-0 z-50 h-[3px]">
-        <div className="h-full bg-primary transition-all duration-150" style={{ width: `${pct}%` }} />
+        <div className={`h-full bg-gradient-to-r ${colors.bar} transition-all duration-150`} style={{ width: `${pct}%` }} />
       </div>
 
       <button
         type="button"
         onClick={() => setExpanded((prev) => !prev)}
-        className={`fixed bottom-6 right-4 z-40 inline-flex items-center justify-center rounded-full border border-border text-primary-foreground shadow-[var(--shadow-elevated)] transition-all ${toneClass} ${expanded ? "h-9 px-3 text-xs font-semibold" : "h-3.5 w-3.5"}`}
+        className={`fixed bottom-6 right-4 z-40 inline-flex items-center justify-center rounded-full border border-border text-white shadow-lg transition-all ${colors.bg} ${expanded ? "h-9 px-3 text-xs font-semibold" : "h-3.5 w-3.5"}`}
         aria-label="Reading progress"
       >
         <span className={`${expanded ? "opacity-100" : "sr-only"}`}>{rounded}%</span>

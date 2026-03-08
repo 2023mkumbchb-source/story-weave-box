@@ -81,8 +81,21 @@ export default function Mcqs() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[65vh] items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="mx-auto max-w-5xl px-5 py-10 sm:px-6 sm:py-12">
+        <div className="mb-7">
+          <div className="h-9 w-40 animate-pulse rounded-lg bg-muted" />
+          <div className="mt-2 h-4 w-64 animate-pulse rounded bg-muted" />
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} className="rounded-xl border border-border bg-card p-6 space-y-3">
+              <div className="h-10 w-10 animate-pulse rounded-lg bg-muted" />
+              <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -205,7 +218,10 @@ export default function Mcqs() {
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((s, i) => {
                 const firstQ = (s.questions as any[])[0];
-                const snippet = firstQ?.question ?? firstQ?.text ?? null;
+                const rawSnippet = firstQ?.question ?? firstQ?.text ?? null;
+                const snippet = rawSnippet
+                  ? rawSnippet.replace(/^#{1,6}\s*(Question\s*\d+[:\s-]*)?/i, "").replace(/^Choices:\s*/i, "").replace(/^[*_]+|[*_]+$/g, "").trim() || null
+                  : null;
 
                 return (
                   <motion.div key={s.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>

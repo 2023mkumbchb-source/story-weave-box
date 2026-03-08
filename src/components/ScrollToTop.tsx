@@ -1,9 +1,8 @@
 import { useEffect, useRef } from "react";
-import { useLocation, useNavigationType } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 export default function ScrollToTop() {
   const { pathname, hash } = useLocation();
-  const navigationType = useNavigationType();
   const previousPathRef = useRef(pathname);
 
   useEffect(() => {
@@ -11,12 +10,22 @@ export default function ScrollToTop() {
 
     if (pathnameChanged) {
       previousPathRef.current = pathname;
-      // Always scroll to top on route change (both PUSH and POP)
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
-      // Also force after a frame for lazy-loaded content
+      // Immediate scroll
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      // After paint (for lazy-loaded content)
       requestAnimationFrame(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
       });
+      // After a short delay for Suspense content
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }, 50);
       return;
     }
 
@@ -29,7 +38,7 @@ export default function ScrollToTop() {
         el.scrollIntoView({ block: "start", behavior: "auto" });
       }
     });
-  }, [pathname, hash, navigationType]);
+  }, [pathname, hash]);
 
   return null;
 }
