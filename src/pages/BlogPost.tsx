@@ -584,6 +584,20 @@ export default function BlogPost() {
   return (
     <>
       <ReadingProgress />
+      {/* SEO meta tags */}
+      {(() => {
+        document.title = `${article.title} | Ompath Study`;
+        const metaDesc = document.querySelector('meta[name="description"]');
+        const desc = article.content.replace(/[#*|\n]+/g, " ").slice(0, 155).trim();
+        if (metaDesc) metaDesc.setAttribute("content", desc);
+        else {
+          const m = document.createElement("meta");
+          m.name = "description";
+          m.content = desc;
+          document.head.appendChild(m);
+        }
+        return null;
+      })()}
       <div className="mx-auto max-w-3xl px-5 sm:px-6 py-8 sm:py-12">
         <Link to="/blog" className="inline-flex items-center gap-2 text-[15px] text-muted-foreground hover:text-foreground transition-colors mb-10">
           <ArrowLeft className="h-4 w-4" /> Back to Blog
@@ -593,9 +607,10 @@ export default function BlogPost() {
           <span>{date}</span>
           {unitName && unitName !== "Uncategorized" && (<><span className="mx-1">·</span><span className="font-bold uppercase tracking-wider text-foreground/70">{unitName}</span></>)}
         </div>
-        <h1 className="mb-10 font-bold text-[28px] sm:text-[36px] leading-tight text-foreground">
+        <h1 className="mb-6 font-bold text-[28px] sm:text-[36px] leading-tight text-foreground">
           {article.title.replace(/^#+\s*/, "")}
         </h1>
+        <BlogAudioPlayer content={article.content} title={article.title} />
         <ArticleContent content={article.content} />
         {hasRelated && (
           <div className="mt-14 rounded-2xl border border-border bg-card overflow-hidden">
