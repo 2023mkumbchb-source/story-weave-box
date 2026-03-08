@@ -350,7 +350,7 @@ serve(async (req) => {
 
         const betterCategory = detectBestCategory(article.title, analysisContent);
         if (betterCategory && betterCategory !== article.category) {
-          issues.push(`Category mismatch: \"${article.category}\" → \"${betterCategory}\"");
+          issues.push(`Category mismatch: "${article.category}" → "${betterCategory}"`);
           fixes.new_category = betterCategory;
         }
 
