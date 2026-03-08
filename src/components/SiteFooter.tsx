@@ -50,7 +50,7 @@ export default function SiteFooter() {
             </a>
             <InstallAppButton />
           </div>
-          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Ompath Study</p>
+          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Kenya Meds</p>
         </div>
       </div>
     </footer>

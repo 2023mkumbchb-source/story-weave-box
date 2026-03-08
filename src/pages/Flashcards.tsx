@@ -7,7 +7,7 @@ import { getVisitedFlashcardIds } from "@/lib/progress-store";
 import CategoryTabs from "@/components/CategoryTabs";
 
 export default function Flashcards() {
-  useEffect(() => { document.title = "Flashcards | Ompath Study"; }, []);
+  useEffect(() => { document.title = "Flashcards | Kenya Meds"; }, []);
   const [sets, setSets] = useState<FlashcardSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);

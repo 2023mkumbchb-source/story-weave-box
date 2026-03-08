@@ -63,10 +63,10 @@ function buildOgHtml(title: string, description: string, image: string, canonica
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>${escapeHtml(title)} | Ompath Study</title>
+  <title>${escapeHtml(title)} | Kenya Meds</title>
   <meta name="description" content="${escapeHtml(description)}">
   <meta property="og:type" content="article">
-  <meta property="og:site_name" content="Ompath Study">
+  <meta property="og:site_name" content="Kenya Meds">
   <meta property="og:title" content="${escapeHtml(title)}">
   <meta property="og:description" content="${escapeHtml(description)}">
   <meta property="og:image" content="${escapeHtml(ogImage)}">
@@ -119,7 +119,7 @@ serve(async (req) => {
       if (!story) return new Response(JSON.stringify({ error: "Story not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
       title = story.title;
-      description = stripRichText(story.content || "") || `Read ${story.title} on Ompath Study.`;
+      description = stripRichText(story.content || "") || `Read ${story.title} on Kenya Meds.`;
       image = story.cover_image_url || extractFirstImage(story.content || "") || "";
       canonicalPath = `/stories/${story.id}-${slugify(story.title) || "story"}`;
 
@@ -127,21 +127,21 @@ serve(async (req) => {
       const { data: mcq } = await supabase.from("mcq_sets").select("title, category").eq("id", mcqParam).eq("published", true).is("deleted_at", null).maybeSingle();
       if (!mcq) return new Response(JSON.stringify({ error: "MCQ not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       title = mcq.title;
-      description = `Practice MCQ quiz: ${mcq.title}. Test your ${mcq.category || "medical"} knowledge on Ompath Study.`;
+      description = `Practice MCQ quiz: ${mcq.title}. Test your ${mcq.category || "medical"} knowledge on Kenya Meds.`;
       canonicalPath = `/mcqs/${mcqParam}`;
 
     } else if (flashcardParam && UUID_REGEX.test(flashcardParam)) {
       const { data: fc } = await supabase.from("flashcard_sets").select("title, category").eq("id", flashcardParam).eq("published", true).is("deleted_at", null).maybeSingle();
       if (!fc) return new Response(JSON.stringify({ error: "Flashcard set not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       title = fc.title;
-      description = `Study flashcards: ${fc.title}. Review ${fc.category || "medical"} concepts on Ompath Study.`;
+      description = `Study flashcards: ${fc.title}. Review ${fc.category || "medical"} concepts on Kenya Meds.`;
       canonicalPath = `/flashcards/${flashcardParam}`;
 
     } else if (essayParam && UUID_REGEX.test(essayParam)) {
       const { data: essay } = await supabase.from("essays").select("title, category").eq("id", essayParam).eq("published", true).is("deleted_at", null).maybeSingle();
       if (!essay) return new Response(JSON.stringify({ error: "Essay not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       title = essay.title;
-      description = `Essay questions: ${essay.title}. Practice ${essay.category || "medical"} SAQs and LAQs on Ompath Study.`;
+      description = `Essay questions: ${essay.title}. Practice ${essay.category || "medical"} SAQs and LAQs on Kenya Meds.`;
       canonicalPath = `/essays/${essayParam}`;
 
     } else {
@@ -186,7 +186,7 @@ serve(async (req) => {
 
       const articleSlug = article.slug || slugify(article.title) || "article";
       title = article.meta_title || article.title;
-      description = article.meta_description || stripRichText(article.content || "") || `Study ${article.title} on Ompath Study.`;
+      description = article.meta_description || stripRichText(article.content || "") || `Study ${article.title} on Kenya Meds.`;
       image = article.og_image_url || extractFirstImage(article.content || "") || "";
       canonicalPath = `/blog/${article.id}-${articleSlug}`;
     }
