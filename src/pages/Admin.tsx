@@ -1244,28 +1244,26 @@ function McqsList() {
   return (
     <div className="space-y-3">
       {sets.map((s) => (
-        <div key={s.id} className="rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h4 className="font-medium text-foreground truncate">{s.title}</h4>
-                {s.access_password && s.access_password !== "" && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                    <Key className="h-2.5 w-2.5" /> Locked
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {s.category !== "Uncategorized" && <span className="text-primary">{getCategoryDisplayName(s.category)} · </span>}
-                {s.questions.length} questions · {new Date(s.created_at).toLocaleDateString()} · {s.published ? "Published" : "Draft"}
-              </p>
+        <div key={s.id} className="rounded-xl border border-border bg-card p-3 sm:p-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="font-medium text-foreground text-sm break-words">{s.title}</h4>
+              {s.access_password && s.access_password !== "" && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                  <Key className="h-2.5 w-2.5" /> Locked
+                </span>
+              )}
             </div>
-            <div className="flex gap-1 ml-2 flex-wrap justify-end">
-              <Button size="sm" variant="ghost" onClick={() => { setPasswordSetId(passwordSetId === s.id ? null : s.id); setPasswordValue(s.access_password || ""); }}><Key className="h-4 w-4" /></Button>
-              <Button size="sm" variant="ghost" onClick={() => setEditing(s)}><Pencil className="h-4 w-4" /></Button>
-              <Button size="sm" variant="ghost" onClick={() => togglePublish(s)}>{s.published ? "Unpublish" : "Publish"}</Button>
-              <Button size="sm" variant="ghost" onClick={() => handleDelete(s.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
-            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {s.category !== "Uncategorized" && <span className="text-primary">{getCategoryDisplayName(s.category)} · </span>}
+              {s.questions.length} questions · {new Date(s.created_at).toLocaleDateString()} · {s.published ? "Published" : "Draft"}
+            </p>
+          </div>
+          <div className="flex gap-1 mt-2 pt-2 border-t border-border/50 flex-wrap">
+            <Button size="sm" variant="ghost" onClick={() => { setPasswordSetId(passwordSetId === s.id ? null : s.id); setPasswordValue(s.access_password || ""); }} className="h-8"><Key className="h-3.5 w-3.5" /></Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing(s)} className="h-8"><Pencil className="h-3.5 w-3.5 mr-1" /><span className="text-xs">Edit</span></Button>
+            <Button size="sm" variant="ghost" onClick={() => togglePublish(s)} className="h-8 text-xs">{s.published ? "Unpublish" : "Publish"}</Button>
+            <Button size="sm" variant="ghost" onClick={() => handleDelete(s.id)} className="text-destructive h-8 ml-auto"><Trash2 className="h-3.5 w-3.5" /></Button>
           </div>
           {passwordSetId === s.id && (
             <div className="mt-3 pt-3 border-t border-border">
