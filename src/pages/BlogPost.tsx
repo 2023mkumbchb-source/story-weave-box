@@ -754,7 +754,7 @@ export default function BlogPost() {
     if (!article) return;
     const metaTitle = article.meta_title || article.title;
     const fallbackDesc = stripRichText(article.content || "", 160);
-    const metaDesc = article.meta_description || fallbackDesc || `Study ${article.title} - medical notes, key concepts and practice questions on Ompath Study.`;
+    const metaDesc = article.meta_description || fallbackDesc || `Study ${article.title} - medical notes, key concepts and practice questions on Kenya Meds.`;
     const ogImage = article.og_image_url || extractFirstImageFromContent(article.content || "") || `${SITE_URL}/icon-512.png`;
     const canonicalUrl = `${SITE_URL}${buildBlogPath(article)}`;
 
