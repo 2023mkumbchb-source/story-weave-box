@@ -2896,7 +2896,7 @@ function StoriesTab() {
   const handleSave = async () => {
     if (!editId) return;
     setSaving(true);
-    const { error } = await supabase.from("stories").update({ title: editTitle, content: editContent, category: editCategory }).eq("id", editId);
+    const { error } = await supabase.from("stories").update({ title: editTitle, content: editContent, category: editCategory, cover_image_url: editCoverUrl || null }).eq("id", editId);
     if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
     else { toast({ title: "Story updated" }); setEditId(null); fetchStories(); }
     setSaving(false);
