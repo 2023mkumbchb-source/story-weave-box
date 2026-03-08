@@ -118,7 +118,8 @@ export default function Exams() {
   };
 
   const handlePay = async (exam: ExamSet) => {
-    if (!phone.trim()) return;
+    const phone = (phoneByExamId[exam.id] || "").trim();
+    if (!phone) return;
 
     setPaying(true);
     setPaymentStatus("pending");
