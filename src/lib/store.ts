@@ -65,6 +65,7 @@ export const YEAR_CATEGORIES: Record<string, string[]> = {
     "Biochemistry of Microorganisms",
     "Gross Anatomy of Pelvis and Perineum",
     "Histology of Pelvis and Perineum",
+    "Dissection of Pelvis and Perineum",
     "Embryology II",
     "Complement and Immunoglobulin",
     "Neurophysiology II",
@@ -72,6 +73,7 @@ export const YEAR_CATEGORIES: Record<string, string[]> = {
     "Parasitology",
     "Microbiology",
     "Epidemiology and Statistics",
+    "Clinical Biochemistry",
   ],
   "Year 3": [
     "Basic Pharmacology III",
@@ -86,6 +88,11 @@ export const YEAR_CATEGORIES: Record<string, string[]> = {
     "Male Reproductive and Urinary System Pathology",
     "General Pathology",
     "Hematopathology",
+    "Gastrointestinal Pathology",
+    "Cardiovascular System Pathology",
+    "Respiratory System Pathology",
+    "Female Reproductive System Pathology",
+    "Endocrine and Metabolic Pathology",
   ],
   "Year 4": [
     "Obstetrics and Gynaecology",
