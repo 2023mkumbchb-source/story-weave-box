@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle, Clock, Loader2, Phone, Shield, Sparkles, Trophy, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { getSetting, getCategoryDisplayName } from "@/lib/store";
+import { getSetting, getCategoryDisplayName, getYearFromCategory } from "@/lib/store";
 
 interface ExamSet {
   id: string;
@@ -29,6 +29,8 @@ function inferUnit(exam: ExamSet): string {
 
 export default function Exams() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const selectedYear = searchParams.get("year") || "All";
   const [examSets, setExamSets] = useState<ExamSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [examPrice, setExamPrice] = useState(5);
@@ -162,7 +164,12 @@ export default function Exams() {
     ],
   };
 
-  const allExams = useMemo(() => [sampleExam, ...examSets], [examSets]);
+  const filteredExamSets = useMemo(() => {
+    if (selectedYear === "All") return examSets;
+    return examSets.filter((exam) => getYearFromCategory(exam.category) === selectedYear);
+  }, [examSets, selectedYear]);
+
+  const allExams = useMemo(() => [sampleExam, ...filteredExamSets], [filteredExamSets]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -176,7 +183,7 @@ export default function Exams() {
             </div>
             <h1 className="mb-3 font-display text-3xl font-bold text-foreground sm:text-4xl">Exam Center</h1>
             <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Timed, proctored MCQ exams drawn from your unit content. A new exam drops every week — answers unlock at midnight.
+              Timed, proctored MCQ exams drawn from your unit content. {selectedYear === "All" ? "Select a year from the menu to narrow exams." : `Currently viewing ${selectedYear} exams.`}
             </p>
           </motion.div>
 

@@ -1627,6 +1627,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
   const [fixing, setFixing] = useState<string | null>(null);
   const [autoFixing, setAutoFixing] = useState(false);
   const [migratingMcqs, setMigratingMcqs] = useState(false);
+  const [aiFixing, setAiFixing] = useState(false);
   const [scanProgress, setScanProgress] = useState({ scanned: 0, done: false });
   const [fixLog, setFixLog] = useState<string[]>([]);
 
@@ -1771,6 +1772,52 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
     toast({ title: `MCQ migration complete: ${totalMigrated} articles converted` });
   };
 
+  const handleAiFixAll = async () => {
+    setAiFixing(true);
+    setFixLog([]);
+
+    let cursor: string | null = null;
+    let totals = { fixed: 0, mcqs: 0, essays: 0, deleted: 0, failed: 0 };
+
+    while (true) {
+      try {
+        const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
+          body: { action: "ai_fix_batch", batch_size: 1, cursor },
+        });
+        if (error) throw new Error(error.message);
+
+        totals.fixed += Number(data?.fixed || 0);
+        totals.mcqs += Number(data?.migrated_mcqs || 0);
+        totals.essays += Number(data?.migrated_essays || 0);
+        totals.deleted += Number(data?.deleted || 0);
+        totals.failed += Number(data?.failed || 0);
+
+        const processedArticles = (data?.processed_articles || []) as Array<{ id: string; title: string; action: string }>;
+        if (processedArticles.length) {
+          setFixLog((prev) => [
+            ...prev,
+            ...processedArticles.map((a) => `AI: ${a.title || a.id} → ${a.action}`),
+          ]);
+          const touched = new Set(processedArticles.map((a) => a.id));
+          setResults((prev) => prev.filter((r) => !touched.has(r.id)));
+        }
+
+        if (data?.done) break;
+        const nextCursor = (data?.next_cursor as string | null) || null;
+        if (!nextCursor || nextCursor === cursor) break;
+        cursor = nextCursor;
+      } catch (err: any) {
+        setFixLog((prev) => [...prev, `AI Error: ${err.message}`]);
+        break;
+      }
+    }
+
+    setAiFixing(false);
+    toast({
+      title: `AI cleanup done: ${totals.fixed} updated · ${totals.mcqs} MCQ migrations · ${totals.essays} essay migrations · ${totals.deleted} deleted · ${totals.failed} failed`,
+    });
+  };
+
   const mcqArticles = results.filter((r) => r.fixes.migrate_mcqs);
   const manualReview = results.filter((r) => r.fixes.manual_review);
   const formatIssues = results.filter((r) => !r.fixes.migrate_mcqs && !r.fixes.manual_review);
@@ -1786,17 +1833,21 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
           Runs in safe small batches to avoid timeouts. Use “Open editor” for oversized/problematic notes.
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={handleScan} disabled={scanning || autoFixing || migratingMcqs} className="gap-2">
+          <Button onClick={handleScan} disabled={scanning || autoFixing || migratingMcqs || aiFixing} className="gap-2">
             {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             {scanning ? `Scanning... (${scanProgress.scanned} checked)` : "Scan All Articles"}
           </Button>
-          <Button onClick={handleAutoFixAll} disabled={scanning || autoFixing || migratingMcqs} variant="outline" className="gap-2">
+          <Button onClick={handleAutoFixAll} disabled={scanning || autoFixing || migratingMcqs || aiFixing} variant="outline" className="gap-2">
             {autoFixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
             {autoFixing ? "Fixing..." : "Auto-Fix Formatting"}
           </Button>
-          <Button onClick={handleMigrateMcqs} disabled={scanning || autoFixing || migratingMcqs} variant="outline" className="gap-2">
+          <Button onClick={handleMigrateMcqs} disabled={scanning || autoFixing || migratingMcqs || aiFixing} variant="outline" className="gap-2">
             {migratingMcqs ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bolt className="h-4 w-4" />}
             {migratingMcqs ? "Migrating..." : "Migrate MCQ Articles"}
+          </Button>
+          <Button onClick={handleAiFixAll} disabled={scanning || autoFixing || migratingMcqs || aiFixing} variant="outline" className="gap-2">
+            {aiFixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {aiFixing ? "AI Cleaning..." : "AI Cleanup (Lovable AI)"}
           </Button>
         </div>
       </div>

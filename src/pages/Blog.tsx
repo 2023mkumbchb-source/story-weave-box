@@ -25,6 +25,7 @@ export default function Blog() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "title">("newest");
   const [recentArticles, setRecentArticles] = useState<RecentArticle[]>([]);
   const selectedYear = searchParams.get("year") || "All";
   const selectedUnit = searchParams.get("unit");
@@ -61,15 +62,26 @@ export default function Blog() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [articles, selectedYear]);
 
-  const filtered = useMemo(() => articles.filter((a) => {
-    if (a.category === "Stories") return false;
-    const matchesSearch = !search.trim() ||
-      a.title.toLowerCase().includes(search.toLowerCase()) ||
-      getCategoryDisplayName(a.category).toLowerCase().includes(search.toLowerCase());
-    const matchesYear = selectedYear === "All" || getYearFromCategory(a.category) === selectedYear;
-    const matchesUnit = !selectedUnit || a.category === selectedUnit;
-    return matchesSearch && matchesYear && matchesUnit;
-  }), [articles, search, selectedYear, selectedUnit]);
+  const filtered = useMemo(() => {
+    const base = articles.filter((a) => {
+      if (a.category === "Stories") return false;
+      const matchesSearch = !search.trim() ||
+        a.title.toLowerCase().includes(search.toLowerCase()) ||
+        getCategoryDisplayName(a.category).toLowerCase().includes(search.toLowerCase());
+      const matchesYear = selectedYear === "All" || getYearFromCategory(a.category) === selectedYear;
+      const matchesUnit = !selectedUnit || a.category === selectedUnit;
+      return matchesSearch && matchesYear && matchesUnit;
+    });
+
+    base.sort((a, b) => {
+      if (sortBy === "title") return a.title.localeCompare(b.title);
+      const at = new Date(a.created_at).getTime();
+      const bt = new Date(b.created_at).getTime();
+      return sortBy === "oldest" ? at - bt : bt - at;
+    });
+
+    return base;
+  }, [articles, search, selectedYear, selectedUnit, sortBy]);
 
   // Group by unit when showing "All" or a year without unit selected
   const groupedArticles = useMemo(() => {
@@ -178,8 +190,8 @@ export default function Blog() {
         )}
       </div>
 
-      {/* Year Tabs */}
-      <div className="mb-6">
+      {/* Year Tabs + Sort */}
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
           {YEARS.map(year => {
             const count = yearCounts[year] || 0;
@@ -202,6 +214,17 @@ export default function Blog() {
             );
           })}
         </div>
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as "newest" | "oldest" | "title")}
+          className="rounded-lg border border-input bg-background px-3 py-2 text-xs font-medium text-foreground"
+          aria-label="Sort articles"
+        >
+          <option value="newest">Sort: Newest</option>
+          <option value="oldest">Sort: Oldest</option>
+          <option value="title">Sort: A–Z</option>
+        </select>
       </div>
 
       {/* Unit filter chips (when a year is selected) */}
