@@ -167,19 +167,19 @@ function isLikelyValidMcqItem(item: ExtractedMcq): boolean {
 }
 
 function extractMcqsFromContent(content: string): ExtractedMcq[] {
-  const questions: Array<{ question: string; options: string[]; correct_answer: number; explanation?: string }> = [];
+  const questions: ExtractedMcq[] = [];
   const seenQuestions = new Set<string>();
   const normalizedContent = (content || "").replace(/\r/g, "");
 
-  const pushQuestion = (item: { question: string; options: string[]; correct_answer: number; explanation?: string } | null) => {
-    if (!item) return;
+  const pushQuestion = (item: ExtractedMcq | null) => {
+    if (!item || !isLikelyValidMcqItem(item)) return;
     const key = item.question.toLowerCase().replace(/\s+/g, " ").trim();
-    if (!key || seenQuestions.has(key) || item.options.length < 3) return;
+    if (!key || seenQuestions.has(key)) return;
     seenQuestions.add(key);
     questions.push(item);
   };
 
-  const parseInlineMcqBlock = (rawBlock: string): { question: string; options: string[]; correct_answer: number; explanation?: string } | null => {
+  const parseInlineMcqBlock = (rawBlock: string): ExtractedMcq | null => {
     const compact = rawBlock
       .replace(/\*\*/g, " ")
       .replace(/\r?\n+/g, " ")
