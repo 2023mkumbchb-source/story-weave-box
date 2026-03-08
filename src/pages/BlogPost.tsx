@@ -511,12 +511,6 @@ export default function BlogPost() {
   const { toast } = useToast();
   const { isAdmin, user } = useAuth();
 
-  // Debug admin status
-  useEffect(() => {
-    if (user) {
-      console.log("[BlogPost] user:", user.id, "isAdmin:", isAdmin);
-    }
-  }, [user, isAdmin]);
 
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
