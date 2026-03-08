@@ -578,6 +578,37 @@ export default function BlogPost() {
     }
   };
 
+  const runGenerateCoverImage = async () => {
+    if (!article) return;
+    setActionLoading("image");
+
+    try {
+      const { data, error } = await supabase.functions.invoke("content-upgrade", {
+        body: { action: "generate_image", id: article.id },
+      });
+
+      if (error) throw new Error(error.message);
+      const imageDataUrl = data?.image_data_url as string | undefined;
+      if (!imageDataUrl) throw new Error("No image returned");
+
+      const contentWithoutTopImage = article.content.replace(/^!\[[^\]]*\]\([^)]+\)\s*\n*/m, "").trimStart();
+      const imageAlt = article.title.replace(/\s+/g, " ").trim() || "Medical illustration";
+      const newContent = `![${imageAlt}](${imageDataUrl})\n\n${contentWithoutTopImage}`;
+
+      const { error: applyError } = await supabase.functions.invoke("content-upgrade", {
+        body: { action: "apply", id: article.id, title: article.title, content: newContent },
+      });
+      if (applyError) throw new Error(applyError.message);
+
+      await reloadCurrentArticle(article.id);
+      toast({ title: "Gemini cover image generated" });
+    } catch (err: any) {
+      toast({ title: "Action failed", description: err?.message, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const runTitleAndSubtitleCleanup = async () => {
     if (!article) return;
     setActionLoading("titles");
