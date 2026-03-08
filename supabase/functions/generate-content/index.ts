@@ -426,6 +426,40 @@ Rules:
       });
     }
 
+    if (type === "moderate-and-fix-story") {
+      const messages = [
+        {
+          role: "system",
+          content: `You are a story editor and moderator. Do TWO things:
+1. Check if the text is a genuine story, narrative, reflection, or creative writing. Reject spam, gibberish, offensive content, or non-story content.
+2. If approved, fix ALL grammar, spelling, and punctuation errors. Improve sentence flow while preserving the author's voice and meaning. Keep the HTML formatting intact.
+
+Return ONLY valid JSON:
+If rejected: {"rejected": true, "reason": "Brief explanation"}
+If approved: {"approved": true, "category": "Stories", "title": "Improved title", "content": "The full corrected story HTML with grammar fixes"}
+
+Rules:
+- Be lenient on what counts as a story - accept reflections, medical experiences, creative writing, poems, essays
+- Fix grammar thoroughly but preserve voice
+- Keep all HTML tags (bold, italic, underline, lists, etc.)
+- Improve the title slightly if needed`,
+        },
+        { role: "user", content: `Title: ${customTitle || "Untitled"}\n\nContent:\n${safeNotes.slice(0, 15000)}` },
+      ];
+
+      const text = await callAI(messages, geminiKey, allKeys);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        return new Response(JSON.stringify({ approved: true, category: "Stories", content: notes }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const parsed = JSON.parse(jsonMatch[0]);
+      return new Response(JSON.stringify(parsed), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (type === "moderate-story") {
       const messages = [
         {

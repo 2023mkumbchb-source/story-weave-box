@@ -50,8 +50,12 @@ export default function StoryRead() {
     );
   }
 
-  const renderContent = (content: string) => {
-    return content.split("\n").map((line, i) => {
+  const isHtml = /<[a-z][\s\S]*>/i.test(story.content);
+  const plainForCount = story.content.replace(/<[^>]*>/g, "").replace(/[#*_`>\-]/g, "");
+  const readTime = Math.max(1, Math.ceil(plainForCount.split(/\s+/).length / 200));
+
+  const renderMarkdown = (content: string) => {
+    return content.split("\n").map((line: string, i: number) => {
       const trimmed = line.trim();
       if (trimmed.startsWith("# ")) return <h1 key={i} className="mb-4 mt-8 font-serif text-2xl font-bold text-foreground sm:text-3xl">{trimmed.slice(2)}</h1>;
       if (trimmed.startsWith("## ")) return <h2 key={i} className="mb-3 mt-7 font-serif text-xl font-bold text-foreground sm:text-2xl">{trimmed.slice(3)}</h2>;
@@ -73,8 +77,6 @@ export default function StoryRead() {
       return <p key={i} className="mb-3 text-foreground/90 leading-[1.8] text-[15px] sm:text-base">{line}</p>;
     });
   };
-
-  const readTime = Math.max(1, Math.ceil(story.content.split(/\s+/).length / 200));
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto max-w-2xl px-5 py-8 sm:px-6 sm:py-12">
@@ -101,8 +103,12 @@ export default function StoryRead() {
         </div>
       </header>
 
-      <article className="prose-custom">
-        {renderContent(story.content)}
+      <article className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-serif prose-p:leading-[1.8] prose-p:text-foreground/90 prose-blockquote:border-primary/30 prose-blockquote:text-muted-foreground">
+        {isHtml ? (
+          <div dangerouslySetInnerHTML={{ __html: story.content }} />
+        ) : (
+          renderMarkdown(story.content)
+        )}
       </article>
     </motion.div>
   );
