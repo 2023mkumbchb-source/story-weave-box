@@ -10,7 +10,7 @@ import {
   getFlashcardSets, saveFlashcardSet, deleteFlashcardSet,
   getMcqSets, saveMcqSet, deleteMcqSet,
   getSetting, saveSetting,
-  UNIT_CATEGORIES, getCategoryDisplayName,
+  UNIT_CATEGORIES, getCategoryDisplayName, buildBlogPath,
   type Article, type FlashcardSet, type McqSet,
 } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
@@ -906,7 +906,7 @@ function ArticlesList({
   const handleSaveEdit = async () => { if (!editing) return; await saveArticle(editing); setEditing(null); refresh(); toast({ title: "Article updated!" }); };
 
   // Filter by year
-  const years = ["all", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5"];
+  const years = ["all", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
   const filteredArticles = activeYear === "all"
     ? articles
     : articles.filter(a => a.category.startsWith(activeYear));
@@ -1072,7 +1072,7 @@ function ArticlesList({
                   </p>
                 </div>
                 <div className="flex gap-1 ml-2 shrink-0">
-                  <Button size="sm" variant="ghost" asChild className="text-xs"><a href={`/blog/${a.slug || a.id}`} target="_blank" rel="noopener"><Eye className="h-3.5 w-3.5" /></a></Button>
+                  <Button size="sm" variant="ghost" asChild className="text-xs"><a href={buildBlogPath(a)} target="_blank" rel="noopener"><Eye className="h-3.5 w-3.5" /></a></Button>
                   <Button size="sm" variant="ghost" onClick={() => setEditing(a)}><Pencil className="h-4 w-4" /></Button>
                   <Button size="sm" variant="ghost" onClick={() => togglePublish(a)}>{a.published ? "Unpublish" : "Publish"}</Button>
                   <Button size="sm" variant="ghost" onClick={() => handleDelete(a.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
