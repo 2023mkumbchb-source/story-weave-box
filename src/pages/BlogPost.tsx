@@ -906,10 +906,12 @@ export default function BlogPost() {
       {/* Main layout: sidebar TOC + article */}
       <div className="mx-auto max-w-6xl px-5 py-8">
         <div className="lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10">
-          {/* Left sidebar: TOC */}
-          <aside className="hidden lg:block">
-            <SidebarToc items={toc} activeId={activeSection} />
-          </aside>
+          {/* Left sidebar: TOC — only show when real headings exist */}
+          {toc.length > 0 && (
+            <aside className="hidden lg:block">
+              <SidebarToc items={toc} activeId={activeSection} />
+            </aside>
+          )}
 
           {/* Article body */}
           <article id="section-top" className="min-w-0">
