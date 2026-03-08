@@ -19,7 +19,7 @@ function normalizeYear(value: string | null | undefined): string | null {
   if (!value) return null;
   const trimmed = value.trim();
   if (trimmed === "All") return "All";
-  const match = trimmed.match(/year\s*([1-5])/i);
+  const match = trimmed.match(/year\s*([1-6])/i);
   return match ? `Year ${match[1]}` : null;
 }
 

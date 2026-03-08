@@ -9,6 +9,7 @@ const links = [
   { to: "/year/3", label: "Year 3" },
   { to: "/year/4", label: "Year 4" },
   { to: "/year/5", label: "Year 5" },
+  { to: "/year/6", label: "Year 6" },
   { to: "/stories", label: "Stories" },
   { to: "/admin", label: "Dashboard" },
 ];
