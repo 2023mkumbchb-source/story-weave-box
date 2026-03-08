@@ -516,27 +516,82 @@ export default function BlogPost() {
       const { data, error } = await supabase.functions.invoke("content-upgrade", { body: { action: "upgrade", id: article.id, type } });
       if (error) throw new Error(error.message);
       if (!data?.improved_content) throw new Error("No upgraded content returned");
-      const { error: applyError } = await supabase.functions.invoke("content-upgrade", { body: { action: "apply", id: article.id, content: data.improved_content } });
+      const { error: applyError } = await supabase.functions.invoke("content-upgrade", {
+        body: { action: "apply", id: article.id, content: data.improved_content, title: article.title },
+      });
       if (applyError) throw new Error(applyError.message);
       await reloadCurrentArticle(article.id);
       toast({ title: type === "format" ? "Formatting applied" : "Content expanded" });
     } catch (err: any) {
       toast({ title: "Action failed", description: err?.message, variant: "destructive" });
-    } finally { setActionLoading(null); }
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const runCleanupFix = async (fixes: Record<string, any>, successMessage: string) => {
+  const runGenerateSaqs = async () => {
     if (!article) return;
-    setActionLoading("fix");
+    setActionLoading("saq");
     try {
-      const { data, error } = await supabase.functions.invoke("bulk-cleanup", { body: { action: "fix", article_id: article.id, fixes } });
+      const { data, error } = await supabase.functions.invoke("generate-content", {
+        body: { notes: article.content, type: "essay-qa" },
+      });
       if (error) throw new Error(error.message);
-      if (data?.deleted_article) { toast({ title: successMessage }); navigate("/blog", { replace: true }); return; }
+
+      const saqs = Array.isArray(data?.saqs) ? data.saqs : [];
+      if (!saqs.length) throw new Error("No SAQs generated");
+
+      const section = [
+        "",
+        "## Short Answer Questions",
+        ...saqs.map((q: any, i: number) => `### SAQ ${i + 1}\n${q.question}\n\n**Model answer:** ${q.answer || q.model_answer || ""}`),
+      ].join("\n\n");
+
+      const { error: applyError } = await supabase.functions.invoke("content-upgrade", {
+        body: { action: "apply", id: article.id, title: article.title, content: `${article.content}\n${section}` },
+      });
+      if (applyError) throw new Error(applyError.message);
+
       await reloadCurrentArticle(article.id);
-      toast({ title: successMessage });
+      toast({ title: "SAQs added to the end of this article" });
     } catch (err: any) {
       toast({ title: "Action failed", description: err?.message, variant: "destructive" });
-    } finally { setActionLoading(null); }
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const runTitleAndSubtitleCleanup = async () => {
+    if (!article) return;
+    setActionLoading("titles");
+    try {
+      const normalizedTitle = article.title
+        .replace(/^#+\s*/, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      const normalizedContent = article.content
+        .split("\n")
+        .map((line) => {
+          if (!/^#{1,3}\s+/.test(line.trim())) return line;
+          const prefix = line.match(/^#{1,3}/)?.[0] || "##";
+          const heading = line.replace(/^#{1,3}\s+/, "").replace(/\s+/g, " ").trim();
+          return `${prefix} ${heading}`;
+        })
+        .join("\n");
+
+      const { error: applyError } = await supabase.functions.invoke("content-upgrade", {
+        body: { action: "apply", id: article.id, title: normalizedTitle, content: normalizedContent },
+      });
+      if (applyError) throw new Error(applyError.message);
+
+      await reloadCurrentArticle(article.id);
+      toast({ title: "Title and subtitles cleaned" });
+    } catch (err: any) {
+      toast({ title: "Action failed", description: err?.message, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   useEffect(() => {
