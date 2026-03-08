@@ -251,7 +251,7 @@ export default function ExamMode({
             className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl">
             <div className="flex items-center gap-3 mb-3">
               <div className="rounded-full bg-destructive/10 p-2"><LogOut className="h-5 w-5 text-destructive" /></div>
-              <h3 className="font-display text-base font-bold text-foreground">Exit Exam?</h3>
+              <h3 className="font-serif text-base font-bold text-foreground">Exit Exam?</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-1">
               Your progress will be <strong className="text-foreground">lost</strong> — this will be an incomplete attempt.
