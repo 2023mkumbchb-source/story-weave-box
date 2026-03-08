@@ -2377,7 +2377,7 @@ function SeoIndexingTab() {
   const handleCopyBatchUrls = async (batchNumber: number) => {
     try {
       const { data, error } = await supabase.functions.invoke("google-indexing", {
-        body: { action: "generate_urls", batch_number: batchNumber, year: seoYear === "All" ? null : seoYear },
+        body: { action: "generate_urls", batch_number: batchNumber, year: seoYear === "All" ? null : seoYear, site_url: siteUrlInput },
       });
       if (error) throw new Error(error.message);
       await navigator.clipboard.writeText(data?.urls_text || "");
