@@ -260,10 +260,8 @@ export default function ExamMode({
   useEffect(() => {
     if (submittedRef.current) return;
     const onVis = () => { if (document.hidden) doSubmit("tab_switch"); };
-    const onBlur = () => doSubmit("tab_switch");
     document.addEventListener("visibilitychange", onVis);
-    window.addEventListener("blur", onBlur);
-    return () => { document.removeEventListener("visibilitychange", onVis); window.removeEventListener("blur", onBlur); };
+    return () => { document.removeEventListener("visibilitychange", onVis); };
   }, [doSubmit]);
 
   const selectAnswer = (qIdx: number, optIdx: number) => {
