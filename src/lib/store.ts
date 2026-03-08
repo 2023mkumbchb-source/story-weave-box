@@ -76,7 +76,7 @@ export const YEAR_CATEGORIES: Record<string, string[]> = {
     "Clinical Biochemistry",
   ],
   "Year 3": [
-    "Basic Pharmacology III",
+    "Basic Pharmacology II",
     "Blood Transfusion",
     "Medical Virology",
     "Medical Mycology",
