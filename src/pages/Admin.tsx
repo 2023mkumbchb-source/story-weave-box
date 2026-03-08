@@ -1540,7 +1540,7 @@ function InstitutionsTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="font-display text-xl font-bold text-foreground">Institutions Review</h2>
+          <h2 className="font-serif text-xl font-bold text-foreground">Institutions Review</h2>
           <p className="text-sm text-muted-foreground mt-0.5">Student-submitted universities and courses pending your approval.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
