@@ -304,8 +304,12 @@ async function processNonAiArticle(
   sb: ReturnType<typeof createClient>,
   article: ArticleLite,
 ): Promise<ProcessNonAiResult> {
-  const baseContent = cleanContent(article.content || "");
-  let newTitle = normalizeTitle(article.title || inferTitleFromContent(baseContent));
+  const rawContent = article.content || "";
+  if (rawContent.length > OVERSIZED_ARTICLE_CHARS) {
+    return { id: article.id, title: article.title || "(untitled)", action: "no_change", details: "oversized_manual_review" };
+  }
+
+  const baseContent = cleanContent(rawContent);
   if (!newTitle) newTitle = inferTitleFromContent(baseContent);
 
   const detectedCategory = detectBestCategory(newTitle, baseContent.slice(0, MAX_ANALYZE_CHARS));
