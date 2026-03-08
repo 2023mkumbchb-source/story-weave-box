@@ -93,7 +93,7 @@ serve(async (req) => {
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${escapeHtml(title)}">
   <meta name="twitter:description" content="${escapeHtml(description)}">
-  <meta name="twitter:image" content="${escapeHtml(image)}">
+  <meta name="twitter:image" content="${escapeHtml(ogImage)}">
   <link rel="canonical" href="${escapeHtml(canonical)}">
   <meta http-equiv="refresh" content="0;url=${escapeHtml(canonical)}">
   <script>window.location.replace("${canonical}");</script>
