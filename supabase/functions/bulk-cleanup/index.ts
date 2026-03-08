@@ -322,7 +322,7 @@ async function processNonAiArticle(
     return { id: article.id, title: newTitle, action: "deleted", details: "empty_or_too_short" };
   }
 
-  const mcqs = extractMcqsFromContent(baseContent.slice(0, MAX_MCQ_EXTRACT_CHARS));
+  const mcqs = extractMcqsFromContent(analysisContent);
   if (mcqs.length >= 5) {
     const { error: mcqError } = await sb.from("mcq_sets").insert({
       title: normalizeTitle(newTitle),
