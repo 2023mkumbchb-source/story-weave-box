@@ -868,13 +868,27 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
 }
 
 // ===== ARTICLES LIST =====
-function ArticlesList() {
+function ArticlesList({
+  initialEditId,
+  onEditOpened,
+}: {
+  initialEditId: string | null;
+  onEditOpened: () => void;
+}) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Article | null>(null);
   const { toast } = useToast();
   const refresh = () => { getArticles().then((arts) => setArticles(arts.filter((a: any) => a.is_raw !== true))).finally(() => setLoading(false)); };
   useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    if (!initialEditId || editing || articles.length === 0) return;
+    const target = articles.find((a) => a.id === initialEditId);
+    if (target) {
+      setEditing(target);
+      onEditOpened();
+    }
+  }, [initialEditId, editing, articles, onEditOpened]);
   const handleDelete = async (id: string) => { await deleteArticle(id); refresh(); toast({ title: "Deleted" }); };
   const togglePublish = async (a: Article) => { await saveArticle({ ...a, published: !a.published }); refresh(); toast({ title: a.published ? "Unpublished" : "Published!" }); };
   const handleSaveEdit = async () => { if (!editing) return; await saveArticle(editing); setEditing(null); refresh(); toast({ title: "Article updated!" }); };
