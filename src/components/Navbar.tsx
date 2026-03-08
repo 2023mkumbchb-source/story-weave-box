@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import ThemeToggle from "./ThemeToggle";
-import ompathLogo from "@/assets/ompath-logo.png";
+import kenyaMedsLogo from "@/assets/kenya-meds-logo.png";
 
 const links = [
   { to: "/", label: "Home", icon: Home },
