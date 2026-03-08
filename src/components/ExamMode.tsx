@@ -42,7 +42,14 @@ interface PersistedExam {
   submitReason: string;
 }
 
+interface PersistedExamSession {
+  sessionId: string;
+  answers: [number, number][];
+  elapsed: number;
+}
+
 const storageKey = (id: string) => `exam_result_${id}`;
+const sessionStorageKey = (id: string) => `exam_session_${id}`;
 // Key for saving student credentials across sessions
 const STUDENT_CREDS_KEY = "student_credentials";
 
@@ -55,6 +62,21 @@ function loadFromStorage(id: string): PersistedExam | null {
     const raw = localStorage.getItem(storageKey(id));
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
+}
+
+function saveSessionToStorage(data: PersistedExamSession) {
+  try { localStorage.setItem(sessionStorageKey(data.sessionId), JSON.stringify(data)); } catch {}
+}
+
+function loadSessionFromStorage(id: string): PersistedExamSession | null {
+  try {
+    const raw = localStorage.getItem(sessionStorageKey(id));
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function clearSessionFromStorage(id: string) {
+  try { localStorage.removeItem(sessionStorageKey(id)); } catch {}
 }
 
 function isAnswersUnlocked(submittedAt: number): boolean {
@@ -85,13 +107,14 @@ export default function ExamMode({
   const [submitted, setSubmitted] = useState(false);
   const [submitReason, setSubmitReason] = useState<SubmitReason>("manual");
   const [submittedAt, setSubmittedAt] = useState<number | null>(null);
-  const [startTime] = useState(Date.now());
+  const [startTime, setStartTime] = useState(() => Date.now());
   const [elapsed, setElapsed] = useState(0);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [answersUnlocked, setAnswersUnlocked] = useState(false);
   const [displayAnswers, setDisplayAnswers] = useState<Map<number, number>>(new Map());
   const submittedRef = useRef(false);
+  const sessionId = setId || `local_${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 
   const timeLimit = timeLimitMinutes ? timeLimitMinutes * 60 : undefined;
   const remaining = timeLimit ? Math.max(0, timeLimit - elapsed) : undefined;
