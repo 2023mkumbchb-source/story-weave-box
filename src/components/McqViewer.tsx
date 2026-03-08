@@ -475,7 +475,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
           <div className="mb-4 rounded-2xl border border-border bg-card p-5 sm:p-6"
             style={{ boxShadow: "var(--shadow-elevated)" }}>
             <span className="mb-3 block text-xs font-medium uppercase tracking-wider text-primary">Question</span>
-            <p className="text-base sm:text-lg font-medium text-foreground leading-relaxed break-words">{q?.question}</p>
+            <p className="text-base sm:text-lg font-medium text-foreground leading-relaxed break-words">{cleanQuestionText(q?.question)}</p>
           </div>
 
           {/* Options */}
