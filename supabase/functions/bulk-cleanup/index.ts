@@ -268,6 +268,7 @@ async function fetchArticleBatch(
   sb: ReturnType<typeof createClient>,
   batchSize: number,
   cursor: string | null,
+  yearFilter: string | null,
 ): Promise<ArticleLite[]> {
   let query = sb
     .from("articles")
@@ -277,11 +278,95 @@ async function fetchArticleBatch(
     .order("id", { ascending: true })
     .limit(batchSize);
 
+  if (yearFilter) query = query.like("category", `${yearFilter}:%`);
   if (cursor) query = query.gt("id", cursor);
 
   const { data, error } = await query;
   if (error) throw error;
   return (data || []) as ArticleLite[];
+}
+
+function normalizeYearFilter(rawYear: unknown): string | null {
+  if (typeof rawYear !== "string") return null;
+  const trimmed = rawYear.trim();
+  if (/^Year [1-5]$/.test(trimmed)) return trimmed;
+  return null;
+}
+
+type ProcessNonAiResult = {
+  id: string;
+  title: string;
+  action: "updated" | "migrated_mcq" | "migrated_essay" | "deleted" | "no_change";
+  details?: string;
+};
+
+async function processNonAiArticle(
+  sb: ReturnType<typeof createClient>,
+  article: ArticleLite,
+): Promise<ProcessNonAiResult> {
+  const baseContent = cleanContent(article.content || "");
+  let newTitle = normalizeTitle(article.title || inferTitleFromContent(baseContent));
+  if (!newTitle) newTitle = inferTitleFromContent(baseContent);
+
+  const detectedCategory = detectBestCategory(newTitle, baseContent.slice(0, MAX_ANALYZE_CHARS));
+  const newCategory = detectedCategory || article.category;
+
+  if (baseContent.replace(/\s+/g, "").length < 40) {
+    await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
+    return { id: article.id, title: newTitle, action: "deleted", details: "empty_or_too_short" };
+  }
+
+  const mcqs = extractMcqsFromContent(baseContent.slice(0, MAX_MCQ_EXTRACT_CHARS));
+  if (mcqs.length >= 5) {
+    const { error: mcqError } = await sb.from("mcq_sets").insert({
+      title: normalizeTitle(newTitle),
+      questions: mcqs,
+      published: true,
+      original_notes: "",
+      category: newCategory,
+      access_password: "",
+    });
+
+    if (!mcqError) {
+      await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
+      return { id: article.id, title: newTitle, action: "migrated_mcq", details: `${mcqs.length} MCQs` };
+    }
+  }
+
+  const essays = extractEssayQuestions(baseContent);
+  if (essays.saqs.length + essays.laqs.length >= 3) {
+    const { error: essayErr } = await sb.from("essays").insert({
+      title: normalizeTitle(newTitle),
+      short_answer_questions: essays.saqs,
+      long_answer_questions: essays.laqs,
+      category: newCategory,
+      published: true,
+      article_id: article.id,
+    });
+
+    if (!essayErr) {
+      await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
+      return {
+        id: article.id,
+        title: newTitle,
+        action: "migrated_essay",
+        details: `${essays.saqs.length} SAQs · ${essays.laqs.length} LAQs`,
+      };
+    }
+  }
+
+  const updates: Record<string, any> = {};
+  if (baseContent !== article.content) updates.content = baseContent;
+  if (newCategory !== article.category) updates.category = newCategory;
+  if (newTitle !== article.title) updates.title = newTitle;
+
+  if (Object.keys(updates).length > 0) {
+    const { error: updateErr } = await sb.from("articles").update(updates).eq("id", article.id);
+    if (updateErr) throw updateErr;
+    return { id: article.id, title: newTitle, action: "updated" };
+  }
+
+  return { id: article.id, title: article.title, action: "no_change" };
 }
 
 serve(async (req) => {
