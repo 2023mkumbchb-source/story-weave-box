@@ -758,7 +758,7 @@ export default function BlogPost() {
     const ogImage = article.og_image_url || extractFirstImageFromContent(article.content || "") || `${SITE_URL}/icon-512.png`;
     const canonicalUrl = `${SITE_URL}${buildBlogPath(article)}`;
 
-    document.title = `${metaTitle} | Ompath Study`;
+    document.title = `${metaTitle} | Kenya Meds`;
 
     const setMeta = (attr: string, key: string, content: string) => {
       let el = document.querySelector(`meta[${attr}="${key}"]`) as HTMLMetaElement | null;
