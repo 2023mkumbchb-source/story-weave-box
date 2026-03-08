@@ -381,6 +381,7 @@ export default function Admin() {
     { id: "mcqs", label: "MCQs", icon: ListChecks },
     { id: "exams", label: "Exam Results", icon: ListChecks },
     { id: "raw", label: "Raw", icon: AlertTriangle },
+    { id: "upgrade", label: "AI Upgrade", icon: Sparkles },
     { id: "recycle", label: "Recycle Bin", icon: Trash2 },
     { id: "institutions", label: "Institutions", icon: Building2 },
     { id: "settings", label: "Settings", icon: Settings },
