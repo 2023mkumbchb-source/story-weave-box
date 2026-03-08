@@ -240,10 +240,6 @@ function extractToc(content: string): TocItem[] {
     }
   }
 
-  if (items.length === 0) {
-    items.push({ id: "section-top", text: "Overview", level: 2 });
-  }
-
   return items;
 }
 
