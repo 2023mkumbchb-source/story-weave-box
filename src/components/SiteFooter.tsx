@@ -1,7 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Phone, MessageCircle, Download } from "lucide-react";
 
 const links = [
+  { to: "/", label: "Home" },
   { to: "/year/1", label: "Year 1" },
   { to: "/year/2", label: "Year 2" },
   { to: "/year/3", label: "Year 3" },

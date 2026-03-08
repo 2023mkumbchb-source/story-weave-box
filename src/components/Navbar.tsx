@@ -6,7 +6,8 @@ import ThemeToggle from "./ThemeToggle";
 import ompathLogo from "@/assets/ompath-logo.png";
 
 const links = [
-  { to: "/stories", label: "Stories" },
+  { to: "/", label: "Home", icon: undefined },
+  { to: "/stories", label: "Stories", icon: undefined },
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
 ];
 
