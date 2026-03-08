@@ -736,7 +736,7 @@ serve(async (req) => {
     }
 
     if (action === "fix_all_safe" || action === "migrate_mcqs") {
-      const articles = await fetchArticleBatch(sb, batchSize, cursor, yearFilter);
+      const articles = await fetchArticleBatch(sb, batchSize, cursor, yearFilter, includeUnpublished);
       if (articles.length === 0) {
         return new Response(JSON.stringify({ fixed: 0, failed: 0, skipped: 0, migrated: 0, done: true, processed: 0, next_cursor: null }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
