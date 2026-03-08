@@ -327,7 +327,7 @@ REQUIREMENTS:
         { role: "user", content: safeNotes },
       ];
 
-      const text = await callAI(messages, geminiKey);
+      const text = await callAI(messages, geminiKey, allKeys);
       const result = parseEssayOutput(text);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
