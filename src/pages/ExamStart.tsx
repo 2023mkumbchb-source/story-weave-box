@@ -187,7 +187,7 @@ export default function ExamStart() {
     if (!val) return;
     setSubmittingUni(true);
     try {
-      await supabase.from("pending_institutions").upsert(
+      await (supabase as any).from("pending_institutions").upsert(
         { type: "university", value: val, submitted_by: studentInfo.name || "Anonymous", status: "pending" },
         { onConflict: "type,value", ignoreDuplicates: true }
       );
