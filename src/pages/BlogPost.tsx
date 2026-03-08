@@ -240,10 +240,6 @@ function extractToc(content: string): TocItem[] {
     }
   }
 
-  if (items.length === 0) {
-    items.push({ id: "section-top", text: "Overview", level: 2 });
-  }
-
   return items;
 }
 
@@ -909,11 +905,13 @@ export default function BlogPost() {
 
       {/* Main layout: sidebar TOC + article */}
       <div className="mx-auto max-w-6xl px-5 py-8">
-        <div className="lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10">
-          {/* Left sidebar: TOC */}
-          <aside className="hidden lg:block">
-            <SidebarToc items={toc} activeId={activeSection} />
-          </aside>
+        <div className={toc.length > 0 ? "lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10" : "max-w-3xl mx-auto"}>
+          {/* Left sidebar: TOC — only show when real headings exist */}
+          {toc.length > 0 && (
+            <aside className="hidden lg:block">
+              <SidebarToc items={toc} activeId={activeSection} />
+            </aside>
+          )}
 
           {/* Article body */}
           <article id="section-top" className="min-w-0">
