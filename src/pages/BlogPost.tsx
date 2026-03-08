@@ -250,7 +250,7 @@ function extractToc(content: string): TocItem[] {
 /* ─── Article content renderer ─── */
 let _sec = 0;
 
-function ArticleContent({ content }: { content: string }) {
+const ArticleContent = memo(function ArticleContent({ content }: { content: string }) {
   _sec = 0;
   const lines = preprocessContent(content).split("\n");
   const els: React.ReactNode[] = [];
