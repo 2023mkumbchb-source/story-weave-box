@@ -147,6 +147,8 @@ function toArticlePreview(row: any): Article {
     content: row.content ?? "",
     original_notes: row.original_notes ?? "",
     is_raw: row.is_raw ?? false,
+    slug: row.slug ?? undefined,
+    meta_description: row.meta_description ?? undefined,
   };
 }
 
@@ -175,7 +177,7 @@ export async function getPublishedArticles(): Promise<Article[]> {
 export async function getPublishedArticleSummaries(year?: string): Promise<Article[]> {
   let query = supabase
     .from("articles")
-    .select("id, title, category, created_at, published, content")
+    .select("id, title, category, created_at, published, slug, meta_description")
     .eq("published", true)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
@@ -196,12 +198,12 @@ export async function searchPublishedArticles(queryText: string, year?: string, 
   const safeQ = q.replace(/[,%]/g, " ").slice(0, 80);
   let query = supabase
     .from("articles")
-    .select("id, title, category, created_at, published, content")
+    .select("id, title, category, created_at, published, slug, meta_description")
     .eq("published", true)
     .is("deleted_at", null)
     .or(`title.ilike.%${safeQ}%,category.ilike.%${safeQ}%,content.ilike.%${safeQ}%`)
     .order("created_at", { ascending: false })
-    .limit(120);
+    .limit(80);
 
   if (year && /^Year [1-5]$/.test(year)) {
     query = query.like("category", `${year}:%`);
@@ -217,7 +219,7 @@ export async function searchPublishedArticles(queryText: string, year?: string, 
   return (data || []).map((row) =>
     toArticlePreview({
       ...row,
-      content: (row.content || "").slice(0, 260),
+      content: row.meta_description || "",
     }),
   );
 }

@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigationType } from "react-router-dom";
 
 export default function ScrollToTop() {
   const { pathname, hash } = useLocation();
+  const navigationType = useNavigationType();
   const previousPathRef = useRef(pathname);
 
   useEffect(() => {
@@ -10,7 +11,9 @@ export default function ScrollToTop() {
 
     if (pathnameChanged) {
       previousPathRef.current = pathname;
-      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      if (navigationType !== "POP") {
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      }
       return;
     }
 
@@ -23,7 +26,7 @@ export default function ScrollToTop() {
         el.scrollIntoView({ block: "start", behavior: "auto" });
       }
     });
-  }, [pathname, hash]);
+  }, [pathname, hash, navigationType]);
 
   return null;
 }
