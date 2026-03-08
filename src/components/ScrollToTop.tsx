@@ -11,9 +11,12 @@ export default function ScrollToTop() {
 
     if (pathnameChanged) {
       previousPathRef.current = pathname;
-      if (navigationType !== "POP") {
-        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      }
+      // Always scroll to top on route change (both PUSH and POP)
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+      // Also force after a frame for lazy-loaded content
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+      });
       return;
     }
 

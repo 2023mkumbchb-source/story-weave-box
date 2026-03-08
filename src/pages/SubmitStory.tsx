@@ -2,10 +2,10 @@ import { useState } from "react";
 import { Loader2, Send, BookOpen, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import RichTextEditor from "@/components/RichTextEditor";
 
 export default function SubmitStory() {
   const { toast } = useToast();
@@ -15,21 +15,24 @@ export default function SubmitStory() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  // Strip HTML tags for length check
+  const plainText = content.replace(/<[^>]*>/g, "").trim();
+
   const handleSubmit = async () => {
-    if (!title.trim() || !content.trim()) {
+    if (!title.trim() || plainText.length < 10) {
       toast({ title: "Please fill in both the title and story content", variant: "destructive" });
       return;
     }
-    if (content.trim().length < 200) {
+    if (plainText.length < 200) {
       toast({ title: "Your story is too short", description: "Please write at least 200 characters", variant: "destructive" });
       return;
     }
 
     setSubmitting(true);
     try {
-      // AI moderation check via edge function
+      // AI moderation + grammar fix via edge function
       const { data: modResult, error: modError } = await supabase.functions.invoke("generate-content", {
-        body: { notes: content, type: "moderate-story", title },
+        body: { notes: content, type: "moderate-and-fix-story", title },
       });
 
       if (modError) throw new Error(modError.message);
@@ -43,13 +46,12 @@ export default function SubmitStory() {
         return;
       }
 
-      // Save as unpublished (pending review)
       const finalContent = authorName.trim()
-        ? `*By ${authorName.trim()}*\n\n${content}`
-        : content;
+        ? `<p><em>By ${authorName.trim()}</em></p>${modResult?.content || content}`
+        : (modResult?.content || content);
 
       const { error } = await supabase.from("stories").insert({
-        title: title.trim(),
+        title: modResult?.title || title.trim(),
         content: finalContent,
         category: modResult?.category || "Stories",
         published: false,
@@ -94,7 +96,7 @@ export default function SubmitStory() {
           </h1>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
             Share your medical school experiences, personal reflections, or creative writing.
-            Stories are reviewed before publishing.
+            Stories are reviewed before publishing. Grammar and formatting will be auto-improved.
           </p>
         </div>
 
@@ -121,15 +123,13 @@ export default function SubmitStory() {
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">Your Story *</label>
-            <Textarea
-              value={content}
-              onChange={e => setContent(e.target.value)}
-              placeholder="Write your story here... Share your experiences, thoughts, and reflections."
-              className="min-h-[300px] resize-y"
-              maxLength={50000}
+            <RichTextEditor
+              content={content}
+              onChange={setContent}
+              placeholder="Write your story here..."
             />
             <p className="mt-1.5 text-xs text-muted-foreground">
-              {content.length} characters · Minimum 200 required
+              {plainText.length} characters · Minimum 200 required
             </p>
           </div>
 
