@@ -200,9 +200,9 @@ export default function Exams() {
                 <Heart className="h-4 w-4 text-rose-500" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground mb-1">Support Ompath Study</p>
+                <p className="text-sm font-semibold text-foreground mb-1">Support Kenya Meds</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Each exam is just <strong className="text-foreground">KES {examPrice}</strong>. This goes directly toward building weekly exams, expanding the question bank, and keeping Ompath Study free for all health students in Kenya.
+                  Each exam is just <strong className="text-foreground">KES {examPrice}</strong>. This goes directly toward building weekly exams, expanding the question bank, and keeping Kenya Meds free for all health students in Kenya.
                 </p>
               </div>
             </div>
