@@ -64,7 +64,7 @@ export default function YearHub() {
           >
             <div className="mb-3 flex items-center gap-2">
               <section.icon className="h-4 w-4 text-primary" />
-              <h2 className="font-display text-lg font-bold text-foreground">{section.title}</h2>
+              <h2 className="font-serif text-lg font-bold text-foreground">{section.title}</h2>
             </div>
             <p className="text-sm text-muted-foreground">{section.description}</p>
             <p className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary">
