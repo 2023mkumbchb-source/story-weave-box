@@ -1,11 +1,12 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, LayoutDashboard, Menu, X, BookMarked } from "lucide-react";
+import { LayoutDashboard, Menu, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ThemeToggle from "./ThemeToggle";
+import ompathLogo from "@/assets/ompath-logo.png";
 
 const links = [
-  { to: "/stories", label: "Stories", icon: BookMarked },
+  { to: "/stories", label: "Stories" },
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
 ];
 
@@ -54,8 +55,8 @@ export default function Navbar() {
     <nav className="sticky top-0 z-40 border-b border-border bg-[hsl(174,62%,22%)] text-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
         <Link to="/" className="flex items-center gap-2 text-lg font-bold text-white">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white/15">
-            <BookOpen className="h-3.5 w-3.5" />
+          <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-white/10 p-1">
+            <img src={ompathLogo} alt="Ompath Study logo" className="h-full w-full object-contain" loading="lazy" />
           </div>
           <span className="font-serif">Ompath Study</span>
         </Link>
