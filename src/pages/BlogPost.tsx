@@ -1,14 +1,18 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft, Calendar, Loader2, GraduationCap, ListChecks,
-  ChevronDown, FileText, HelpCircle,
+  ChevronDown, FileText, HelpCircle, Sparkles, GitMerge, Settings2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getArticleById, getRelatedContent, getCategoryDisplayName, type Article } from "@/lib/store";
+import { getArticleBySlugOrId, getRelatedContent, getCategoryDisplayName, buildBlogPath, type Article } from "@/lib/store";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { markArticleVisited } from "@/lib/progress-store";
 import BlogAudioPlayer from "@/components/BlogAudioPlayer";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 function Inline({ text }: { text: string }) {
   const hasStar = text.includes("⭐");
