@@ -732,8 +732,32 @@ serve(async (req) => {
       if (fixes.migrate_mcqs) {
         const mcqSource = content.length > MAX_MCQ_EXTRACT_CHARS ? content.slice(0, MAX_MCQ_EXTRACT_CHARS) : content;
         const mcqs = extractMcqsFromContent(mcqSource);
+        const essays = extractEssayQuestions(mcqSource);
+        const essayCount = essays.saqs.length + essays.laqs.length;
         const titleSuggestsMcq = /\bmcq\b|multiple\s+choice/i.test(title || "");
-        if (mcqs.length >= 3 || (titleSuggestsMcq && mcqs.length >= 1)) {
+        const titleSuggestsEssay = /\bessay|saq|laq|short\s+answer|long\s+answer\b/i.test(title || "");
+        const preferEssay = (looksLikeEssayContent(mcqSource) || titleSuggestsEssay) && essayCount >= 3 && mcqs.length < 8;
+
+        if (preferEssay && fixes.auto_route_essay) {
+          const { error: essayErr } = await sb.from("essays").insert({
+            title: normalizeTitle(title),
+            short_answer_questions: essays.saqs,
+            long_answer_questions: essays.laqs,
+            category,
+            published: true,
+            article_id: article_id,
+          });
+
+          if (!essayErr) {
+            changes.push(`Detected essay format — migrated to Essays (${essays.saqs.length} SAQs, ${essays.laqs.length} LAQs)`);
+            await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article_id);
+            return new Response(JSON.stringify({ success: true, changes, migrated_essays: true, deleted_article: true }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+
+        if (!preferEssay && (mcqs.length >= 3 || (titleSuggestsMcq && mcqs.length >= 1))) {
           const { error: mcqError } = await sb.from("mcq_sets").insert({
             title: normalizeTitle(title.replace(/MCQ.*$/i, "MCQs").replace(/Question.*$/i, "MCQs")),
             questions: mcqs,
@@ -751,11 +775,12 @@ serve(async (req) => {
             });
           }
         }
-        // Fallback: if MCQ parse failed and fallback_to_raw is requested, move to raw
-        if ((mcqs.length < 3 && !titleSuggestsMcq) || (titleSuggestsMcq && mcqs.length < 1)) {
+
+        // Fallback: if MCQ parse failed or content is essay-like and fallback_to_raw is requested, move to raw
+        if ((mcqs.length < 3 && !titleSuggestsMcq) || (titleSuggestsMcq && mcqs.length < 1) || preferEssay) {
           if (fixes.fallback_to_raw) {
             await sb.from("articles").update({ is_raw: true, published: false }).eq("id", article_id);
-            changes.push("MCQ parse failed — moved to Raw (unpublished)");
+            changes.push(preferEssay ? "Detected essay-style content — moved to Raw (unpublished)" : "MCQ parse failed — moved to Raw (unpublished)");
             return new Response(JSON.stringify({ success: true, changes, moved_to_raw: true }), {
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
