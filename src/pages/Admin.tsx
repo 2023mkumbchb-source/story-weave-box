@@ -2137,7 +2137,7 @@ function ContentUpgradeTab() {
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          <h3 className="font-display text-lg font-bold text-foreground">AI Content Upgrade</h3>
+          <h3 className="font-serif text-lg font-bold text-foreground">AI Content Upgrade</h3>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
           Scan your published articles for formatting issues, missing details, and suggest AI-powered improvements.
