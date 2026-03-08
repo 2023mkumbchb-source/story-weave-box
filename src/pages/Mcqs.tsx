@@ -205,7 +205,10 @@ export default function Mcqs() {
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((s, i) => {
                 const firstQ = (s.questions as any[])[0];
-                const snippet = firstQ?.question ?? firstQ?.text ?? null;
+                const rawSnippet = firstQ?.question ?? firstQ?.text ?? null;
+                const snippet = rawSnippet
+                  ? rawSnippet.replace(/^#{1,6}\s*(Question\s*\d+[:\s-]*)?/i, "").replace(/^Choices:\s*/i, "").replace(/^[*_]+|[*_]+$/g, "").trim() || null
+                  : null;
 
                 return (
                   <motion.div key={s.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
