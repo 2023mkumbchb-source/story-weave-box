@@ -365,6 +365,32 @@ export default function ExamMode({
       tab_switch: "Exam auto-submitted: you switched tabs or left the page.",
     };
 
+    const isIncompleteSubmission = submitReason !== "manual" || displayAnswers.size < total;
+
+    if (isIncompleteSubmission) {
+      return (
+        <div className="min-h-screen bg-background px-3 sm:px-6 py-6 pb-20">
+          <div className="mx-auto max-w-2xl space-y-4">
+            {reasonNote[submitReason] && (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 flex items-center gap-2 text-sm text-destructive">
+                <AlertTriangle className="h-4 w-4 shrink-0" /><span>{reasonNote[submitReason]}</span>
+              </div>
+            )}
+
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border bg-card p-6 text-center">
+              <div className="text-4xl mb-2">✅</div>
+              <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground mb-2">Thank you for submitting</h2>
+              <p className="text-sm text-muted-foreground">
+                Your attempt has been saved. Since the exam was not fully completed, results are hidden.
+              </p>
+            </motion.div>
+
+            <Button onClick={onExit} className="w-full">Back to Exams</Button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-background px-3 sm:px-6 py-6 pb-20">
         <div className="mx-auto max-w-2xl space-y-4">
