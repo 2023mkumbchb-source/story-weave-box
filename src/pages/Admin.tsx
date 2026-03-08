@@ -455,7 +455,7 @@ export default function Admin() {
           {hasBatchPreview && (
             <div className="mb-8 space-y-4 rounded-xl border-2 border-primary/40 bg-primary/5 p-6">
               <div className="flex items-center justify-between">
-                <h3 className="font-display text-lg font-bold text-foreground">Review Generated Content</h3>
+                <h3 className="font-serif text-lg font-bold text-foreground">Review Generated Content</h3>
                 <div className="text-xs rounded-full bg-primary/20 px-3 py-1 text-primary font-medium">{batchCategory}</div>
               </div>
               {batchArticle && (
