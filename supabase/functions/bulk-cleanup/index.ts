@@ -310,9 +310,11 @@ async function processNonAiArticle(
   }
 
   const baseContent = cleanContent(rawContent);
+  const analysisContent = baseContent.slice(0, MAX_MCQ_EXTRACT_CHARS);
+  let newTitle = normalizeTitle(article.title || inferTitleFromContent(baseContent));
   if (!newTitle) newTitle = inferTitleFromContent(baseContent);
 
-  const detectedCategory = detectBestCategory(newTitle, baseContent.slice(0, MAX_ANALYZE_CHARS));
+  const detectedCategory = detectBestCategory(newTitle, analysisContent.slice(0, MAX_ANALYZE_CHARS));
   const newCategory = detectedCategory || article.category;
 
   if (baseContent.replace(/\s+/g, "").length < 40) {
