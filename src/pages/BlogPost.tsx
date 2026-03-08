@@ -4,6 +4,7 @@ import {
   ArrowLeft, Loader2, GraduationCap, ListChecks,
   ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2, ImagePlus,
 } from "lucide-react";
+import ShareButtons from "@/components/ShareButtons";
 import { motion, AnimatePresence } from "framer-motion";
 import { getArticleBySlugOrId, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, type Article } from "@/lib/store";
 import { extractFirstImageFromContent, SITE_URL, stripRichText } from "@/lib/seo";
