@@ -538,6 +538,23 @@ export default function BlogPost() {
     else navigate("/blog");
   };
 
+  useEffect(() => {
+    const resetToTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+
+    resetToTop();
+    const raf = requestAnimationFrame(resetToTop);
+    const timeoutId = window.setTimeout(resetToTop, 120);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timeoutId);
+    };
+  }, [slug]);
+
   const reloadCurrentArticle = async (id: string) => {
     const refreshed = await getArticleBySlugOrId(id);
     if (refreshed) {
