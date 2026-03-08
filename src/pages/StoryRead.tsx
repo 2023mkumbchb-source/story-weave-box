@@ -73,20 +73,7 @@ export default function StoryRead() {
       });
   }, [id, location.pathname, navigate]);
 
-  const handleShare = async () => {
-    if (!story) return;
-    const url = `${SITE_URL}${buildStoryPath({ id: story.id, title: story.title })}`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: story.title, url });
-      } catch {
-        // user cancelled
-      }
-    } else {
-      await navigator.clipboard.writeText(url);
-    }
-  };
+  const storyUrl = story ? `${SITE_URL}${buildStoryPath({ id: story.id, title: story.title })}` : "";
 
   if (loading) {
     return (
