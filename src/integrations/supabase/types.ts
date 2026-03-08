@@ -43,8 +43,12 @@ export type Database = {
           deleted_at: string | null
           id: string
           is_raw: boolean | null
+          meta_description: string | null
+          meta_title: string | null
+          og_image_url: string | null
           original_notes: string
           published: boolean
+          slug: string | null
           title: string
         }
         Insert: {
@@ -54,8 +58,12 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_raw?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
           original_notes?: string
           published?: boolean
+          slug?: string | null
           title: string
         }
         Update: {
@@ -65,8 +73,12 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_raw?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
           original_notes?: string
           published?: boolean
+          slug?: string | null
           title?: string
         }
         Relationships: []
