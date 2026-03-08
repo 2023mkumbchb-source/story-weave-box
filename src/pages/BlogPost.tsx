@@ -674,15 +674,20 @@ export default function BlogPost() {
     }
   };
 
-  /* Direct migrate: try MCQ parse → if fails, move to raw */
+  /* Direct migrate: auto-route essay content, else try MCQ parse → fallback to raw */
   const runDirectMigrate = async () => {
     if (!article) return;
     setActionLoading("fix");
     try {
       const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
-        body: { action: "fix", article_id: article.id, fixes: { migrate_mcqs: true, fallback_to_raw: true } },
+        body: { action: "fix", article_id: article.id, fixes: { migrate_mcqs: true, auto_route_essay: true, fallback_to_raw: true } },
       });
       if (error) throw new Error(error.message);
+      if (data?.migrated_essays) {
+        toast({ title: "Detected essay format — moved to Essays" });
+        navigate("/essays", { replace: true });
+        return;
+      }
       if (data?.deleted_article) {
         toast({ title: `Migrated ${data.migrated_mcqs || 0} MCQs → MCQ section` });
         navigate("/blog", { replace: true });
