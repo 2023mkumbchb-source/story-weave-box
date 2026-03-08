@@ -10,7 +10,7 @@ import {
   getFlashcardSets, saveFlashcardSet, deleteFlashcardSet,
   getMcqSets, saveMcqSet, deleteMcqSet,
   getSetting, saveSetting,
-  UNIT_CATEGORIES, getCategoryDisplayName,
+  UNIT_CATEGORIES, getCategoryDisplayName, buildBlogPath,
   type Article, type FlashcardSet, type McqSet,
 } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";

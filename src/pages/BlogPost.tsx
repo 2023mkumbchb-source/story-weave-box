@@ -524,9 +524,12 @@ export default function BlogPost() {
   const [activeSection, setActiveSection] = useState("");
 
   const handleBack = () => {
+    const shouldConfirm = window.scrollY > 220;
+    if (shouldConfirm && !window.confirm("Leave this article and go back?")) return;
+
     if (window.history.length > 1) { navigate(-1); return; }
     const savedYear = sessionStorage.getItem("nav_year_filter");
-    if (savedYear && /^Year [1-5]$/.test(savedYear)) navigate(`/blog?year=${encodeURIComponent(savedYear)}`);
+    if (savedYear && /^Year [1-6]$/.test(savedYear)) navigate(`/blog?year=${encodeURIComponent(savedYear)}`);
     else navigate("/blog");
   };
 
