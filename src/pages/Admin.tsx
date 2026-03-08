@@ -897,7 +897,7 @@ function ArticlesList({
   if (editing) {
     return (
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-4 font-display text-lg font-bold text-foreground">Edit Article</h3>
+        <h3 className="mb-4 font-serif text-lg font-bold text-foreground">Edit Article</h3>
         <Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="mb-3 font-bold" placeholder="Title" />
         <select value={editing.category} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className="w-full mb-3 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground">
           <option value="Uncategorized">Uncategorized</option>
