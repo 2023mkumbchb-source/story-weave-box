@@ -2677,18 +2677,13 @@ function SeoIndexingTab() {
   };
 
   const handleCopyBatchUrls = async (batchNumber: number) => {
-    try {
-      const { data, error } = await supabase.functions.invoke("google-indexing", {
-        body: { action: "generate_urls", batch_number: batchNumber, year: seoYear === "All" ? null : seoYear, site_url: siteUrlInput },
-      });
-      if (error) throw new Error(error.message);
-      await navigator.clipboard.writeText(data?.urls_text || "");
-      setCopiedBatch(batchNumber);
-      setTimeout(() => setCopiedBatch(null), 2000);
-      toast({ title: `Copied ${data?.count || 0} URLs from batch ${batchNumber}` });
-    } catch (err: any) {
-      toast({ title: "Failed to copy URLs", description: err.message, variant: "destructive" });
-    }
+    const batch = batches.find(b => b.batch_number === batchNumber);
+    if (!batch) return;
+    const urlsText = batch.urls.map((u: any) => u.url).join("\n");
+    await navigator.clipboard.writeText(urlsText);
+    setCopiedBatch(batchNumber);
+    setTimeout(() => setCopiedBatch(null), 2000);
+    toast({ title: `Copied ${batch.count} URLs from batch ${batchNumber}` });
   };
 
   const handleSubmitBatch = async (batchNumber: number) => {
