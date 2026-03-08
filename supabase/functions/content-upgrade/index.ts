@@ -372,28 +372,47 @@ Style requirements:
       });
     }
 
-    // Generate SEO metadata for articles using Lovable AI
+    // Generate SEO metadata for articles using Gemini
     if (action === "generate_seo") {
+      if (!geminiKey) throw new Error("GEMINI_API_KEY not set");
+
       const yearFilter = body?.year || null;
       const batchSize = Math.min(Math.max(Number(body?.batch_size || 10), 1), 25);
-      const cursor = body?.cursor || null;
+      const cursor = typeof body?.cursor === "string" ? body.cursor : null;
       const includeAll = Boolean(body?.include_all);
+      const includeUnpublished = body?.include_unpublished !== false;
+      const requestedFields = body?.fields || {};
+      const fields = {
+        title: Boolean(requestedFields?.title),
+        meta_title: requestedFields?.meta_title !== false,
+        meta_description: requestedFields?.meta_description !== false,
+        slug: requestedFields?.slug !== false,
+        og_image_url: requestedFields?.og_image_url !== false,
+      };
+
+      if (!fields.title && !fields.meta_title && !fields.meta_description && !fields.slug && !fields.og_image_url) {
+        throw new Error("No SEO fields selected");
+      }
 
       let query = sb
         .from("articles")
-        .select("id, title, content, category, meta_title, meta_description, slug, og_image_url")
-        .eq("published", true)
+        .select("id, title, content, category, meta_title, meta_description, slug, og_image_url, published")
         .is("deleted_at", null)
         .order("id", { ascending: true })
         .limit(batchSize);
 
-      if (yearFilter && /^Year [1-5]$/.test(yearFilter)) {
-        query = query.like("category", `${yearFilter}:%`);
-      }
+      if (!includeUnpublished) query = query.eq("published", true);
+      if (yearFilter && /^Year [1-5]$/.test(yearFilter)) query = query.like("category", `${yearFilter}:%`);
       if (cursor) query = query.gt("id", cursor);
 
       if (!includeAll) {
-        query = query.or("meta_title.eq.,meta_description.eq.,slug.eq.,og_image_url.eq.");
+        const missingFilters: string[] = [];
+        if (fields.title) missingFilters.push("title.eq.");
+        if (fields.meta_title) missingFilters.push("meta_title.eq.");
+        if (fields.meta_description) missingFilters.push("meta_description.eq.");
+        if (fields.slug) missingFilters.push("slug.eq.");
+        if (fields.og_image_url) missingFilters.push("og_image_url.eq.");
+        if (missingFilters.length) query = query.or(missingFilters.join(","));
       }
 
       const { data: articles, error: fetchError } = await query;
@@ -401,54 +420,61 @@ Style requirements:
 
       if (!articles?.length) return json({ done: true, updated: 0, processed_articles: [] });
 
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not set");
-
       const processedArticles: Array<{ id: string; title: string; action: string }> = [];
       let updated = 0;
 
       for (const article of articles) {
         try {
           const contentSnippet = (article.content || "").slice(0, 10000);
-          const seoPrompt = `Generate SEO metadata for this medical study article. Return ONLY valid JSON:\n{"meta_title":"string (max 60 chars, include key medical term)","meta_description":"string (max 155 chars, compelling description for search results)","slug":"string (url-friendly, lowercase, hyphens, max 60 chars)","og_image_prompt":"string (brief suggestion for ideal medical thumbnail)"}\n\nArticle title: ${article.title}\nCategory: ${article.category}\nContent preview: ${contentSnippet}`;
+          const seoPrompt = `You are an SEO editor for medical study content. Return ONLY valid JSON.
+Schema:
+{"title":"string","meta_title":"string max 60 chars","meta_description":"string max 155 chars","slug":"url-friendly lowercase hyphenated"}
+Rules:
+- Keep medical meaning accurate.
+- Avoid clickbait.
+- Make title natural and specific to content.
+- meta_title should be concise and searchable.
+- meta_description must be clear and compelling.
+- slug must be readable and concise.
 
-          const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${LOVABLE_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-3-flash-preview",
-              messages: [{ role: "user", content: seoPrompt }],
-              temperature: 0.1,
-              max_tokens: 900,
-            }),
-          });
+Article title: ${article.title}
+Category: ${article.category}
+Content preview: ${contentSnippet}`;
 
-          if (response.status === 429) throw new Error("Rate limited");
-          if (response.status === 402) throw new Error("Credits exhausted");
-          if (!response.ok) throw new Error(`AI error ${response.status}`);
-
-          const data = await response.json();
-          const text = data?.choices?.[0]?.message?.content || "";
+          const text = await callGemini(geminiKey, seoPrompt, 1200);
           const seo = extractJsonFromResponse(text);
 
+          const nextTitle = String(seo?.title || seo?.meta_title || article.title || "").replace(/\s+/g, " ").trim();
           const updateData: Record<string, string> = {};
-          if (seo?.meta_title) updateData.meta_title = String(seo.meta_title).trim().slice(0, 60);
-          if (seo?.meta_description) updateData.meta_description = String(seo.meta_description).trim().slice(0, 160);
-          const slugCandidate = seo?.slug ? String(seo.slug) : String(article.slug || article.title);
-          updateData.slug = toSlug(slugCandidate) || toSlug(article.title) || article.id;
 
-          const firstImage = extractFirstImageUrl(article.content || "");
-          if (firstImage) updateData.og_image_url = firstImage;
+          if (fields.title && nextTitle) updateData.title = nextTitle.slice(0, 120);
+          if (fields.meta_title) {
+            const metaTitle = String(seo?.meta_title || nextTitle || article.title || "").replace(/\s+/g, " ").trim();
+            if (metaTitle) updateData.meta_title = metaTitle.slice(0, 60);
+          }
+          if (fields.meta_description) {
+            const metaDescription = String(seo?.meta_description || "").replace(/\s+/g, " ").trim();
+            if (metaDescription) updateData.meta_description = metaDescription.slice(0, 160);
+          }
+          if (fields.slug) {
+            const slugSource = String(seo?.slug || updateData.title || article.title || article.slug || "");
+            updateData.slug = toSlug(slugSource) || article.id;
+          }
+          if (fields.og_image_url) {
+            const firstImage = extractFirstImageUrl(article.content || "");
+            const existingImage = String(article.og_image_url || "").trim();
+            updateData.og_image_url = firstImage || existingImage || `${siteUrl}/placeholder.svg`;
+          }
 
-          await sb.from("articles").update(updateData).eq("id", article.id);
-          updated++;
-          processedArticles.push({ id: article.id, title: article.title, action: "seo_updated" });
+          if (Object.keys(updateData).length > 0) {
+            await sb.from("articles").update(updateData).eq("id", article.id);
+            updated++;
+            processedArticles.push({ id: article.id, title: article.title, action: "seo_updated" });
+          } else {
+            processedArticles.push({ id: article.id, title: article.title, action: "no_change" });
+          }
         } catch (e: any) {
           processedArticles.push({ id: article.id, title: article.title, action: `error: ${e.message}` });
-          if ((e?.message || "").includes("Rate limited") || (e?.message || "").includes("Credits")) break;
         }
       }
 
