@@ -484,55 +484,65 @@ Content preview: ${contentSnippet}`;
 
     // Generate SEO for a single article
     if (action === "generate_seo_single") {
+      if (!geminiKey) throw new Error("GEMINI_API_KEY not set");
+
       const id = body?.id;
       if (!id) throw new Error("Missing article id");
 
+      const requestedFields = body?.fields || {};
+      const fields = {
+        title: Boolean(requestedFields?.title),
+        meta_title: requestedFields?.meta_title !== false,
+        meta_description: requestedFields?.meta_description !== false,
+        slug: requestedFields?.slug !== false,
+        og_image_url: requestedFields?.og_image_url !== false,
+      };
+
       const { data: article } = await sb
         .from("articles")
-        .select("id, title, content, category, slug")
+        .select("id, title, content, category, slug, og_image_url")
         .eq("id", id)
         .maybeSingle();
       if (!article) throw new Error("Article not found");
 
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not set");
-
       const contentSnippet = (article.content || "").slice(0, 10000);
-      const seoPrompt = `Generate SEO metadata for this medical study article. Return ONLY valid JSON:\n{"meta_title":"string (max 60 chars, include key medical term)","meta_description":"string (max 155 chars, compelling description for search results)","slug":"string (url-friendly, lowercase, hyphens, max 60 chars)","og_image_prompt":"string (brief suggestion for ideal medical thumbnail)"}\n\nArticle title: ${article.title}\nCategory: ${article.category}\nContent preview: ${contentSnippet}`;
+      const seoPrompt = `You are an SEO editor for medical study content. Return ONLY valid JSON.
+Schema:
+{"title":"string","meta_title":"string max 60 chars","meta_description":"string max 155 chars","slug":"url-friendly lowercase hyphenated"}
 
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [{ role: "user", content: seoPrompt }],
-          temperature: 0.1,
-          max_tokens: 900,
-        }),
-      });
+Article title: ${article.title}
+Category: ${article.category}
+Content preview: ${contentSnippet}`;
 
-      if (response.status === 429) return json({ error: "Rate limited. Try again in a moment." }, 429);
-      if (response.status === 402) return json({ error: "AI credits exhausted." }, 402);
-      if (!response.ok) throw new Error("AI generation failed");
-
-      const data = await response.json();
-      const text = data?.choices?.[0]?.message?.content || "";
+      const text = await callGemini(geminiKey, seoPrompt, 1200);
       const seo = extractJsonFromResponse(text);
 
+      const nextTitle = String(seo?.title || seo?.meta_title || article.title || "").replace(/\s+/g, " ").trim();
       const updateData: Record<string, string> = {};
-      if (seo?.meta_title) updateData.meta_title = String(seo.meta_title).trim().slice(0, 60);
-      if (seo?.meta_description) updateData.meta_description = String(seo.meta_description).trim().slice(0, 160);
-      updateData.slug = toSlug(String(seo?.slug || article.slug || article.title)) || article.id;
 
-      const firstImage = extractFirstImageUrl(article.content || "");
-      if (firstImage) updateData.og_image_url = firstImage;
+      if (fields.title && nextTitle) updateData.title = nextTitle.slice(0, 120);
+      if (fields.meta_title) {
+        const metaTitle = String(seo?.meta_title || nextTitle || article.title || "").replace(/\s+/g, " ").trim();
+        if (metaTitle) updateData.meta_title = metaTitle.slice(0, 60);
+      }
+      if (fields.meta_description) {
+        const metaDescription = String(seo?.meta_description || "").replace(/\s+/g, " ").trim();
+        if (metaDescription) updateData.meta_description = metaDescription.slice(0, 160);
+      }
+      if (fields.slug) {
+        const slugSource = String(seo?.slug || updateData.title || article.slug || article.title || "");
+        updateData.slug = toSlug(slugSource) || article.id;
+      }
+      if (fields.og_image_url) {
+        const firstImage = extractFirstImageUrl(article.content || "");
+        const existingImage = String(article.og_image_url || "").trim();
+        updateData.og_image_url = firstImage || existingImage || `${siteUrl}/placeholder.svg`;
+      }
 
       await sb.from("articles").update(updateData).eq("id", article.id);
 
-      return json({ success: true, seo: updateData, url: `${SITE_URL}/blog/${updateData.slug}` });
+      const finalSlug = updateData.slug || toSlug(article.slug || article.title) || article.id;
+      return json({ success: true, seo: updateData, url: `${siteUrl}/blog/${finalSlug}` });
     }
 
     throw new Error("Unknown action");
