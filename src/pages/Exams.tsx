@@ -183,7 +183,7 @@ export default function Exams() {
             </div>
             <h1 className="mb-3 font-display text-3xl font-bold text-foreground sm:text-4xl">Exam Center</h1>
             <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Timed, proctored MCQ exams drawn from your unit content. A new exam drops every week — answers unlock at midnight.
+              Timed, proctored MCQ exams drawn from your unit content. {selectedYear === "All" ? "Select a year from the menu to narrow exams." : `Currently viewing ${selectedYear} exams.`}
             </p>
           </motion.div>
 
