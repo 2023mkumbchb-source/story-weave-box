@@ -266,7 +266,7 @@ export async function searchPublishedArticles(queryText: string, year?: string, 
     .order("created_at", { ascending: false })
     .limit(80);
 
-  if (year && /^Year [1-5]$/.test(year)) {
+  if (year && /^Year [1-6]$/.test(year)) {
     query = query.like("category", `${year}:%`);
   }
 
