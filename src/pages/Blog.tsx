@@ -44,6 +44,7 @@ export default function Blog() {
   }, []);
 
   const setYear = (year: string) => {
+    sessionStorage.setItem("nav_year_filter", year);
     if (year === "All") setSearchParams({});
     else setSearchParams({ year });
   };
