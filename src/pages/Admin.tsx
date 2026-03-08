@@ -1147,7 +1147,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
         {localGeminiKey && <p className="mt-2 text-xs text-primary">API key configured</p>}
       </div>
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Default Exam Password</h3>
+        <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Default Exam Password</h3>
         <p className="mb-4 text-sm text-muted-foreground">Set a default password for auto-generated weekly exams.</p>
         <div className="flex gap-2">
           <Input type="text" placeholder="Default exam password" value={examPassword} onChange={(e) => setExamPassword(e.target.value)} className="flex-1" />
