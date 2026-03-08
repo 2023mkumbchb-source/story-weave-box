@@ -9,6 +9,9 @@ const corsHeaders = {
 const MAX_ANALYZE_CHARS = 40000;
 const MAX_MCQ_EXTRACT_CHARS = 120000;
 const OVERSIZED_ARTICLE_CHARS = 130000;
+const CPU_BUDGET_MS = 1600;
+const AI_MAX_CONTENT_CHARS = 18000;
+const AI_MODEL = "google/gemini-3-flash-preview";
 
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
   "Year 1: Anatomy": ["anatomy", "limb", "dissection", "histology", "upper limb", "lower limb", "head and neck", "thorax", "abdomen", "pelvis", "musculoskeletal", "osteology", "myology", "brachial plexus", "femoral", "gluteal"],
