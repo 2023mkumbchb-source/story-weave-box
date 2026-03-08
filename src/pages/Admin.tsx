@@ -574,7 +574,7 @@ export default function Admin() {
             </div>
           )}
           <div className="mt-8 rounded-xl border border-border bg-card p-6">
-            <h3 className="mb-1 font-display text-lg font-bold text-foreground">Direct Publish Mode</h3>
+            <h3 className="mb-1 font-serif text-lg font-bold text-foreground">Direct Publish Mode</h3>
             <p className="mb-4 text-sm text-muted-foreground">
               <strong>Direct Publish (No AI)</strong> saves instantly. Items land in the Raw tab for bulk Gemini formatting later.
             </p>
