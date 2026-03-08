@@ -67,7 +67,7 @@ export default function StoryRead() {
         </span>
       )}
 
-      <BlogAudioPlayer content={story.content} />
+      <BlogAudioPlayer content={story.content} title={story.title} />
 
       <article className="prose prose-sm sm:prose max-w-none mt-6">
         {renderContent(story.content)}
