@@ -111,11 +111,34 @@ function detectBestCategory(title: string, content: string): string | null {
   return bestScore >= 2 ? bestMatch : null;
 }
 
+type ExtractedMcq = { question: string; options: string[]; correct_answer: number; explanation?: string };
+
+function looksLikeEssayContent(content: string): boolean {
+  const text = content || "";
+  const longEssaySignals = (text.match(/\blong\s+essay\s+question\b/gi) || []).length;
+  const shortAnswerSignals = (text.match(/\bshort\s+answer\s+questions?\b/gi) || []).length;
+  const marksSignals = (text.match(/\(\s*\d+\s*marks?\s*\)/gi) || []).length;
+  const subQuestionSignals = (text.match(/^\s*[a-e][\).]\s+.+$/gim) || []).length;
+  const essayDirectiveSignals = (text.match(/\b(?:discuss|outline|describe|explain|classify|differentiate|calculate)\b/gi) || []).length;
+  const explicitEssayKeywords = /\b(?:essay|saq|laq|short\s+answer|long\s+answer)\b/i.test(text);
+
+  return (
+    explicitEssayKeywords ||
+    longEssaySignals >= 1 ||
+    shortAnswerSignals >= 1 ||
+    (marksSignals >= 5 && subQuestionSignals >= 5 && essayDirectiveSignals >= 4)
+  );
+}
+
 function isMcqContent(content: string): boolean {
   const text = content || "";
+  const lines = text.split("\n");
   const questionHeadings = (text.match(/^\s*(?:#+\s*)?(?:\*\*)?question\s*\d+/gim) || []).length;
   const answerLines = (text.match(/^\s*\*{0,2}answer\s*[:\-]\s*[A-E](?:[\).]|\b)/gim) || []).length;
-  const optionLines = (text.match(/^\s*[A-Ea-e][\).]\s+/gm) || []).length;
+  const optionLines = lines.filter((line) => {
+    const trimmed = line.trim();
+    return /^[A-Ea-e][\).]\s+/.test(trimmed) && trimmed.length <= 140 && !/\bmarks?\b/i.test(trimmed);
+  }).length;
   const inlineOptionRuns = (text.match(/\b[a-e][\).]\s+[^\n]{2,120}(?=\s+[b-e][\).]\s+)/gi) || []).length;
   const hasMcqKeywords = /\bmcq|multiple choice|choose the (?:best|correct) answer\b/i.test(text);
 
@@ -128,20 +151,35 @@ function isMcqContent(content: string): boolean {
   );
 }
 
-function extractMcqsFromContent(content: string): { question: string; options: string[]; correct_answer: number; explanation?: string }[] {
-  const questions: Array<{ question: string; options: string[]; correct_answer: number; explanation?: string }> = [];
+function isLikelyValidMcqItem(item: ExtractedMcq): boolean {
+  if (!item.question || item.question.trim().length < 8 || item.question.trim().length > 320) return false;
+  if (!Array.isArray(item.options) || item.options.length < 4 || item.options.length > 6) return false;
+
+  const optionLengths = item.options.map((opt) => opt.trim().length);
+  const avgOptionLength = optionLengths.reduce((acc, len) => acc + len, 0) / optionLengths.length;
+  const maxOptionLength = Math.max(...optionLengths);
+  const essayishText = `${item.question} ${item.options.join(" ")}`;
+
+  if (maxOptionLength > 180 || avgOptionLength > 90) return false;
+  if (/\b(?:long\s+essay|short\s+answer|\(\s*\d+\s*marks?\s*\)|discuss|describe|outline|explain)\b/i.test(essayishText)) return false;
+
+  return true;
+}
+
+function extractMcqsFromContent(content: string): ExtractedMcq[] {
+  const questions: ExtractedMcq[] = [];
   const seenQuestions = new Set<string>();
   const normalizedContent = (content || "").replace(/\r/g, "");
 
-  const pushQuestion = (item: { question: string; options: string[]; correct_answer: number; explanation?: string } | null) => {
-    if (!item) return;
+  const pushQuestion = (item: ExtractedMcq | null) => {
+    if (!item || !isLikelyValidMcqItem(item)) return;
     const key = item.question.toLowerCase().replace(/\s+/g, " ").trim();
-    if (!key || seenQuestions.has(key) || item.options.length < 3) return;
+    if (!key || seenQuestions.has(key)) return;
     seenQuestions.add(key);
     questions.push(item);
   };
 
-  const parseInlineMcqBlock = (rawBlock: string): { question: string; options: string[]; correct_answer: number; explanation?: string } | null => {
+  const parseInlineMcqBlock = (rawBlock: string): ExtractedMcq | null => {
     const compact = rawBlock
       .replace(/\*\*/g, " ")
       .replace(/\r?\n+/g, " ")
@@ -174,7 +212,7 @@ function extractMcqsFromContent(content: string): { question: string; options: s
       optionEntries.push([match[1].toUpperCase(), match[2].trim()]);
     }
 
-    if (optionEntries.length < 3) return null;
+    if (optionEntries.length < 4) return null;
 
     const answerLetter = optionsPart.match(/answer\s*[:\-]\s*([A-Ea-e])/i)?.[1]?.toUpperCase() || null;
     const correctAnswer = answerLetter ? Math.max(0, optionEntries.findIndex(([key]) => key === answerLetter)) : 0;
@@ -250,7 +288,7 @@ function extractMcqsFromContent(content: string): { question: string; options: s
     }
 
     const optionEntries = Object.entries(optionMap).sort(([a], [b]) => a.localeCompare(b));
-    if (optionEntries.length < 3) {
+    if (optionEntries.length < 4) {
       pushQuestion(parseInlineMcqBlock(block));
       continue;
     }
@@ -451,7 +489,33 @@ async function processNonAiArticle(
   }
 
   const mcqs = extractMcqsFromContent(analysisContent);
+  const essays = extractEssayQuestions(analysisContent);
+  const essayCount = essays.saqs.length + essays.laqs.length;
   const likelyMcqByTitle = /\bmcq\b|multiple\s+choice/i.test(`${article.title} ${newTitle}`);
+  const likelyEssayByTitle = /\bessay|saq|laq|short\s+answer|long\s+answer\b/i.test(`${article.title} ${newTitle}`);
+  const preferEssayMigration = (looksLikeEssayContent(analysisContent) || likelyEssayByTitle) && essayCount >= 3 && mcqs.length < 8;
+
+  if (preferEssayMigration) {
+    const { error: essayErr } = await sb.from("essays").insert({
+      title: normalizeTitle(newTitle),
+      short_answer_questions: essays.saqs,
+      long_answer_questions: essays.laqs,
+      category: newCategory,
+      published: true,
+      article_id: article.id,
+    });
+
+    if (!essayErr) {
+      await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
+      return {
+        id: article.id,
+        title: newTitle,
+        action: "migrated_essay",
+        details: `${essays.saqs.length} SAQs · ${essays.laqs.length} LAQs`,
+      };
+    }
+  }
+
   if (mcqs.length >= 3 || (likelyMcqByTitle && mcqs.length >= 1)) {
     const { error: mcqError } = await sb.from("mcq_sets").insert({
       title: normalizeTitle(newTitle),
@@ -468,8 +532,7 @@ async function processNonAiArticle(
     }
   }
 
-  const essays = extractEssayQuestions(analysisContent);
-  if (essays.saqs.length + essays.laqs.length >= 3) {
+  if (essayCount >= 3) {
     const { error: essayErr } = await sb.from("essays").insert({
       title: normalizeTitle(newTitle),
       short_answer_questions: essays.saqs,
@@ -557,7 +620,9 @@ serve(async (req) => {
         }
 
         const titleSuggestsMcq = /\bmcq\b|multiple\s+choice/i.test(article.title || "");
-        if (isMcqContent(analysisContent) || titleSuggestsMcq) {
+        const essaySignal = looksLikeEssayContent(analysisContent);
+
+        if ((isMcqContent(analysisContent) || titleSuggestsMcq) && !essaySignal) {
           const mcqs = extractMcqsFromContent(analysisContent);
           if (mcqs.length >= 3 || (titleSuggestsMcq && mcqs.length >= 1)) {
             issues.push(`Contains ${mcqs.length} MCQs - should migrate to MCQ section`);
@@ -566,7 +631,7 @@ serve(async (req) => {
           }
         }
 
-        if (looksLikeEssayContent(analysisContent)) {
+        if (essaySignal) {
           issues.push("Contains SAQ/LAQ style content - should migrate to Essays section");
           fixes.migrate_essays = true;
         }
@@ -667,8 +732,32 @@ serve(async (req) => {
       if (fixes.migrate_mcqs) {
         const mcqSource = content.length > MAX_MCQ_EXTRACT_CHARS ? content.slice(0, MAX_MCQ_EXTRACT_CHARS) : content;
         const mcqs = extractMcqsFromContent(mcqSource);
+        const essays = extractEssayQuestions(mcqSource);
+        const essayCount = essays.saqs.length + essays.laqs.length;
         const titleSuggestsMcq = /\bmcq\b|multiple\s+choice/i.test(title || "");
-        if (mcqs.length >= 3 || (titleSuggestsMcq && mcqs.length >= 1)) {
+        const titleSuggestsEssay = /\bessay|saq|laq|short\s+answer|long\s+answer\b/i.test(title || "");
+        const preferEssay = (looksLikeEssayContent(mcqSource) || titleSuggestsEssay) && essayCount >= 3 && mcqs.length < 8;
+
+        if (preferEssay && fixes.auto_route_essay) {
+          const { error: essayErr } = await sb.from("essays").insert({
+            title: normalizeTitle(title),
+            short_answer_questions: essays.saqs,
+            long_answer_questions: essays.laqs,
+            category,
+            published: true,
+            article_id: article_id,
+          });
+
+          if (!essayErr) {
+            changes.push(`Detected essay format — migrated to Essays (${essays.saqs.length} SAQs, ${essays.laqs.length} LAQs)`);
+            await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article_id);
+            return new Response(JSON.stringify({ success: true, changes, migrated_essays: true, deleted_article: true }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+
+        if (!preferEssay && (mcqs.length >= 3 || (titleSuggestsMcq && mcqs.length >= 1))) {
           const { error: mcqError } = await sb.from("mcq_sets").insert({
             title: normalizeTitle(title.replace(/MCQ.*$/i, "MCQs").replace(/Question.*$/i, "MCQs")),
             questions: mcqs,
@@ -686,11 +775,12 @@ serve(async (req) => {
             });
           }
         }
-        // Fallback: if MCQ parse failed and fallback_to_raw is requested, move to raw
-        if ((mcqs.length < 3 && !titleSuggestsMcq) || (titleSuggestsMcq && mcqs.length < 1)) {
+
+        // Fallback: if MCQ parse failed or content is essay-like and fallback_to_raw is requested, move to raw
+        if ((mcqs.length < 3 && !titleSuggestsMcq) || (titleSuggestsMcq && mcqs.length < 1) || preferEssay) {
           if (fixes.fallback_to_raw) {
             await sb.from("articles").update({ is_raw: true, published: false }).eq("id", article_id);
-            changes.push("MCQ parse failed — moved to Raw (unpublished)");
+            changes.push(preferEssay ? "Detected essay-style content — moved to Raw (unpublished)" : "MCQ parse failed — moved to Raw (unpublished)");
             return new Response(JSON.stringify({ success: true, changes, moved_to_raw: true }), {
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
@@ -764,7 +854,10 @@ serve(async (req) => {
           if (action === "migrate_mcqs") {
             const mcqSource = article.content.length > MAX_MCQ_EXTRACT_CHARS ? article.content.slice(0, MAX_MCQ_EXTRACT_CHARS) : article.content;
             const titleSuggestsMcq = /\bmcq\b|multiple\s+choice/i.test(article.title || "");
-            if (!isMcqContent(mcqSource) && !titleSuggestsMcq) {
+            const titleSuggestsEssay = /\bessay|saq|laq|short\s+answer|long\s+answer\b/i.test(article.title || "");
+            const essaySignal = looksLikeEssayContent(mcqSource) || titleSuggestsEssay;
+
+            if ((!isMcqContent(mcqSource) && !titleSuggestsMcq) || essaySignal) {
               skipped++;
             } else {
               const mcqs = extractMcqsFromContent(mcqSource);
@@ -960,9 +1053,14 @@ serve(async (req) => {
 
           const parsedMcqs = extractMcqsFromContent(newContent.slice(0, MAX_MCQ_EXTRACT_CHARS));
           const parsedEssays = extractEssayQuestions(newContent.slice(0, MAX_MCQ_EXTRACT_CHARS));
-          const forcedType = parsedMcqs.length >= 5
+          const parsedEssayCount = parsedEssays.saqs.length + parsedEssays.laqs.length;
+          const essaySignal = looksLikeEssayContent(newContent) || /\bessay|saq|laq|short\s+answer|long\s+answer\b/i.test(newTitle);
+
+          const forcedType = essaySignal && parsedEssayCount >= 3 && parsedMcqs.length < 8
+            ? "essay"
+            : parsedMcqs.length >= 5
             ? "mcq"
-            : parsedEssays.saqs.length + parsedEssays.laqs.length >= 3
+            : parsedEssayCount >= 3
             ? "essay"
             : null;
 
