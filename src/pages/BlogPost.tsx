@@ -800,7 +800,7 @@ export default function BlogPost() {
 
       {/* Main layout: sidebar TOC + article */}
       <div className="mx-auto max-w-6xl px-5 py-8">
-        <div className="lg:grid lg:grid-cols-[220px_1fr_220px] lg:gap-8">
+        <div className="lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10">
           {/* Left sidebar: TOC */}
           <aside className="hidden lg:block">
             <SidebarToc items={toc} activeId={activeSection} />
