@@ -148,7 +148,29 @@ export default function Blog() {
   const yearRoute = selectedYear.match(/^Year\s([1-5])$/)?.[1];
 
   if (loading) {
-    return <div className="flex min-h-[65vh] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <div className="mb-7">
+          <div className="h-9 w-48 animate-pulse rounded-lg bg-muted" />
+          <div className="mt-2 h-4 w-72 animate-pulse rounded bg-muted" />
+        </div>
+        <div className="mb-5 h-12 animate-pulse rounded-xl bg-muted" />
+        <div className="mb-5 flex gap-1">
+          {[1,2,3,4,5].map(i => <div key={i} className="h-8 w-16 animate-pulse rounded-lg bg-muted" />)}
+        </div>
+        <div className="space-y-3">
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} className="flex gap-4 rounded-xl border border-border bg-card p-4">
+              <div className="h-5 w-5 animate-pulse rounded bg-muted shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+                <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -42,8 +42,20 @@ export default function Flashcards() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="mx-auto max-w-5xl px-5 py-10 sm:px-6 sm:py-12">
+        <div className="mb-7">
+          <div className="h-9 w-36 animate-pulse rounded-lg bg-muted" />
+          <div className="mt-2 h-4 w-60 animate-pulse rounded bg-muted" />
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} className="rounded-xl border border-border bg-card p-6 space-y-3">
+              <div className="h-10 w-10 animate-pulse rounded-lg bg-muted" />
+              <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
