@@ -2925,8 +2925,12 @@ function StoriesTab() {
   };
 
   const handleApprove = async (id: string) => {
-    const { error } = await supabase.from("stories").update({ published: true }).eq("id", id);
-    if (!error) { toast({ title: "Story approved & published" }); fetchStories(); fetchPending(); }
+    const { error, data } = await supabase.from("stories").update({ published: true }).eq("id", id).select("id, title").single();
+    if (!error) {
+      toast({ title: "Story approved & published" });
+      if (data) autoIndexUrls([`${SITE_URL}/stories/${data.id}-${slugifyText(data.title) || "story"}`]);
+      fetchStories(); fetchPending();
+    }
   };
 
   const handleBulkAIUpdate = async () => {
