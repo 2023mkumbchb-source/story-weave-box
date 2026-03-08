@@ -51,6 +51,14 @@ type ArticleLite = {
   is_raw?: boolean | null;
 };
 
+type AiCleanupOutput = {
+  title?: string;
+  category?: string;
+  content_type?: "article" | "mcq" | "essay" | "delete";
+  clean_content?: string;
+  reason?: string;
+};
+
 function normalizeTitle(title: string): string {
   const trimmed = title.replace(/\s+/g, " ").trim();
   const withoutNoise = trimmed
