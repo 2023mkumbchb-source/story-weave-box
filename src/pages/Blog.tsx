@@ -35,7 +35,7 @@ export default function Blog() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "title">("newest");
   const [recentArticles, setRecentArticles] = useState<RecentArticle[]>([]);
-  const selectedYear = searchParams.get("year") || "All";
+  const selectedYear = normalizeYear(searchParams.get("year")) || normalizeYear(sessionStorage.getItem("nav_year_filter")) || "All";
   const selectedUnit = searchParams.get("unit");
 
   useEffect(() => {
