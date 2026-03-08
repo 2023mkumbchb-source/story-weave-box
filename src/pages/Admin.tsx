@@ -2280,7 +2280,7 @@ function ImportTab() {
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="flex items-center gap-2 mb-2">
           <Upload className="h-5 w-5 text-primary" />
-          <h3 className="font-display text-lg font-bold text-foreground">Import WordPress Posts</h3>
+          <h3 className="font-serif text-lg font-bold text-foreground">Import WordPress Posts</h3>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
           Upload a WordPress JSON export file. Posts will be auto-classified as articles, MCQs, or stories and assigned categories.

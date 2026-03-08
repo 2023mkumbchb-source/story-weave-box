@@ -95,7 +95,7 @@ export default function FlashcardViewer({ cards, title, setId }: Props) {
 
   return (
     <div className="mx-auto max-w-2xl px-2">
-      <h2 className="mb-2 text-center font-display text-xl sm:text-2xl font-bold text-foreground">{title}</h2>
+      <h2 className="mb-2 text-center font-serif text-xl sm:text-2xl font-bold text-foreground">{title}</h2>
       <p className="mb-6 sm:mb-8 text-center text-xs sm:text-sm text-muted-foreground">
         Card {current + 1} of {order.length} · Tap to flip · Swipe to navigate
       </p>

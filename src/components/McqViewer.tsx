@@ -455,7 +455,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
 
   return (
     <div className="mx-auto max-w-2xl px-2">
-      <h2 className="mb-2 text-center font-display text-xl sm:text-2xl font-bold text-foreground">{title}</h2>
+      <h2 className="mb-2 text-center font-serif text-xl sm:text-2xl font-bold text-foreground">{title}</h2>
       <div className="mb-6 flex items-center justify-center gap-3 text-xs sm:text-sm text-muted-foreground">
         <span>Question {current + 1} of {order.length}</span>
         <span>·</span>
