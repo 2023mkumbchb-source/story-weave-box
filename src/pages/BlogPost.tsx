@@ -755,7 +755,7 @@ export default function BlogPost() {
           {/* Article body */}
           <article className="min-w-0">
             <header className="mb-8">
-              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-foreground leading-tight mb-3">
+              <h1 className="mb-3 font-serif text-3xl font-bold leading-tight text-foreground sm:text-4xl">
                 {article.title.replace(/^#+\s*/, "")}
               </h1>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -766,9 +766,6 @@ export default function BlogPost() {
                     <span className="font-medium text-foreground/70">{unitName}</span>
                   </>
                 )}
-              </div>
-              <div className="mt-4">
-                <BlogAudioPlayer content={article.content} title={article.title} />
               </div>
             </header>
 
