@@ -191,7 +191,7 @@ serve(async (req) => {
       const batch = (articles || []).slice(start, start + batchSize);
       const urls = batch.map(a => buildArticleUrl(baseUrl, a));
 
-      return json({ batch_number: batchNumber, count: urls.length, urls, urls_text: urls.join("\n"), sitemap_url: `${baseUrl}/dynamic-sitemap.xml` });
+      return json({ batch_number: batchNumber, count: urls.length, urls, urls_text: urls.join("\n"), sitemap_url: `${baseUrl}/sitemap-dynamic.xml` });
     }
 
     if (action === "auto_index") {
