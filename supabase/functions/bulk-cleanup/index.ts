@@ -680,6 +680,22 @@ serve(async (req) => {
             });
           }
         }
+        // Fallback: if MCQ parse failed and fallback_to_raw is requested, move to raw
+        if (mcqs.length < 3 && fixes.fallback_to_raw) {
+          await sb.from("articles").update({ is_raw: true, published: false }).eq("id", article_id);
+          changes.push("MCQ parse failed — moved to Raw (unpublished)");
+          return new Response(JSON.stringify({ success: true, changes, moved_to_raw: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      if (fixes.move_to_raw) {
+        await sb.from("articles").update({ is_raw: true, published: false }).eq("id", article_id);
+        changes.push("Moved to Raw (unpublished)");
+        return new Response(JSON.stringify({ success: true, changes, moved_to_raw: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       if (fixes.migrate_essays) {

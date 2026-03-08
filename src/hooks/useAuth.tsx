@@ -21,16 +21,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const checkAdmin = async (userId: string) => {
+    console.log("[Auth] Checking admin for user:", userId);
     const { data, error } = await supabase.rpc("has_role", {
       _user_id: userId,
       _role: "admin",
     });
 
     if (error) {
+      console.error("[Auth] has_role error:", error.message);
       setIsAdmin(false);
       return;
     }
 
+    console.log("[Auth] has_role result:", data);
     setIsAdmin(Boolean(data));
   };
 

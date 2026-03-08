@@ -508,7 +508,14 @@ export default function BlogPost() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
+
+  // Debug admin status
+  useEffect(() => {
+    if (user) {
+      console.log("[BlogPost] user:", user.id, "isAdmin:", isAdmin);
+    }
+  }, [user, isAdmin]);
 
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
@@ -658,8 +665,41 @@ export default function BlogPost() {
         navigate("/blog", { replace: true });
         return;
       }
+      if (data?.moved_to_raw) {
+        toast({ title: "Could not parse MCQs — moved to Raw in Admin", description: "Open Admin panel to review this article manually." });
+        await reloadCurrentArticle(article.id);
+        return;
+      }
       await reloadCurrentArticle(article.id);
       toast({ title: successMessage });
+    } catch (err: any) {
+      toast({ title: "Action failed", description: err?.message, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  /* Direct migrate: try MCQ parse → if fails, move to raw */
+  const runDirectMigrate = async () => {
+    if (!article) return;
+    setActionLoading("fix");
+    try {
+      const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
+        body: { action: "fix", article_id: article.id, fixes: { migrate_mcqs: true, fallback_to_raw: true } },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.deleted_article) {
+        toast({ title: `Migrated ${data.migrated_mcqs || 0} MCQs → MCQ section` });
+        navigate("/blog", { replace: true });
+        return;
+      }
+      if (data?.moved_to_raw) {
+        toast({ title: "MCQ parse failed — moved to Raw in Admin" });
+        await reloadCurrentArticle(article.id);
+        return;
+      }
+      await reloadCurrentArticle(article.id);
+      toast({ title: "No MCQs found, article unchanged" });
     } catch (err: any) {
       toast({ title: "Action failed", description: err?.message, variant: "destructive" });
     } finally {
@@ -750,16 +790,22 @@ export default function BlogPost() {
 
       {/* Admin toolbar */}
       {isAdmin && (
-        <div className="border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/90">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-5 py-2.5">
-            <span className="mr-1 text-xs font-semibold text-muted-foreground">Admin tools:</span>
+        <div className="border-b-2 border-primary/30 bg-primary/5">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-5 py-3">
+            <span className="mr-1 text-xs font-bold uppercase tracking-wider text-primary">Admin</span>
+
+            {/* Direct Migrate — no AI, prominent */}
+            <Button size="sm" className="h-8 gap-1.5 text-xs bg-primary hover:bg-primary/90" disabled={!!actionLoading} onClick={runDirectMigrate}>
+              {actionLoading === "fix" ? <Loader2 className="h-3 w-3 animate-spin" /> : <GitMerge className="h-3 w-3" />}
+              Migrate to MCQs
+            </Button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" disabled={!!actionLoading}>
+                <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs border-primary/30" disabled={!!actionLoading}>
                   {actionLoading === "format" || actionLoading === "expand" || actionLoading === "titles" || actionLoading === "saq" || actionLoading === "image"
                     ? <Loader2 className="h-3 w-3 animate-spin" />
-                    : <Sparkles className="h-3 w-3" />}
+                    : <Sparkles className="h-3 w-3 text-primary" />}
                   Gemini
                 </Button>
               </DropdownMenuTrigger>
@@ -774,19 +820,20 @@ export default function BlogPost() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" disabled={!!actionLoading}>
-                  <GitMerge className="h-3 w-3" /> Migrate
+                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5 border-primary/30" disabled={!!actionLoading}>
+                  <GitMerge className="h-3 w-3" /> More Migrate
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => runCleanupFix({ migrate_mcqs: true }, "Migrated to MCQs")}>To MCQs</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => runCleanupFix({ migrate_mcqs: true }, "Migrated to MCQs")}>To MCQs (with delete)</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => runCleanupFix({ migrate_essays: true }, "Migrated to Essays")}>To Essays</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => runCleanupFix({ move_to_raw: true }, "Moved to Raw")}>Move to Raw (unpublish)</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" disabled={!!actionLoading}>
+                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5 border-primary/30" disabled={!!actionLoading}>
                   <Settings2 className="h-3 w-3" /> Change
                 </Button>
               </DropdownMenuTrigger>
