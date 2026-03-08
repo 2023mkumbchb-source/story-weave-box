@@ -115,6 +115,37 @@ export function getCategoryDisplayName(category: string): string {
   return parts.length > 1 ? parts[1].trim() : category;
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function slugifyTitle(title: string): string {
+  return (title || "")
+    .toLowerCase()
+    .trim()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+export function buildBlogPath(article: Pick<Article, "id" | "title">): string {
+  const slug = slugifyTitle(article.title);
+  return `/blog/${slug || article.id}`;
+}
+
+function toArticlePreview(row: any): Article {
+  return {
+    id: row.id,
+    title: row.title,
+    category: row.category,
+    created_at: row.created_at,
+    published: row.published,
+    content: row.content ?? "",
+    original_notes: row.original_notes ?? "",
+    is_raw: row.is_raw ?? false,
+  };
+}
+
 // Articles
 export async function getArticles(): Promise<Article[]> {
   const { data, error } = await supabase
@@ -137,6 +168,56 @@ export async function getPublishedArticles(): Promise<Article[]> {
   return (data || []) as Article[];
 }
 
+export async function getPublishedArticleSummaries(year?: string): Promise<Article[]> {
+  let query = supabase
+    .from("articles")
+    .select("id, title, category, created_at, published")
+    .eq("published", true)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+
+  if (year && /^Year [1-5]$/.test(year)) {
+    query = query.like("category", `${year}:%`);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data || []).map((row) => toArticlePreview(row));
+}
+
+export async function searchPublishedArticles(queryText: string, year?: string, unit?: string): Promise<Article[]> {
+  const q = queryText.trim();
+  if (!q) return [];
+
+  const safeQ = q.replace(/[,%]/g, " ").slice(0, 80);
+  let query = supabase
+    .from("articles")
+    .select("id, title, category, created_at, published, content")
+    .eq("published", true)
+    .is("deleted_at", null)
+    .or(`title.ilike.%${safeQ}%,category.ilike.%${safeQ}%,content.ilike.%${safeQ}%`)
+    .order("created_at", { ascending: false })
+    .limit(120);
+
+  if (year && /^Year [1-5]$/.test(year)) {
+    query = query.like("category", `${year}:%`);
+  }
+
+  if (unit) {
+    query = query.eq("category", unit);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return (data || []).map((row) =>
+    toArticlePreview({
+      ...row,
+      content: (row.content || "").slice(0, 260),
+    }),
+  );
+}
+
 export async function getArticleById(id: string): Promise<Article | null> {
   const { data, error } = await supabase
     .from("articles")
@@ -145,6 +226,27 @@ export async function getArticleById(id: string): Promise<Article | null> {
     .maybeSingle();
   if (error) throw error;
   return data as Article | null;
+}
+
+export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | null> {
+  if (!slugOrId) return null;
+  if (UUID_REGEX.test(slugOrId)) return getArticleById(slugOrId);
+
+  const { data, error } = await supabase
+    .from("articles")
+    .select("id, title")
+    .eq("published", true)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  const normalizedParam = slugOrId.toLowerCase().trim();
+
+  const exactMatch = (data || []).find((row: any) => slugifyTitle(row.title) === normalizedParam);
+  const startsWithMatch = exactMatch || (data || []).find((row: any) => slugifyTitle(row.title).startsWith(normalizedParam));
+  if (!startsWithMatch) return null;
+
+  return getArticleById(startsWithMatch.id);
 }
 
 export async function saveArticle(article: Omit<Article, "id"> & { id?: string }): Promise<Article> {
