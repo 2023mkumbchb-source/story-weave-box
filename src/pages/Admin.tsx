@@ -1833,17 +1833,21 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
           Runs in safe small batches to avoid timeouts. Use “Open editor” for oversized/problematic notes.
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={handleScan} disabled={scanning || autoFixing || migratingMcqs} className="gap-2">
+          <Button onClick={handleScan} disabled={scanning || autoFixing || migratingMcqs || aiFixing} className="gap-2">
             {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             {scanning ? `Scanning... (${scanProgress.scanned} checked)` : "Scan All Articles"}
           </Button>
-          <Button onClick={handleAutoFixAll} disabled={scanning || autoFixing || migratingMcqs} variant="outline" className="gap-2">
+          <Button onClick={handleAutoFixAll} disabled={scanning || autoFixing || migratingMcqs || aiFixing} variant="outline" className="gap-2">
             {autoFixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
             {autoFixing ? "Fixing..." : "Auto-Fix Formatting"}
           </Button>
-          <Button onClick={handleMigrateMcqs} disabled={scanning || autoFixing || migratingMcqs} variant="outline" className="gap-2">
+          <Button onClick={handleMigrateMcqs} disabled={scanning || autoFixing || migratingMcqs || aiFixing} variant="outline" className="gap-2">
             {migratingMcqs ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bolt className="h-4 w-4" />}
             {migratingMcqs ? "Migrating..." : "Migrate MCQ Articles"}
+          </Button>
+          <Button onClick={handleAiFixAll} disabled={scanning || autoFixing || migratingMcqs || aiFixing} variant="outline" className="gap-2">
+            {aiFixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {aiFixing ? "AI Cleaning..." : "AI Cleanup (Lovable AI)"}
           </Button>
         </div>
       </div>
