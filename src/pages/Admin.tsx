@@ -768,7 +768,7 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
-              <h3 className="font-display text-lg font-bold text-foreground">Raw / Unformatted Content</h3>
+              <h3 className="font-serif text-lg font-bold text-foreground">Raw / Unformatted Content</h3>
             </div>
             <p className="text-sm text-muted-foreground">
               {totalRaw === 0 ? "No raw content — everything is formatted!" : `${totalRaw} item${totalRaw > 1 ? "s" : ""} waiting to be formatted with Gemini.`}
