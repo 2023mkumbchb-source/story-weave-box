@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const baseUrl = "https://medicine.kenyaadverts.co.ke";
+const DEFAULT_BASE_URL = "https://medicine.kenyaadverts.co.ke";
 
 function slugify(value: string): string {
   return (value || "")
@@ -17,6 +17,13 @@ function slugify(value: string): string {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+function normalizeBaseUrl(url: string | null | undefined): string {
+  const trimmed = String(url || "").trim();
+  if (!trimmed) return DEFAULT_BASE_URL;
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  return withProtocol.replace(/\/+$/, "");
 }
 
 serve(async (req) => {
@@ -30,6 +37,8 @@ serve(async (req) => {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) throw new Error("Missing config");
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const { data: siteUrlSetting } = await supabase.from("app_settings").select("value").eq("key", "site_url").maybeSingle();
+    const baseUrl = normalizeBaseUrl(siteUrlSetting?.value);
 
     const [{ data: articles }, { data: mcqs }, { data: flashcards }, { data: essays }, { data: stories }] = await Promise.all([
       supabase.from("articles").select("id, title, slug, created_at, category").eq("published", true).is("deleted_at", null),
@@ -39,9 +48,8 @@ serve(async (req) => {
       supabase.from("stories").select("id, title, created_at, category").eq("published", true).is("deleted_at", null),
     ]);
 
-    // Collect all years for year hub pages
     const years = new Set<number>();
-    [...(articles || []), ...(mcqs || []), ...(flashcards || []), ...(essays || [])].forEach(item => {
+    [...(articles || []), ...(mcqs || []), ...(flashcards || []), ...(essays || [])].forEach((item) => {
       const m = (item.category || "").match(/^Year (\d)/);
       if (m) years.add(parseInt(m[1]));
     });
@@ -58,14 +66,13 @@ serve(async (req) => {
   <url><loc>${baseUrl}/submit-story</loc><priority>0.5</priority><changefreq>monthly</changefreq></url>
 `;
 
-    // Year hub pages
     for (const y of Array.from(years).sort()) {
       xml += `  <url><loc>${baseUrl}/year/${y}</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>\n`;
     }
 
     for (const a of articles || []) {
-      const articleSlug = a.slug || slugify(a.title) || a.id;
-      xml += `  <url><loc>${baseUrl}/blog/${articleSlug}</loc><lastmod>${new Date(a.created_at).toISOString().split("T")[0]}</lastmod><priority>0.7</priority><changefreq>weekly</changefreq></url>\n`;
+      const articleSlug = a.slug || slugify(a.title) || "article";
+      xml += `  <url><loc>${baseUrl}/blog/${a.id}-${articleSlug}</loc><lastmod>${new Date(a.created_at).toISOString().split("T")[0]}</lastmod><priority>0.7</priority><changefreq>weekly</changefreq></url>\n`;
     }
     for (const s of stories || []) {
       const storySlug = slugify(s.title) || "story";

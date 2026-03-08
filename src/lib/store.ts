@@ -140,6 +140,15 @@ export function getCategoryDisplayName(category: string): string {
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+function extractArticleIdFromParam(value: string): string | null {
+  const normalized = String(value || "").trim();
+  if (!normalized) return null;
+  if (UUID_REGEX.test(normalized)) return normalized;
+
+  const match = normalized.match(/^([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})(?:-|$)/i);
+  return match?.[1] || null;
+}
+
 export function slugifyTitle(title: string): string {
   return (title || "")
     .toLowerCase()
@@ -152,8 +161,8 @@ export function slugifyTitle(title: string): string {
 }
 
 export function buildBlogPath(article: Pick<Article, "id" | "title"> & { slug?: string }): string {
-  const slug = article.slug || slugifyTitle(article.title);
-  return `/blog/${slug || article.id}`;
+  const slug = article.slug || slugifyTitle(article.title) || "article";
+  return `/blog/${article.id}-${slug}`;
 }
 
 function toArticlePreview(row: any): Article {
@@ -296,14 +305,17 @@ export async function getArticleById(id: string): Promise<Article | null> {
 }
 
 export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | null> {
-  if (!slugOrId) return null;
-  if (UUID_REGEX.test(slugOrId)) return getArticleById(slugOrId);
+  const normalizedParam = decodeURIComponent(String(slugOrId || "")).trim().toLowerCase();
+  if (!normalizedParam) return null;
+
+  const explicitId = extractArticleIdFromParam(normalizedParam);
+  if (explicitId) return getArticleById(explicitId);
 
   // Check DB slug column first
   const { data: slugMatch } = await supabase
     .from("articles")
     .select("id")
-    .eq("slug", slugOrId)
+    .eq("slug", normalizedParam)
     .eq("published", true)
     .is("deleted_at", null)
     .maybeSingle();
@@ -319,7 +331,6 @@ export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | 
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  const normalizedParam = slugOrId.toLowerCase().trim();
 
   const exactMatch = (data || []).find((row: any) => slugifyTitle(row.title) === normalizedParam);
   const startsWithMatch = exactMatch || (data || []).find((row: any) => slugifyTitle(row.title).startsWith(normalizedParam));

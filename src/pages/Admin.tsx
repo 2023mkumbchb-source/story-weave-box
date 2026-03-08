@@ -2555,12 +2555,43 @@ function SeoIndexingTab() {
   const [siteUrlInput, setSiteUrlInput] = useState("https://medicine.kenyaadverts.co.ke");
   const [googleApiKey, setGoogleApiKey] = useState("");
   const [contentTypeFilter, setContentTypeFilter] = useState<string>("all");
+  const [loadingConfig, setLoadingConfig] = useState(false);
+  const [savingSiteUrl, setSavingSiteUrl] = useState(false);
 
   const sitemapUrl = `${siteUrlInput.replace(/\/+$/, "")}/sitemap.xml`;
+
+  const syncSiteUrlConfig = async (showToast = false) => {
+    const normalized = siteUrlInput.trim() || "https://medicine.kenyaadverts.co.ke";
+    const { data, error } = await supabase.functions.invoke("google-indexing", {
+      body: { action: "set_config", site_url: normalized },
+    });
+    if (error) throw new Error(error.message);
+
+    const nextUrl = data?.base_url || normalized;
+    setSiteUrlInput(nextUrl);
+    if (showToast) toast({ title: "Site URL saved" });
+    return nextUrl;
+  };
+
+  const loadSiteUrlConfig = async () => {
+    setLoadingConfig(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("google-indexing", {
+        body: { action: "get_config" },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.base_url) setSiteUrlInput(data.base_url);
+    } catch {
+      // keep local default
+    } finally {
+      setLoadingConfig(false);
+    }
+  };
 
   const handleLoadSeoArticles = async () => {
     setLoadingArticles(true);
     try {
+      await syncSiteUrlConfig();
       const all: any[] = [];
       let cursor: string | null = null;
       let done = false;
@@ -2602,6 +2633,14 @@ function SeoIndexingTab() {
 
     let cursor: string | null = null;
     let totalUpdated = 0;
+
+    try {
+      await syncSiteUrlConfig();
+    } catch (err: any) {
+      setGenerating(false);
+      toast({ title: "Failed to save site URL", description: err.message, variant: "destructive" });
+      return;
+    }
 
     while (true) {
       try {
@@ -2661,6 +2700,7 @@ function SeoIndexingTab() {
   const handleLoadBatches = async () => {
     setLoadingBatches(true);
     try {
+      await syncSiteUrlConfig();
       const { data, error } = await supabase.functions.invoke("google-indexing", {
         body: { action: "list_all_urls", year: seoYear === "All" ? null : seoYear, content_type: contentTypeFilter, site_url: siteUrlInput },
       });
@@ -2713,6 +2753,10 @@ function SeoIndexingTab() {
   };
 
   useEffect(() => {
+    loadSiteUrlConfig();
+  }, []);
+
+  useEffect(() => {
     handleLoadSeoArticles();
   }, [seoYear]);
 
@@ -2746,8 +2790,26 @@ function SeoIndexingTab() {
           </Button>
         </div>
 
-        <div className="grid gap-2 md:grid-cols-2">
-          <Input value={siteUrlInput} onChange={(e) => setSiteUrlInput(e.target.value)} placeholder="https://yourdomain.com" />
+        <div className="grid gap-2 md:grid-cols-[1fr_auto_1fr]">
+          <Input value={siteUrlInput} onChange={(e) => setSiteUrlInput(e.target.value)} placeholder="https://yourdomain.com" disabled={loadingConfig || savingSiteUrl} />
+          <Button
+            variant="outline"
+            className="gap-2"
+            disabled={loadingConfig || savingSiteUrl}
+            onClick={async () => {
+              setSavingSiteUrl(true);
+              try {
+                await syncSiteUrlConfig(true);
+              } catch (err: any) {
+                toast({ title: "Failed to save site URL", description: err.message, variant: "destructive" });
+              } finally {
+                setSavingSiteUrl(false);
+              }
+            }}
+          >
+            {loadingConfig || savingSiteUrl ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+            {loadingConfig ? "Loading..." : savingSiteUrl ? "Saving..." : "Save URL"}
+          </Button>
           <Input value={googleApiKey} onChange={(e) => setGoogleApiKey(e.target.value)} placeholder="Google API key (optional for direct submit)" />
         </div>
 

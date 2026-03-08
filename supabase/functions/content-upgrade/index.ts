@@ -339,9 +339,9 @@ Style requirements:
       if (error) throw error;
 
       const normalized = (articles || []).map((a: any) => {
-        const fallbackSlug = toSlug(a.title) || a.id;
+        const fallbackSlug = toSlug(a.title) || "article";
         const safeSlug = (a.slug && String(a.slug).trim()) ? String(a.slug).trim() : fallbackSlug;
-        const url = `${siteUrl}/blog/${safeSlug}`;
+        const url = `${siteUrl}/blog/${a.id}-${safeSlug}`;
         const missingFields = [
           !a.meta_title || !String(a.meta_title).trim(),
           !a.meta_description || !String(a.meta_description).trim(),
@@ -541,8 +541,8 @@ Content preview: ${contentSnippet}`;
 
       await sb.from("articles").update(updateData).eq("id", article.id);
 
-      const finalSlug = updateData.slug || toSlug(article.slug || article.title) || article.id;
-      return json({ success: true, seo: updateData, url: `${siteUrl}/blog/${finalSlug}` });
+      const finalSlug = updateData.slug || toSlug(article.slug || article.title) || "article";
+      return json({ success: true, seo: updateData, url: `${siteUrl}/blog/${article.id}-${finalSlug}` });
     }
 
     throw new Error("Unknown action");
