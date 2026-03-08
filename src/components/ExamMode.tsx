@@ -119,20 +119,30 @@ export default function ExamMode({
   const timeLimit = timeLimitMinutes ? timeLimitMinutes * 60 : undefined;
   const remaining = timeLimit ? Math.max(0, timeLimit - elapsed) : undefined;
 
-  // ── On mount: check if already submitted ──
+  // ── On mount: restore submitted result or in-progress session ──
   useEffect(() => {
-    if (!setId) return;
-    const saved = loadFromStorage(setId);
-    if (saved) {
-      submittedRef.current = true;
-      setSubmitted(true);
-      setSubmitReason(saved.submitReason as SubmitReason);
-      setSubmittedAt(saved.submittedAt);
-      setElapsed(saved.elapsed);
-      setDisplayAnswers(new Map(saved.answers));
-      setAnswersUnlocked(isAnswersUnlocked(saved.submittedAt));
+    if (setId) {
+      const savedResult = loadFromStorage(setId);
+      if (savedResult) {
+        submittedRef.current = true;
+        setSubmitted(true);
+        setSubmitReason(savedResult.submitReason as SubmitReason);
+        setSubmittedAt(savedResult.submittedAt);
+        setElapsed(savedResult.elapsed);
+        setDisplayAnswers(new Map(savedResult.answers));
+        setAnswersUnlocked(isAnswersUnlocked(savedResult.submittedAt));
+        return;
+      }
     }
-  }, [setId]);
+
+    const savedSession = loadSessionFromStorage(sessionId);
+    if (savedSession) {
+      const restoredAnswers = new Map(savedSession.answers);
+      setAnswers(restoredAnswers);
+      setElapsed(savedSession.elapsed);
+      setStartTime(Date.now() - savedSession.elapsed * 1000);
+    }
+  }, [setId, sessionId]);
 
   // ── Timer ──
   useEffect(() => {
