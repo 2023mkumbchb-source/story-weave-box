@@ -72,7 +72,7 @@ export default function EssayStudy() {
       </Button>
 
       <div className="mb-6">
-        <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-2">{essay.title}</h1>
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-foreground mb-2">{essay.title}</h1>
         {essay.category !== "Uncategorized" && (
           <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             {getCategoryDisplayName(essay.category)}
