@@ -230,7 +230,7 @@ export async function getPublishedArticles(): Promise<Article[]> {
     .select("*")
     .eq("published", true)
     .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+    .order("updated_at", { ascending: false });
   if (error) throw error;
   return (data || []) as Article[];
 }
