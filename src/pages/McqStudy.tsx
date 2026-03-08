@@ -1,12 +1,23 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Lock, Unlock, ListChecks } from "lucide-react";
-import { getMcqSetById, getCategoryDisplayName, type McqSet } from "@/lib/store";
+import { ArrowLeft, Loader2, Lock, Unlock, ListChecks, Phone, CheckCircle } from "lucide-react";
+import { getMcqSetById, getCategoryDisplayName, getSetting, type McqSet } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import McqViewer from "@/components/McqViewer";
 import ExamMode from "@/components/ExamMode";
 import { markMcqVisited } from "@/lib/progress-store";
+import { supabase } from "@/integrations/supabase/client";
+
+const MCQ_UNLOCKED_KEY = "unlocked_mcqs";
+
+function loadUnlockedMcqs(): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem(MCQ_UNLOCKED_KEY) || "[]")); }
+  catch { return new Set(); }
+}
+function persistUnlockedMcqs(set: Set<string>) {
+  localStorage.setItem(MCQ_UNLOCKED_KEY, JSON.stringify([...set]));
+}
 
 export default function McqStudy() {
   const { id } = useParams();
@@ -18,27 +29,86 @@ export default function McqStudy() {
   const [passwordError, setPasswordError] = useState(false);
   const [examMode, setExamMode] = useState(false);
 
+  // Paywall state
+  const [mcqFreeLimit, setMcqFreeLimit] = useState(10);
+  const [mcqPrice, setMcqPrice] = useState(10);
+  const [isPaid, setIsPaid] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [paying, setPaying] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<"idle" | "pending" | "completed" | "failed">("idle");
+  const [showPaywall, setShowPaywall] = useState(false);
+
   const handleBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate("/mcqs");
-    }
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/mcqs");
   };
 
   useEffect(() => {
-    if (id) {
-      getMcqSetById(id)
-        .then((s) => {
-          setSet(s);
-          if (s) markMcqVisited(s.id);
-          if (s && (!s.access_password || s.access_password === "")) {
-            setPasswordUnlocked(true);
-          }
-        })
-        .finally(() => setLoading(false));
-    }
+    if (!id) return;
+    const unlocked = loadUnlockedMcqs();
+
+    Promise.all([
+      getMcqSetById(id),
+      getSetting("mcq_free_limit"),
+      getSetting("mcq_price"),
+    ]).then(([s, limitStr, priceStr]) => {
+      setSet(s);
+      if (s) markMcqVisited(s.id);
+      if (s && (!s.access_password || s.access_password === "")) setPasswordUnlocked(true);
+      if (limitStr && !isNaN(Number(limitStr))) setMcqFreeLimit(Number(limitStr));
+      if (priceStr && !isNaN(Number(priceStr))) setMcqPrice(Number(priceStr));
+      if (s && unlocked.has(s.id)) setIsPaid(true);
+    }).finally(() => setLoading(false));
   }, [id]);
+
+  // Payment polling
+  const pollPayment = (txnId: string) => {
+    let attempts = 0;
+    const pollId = setInterval(async () => {
+      attempts++;
+      if (attempts > 60) { clearInterval(pollId); setPaymentStatus("failed"); setPaying(false); return; }
+      try {
+        const resp = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-payment?transaction_id=${encodeURIComponent(txnId)}`,
+          { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" } }
+        );
+        const result = await resp.json();
+        if (!resp.ok) return;
+        if (result.status === "completed") {
+          clearInterval(pollId);
+          setPaymentStatus("completed");
+          setPaying(false);
+          setIsPaid(true);
+          if (set) {
+            const next = loadUnlockedMcqs();
+            next.add(set.id);
+            persistUnlockedMcqs(next);
+          }
+        } else if (result.status === "failed") {
+          clearInterval(pollId);
+          setPaymentStatus("failed");
+          setPaying(false);
+        }
+      } catch { /* keep polling */ }
+    }, 2000);
+  };
+
+  const handlePay = async () => {
+    const phone = phoneInput.trim();
+    if (!phone || !set) return;
+    setPaying(true);
+    setPaymentStatus("pending");
+    try {
+      const { data, error } = await supabase.functions.invoke("initiate-payment", {
+        body: { phone, amount: mcqPrice, package_type: `mcq:${set.id}` },
+      });
+      if (error || !data?.success) throw new Error(data?.error || error?.message || "Payment failed");
+      pollPayment(data.transaction_id);
+    } catch {
+      setPaymentStatus("failed");
+      setPaying(false);
+    }
+  };
 
   const handleUnlock = () => {
     if (set && passwordInput === set.access_password) {
@@ -71,7 +141,9 @@ export default function McqStudy() {
   const unitName = getCategoryDisplayName(set.category);
   const isLocked = set.access_password && set.access_password !== "" && !passwordUnlocked;
   const hideAnswers = !!(set.access_password && set.access_password !== "" && !passwordUnlocked);
+  const needsPayForExam = mcqFreeLimit > 0 && !isPaid && set.questions.length > mcqFreeLimit;
 
+  // Exam mode — if paid or no paywall needed
   if (examMode) {
     return (
       <div className="mx-auto max-w-3xl px-5 pb-20 pt-10 sm:px-6 sm:py-12">
@@ -85,13 +157,65 @@ export default function McqStudy() {
     );
   }
 
+  // Payment inline UI component
+  const PaymentInline = () => (
+    <div className="mb-6 rounded-2xl border-2 border-primary/30 bg-primary/5 p-6 text-center">
+      <Lock className="mx-auto mb-3 h-8 w-8 text-primary" />
+      <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Unlock Full Access</h3>
+      <p className="mb-4 text-sm text-muted-foreground">
+        Pay <strong className="text-foreground">KES {mcqPrice}</strong> via M-Pesa to unlock all {set.questions.length} questions and Exam Mode.
+      </p>
+
+      {paymentStatus === "pending" ? (
+        <div className="rounded-xl border border-primary/30 bg-primary/10 p-4">
+          <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
+          <p className="mt-2 text-sm font-medium text-foreground">Waiting for M-Pesa confirmation…</p>
+          <p className="text-xs text-muted-foreground">Complete STK prompt on your phone.</p>
+        </div>
+      ) : paymentStatus === "failed" ? (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4">
+          <p className="text-sm font-medium text-foreground">Payment failed</p>
+          <Button size="sm" variant="outline" className="mt-2" onClick={() => setPaymentStatus("idle")}>Try again</Button>
+        </div>
+      ) : paymentStatus === "completed" ? (
+        <div className="rounded-xl border border-primary/30 bg-primary/10 p-4">
+          <CheckCircle className="mx-auto h-5 w-5 text-primary" />
+          <p className="mt-2 text-sm font-medium text-foreground">Payment confirmed! Full access unlocked.</p>
+        </div>
+      ) : (
+        <div className="mx-auto flex max-w-xs items-center justify-center gap-2">
+          <Input
+            type="tel"
+            placeholder="07XX XXX XXX"
+            value={phoneInput}
+            onChange={(e) => setPhoneInput(e.target.value)}
+          />
+          <Button onClick={handlePay} disabled={paying || !phoneInput.trim()} size="sm" className="shrink-0 gap-2">
+            <Phone className="h-4 w-4" /> Pay
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="mx-auto max-w-3xl px-5 pb-20 pt-10 sm:px-6 sm:py-12">
       <div className="mb-4 flex items-center justify-between">
         <Button variant="ghost" size="sm" className="-ml-1 gap-2 text-muted-foreground" onClick={handleBack}>
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
-        <Button variant="outline" size="sm" className="gap-2" onClick={() => setExamMode(true)}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => {
+            if (needsPayForExam) {
+              setShowPaywall(true);
+            } else {
+              setExamMode(true);
+            }
+          }}
+        >
           <ListChecks className="h-4 w-4" /> Exam Mode
         </Button>
       </div>
@@ -103,6 +227,9 @@ export default function McqStudy() {
           </span>
         </div>
       )}
+
+      {/* Show paywall when exam mode requires payment */}
+      {showPaywall && needsPayForExam && <PaymentInline />}
 
       {isLocked && (
         <div className="mb-6 rounded-2xl border-2 border-amber-500/30 bg-amber-50 p-6 text-center dark:bg-amber-950/20">
@@ -116,10 +243,7 @@ export default function McqStudy() {
               type="password"
               placeholder="Enter password"
               value={passwordInput}
-              onChange={(e) => {
-                setPasswordInput(e.target.value);
-                setPasswordError(false);
-              }}
+              onChange={(e) => { setPasswordInput(e.target.value); setPasswordError(false); }}
               onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
               className={passwordError ? "border-destructive" : ""}
             />
@@ -141,8 +265,11 @@ export default function McqStudy() {
         setId={set.id}
         category={set.category}
         hideAnswers={hideAnswers}
+        freeLimit={mcqFreeLimit}
+        mcqPrice={mcqPrice}
+        isPaid={isPaid}
+        onPayRequest={() => setShowPaywall(true)}
       />
     </div>
   );
 }
-
