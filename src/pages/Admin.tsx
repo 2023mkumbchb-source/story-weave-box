@@ -2398,7 +2398,7 @@ function SeoIndexingTab() {
       if (urlError) throw new Error(urlError.message);
 
       const { data, error } = await supabase.functions.invoke("google-indexing", {
-        body: { action: "submit_to_google", urls: urlData?.urls || [] },
+        body: { action: "submit_to_google", urls: urlData?.urls || [], google_api_key: googleApiKey.trim() || undefined },
       });
       if (error) throw new Error(error.message);
 
