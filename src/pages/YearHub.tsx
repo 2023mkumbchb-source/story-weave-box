@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import { ArrowRight, BookMarked, BookOpen, GraduationCap, ListChecks, Trophy } from "lucide-react";
+import { ArrowRight, BookMarked, BookOpen, FileText, GraduationCap, ListChecks, Trophy } from "lucide-react";
 import { YEAR_CATEGORIES } from "@/lib/store";
 
 const YEAR_NUMBERS = [1, 2, 3, 4, 5, 6] as const;
