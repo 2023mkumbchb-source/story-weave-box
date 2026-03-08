@@ -112,47 +112,96 @@ function detectBestCategory(title: string, content: string): string | null {
 }
 
 function isMcqContent(content: string): boolean {
-  const mcqPatterns = [/\bA\)\s/g, /\bB\)\s/g, /\bC\)\s/g, /\bD\)\s/g, /\*\*Answer:\s*[A-E]\)/gi, /correct answer/gi];
-  let mcqSignals = 0;
-  for (const pat of mcqPatterns) {
-    const matches = content.match(pat);
-    if (matches && matches.length >= 3) mcqSignals++;
-  }
-  const hasQuestionNumbers = (content.match(/\*\*Question \d+/g) || []).length >= 5;
-  return mcqSignals >= 2 || hasQuestionNumbers;
-}
+  const text = content || "";
+  const questionHeadings = (text.match(/^\s*(?:#+\s*)?(?:\*\*)?question\s*\d+/gim) || []).length;
+  const answerLines = (text.match(/^\s*\*{0,2}answer\s*[:\-]\s*[A-E](?:[\).]|\b)/gim) || []).length;
+  const optionLines = (text.match(/^\s*[A-Ea-e][\).]\s+/gm) || []).length;
+  const inlineOptionRuns = (text.match(/\b[a-e][\).]\s+[^\n]{2,120}(?=\s+[b-e][\).]\s+)/gi) || []).length;
+  const hasMcqKeywords = /\bmcq|multiple choice|choose the (?:best|correct) answer\b/i.test(text);
 
-function looksLikeEssayContent(content: string): boolean {
-  const text = (content || "").toLowerCase();
-  const hasEssayHeaders = /(short answer|long answer|saq|laq|essay question|section a|section b)/i.test(text);
-  const numberedQuestions = (content.match(/^\s*(?:question\s*)?\d+[.)\-:]/gim) || []).length;
-  return hasEssayHeaders && numberedQuestions >= 3;
+  return (
+    (questionHeadings >= 3 && (optionLines >= 12 || answerLines >= 3)) ||
+    (questionHeadings >= 5 && optionLines >= 8) ||
+    (answerLines >= 5 && optionLines >= 10) ||
+    (hasMcqKeywords && optionLines >= 6) ||
+    inlineOptionRuns >= 2
+  );
 }
 
 function extractMcqsFromContent(content: string): { question: string; options: string[]; correct_answer: number; explanation?: string }[] {
-  const questions: any[] = [];
-  const qBlocks = content.split(/(?=\*\*Question \d+|###\s*Question \d+|\d+\.\s*\*\*)/);
+  const questions: Array<{ question: string; options: string[]; correct_answer: number; explanation?: string }> = [];
+  const qBlocks = (content || "")
+    .replace(/\r/g, "")
+    .split(/(?=^\s*(?:#+\s*)?(?:\*\*)?question\s*\d+\b)/gim)
+    .filter((b) => /question\s*\d+/i.test(b));
 
   for (const block of qBlocks) {
     if (block.trim().length < 20) continue;
 
-    const qMatch = block.match(/(?:\*\*Question \d+\*\*[\s\n]*)?(.+?)(?=\n\s*[A-E]\))/s);
-    if (!qMatch) continue;
+    const lines = block.split("\n");
+    const questionParts: string[] = [];
+    const optionMap: Record<string, string> = {};
+    const explanationParts: string[] = [];
 
-    const questionText = qMatch[1].replace(/\*\*/g, "").replace(/^[\d.]+\s*/, "").trim();
-    if (questionText.length < 10) continue;
+    let currentOption: string | null = null;
+    let answerLetter: string | null = null;
+    let inExplanation = false;
 
-    const optionMatches = block.match(/([A-E])\)\s*([^\n]+)/g);
-    if (!optionMatches || optionMatches.length < 3) continue;
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line) continue;
+      if (/^(?:#+\s*)?(?:\*\*)?question\s*\d+/i.test(line)) continue;
 
-    const options = optionMatches.map((o) => o.replace(/^[A-E]\)\s*/, "").trim());
-    const ansMatch = block.match(/\*\*Answer:\s*([A-E])\)/i) || block.match(/correct.*?([A-E])\)/i);
+      const answerMatch = line.match(/^\*{0,2}answer\s*[:\-]\s*([A-Ea-e])/i);
+      if (answerMatch) {
+        answerLetter = answerMatch[1].toUpperCase();
+        currentOption = null;
+        inExplanation = false;
+        continue;
+      }
+
+      if (/^\*{0,2}explanation\s*[:\-]/i.test(line)) {
+        inExplanation = true;
+        currentOption = null;
+        explanationParts.push(line.replace(/^\*{0,2}explanation\s*[:\-]\s*/i, ""));
+        continue;
+      }
+
+      const optionMatch = line.match(/^([A-Ea-e])[\).]\s*(.+)$/);
+      if (optionMatch) {
+        currentOption = optionMatch[1].toUpperCase();
+        optionMap[currentOption] = optionMatch[2].trim();
+        inExplanation = false;
+        continue;
+      }
+
+      if (inExplanation) {
+        explanationParts.push(line);
+        continue;
+      }
+
+      if (currentOption) {
+        optionMap[currentOption] = `${optionMap[currentOption]} ${line}`.trim();
+        continue;
+      }
+
+      questionParts.push(line);
+    }
+
+    const optionEntries = Object.entries(optionMap).sort(([a], [b]) => a.localeCompare(b));
+    if (optionEntries.length < 3) continue;
+
+    const questionText = questionParts.join(" ").replace(/\s+/g, " ").trim();
+    if (questionText.length < 8) continue;
+
+    const options = optionEntries.map(([, value]) => value);
     let correctAnswer = 0;
-    if (ansMatch) correctAnswer = ansMatch[1].charCodeAt(0) - 65;
+    if (answerLetter) {
+      const index = optionEntries.findIndex(([key]) => key === answerLetter);
+      if (index >= 0) correctAnswer = index;
+    }
 
-    const expMatch = block.match(/\*\*Explanation:\*\*\s*(.+?)(?=\n\n|\*\*Question|$)/s);
-    const explanation = expMatch ? expMatch[1].trim() : undefined;
-
+    const explanation = explanationParts.join(" ").replace(/\s+/g, " ").trim() || undefined;
     questions.push({ question: questionText, options, correct_answer: correctAnswer, explanation });
   }
 
