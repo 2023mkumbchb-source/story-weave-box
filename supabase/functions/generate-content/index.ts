@@ -426,7 +426,67 @@ Rules:
       });
     }
 
-    let systemPrompt = "";
+    if (type === "moderate-story") {
+      const messages = [
+        {
+          role: "system",
+          content: `You moderate story submissions. Determine if the text is a genuine story, narrative, reflection, or creative writing.
+Reject spam, gibberish, offensive content, or non-story content (e.g. homework, code, random text).
+
+Return ONLY valid JSON:
+{"approved": true, "category": "Stories", "reason": ""} 
+OR
+{"rejected": true, "reason": "Brief explanation why"}
+
+Be lenient - accept personal reflections, medical experiences, creative writing, poems, essays about life.`,
+        },
+        { role: "user", content: `Title: ${customTitle || "Untitled"}\n\nContent:\n${safeNotes.slice(0, 5000)}` },
+      ];
+
+      const text = await callAI(messages, geminiKey, allKeys);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        return new Response(JSON.stringify({ approved: true, category: "Stories" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const parsed = JSON.parse(jsonMatch[0]);
+      return new Response(JSON.stringify(parsed), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (type === "expand-story") {
+      const messages = [
+        {
+          role: "system",
+          content: `You are a creative writing editor. Expand and improve the given story while preserving the author's voice and core message.
+
+Rules:
+- Keep the original narrative and meaning intact
+- Add vivid descriptions, dialogue, and emotional depth
+- Use proper markdown formatting with paragraphs
+- Use ## for section breaks if the story is long
+- Use > for impactful quotes or reflections
+- Use *italics* for internal thoughts
+- Target at least 1500 words for short stories
+- Make it engaging and well-structured
+- Preserve the title or improve it slightly
+- Output format: first line is the title (no #), then a blank line, then the story content`,
+        },
+        { role: "user", content: customTitle ? `Title: ${customTitle}\n\nStory:\n${safeNotes}` : safeNotes },
+      ];
+
+      const text = await callAI(messages, geminiKey, allKeys);
+      const lines = text.trim().split("\n");
+      const title = cleanHeading(lines[0] || customTitle || "Untitled Story");
+      const content = lines.slice(1).join("\n").trim();
+      return new Response(JSON.stringify({ title, content }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+
     if (type === "article") {
       systemPrompt = `You are a medical education expert. Convert notes into an exam-focused study article in markdown.
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, BookOpen, Search, X } from "lucide-react";
+import { Loader2, BookOpen, Search, X, PenLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 
@@ -48,9 +48,14 @@ export default function Stories() {
 
   return (
     <div className="mx-auto max-w-5xl px-5 sm:px-6 py-10 sm:py-12">
-      <div className="mb-7">
-        <h1 className="mb-1 font-serif text-3xl sm:text-4xl font-bold text-foreground">Stories</h1>
-        <p className="text-muted-foreground text-sm sm:text-base">Medical stories and narratives</p>
+      <div className="mb-7 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="mb-1 font-serif text-3xl sm:text-4xl font-bold text-foreground">Stories</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">Medical stories and narratives</p>
+        </div>
+        <Link to="/submit-story" className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
+          <PenLine className="h-4 w-4" /> Write a Story
+        </Link>
       </div>
 
       <div className="mb-5">

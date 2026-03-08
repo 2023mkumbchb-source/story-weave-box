@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, Bolt, AlertTriangle, Building2, Check, X, Sparkles, Eye, Upload, Wrench, Globe, Search, Copy, ExternalLink } from "lucide-react";
+import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, Bolt, AlertTriangle, Building2, Check, X, Sparkles, Eye, Upload, Wrench, Globe, Search, Copy, ExternalLink, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import {
 } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 
-type Tab = "create" | "articles" | "flashcards" | "mcqs" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo";
+type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo";
 type DirectType = "article" | "mcqs" | "flashcards";
 
 export default function Admin() {
@@ -385,6 +385,7 @@ export default function Admin() {
     { id: "articles", label: "Articles", icon: FileText },
     { id: "flashcards", label: "Flashcards", icon: Layers },
     { id: "mcqs", label: "MCQs", icon: ListChecks },
+    { id: "stories", label: "Stories", icon: BookOpen },
     { id: "exams", label: "Exam Results", icon: ListChecks },
     { id: "raw", label: "Raw", icon: AlertTriangle },
     { id: "upgrade", label: "AI Upgrade", icon: Sparkles },
@@ -652,6 +653,7 @@ export default function Admin() {
       {tab === "articles" && <ArticlesList initialEditId={articleEditId} onEditOpened={() => setArticleEditId(null)} />}
       {tab === "flashcards" && <FlashcardsList />}
       {tab === "mcqs" && <McqsList />}
+      {tab === "stories" && <StoriesTab />}
       {tab === "exams" && <ExamResultsTab />}
       {tab === "raw" && <RawContentTab geminiKey={geminiKey} />}
       {tab === "recycle" && <RecycleBinTab />}
@@ -2846,6 +2848,186 @@ function SeoIndexingTab() {
           ))}
           {!loadingArticles && seoArticles.length === 0 && <p className="text-sm text-muted-foreground">No articles found for this filter.</p>}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Stories Management Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+function StoriesTab() {
+  const { toast } = useToast();
+  const [stories, setStories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
+  const [pendingStories, setPendingStories] = useState<any[]>([]);
+
+  const fetchStories = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("stories").select("*").is("deleted_at", null).order("created_at", { ascending: false });
+    setStories(data || []);
+    setLoading(false);
+  };
+
+  const fetchPending = async () => {
+    const { data } = await supabase.from("stories").select("*").eq("published", false).is("deleted_at", null).order("created_at", { ascending: false });
+    setPendingStories(data || []);
+  };
+
+  useEffect(() => { fetchStories(); fetchPending(); }, []);
+
+  const handleEdit = (story: any) => {
+    setEditId(story.id);
+    setEditTitle(story.title);
+    setEditContent(story.content);
+    setEditCategory(story.category);
+  };
+
+  const handleSave = async () => {
+    if (!editId) return;
+    setSaving(true);
+    const { error } = await supabase.from("stories").update({ title: editTitle, content: editContent, category: editCategory }).eq("id", editId);
+    if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
+    else { toast({ title: "Story updated" }); setEditId(null); fetchStories(); }
+    setSaving(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("stories").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+    if (!error) { toast({ title: "Story deleted" }); fetchStories(); }
+  };
+
+  const handleApprove = async (id: string) => {
+    const { error } = await supabase.from("stories").update({ published: true }).eq("id", id);
+    if (!error) { toast({ title: "Story approved & published" }); fetchStories(); fetchPending(); }
+  };
+
+  const handleBulkAIUpdate = async () => {
+    const toUpdate = stories.filter(s => s.content.length < 5000);
+    if (!toUpdate.length) { toast({ title: "All stories are already well-formatted" }); return; }
+    setBulkUpdating(true);
+    setBulkProgress({ done: 0, total: toUpdate.length });
+
+    for (let i = 0; i < toUpdate.length; i++) {
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-content", {
+          body: { notes: toUpdate[i].content, type: "expand-story", title: toUpdate[i].title },
+        });
+        if (!error && data?.content) {
+          await supabase.from("stories").update({
+            content: data.content,
+            title: data.title || toUpdate[i].title,
+          }).eq("id", toUpdate[i].id);
+        }
+      } catch { /* continue */ }
+      setBulkProgress({ done: i + 1, total: toUpdate.length });
+    }
+
+    setBulkUpdating(false);
+    toast({ title: "Bulk update complete!" });
+    fetchStories();
+  };
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+
+  if (editId) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-serif text-lg font-bold text-foreground">Edit Story</h3>
+          <Button variant="ghost" size="sm" onClick={() => setEditId(null)}>Cancel</Button>
+        </div>
+        <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Title" className="font-bold" />
+        <Input value={editCategory} onChange={e => setEditCategory(e.target.value)} placeholder="Category" />
+        <Textarea value={editContent} onChange={e => setEditContent(e.target.value)} className="min-h-[400px] resize-y font-mono text-sm" />
+        <div className="flex gap-3">
+          <Button onClick={handleSave} disabled={saving} className="gap-2">
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />} Save
+          </Button>
+          <Button variant="outline" onClick={async () => {
+            setSaving(true);
+            try {
+              const { data, error } = await supabase.functions.invoke("generate-content", {
+                body: { notes: editContent, type: "expand-story", title: editTitle },
+              });
+              if (error) throw new Error(error.message);
+              if (data?.content) setEditContent(data.content);
+              if (data?.title) setEditTitle(data.title);
+              toast({ title: "Story expanded with AI" });
+            } catch (err: any) {
+              toast({ title: "AI expand failed", description: err.message, variant: "destructive" });
+            } finally { setSaving(false); }
+          }} disabled={saving} className="gap-2">
+            <Sparkles className="h-4 w-4" /> Expand with AI
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {pendingStories.length > 0 && (
+        <div className="rounded-xl border-2 border-amber-500/30 bg-amber-500/5 p-5">
+          <h3 className="font-serif text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-500" /> Pending Submissions ({pendingStories.length})
+          </h3>
+          <div className="space-y-3">
+            {pendingStories.map(s => (
+              <div key={s.id} className="rounded-lg border border-border bg-card p-4">
+                <h4 className="font-bold text-foreground">{s.title}</h4>
+                <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{s.content.slice(0, 200)}...</p>
+                <div className="flex gap-2 mt-3">
+                  <Button size="sm" onClick={() => handleApprove(s.id)} className="gap-1"><Check className="h-3 w-3" /> Approve</Button>
+                  <Button size="sm" variant="outline" onClick={() => handleEdit(s)}>Edit</Button>
+                  <Button size="sm" variant="destructive" onClick={() => handleDelete(s.id)} className="gap-1"><Trash2 className="h-3 w-3" /> Delete</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <h3 className="font-serif text-lg font-bold text-foreground">All Stories ({stories.length})</h3>
+        <Button onClick={handleBulkAIUpdate} disabled={bulkUpdating} variant="outline" className="gap-2">
+          {bulkUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {bulkUpdating ? `Updating ${bulkProgress.done}/${bulkProgress.total}...` : "AI Expand Short Stories"}
+        </Button>
+      </div>
+
+      {bulkUpdating && (
+        <div className="w-full bg-secondary rounded-full h-2">
+          <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${(bulkProgress.done / bulkProgress.total) * 100}%` }} />
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {stories.map(s => (
+          <div key={s.id} className="rounded-lg border border-border bg-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-foreground truncate">{s.title}</h4>
+                  {!s.published && <span className="shrink-0 rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-600">Draft</span>}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">{s.category} · {s.content.length} chars</p>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <Button size="sm" variant="ghost" onClick={() => handleEdit(s)}><Pencil className="h-3.5 w-3.5" /></Button>
+                <Button size="sm" variant="ghost" onClick={() => handleDelete(s.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
