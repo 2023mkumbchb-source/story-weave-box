@@ -73,7 +73,7 @@ export default function Admin() {
 
   const generateArticle = async (notesInput: string): Promise<{ title: string; content: string }> => {
     const { data, error } = await supabase.functions.invoke('generate-content', {
-      body: { notes: notesInput, type: 'article', geminiKey },
+      body: { notes: notesInput, type: 'article', geminiKey, geminiKeys: geminiKeysAll },
     });
     if (error) throw new Error(error.message || "Failed to generate article");
     if (data?.error) throw new Error(data.error);
@@ -82,7 +82,7 @@ export default function Admin() {
 
   const generateFlashcards = async (notesInput: string, count: number = 20): Promise<{ question: string; answer: string }[]> => {
     const { data, error } = await supabase.functions.invoke('generate-content', {
-      body: { notes: notesInput, type: 'flashcards', count, geminiKey },
+      body: { notes: notesInput, type: 'flashcards', count, geminiKey, geminiKeys: geminiKeysAll },
     });
     if (error) throw new Error(error.message || "Failed to generate flashcards");
     if (data?.error) throw new Error(data.error);
@@ -91,7 +91,7 @@ export default function Admin() {
 
   const generateMcqs = async (notesInput: string, count: number = 15): Promise<{ question: string; options: string[]; correct_answer: number; explanation?: string }[]> => {
     const { data, error } = await supabase.functions.invoke('generate-content', {
-      body: { notes: notesInput, type: 'mcqs', count, geminiKey },
+      body: { notes: notesInput, type: 'mcqs', count, geminiKey, geminiKeys: geminiKeysAll },
     });
     if (error) throw new Error(error.message || "Failed to generate MCQs");
     if (data?.error) throw new Error(data.error);
@@ -100,7 +100,7 @@ export default function Admin() {
 
   const autoCategorizе = async (notesInput: string): Promise<string> => {
     const { data, error } = await supabase.functions.invoke('generate-content', {
-      body: { notes: notesInput, type: 'categorize', geminiKey },
+      body: { notes: notesInput, type: 'categorize', geminiKey, geminiKeys: geminiKeysAll },
     });
     if (error) return "Uncategorized";
     return data?.category || "Uncategorized";
