@@ -28,7 +28,7 @@ function inferUnit(exam: ExamSet): string {
 }
 
 export default function Exams() {
-  useEffect(() => { document.title = "Exam Center | Ompath Study"; }, []);
+  useEffect(() => { document.title = "Exam Center | Kenya Meds"; }, []);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const selectedYear = searchParams.get("year") || "All";
