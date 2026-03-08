@@ -643,7 +643,7 @@ export default function Admin() {
         </div>
       )}
 
-      {tab === "articles" && <ArticlesList />}
+      {tab === "articles" && <ArticlesList initialEditId={articleEditId} onEditOpened={() => setArticleEditId(null)} />}
       {tab === "flashcards" && <FlashcardsList />}
       {tab === "mcqs" && <McqsList />}
       {tab === "exams" && <ExamResultsTab />}
@@ -651,7 +651,7 @@ export default function Admin() {
       {tab === "recycle" && <RecycleBinTab />}
       {tab === "institutions" && <InstitutionsTab />}
       {tab === "upgrade" && <ContentUpgradeTab />}
-      {tab === "cleanup" && <BulkCleanupTab />}
+      {tab === "cleanup" && <BulkCleanupTab onEditArticle={(id) => { setArticleEditId(id); setTab("articles"); }} />}
       {tab === "import" && <ImportTab />}
       {tab === "settings" && <SettingsPanel setGeminiKey={setGeminiKey} />}
     </div>
