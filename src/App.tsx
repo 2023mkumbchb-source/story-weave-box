@@ -18,6 +18,8 @@ import Exams from "./pages/Exams";
 import ExamStart from "./pages/ExamStart";
 import Essays from "./pages/Essays";
 import EssayStudy from "./pages/EssayStudy";
+import Stories from "./pages/Stories";
+import StoryRead from "./pages/StoryRead";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
