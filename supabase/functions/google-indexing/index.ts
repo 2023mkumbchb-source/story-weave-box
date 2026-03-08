@@ -39,12 +39,33 @@ async function resolveBaseUrl(sb: ReturnType<typeof createClient>, bodySiteUrl?:
 }
 
 function buildArticleUrl(base: string, a: { id: string; title: string; slug?: string | null }) {
-  const slug = a.slug || slugFromTitle(a.title) || a.id;
-  return `${base}/blog/${slug}`;
+  const slug = a.slug || slugFromTitle(a.title) || "article";
+  return `${base}/blog/${a.id}-${slug}`;
 }
 
 function buildStoryUrl(base: string, s: { id: string; title: string }) {
   return `${base}/stories/${s.id}-${slugFromTitle(s.title) || "story"}`;
+}
+
+async function pingSearchEngines(baseUrl: string) {
+  const sitemapUrl = `${baseUrl}/sitemap.xml`;
+  const targets = [
+    `https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`,
+    `https://www.bing.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`,
+  ];
+
+  const results: Array<{ endpoint: string; status: "ok" | "failed"; code?: number; error?: string }> = [];
+
+  for (const endpoint of targets) {
+    try {
+      const response = await fetch(endpoint, { method: "GET" });
+      results.push({ endpoint, status: response.ok ? "ok" : "failed", code: response.status });
+    } catch (error: any) {
+      results.push({ endpoint, status: "failed", error: error?.message || "Ping failed" });
+    }
+  }
+
+  return { sitemap_url: sitemapUrl, results };
 }
 
 serve(async (req) => {
@@ -74,10 +95,9 @@ serve(async (req) => {
       return json({ success: true, base_url: nextSiteUrl, sitemap_url: `${nextSiteUrl}/sitemap.xml` });
     }
 
-    // ─── List ALL content URLs ───
     if (action === "list_all_urls") {
       const yearFilter = body?.year || null;
-      const contentType = body?.content_type || "all"; // all, articles, stories, mcqs, flashcards, essays
+      const contentType = body?.content_type || "all";
 
       const urls: Array<{ type: string; id: string; title: string; url: string; has_meta?: boolean; category?: string }> = [];
 
@@ -125,7 +145,6 @@ serve(async (req) => {
         }));
       }
 
-      // Batch into groups of 50
       const batchSize = 50;
       const batches: Array<{ batch_number: number; count: number; urls: typeof urls }> = [];
       for (let i = 0; i < urls.length; i += batchSize) {
@@ -135,7 +154,6 @@ serve(async (req) => {
       return json({ total: urls.length, batch_count: batches.length, batches, base_url: baseUrl });
     }
 
-    // ─── Legacy: list_batches (articles only) ───
     if (action === "list_batches") {
       const yearFilter = body?.year || null;
       let query = sb.from("articles").select("id, title, category, created_at, meta_title, meta_description, slug, og_image_url").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false });
@@ -160,7 +178,6 @@ serve(async (req) => {
       return json({ total: (articles || []).length, batch_count: batches.length, batches, base_url: baseUrl });
     }
 
-    // ─── Generate URLs for a batch ───
     if (action === "generate_urls") {
       const batchNumber = body?.batch_number || 1;
       const yearFilter = body?.year || null;
@@ -177,20 +194,23 @@ serve(async (req) => {
       return json({ batch_number: batchNumber, count: urls.length, urls, urls_text: urls.join("\n"), sitemap_url: `${baseUrl}/sitemap.xml` });
     }
 
-    // ─── Auto-index: submit specific URLs ───
     if (action === "auto_index") {
       const urls: string[] = body?.urls || [];
       if (!urls.length) return json({ skipped: true, reason: "No URLs" });
 
-      // Try Google Indexing API if key available
-      const googleApiKey = body?.google_api_key;
+      const sitemapPing = await pingSearchEngines(baseUrl);
+      const googleApiKey = body?.google_api_key || Deno.env.get("GOOGLE_INDEXING_API_KEY");
       if (!googleApiKey) {
-        // Store for manual batch later - just return the URLs
-        return json({ method: "queued", urls, message: "URLs ready for manual submission to Google Search Console" });
+        return json({
+          method: "sitemap_ping",
+          urls,
+          sitemap_ping: sitemapPing,
+          message: "Sitemap ping submitted. Add GOOGLE_INDEXING_API_KEY secret to enable direct Google URL submission.",
+        });
       }
 
       const results: Array<{ url: string; status: string; error?: string }> = [];
-      for (const url of urls.slice(0, 10)) { // max 10 at a time
+      for (const url of urls.slice(0, 10)) {
         try {
           const response = await fetch(
             `https://indexing.googleapis.com/v3/urlNotifications:publish?key=${googleApiKey}`,
@@ -201,17 +221,24 @@ serve(async (req) => {
           results.push({ url, status: "failed", error: e.message });
         }
       }
-      return json({ method: "api", results, submitted: results.filter(r => r.status === "submitted").length });
+      return json({ method: "api", results, submitted: results.filter(r => r.status === "submitted").length, sitemap_ping: sitemapPing });
     }
 
-    // ─── Submit to Google ───
     if (action === "submit_to_google") {
-      const googleApiKey = body?.google_api_key;
+      const googleApiKey = body?.google_api_key || Deno.env.get("GOOGLE_INDEXING_API_KEY");
       const urls: string[] = body?.urls || [];
       if (!urls.length) throw new Error("No URLs provided");
 
+      const sitemapPing = await pingSearchEngines(baseUrl);
+
       if (!googleApiKey) {
-        return json({ method: "manual", message: "No Google API key. Copy URLs and paste into Google Search Console.", urls, urls_text: urls.join("\n") });
+        return json({
+          method: "manual",
+          message: "No Google API key. Copy URLs and paste into Google Search Console.",
+          urls,
+          urls_text: urls.join("\n"),
+          sitemap_ping: sitemapPing,
+        });
       }
 
       const results: Array<{ url: string; status: string; error?: string }> = [];
@@ -226,7 +253,7 @@ serve(async (req) => {
           results.push({ url, status: "failed", error: e.message });
         }
       }
-      return json({ method: "api", submitted: results.filter(r => r.status === "submitted").length, failed: results.filter(r => r.status === "failed").length, total: urls.length, results });
+      return json({ method: "api", submitted: results.filter(r => r.status === "submitted").length, failed: results.filter(r => r.status === "failed").length, total: urls.length, results, sitemap_ping: sitemapPing });
     }
 
     throw new Error("Unknown action");
