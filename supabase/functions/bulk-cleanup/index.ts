@@ -489,7 +489,33 @@ async function processNonAiArticle(
   }
 
   const mcqs = extractMcqsFromContent(analysisContent);
+  const essays = extractEssayQuestions(analysisContent);
+  const essayCount = essays.saqs.length + essays.laqs.length;
   const likelyMcqByTitle = /\bmcq\b|multiple\s+choice/i.test(`${article.title} ${newTitle}`);
+  const likelyEssayByTitle = /\bessay|saq|laq|short\s+answer|long\s+answer\b/i.test(`${article.title} ${newTitle}`);
+  const preferEssayMigration = (looksLikeEssayContent(analysisContent) || likelyEssayByTitle) && essayCount >= 3 && mcqs.length < 8;
+
+  if (preferEssayMigration) {
+    const { error: essayErr } = await sb.from("essays").insert({
+      title: normalizeTitle(newTitle),
+      short_answer_questions: essays.saqs,
+      long_answer_questions: essays.laqs,
+      category: newCategory,
+      published: true,
+      article_id: article.id,
+    });
+
+    if (!essayErr) {
+      await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
+      return {
+        id: article.id,
+        title: newTitle,
+        action: "migrated_essay",
+        details: `${essays.saqs.length} SAQs · ${essays.laqs.length} LAQs`,
+      };
+    }
+  }
+
   if (mcqs.length >= 3 || (likelyMcqByTitle && mcqs.length >= 1)) {
     const { error: mcqError } = await sb.from("mcq_sets").insert({
       title: normalizeTitle(newTitle),
@@ -506,8 +532,7 @@ async function processNonAiArticle(
     }
   }
 
-  const essays = extractEssayQuestions(analysisContent);
-  if (essays.saqs.length + essays.laqs.length >= 3) {
+  if (essayCount >= 3) {
     const { error: essayErr } = await sb.from("essays").insert({
       title: normalizeTitle(newTitle),
       short_answer_questions: essays.saqs,
