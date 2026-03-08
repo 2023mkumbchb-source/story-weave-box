@@ -432,7 +432,7 @@ function ArticleContent({ content }: { content: string }) {
     const isSubLabel = /^[A-Za-z*\s()–-]{2,60}:$/.test(t);
     if (isSubLabel) {
       flushList();
-      els.push(<h3 key={`sl-${i}`} className="mt-6 mb-2 font-semibold text-base text-foreground"><Inline text={t.slice(0, -1)} /></h3>);
+      els.push(<h3 key={`sl-${i}`} className="mt-6 mb-2 font-semibold text-lg text-foreground"><Inline text={t.slice(0, -1)} /></h3>);
       underSubheading = true;
       return;
     }
