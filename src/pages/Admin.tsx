@@ -14,6 +14,7 @@ import {
   type Article, type FlashcardSet, type McqSet,
 } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
+import { autoIndexUrls, SITE_URL, slugifyText } from "@/lib/seo";
 
 type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo";
 type DirectType = "article" | "mcqs" | "flashcards";
