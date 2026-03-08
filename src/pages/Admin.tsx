@@ -1255,7 +1255,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
   const { toast } = useToast();
 
   useEffect(() => {
-    Promise.all([getSetting("gemini_api_keys"), getSetting("gemini_api_key"), getSetting("exam_password"), getSetting("exam_price"), getSetting("exam_award")]).then(([multiKeys, singleKey, pwd, price, award]) => {
+    Promise.all([getSetting("gemini_api_keys"), getSetting("gemini_api_key"), getSetting("exam_password"), getSetting("exam_price"), getSetting("exam_award"), getSetting("mcq_free_limit"), getSetting("mcq_price")]).then(([multiKeys, singleKey, pwd, price, award, freeLimit, mPrice]) => {
       // Load multi-key list, falling back to single key
       if (multiKeys) {
         try {
