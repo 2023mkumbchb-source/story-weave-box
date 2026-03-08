@@ -2219,12 +2219,65 @@ const CLEANUP_SEO_YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 
 function SeoIndexingTab() {
   const { toast } = useToast();
   const [seoYear, setSeoYear] = useState<string>("All");
+  const [seoMode, setSeoMode] = useState<"missing" | "all">("missing");
   const [generating, setGenerating] = useState(false);
   const [seoLog, setSeoLog] = useState<string[]>([]);
+  const [seoArticles, setSeoArticles] = useState<Array<{
+    id: string;
+    title: string;
+    category: string;
+    slug: string;
+    meta_title: string;
+    meta_description: string;
+    og_image_url: string;
+    url: string;
+    seo_status: "complete" | "missing";
+    missing_count: number;
+  }>>([]);
+  const [loadingArticles, setLoadingArticles] = useState(false);
+  const [updatingOne, setUpdatingOne] = useState<string | null>(null);
   const [batches, setBatches] = useState<Array<{ batch_number: number; count: number; articles: any[] }>>([]);
   const [loadingBatches, setLoadingBatches] = useState(false);
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [copiedBatch, setCopiedBatch] = useState<number | null>(null);
+
+  const sitemapUrl = "https://ompathstud.lovable.app/sitemap.xml";
+
+  const handleLoadSeoArticles = async () => {
+    setLoadingArticles(true);
+    try {
+      const all: any[] = [];
+      let cursor: string | null = null;
+      let done = false;
+      let guard = 0;
+
+      while (!done && guard < 40) {
+        const { data, error } = await supabase.functions.invoke("content-upgrade", {
+          body: {
+            action: "list_articles_seo",
+            year: seoYear === "All" ? null : seoYear,
+            batch_size: 150,
+            cursor,
+          },
+        });
+        if (error) throw new Error(error.message);
+
+        const chunk = Array.isArray(data?.articles) ? data.articles : [];
+        all.push(...chunk);
+        done = Boolean(data?.done);
+        const nextCursor = typeof data?.next_cursor === "string" ? data.next_cursor : null;
+        if (!nextCursor || nextCursor === cursor) break;
+        cursor = nextCursor;
+        guard += 1;
+      }
+
+      setSeoArticles(all);
+    } catch (err: any) {
+      toast({ title: "Failed to load articles", description: err.message, variant: "destructive" });
+    } finally {
+      setLoadingArticles(false);
+    }
+  };
 
   const handleGenerateSeo = async () => {
     setGenerating(true);
@@ -2236,7 +2289,13 @@ function SeoIndexingTab() {
     while (true) {
       try {
         const { data, error } = await supabase.functions.invoke("content-upgrade", {
-          body: { action: "generate_seo", batch_size: 5, cursor, year: seoYear === "All" ? null : seoYear },
+          body: {
+            action: "generate_seo",
+            batch_size: 8,
+            cursor,
+            year: seoYear === "All" ? null : seoYear,
+            include_all: seoMode === "all",
+          },
         });
         if (error) throw new Error(error.message);
 
@@ -2244,17 +2303,13 @@ function SeoIndexingTab() {
 
         const processedArticles = (data?.processed_articles || []) as Array<{ id: string; title: string; action: string }>;
         if (processedArticles.length) {
-          setSeoLog((prev) => [
-            ...prev,
-            ...processedArticles.map((a) => `SEO: ${a.title} → ${a.action}`),
-          ]);
+          setSeoLog((prev) => [...prev, ...processedArticles.map((a) => `SEO: ${a.title} → ${a.action}`)]);
         }
 
         if (data?.done) break;
         const nextCursor = (data?.next_cursor as string | null) || null;
         if (!nextCursor || nextCursor === cursor) break;
         cursor = nextCursor;
-        await new Promise((r) => setTimeout(r, 200));
       } catch (err: any) {
         setSeoLog((prev) => [...prev, `Error: ${err.message}`]);
         break;
@@ -2262,7 +2317,25 @@ function SeoIndexingTab() {
     }
 
     setGenerating(false);
+    await handleLoadSeoArticles();
     toast({ title: `SEO generation done: ${totalUpdated} articles updated` });
+  };
+
+  const handleGenerateSingle = async (id: string) => {
+    setUpdatingOne(id);
+    try {
+      const { data, error } = await supabase.functions.invoke("content-upgrade", {
+        body: { action: "generate_seo_single", id },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      await handleLoadSeoArticles();
+      toast({ title: "SEO updated for article" });
+    } catch (err: any) {
+      toast({ title: "SEO update failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUpdatingOne(null);
+    }
   };
 
   const handleLoadBatches = async () => {
@@ -2275,7 +2348,10 @@ function SeoIndexingTab() {
       setBatches(data?.batches || []);
       toast({ title: `${data?.total || 0} articles in ${data?.batch_count || 0} batches` });
     } catch (err: any) {
-      toast({ title: "Failed to load batches", description: err.message, variant: "destructive" });
+      const description = err.message?.includes("FunctionsHttpError") || err.message?.includes("404")
+        ? "Indexing service is not available yet."
+        : err.message;
+      toast({ title: "Failed to load batches", description, variant: "destructive" });
     } finally {
       setLoadingBatches(false);
     }
@@ -2287,8 +2363,7 @@ function SeoIndexingTab() {
         body: { action: "generate_urls", batch_number: batchNumber, year: seoYear === "All" ? null : seoYear },
       });
       if (error) throw new Error(error.message);
-      const urlsText = data?.urls_text || "";
-      await navigator.clipboard.writeText(urlsText);
+      await navigator.clipboard.writeText(data?.urls_text || "");
       setCopiedBatch(batchNumber);
       setTimeout(() => setCopiedBatch(null), 2000);
       toast({ title: `Copied ${data?.count || 0} URLs from batch ${batchNumber}` });
@@ -2311,11 +2386,8 @@ function SeoIndexingTab() {
       if (error) throw new Error(error.message);
 
       if (data?.method === "manual") {
-        await navigator.clipboard.writeText(data.urls_text);
-        toast({
-          title: "URLs copied for manual submission",
-          description: "Paste in Google Search Console → URL Inspection → Submit to Google",
-        });
+        await navigator.clipboard.writeText(data.urls_text || "");
+        toast({ title: "URLs copied for manual submission" });
       } else {
         toast({ title: `Submitted: ${data?.submitted || 0} URLs, Failed: ${data?.failed || 0}` });
       }
@@ -2326,34 +2398,38 @@ function SeoIndexingTab() {
     }
   };
 
+  useEffect(() => {
+    handleLoadSeoArticles();
+  }, [seoYear]);
+
+  const completeCount = seoArticles.filter((a) => a.seo_status === "complete").length;
+
   return (
     <div className="space-y-6">
-      {/* SEO Generation */}
-      <div className="rounded-xl border border-border bg-card p-5">
-        <div className="flex items-center gap-2 mb-2">
+      <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+        <div className="flex items-center gap-2">
           <Search className="h-5 w-5 text-primary" />
           <h3 className="font-serif text-lg font-bold text-foreground">Generate SEO Metadata</h3>
         </div>
-        <p className="text-sm text-muted-foreground mb-4">
-          Use AI to generate meta titles, descriptions, slugs, and OG image prompts for all articles missing SEO data. Each article becomes independently shareable.
-        </p>
 
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Year scope</label>
-          <select
-            value={seoYear}
-            onChange={(e) => setSeoYear(e.target.value)}
-            className="rounded-lg border border-input bg-background px-3 py-2 text-xs font-medium text-foreground"
-            disabled={generating}
-          >
+        <div className="flex flex-wrap items-center gap-2">
+          <select value={seoYear} onChange={(e) => setSeoYear(e.target.value)} className="rounded-lg border border-input bg-background px-3 py-2 text-xs font-medium text-foreground" disabled={generating || loadingArticles}>
             {CLEANUP_SEO_YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
+          <select value={seoMode} onChange={(e) => setSeoMode(e.target.value as "missing" | "all")} className="rounded-lg border border-input bg-background px-3 py-2 text-xs font-medium text-foreground" disabled={generating}>
+            <option value="missing">Only missing SEO</option>
+            <option value="all">Regenerate all articles</option>
+          </select>
+          <Button onClick={handleGenerateSeo} disabled={generating} className="gap-2">
+            {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {generating ? "Generating..." : "Generate SEO"}
+          </Button>
+          <Button onClick={handleLoadSeoArticles} disabled={loadingArticles} variant="outline" className="gap-2">
+            {loadingArticles ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Refresh list
+          </Button>
         </div>
 
-        <Button onClick={handleGenerateSeo} disabled={generating} className="gap-2">
-          {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {generating ? "Generating SEO..." : "Generate SEO for Missing Articles"}
-        </Button>
+        <p className="text-xs text-muted-foreground">{seoArticles.length} articles · {completeCount} complete · {seoArticles.length - completeCount} missing fields</p>
       </div>
 
       {seoLog.length > 0 && (
@@ -2365,37 +2441,20 @@ function SeoIndexingTab() {
         </div>
       )}
 
-      {/* Google Indexing */}
-      <div className="rounded-xl border border-border bg-card p-5">
-        <div className="flex items-center gap-2 mb-2">
+      <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+        <div className="flex items-center gap-2">
           <Globe className="h-5 w-5 text-primary" />
           <h3 className="font-serif text-lg font-bold text-foreground">Google Indexing</h3>
         </div>
-        <p className="text-sm text-muted-foreground mb-4">
-          Articles are grouped into batches of 50. Copy the URLs from each batch and submit them to Google Search Console.
-          Go to <span className="font-medium text-foreground">Google Search Console → Sitemaps</span> and paste the sitemap URL, or use <span className="font-medium text-foreground">URL Inspection → Request Indexing</span> for individual URLs.
-        </p>
-
-        <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-3">
-          <p className="text-xs font-semibold text-primary mb-1">Sitemap URL (submit to Google Search Console)</p>
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+          <p className="text-xs font-semibold text-primary mb-1">Sitemap URL</p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-xs text-foreground bg-background rounded px-2 py-1 border border-border break-all">
-              https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/generate-sitemap
-            </code>
-            <Button
-              size="sm"
-              variant="outline"
-              className="shrink-0 gap-1"
-              onClick={() => {
-                navigator.clipboard.writeText("https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/generate-sitemap");
-                toast({ title: "Sitemap URL copied!" });
-              }}
-            >
+            <code className="flex-1 text-xs text-foreground bg-background rounded px-2 py-1 border border-border break-all">{sitemapUrl}</code>
+            <Button size="sm" variant="outline" className="shrink-0 gap-1" onClick={() => { navigator.clipboard.writeText(sitemapUrl); toast({ title: "Sitemap URL copied" }); }}>
               <Copy className="h-3 w-3" /> Copy
             </Button>
           </div>
         </div>
-
         <Button onClick={handleLoadBatches} disabled={loadingBatches} className="gap-2">
           {loadingBatches ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
           {loadingBatches ? "Loading..." : "Load Article Batches"}
@@ -2404,9 +2463,6 @@ function SeoIndexingTab() {
 
       {batches.length > 0 && (
         <div className="space-y-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            {batches.length} batches ({batches.reduce((s, b) => s + b.count, 0)} articles total)
-          </p>
           {batches.map((batch) => (
             <div key={batch.batch_number} className="rounded-xl border border-border bg-card p-4">
               <div className="flex items-center justify-between mb-2">
@@ -2415,39 +2471,51 @@ function SeoIndexingTab() {
                   <p className="text-xs text-muted-foreground">{batch.count} articles</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleCopyBatchUrls(batch.batch_number)}
-                    className="gap-1"
-                  >
+                  <Button size="sm" variant="outline" onClick={() => handleCopyBatchUrls(batch.batch_number)} className="gap-1">
                     {copiedBatch === batch.batch_number ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                    {copiedBatch === batch.batch_number ? "Copied!" : "Copy URLs"}
+                    {copiedBatch === batch.batch_number ? "Copied" : "Copy URLs"}
                   </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => handleSubmitBatch(batch.batch_number)}
-                    disabled={submitting === batch.batch_number}
-                    className="gap-1"
-                  >
-                    {submitting === batch.batch_number ? <Loader2 className="h-3 w-3 animate-spin" /> : <ExternalLink className="h-3 w-3" />}
-                    Submit
+                  <Button size="sm" onClick={() => handleSubmitBatch(batch.batch_number)} disabled={submitting === batch.batch_number} className="gap-1">
+                    {submitting === batch.batch_number ? <Loader2 className="h-3 w-3 animate-spin" /> : <ExternalLink className="h-3 w-3" />} Submit
                   </Button>
                 </div>
-              </div>
-              <div className="max-h-32 overflow-y-auto space-y-0.5">
-                {batch.articles.slice(0, 5).map((a: any) => (
-                  <div key={a.id} className="flex items-center gap-2 text-xs">
-                    <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${a.has_meta ? "bg-green-500" : "bg-muted-foreground"}`} />
-                    <span className="truncate text-muted-foreground">{a.title}</span>
-                  </div>
-                ))}
-                {batch.count > 5 && <p className="text-xs text-muted-foreground">...and {batch.count - 5} more</p>}
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+        <h4 className="text-sm font-bold text-foreground">All Articles SEO Status</h4>
+        <div className="max-h-[34rem] overflow-auto space-y-2">
+          {seoArticles.map((a) => (
+            <div key={a.id} className="rounded-lg border border-border bg-background p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">{a.title}</p>
+                  <p className="text-xs text-muted-foreground">{a.category}</p>
+                  <p className="text-xs text-muted-foreground break-all">{a.url}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => { navigator.clipboard.writeText(a.url); toast({ title: "Share URL copied" }); }}>
+                    <Copy className="h-3 w-3" /> URL
+                  </Button>
+                  <Button size="sm" onClick={() => handleGenerateSingle(a.id)} disabled={updatingOne === a.id} className="gap-1">
+                    {updatingOne === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} Update
+                  </Button>
+                </div>
+              </div>
+              <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
+                <p><span className="font-semibold text-foreground">Meta title:</span> {a.meta_title || "Missing"}</p>
+                <p><span className="font-semibold text-foreground">Meta description:</span> {a.meta_description || "Missing"}</p>
+                <p><span className="font-semibold text-foreground">Slug:</span> {a.slug || "Missing"}</p>
+                <p><span className="font-semibold text-foreground">Thumbnail:</span> {a.og_image_url ? "Set" : "Missing"}</p>
+              </div>
+            </div>
+          ))}
+          {!loadingArticles && seoArticles.length === 0 && <p className="text-sm text-muted-foreground">No articles found for this filter.</p>}
+        </div>
+      </div>
     </div>
   );
 }

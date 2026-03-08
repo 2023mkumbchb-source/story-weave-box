@@ -741,24 +741,6 @@ export default function BlogPost() {
     return () => observer.disconnect();
   }, [toc, loading]);
 
-  if (loading) {
-    return <div className="flex min-h-[65vh] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
-  }
-
-  if (!article) {
-    return (
-      <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-        <h1 className="mb-4 text-2xl font-bold text-foreground">Article not found</h1>
-        <Button asChild variant="outline"><Link to="/blog"><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link></Button>
-      </div>
-    );
-  }
-
-  const date = new Date(article.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-  const unitName = getCategoryDisplayName(article.category);
-  const yearName = getYearFromCategory(article.category);
-  const hasRelated = related.flashcards.length > 0 || related.mcqs.length > 0;
-
   // Dynamic OG meta tags for sharing
   useEffect(() => {
     if (!article) return;
@@ -786,12 +768,10 @@ export default function BlogPost() {
     setMeta("name", "twitter:description", metaDesc);
     setMeta("name", "twitter:image", ogImage);
 
-    // Canonical link
     let canonical = document.querySelector("link[rel='canonical']") as HTMLLinkElement | null;
     if (!canonical) { canonical = document.createElement("link"); canonical.rel = "canonical"; document.head.appendChild(canonical); }
     canonical.href = canonicalUrl;
 
-    // JSON-LD
     let ldScript = document.querySelector("script[data-article-ld]") as HTMLScriptElement | null;
     if (!ldScript) { ldScript = document.createElement("script"); ldScript.type = "application/ld+json"; ldScript.setAttribute("data-article-ld", "true"); document.head.appendChild(ldScript); }
     ldScript.textContent = JSON.stringify({
@@ -811,6 +791,24 @@ export default function BlogPost() {
       if (ldEl) ldEl.remove();
     };
   }, [article]);
+
+  if (loading) {
+    return <div className="flex min-h-[65vh] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
+
+  if (!article) {
+    return (
+      <div className="mx-auto max-w-3xl px-6 py-20 text-center">
+        <h1 className="mb-4 text-2xl font-bold text-foreground">Article not found</h1>
+        <Button asChild variant="outline"><Link to="/blog"><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link></Button>
+      </div>
+    );
+  }
+
+  const date = new Date(article.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  const unitName = getCategoryDisplayName(article.category);
+  const yearName = getYearFromCategory(article.category);
+  const hasRelated = related.flashcards.length > 0 || related.mcqs.length > 0;
 
   return (
     <>
