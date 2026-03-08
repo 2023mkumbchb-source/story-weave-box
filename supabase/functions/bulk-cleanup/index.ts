@@ -801,10 +801,19 @@ serve(async (req) => {
           if (!newTitle) newTitle = inferTitleFromContent(baseContent);
 
           const suggestedCat = ai?.category && CATEGORY_KEYWORDS[ai.category] ? ai.category : null;
-          const detectedCat = detectBestCategory(newTitle, baseContent);
-          const newCategory = suggestedCat || detectedCat || article.category;
-          const contentType = ai?.content_type || (isMcqContent(baseContent) ? "mcq" : looksLikeEssayContent(baseContent) ? "essay" : "article");
           const newContent = cleanContent(ai?.clean_content || baseContent);
+          const detectedCat = detectBestCategory(newTitle, newContent);
+          const newCategory = suggestedCat || detectedCat || article.category;
+
+          const parsedMcqs = extractMcqsFromContent(newContent.slice(0, MAX_MCQ_EXTRACT_CHARS));
+          const parsedEssays = extractEssayQuestions(newContent.slice(0, MAX_MCQ_EXTRACT_CHARS));
+          const forcedType = parsedMcqs.length >= 5
+            ? "mcq"
+            : parsedEssays.saqs.length + parsedEssays.laqs.length >= 3
+            ? "essay"
+            : null;
+
+          const contentType = forcedType || ai?.content_type || (isMcqContent(baseContent) ? "mcq" : looksLikeEssayContent(baseContent) ? "essay" : "article");
 
           if (contentType === "delete" || newContent.replace(/\s+/g, "").length < 40) {
             await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
@@ -814,7 +823,7 @@ serve(async (req) => {
           }
 
           if (contentType === "mcq") {
-            const mcqs = extractMcqsFromContent(newContent.slice(0, MAX_MCQ_EXTRACT_CHARS));
+            const mcqs = parsedMcqs;
             if (mcqs.length >= 5) {
               const { error: mcqError } = await sb.from("mcq_sets").insert({
                 title: normalizeTitle(newTitle),
@@ -835,7 +844,7 @@ serve(async (req) => {
           }
 
           if (contentType === "essay") {
-            const essays = extractEssayQuestions(newContent);
+            const essays = parsedEssays;
             if (essays.saqs.length + essays.laqs.length >= 3) {
               const { error: essayErr } = await sb.from("essays").insert({
                 title: normalizeTitle(newTitle),
