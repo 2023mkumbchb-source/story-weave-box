@@ -205,8 +205,8 @@ Return ONLY the improved content.`;
     }
 
     throw new Error("Unknown action");
-  } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), {
+  } catch (e: any) {
+    return new Response(JSON.stringify({ error: e?.message || "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

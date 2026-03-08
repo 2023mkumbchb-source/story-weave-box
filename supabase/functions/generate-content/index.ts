@@ -151,6 +151,7 @@ function parseAndNormalizeMcqs(raw: string, expectedCount: number) {
   const unique: any[] = [];
   const seen = new Set<string>();
   for (const q of cleaned) {
+    if (!q) continue;
     const key = q.question.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
     if (!seen.has(key)) {
       seen.add(key);
