@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  getPublishedArticles, getPublishedFlashcardSets, getPublishedMcqSets,
+  getPublishedArticles, getPublishedFlashcardSets, getPublishedMcqSets, buildBlogPath,
 } from "@/lib/store";
 
 const fetchArticles   = () => getPublishedArticles().catch(() => ([] as any[]));
