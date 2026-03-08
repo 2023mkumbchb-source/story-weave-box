@@ -2591,6 +2591,7 @@ function SeoIndexingTab() {
   const handleLoadSeoArticles = async () => {
     setLoadingArticles(true);
     try {
+      await syncSiteUrlConfig();
       const all: any[] = [];
       let cursor: string | null = null;
       let done = false;
