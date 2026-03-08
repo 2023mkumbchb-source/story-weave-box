@@ -169,6 +169,10 @@ export default function StoryRead() {
       <article className="prose prose-sm max-w-none prose-blockquote:border-primary/30 prose-blockquote:text-muted-foreground prose-headings:font-serif prose-p:leading-[1.8] prose-p:text-foreground/90 dark:prose-invert">
         {isHtml ? <div dangerouslySetInnerHTML={{ __html: storyContent }} /> : renderMarkdown(storyContent)}
       </article>
+
+      <div className="mt-10 pt-6 border-t border-border">
+        <ShareButtons url={storyUrl} title={story.title} variant="full" />
+      </div>
     </motion.div>
   );
 }
