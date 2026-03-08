@@ -143,9 +143,9 @@ export default function Navbar() {
                 {/* Sidebar header */}
                 <div className="flex items-center gap-2 border-b border-white/10 px-4 py-4">
                   <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-white/10 p-1">
-                    <img src={ompathLogo} alt="Ompath Study logo" className="h-full w-full object-contain" />
+                    <img src={kenyaMedsLogo} alt="Kenya Meds logo" className="h-full w-full object-contain" />
                   </div>
-                  <span className="font-serif text-lg font-bold">Ompath Study</span>
+                  <span className="font-serif text-lg font-bold">Kenya Meds</span>
                 </div>
 
                 {/* Sidebar content */}
