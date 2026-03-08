@@ -378,7 +378,7 @@ function ArticleContent({ content }: { content: string }) {
     if (/^#{3,6}\s/.test(t)) {
       flushList(); underSubheading = true;
       const txt = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").trim();
-      els.push(<h3 key={`h3-${i}`} className="mt-6 mb-2 font-semibold text-base text-foreground">{txt}</h3>);
+      els.push(<h3 key={`h3-${i}`} className="mt-6 mb-2 font-semibold text-lg text-foreground">{txt}</h3>);
       return;
     }
 
