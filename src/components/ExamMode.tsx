@@ -354,7 +354,7 @@ export default function ExamMode({
           {!answersUnlocked ? (
             <div className="rounded-2xl border border-border bg-card p-6 flex flex-col items-center text-center gap-3">
               <div className="rounded-full bg-primary/10 p-4"><Lock className="h-7 w-7 text-primary" /></div>
-              <h3 className="font-display text-base font-bold text-foreground">Answers Locked Until Midnight</h3>
+              <h3 className="font-serif text-base font-bold text-foreground">Answers Locked Until Midnight</h3>
               <p className="text-sm text-muted-foreground max-w-xs">
                 Answers are released at <strong className="text-foreground">12:00 AM</strong> once all students have finished.
               </p>
