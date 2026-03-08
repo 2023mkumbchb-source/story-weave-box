@@ -686,6 +686,83 @@ serve(async (req) => {
       });
     }
 
+    if (action === "cleanup_non_ai_batch") {
+      const nonAiBatchSize = Math.min(Math.max(Number(body?.batch_size || 6), 1), 12);
+      const articles = await fetchArticleBatch(sb, nonAiBatchSize, cursor, yearFilter);
+
+      if (articles.length === 0) {
+        return new Response(JSON.stringify({
+          updated: 0,
+          migrated_mcqs: 0,
+          migrated_essays: 0,
+          deleted: 0,
+          failed: 0,
+          skipped: 0,
+          processed: 0,
+          done: true,
+          next_cursor: null,
+          processed_articles: [],
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let updated = 0;
+      let migrated_mcqs = 0;
+      let migrated_essays = 0;
+      let deleted = 0;
+      let failed = 0;
+      let skipped = 0;
+      let processed = 0;
+      let lastCursor: string | null = cursor;
+      const processedArticles: Array<{ id: string; title: string; action: string; details?: string }> = [];
+      let timedOut = false;
+
+      for (const article of articles) {
+        processed++;
+        lastCursor = article.id;
+
+        try {
+          const result = await processNonAiArticle(sb, article);
+          processedArticles.push(result);
+
+          if (result.action === "updated") updated++;
+          else if (result.action === "migrated_mcq") migrated_mcqs++;
+          else if (result.action === "migrated_essay") migrated_essays++;
+          else if (result.action === "deleted") deleted++;
+          else skipped++;
+        } catch (err: any) {
+          failed++;
+          processedArticles.push({
+            id: article.id,
+            title: article.title,
+            action: "failed",
+            details: err?.message || "Unknown",
+          });
+        }
+
+        if (Date.now() - startedAt > CPU_BUDGET_MS) {
+          timedOut = true;
+          break;
+        }
+      }
+
+      return new Response(JSON.stringify({
+        updated,
+        migrated_mcqs,
+        migrated_essays,
+        deleted,
+        failed,
+        skipped,
+        processed,
+        processed_articles: processedArticles,
+        done: articles.length < nonAiBatchSize && !timedOut,
+        next_cursor: lastCursor,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "ai_fix_batch") {
       const aiBatchSize = Math.min(Math.max(Number(body?.batch_size || 1), 1), 2);
       const articles = await fetchArticleBatch(sb, aiBatchSize, cursor, yearFilter);
