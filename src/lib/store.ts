@@ -170,6 +170,39 @@ function toArticlePreview(row: any): Article {
   };
 }
 
+// Simple in-memory + sessionStorage cache for article summaries
+const SUMMARY_CACHE_KEY = "article_summaries_cache";
+const SUMMARY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+let memorySummaryCache: { data: Article[]; ts: number } | null = null;
+
+function getCachedSummaries(): Article[] | null {
+  // Check memory first
+  if (memorySummaryCache && Date.now() - memorySummaryCache.ts < SUMMARY_CACHE_TTL) {
+    return memorySummaryCache.data;
+  }
+  // Check sessionStorage
+  try {
+    const raw = sessionStorage.getItem(SUMMARY_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.ts && Date.now() - parsed.ts < SUMMARY_CACHE_TTL) {
+        memorySummaryCache = { data: parsed.data, ts: parsed.ts };
+        return parsed.data;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+function setCachedSummaries(data: Article[]) {
+  const entry = { data, ts: Date.now() };
+  memorySummaryCache = entry;
+  try {
+    sessionStorage.setItem(SUMMARY_CACHE_KEY, JSON.stringify(entry));
+  } catch {}
+}
+
 // Articles
 export async function getArticles(): Promise<Article[]> {
   const { data, error } = await supabase
@@ -193,6 +226,12 @@ export async function getPublishedArticles(): Promise<Article[]> {
 }
 
 export async function getPublishedArticleSummaries(year?: string): Promise<Article[]> {
+  // Only cache the "all" request (no year filter)
+  if (!year) {
+    const cached = getCachedSummaries();
+    if (cached) return cached;
+  }
+
   let query = supabase
     .from("articles")
     .select("id, title, category, created_at, published, slug, meta_description")
@@ -200,13 +239,16 @@ export async function getPublishedArticleSummaries(year?: string): Promise<Artic
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
-  if (year && /^Year [1-5]$/.test(year)) {
+  if (year && /^Year [1-6]$/.test(year)) {
     query = query.like("category", `${year}:%`);
   }
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data || []).map((row) => toArticlePreview(row));
+  const result = (data || []).map((row) => toArticlePreview(row));
+
+  if (!year) setCachedSummaries(result);
+  return result;
 }
 
 export async function searchPublishedArticles(queryText: string, year?: string, unit?: string): Promise<Article[]> {
