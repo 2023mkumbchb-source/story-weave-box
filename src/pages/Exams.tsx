@@ -235,7 +235,7 @@ export default function Exams() {
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="mb-1 text-xs font-medium text-primary">Unit: {unitName}</p>
-                    <h2 className="font-display text-lg font-bold text-foreground">{exam.title}</h2>
+                    <h2 className="font-serif text-lg font-bold text-foreground">{exam.title}</h2>
                     {/* CHANGED: removed "Section B SAQs · Section C LAQ" — MCQs only */}
                     <p className="mt-1 text-xs text-muted-foreground">
                       {exam.questions.length} MCQs · {exam.questions.length} minutes · Section A

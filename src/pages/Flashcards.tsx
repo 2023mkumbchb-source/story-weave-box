@@ -95,7 +95,7 @@ export default function Flashcards() {
                     {getCategoryDisplayName(s.category)}
                   </span>
                 )}
-                <h3 className="mb-2 line-clamp-2 font-display text-base font-bold text-foreground transition-colors group-hover:text-primary">
+                <h3 className="mb-2 line-clamp-2 font-serif text-base font-bold text-foreground transition-colors group-hover:text-primary">
                   {s.title}
                 </h3>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">

@@ -89,7 +89,7 @@ export default function Stories() {
                     {story.category}
                   </span>
                 )}
-                <h3 className="mb-2 font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                <h3 className="mb-2 font-serif text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2">
                   {story.title}
                 </h3>
                 <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3">

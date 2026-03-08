@@ -72,7 +72,7 @@ export default function Essays() {
                   className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 sm:p-5 transition-shadow hover:shadow-md"
                 >
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-display text-base font-bold text-foreground truncate">{e.title}</h3>
+                    <h3 className="font-serif text-base font-bold text-foreground truncate">{e.title}</h3>
                     <p className="text-xs text-muted-foreground mt-1">
                       {e.category !== "Uncategorized" && (
                         <span className="text-primary">{getCategoryDisplayName(e.category)} · </span>

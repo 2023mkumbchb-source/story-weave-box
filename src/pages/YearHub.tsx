@@ -78,7 +78,7 @@ export default function YearHub() {
       <div className="mt-6 rounded-2xl border border-border bg-card p-5">
         <div className="mb-3 flex items-center gap-2">
           <BookMarked className="h-4 w-4 text-primary" />
-          <h2 className="font-display text-lg font-bold text-foreground">Units in {yearLabel}</h2>
+          <h2 className="font-serif text-lg font-bold text-foreground">Units in {yearLabel}</h2>
         </div>
         <div className="flex flex-wrap gap-2">
           {units.map((unit) => (
