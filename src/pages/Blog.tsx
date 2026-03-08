@@ -152,12 +152,13 @@ export default function Blog() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-5 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="font-serif text-2xl font-bold text-foreground">Study Notes</h1>
+      <div className="mb-7">
+        <h1 className="font-serif text-3xl font-bold leading-tight text-foreground sm:text-4xl">Study Notes</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Browse structured clinical notes by year and unit.</p>
         {yearRoute && (
-          <button onClick={() => navigate(`/year/${yearRoute}`)} className="mt-1 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={() => navigate(`/year/${yearRoute}`)} className="mt-2 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
             <ArrowLeft className="h-3.5 w-3.5" /> Back to Year {yearRoute}
           </button>
         )}
@@ -165,17 +166,17 @@ export default function Blog() {
 
       {/* Continue reading */}
       {!search.trim() && selectedYear !== "All" && !selectedUnit && filteredRecentArticles.length > 0 && (
-        <div className="mb-6 rounded-lg border border-border p-4">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="mb-7 rounded-2xl border border-border bg-card p-4">
+          <div className="mb-3 flex items-center gap-2">
             <Clock className="h-3.5 w-3.5 text-primary" />
             <h2 className="text-sm font-semibold text-foreground">Continue Reading</h2>
           </div>
           <div className="space-y-1">
             {filteredRecentArticles.slice(0, 3).map(ra => (
-              <Link key={ra.id} to={buildBlogPath(ra)} className="group flex items-center gap-3 rounded-lg py-2 px-2 -mx-2 hover:bg-muted/30 transition-colors">
-                <BookOpen className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span className="text-sm font-medium text-foreground group-hover:text-primary truncate transition-colors">{ra.title}</span>
-                <span className="ml-auto text-[11px] text-muted-foreground shrink-0">{timeAgo(ra.visitedAt)}</span>
+              <Link key={ra.id} to={buildBlogPath(ra)} className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/40">
+                <BookOpen className="h-3.5 w-3.5 shrink-0 text-primary" />
+                <span className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">{ra.title}</span>
+                <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{timeAgo(ra.visitedAt)}</span>
               </Link>
             ))}
           </div>
@@ -184,15 +185,15 @@ export default function Blog() {
 
       {/* Search */}
       <div className="mb-5">
-        <div className={`relative flex items-center rounded-lg border bg-card transition-all ${searchFocused ? "border-primary ring-1 ring-primary/20" : "border-border"}`}>
+        <div className={`relative flex items-center rounded-xl border bg-card transition-all ${searchFocused ? "border-primary ring-1 ring-primary/20" : "border-border"}`}>
           <Search className="ml-3 h-4 w-4 shrink-0 text-muted-foreground" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
-            placeholder="Search articles by title or content…"
-            className="w-full bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+            placeholder="Live search in title + content…"
+            className="w-full bg-transparent px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
           {search && (
             <button onClick={() => setSearch("")} className="mr-3 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
@@ -200,7 +201,7 @@ export default function Blog() {
         </div>
         {search.trim() && (
           <p className="mt-1.5 text-xs text-muted-foreground">
-            {searchLoading ? "Searching…" : filtered.length === 0 ? `No results for "${search}"` : `${filtered.length} results`}
+            {searchLoading ? "Searching…" : filtered.length === 0 ? `No results for "${search}"` : `${filtered.length} matching articles`}
           </p>
         )}
       </div>
@@ -224,11 +225,11 @@ export default function Blog() {
 
       {/* Unit chips */}
       {selectedYear !== "All" && unitsForYear.length > 0 && (
-        <div className="mb-5 flex flex-wrap gap-1.5">
+        <div className="mb-6 flex flex-wrap gap-1.5">
           <button
             onClick={() => setUnit(null)}
             className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-              !selectedUnit ? "bg-primary/10 text-primary border border-primary/30" : "text-muted-foreground hover:text-foreground border border-transparent"
+              !selectedUnit ? "border border-primary/30 bg-primary/10 text-primary" : "border border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             All Units
@@ -238,10 +239,10 @@ export default function Blog() {
               key={u.category}
               onClick={() => setUnit(selectedUnit === u.category ? null : u.category)}
               className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                selectedUnit === u.category ? "bg-primary/10 text-primary border border-primary/30" : "text-muted-foreground hover:text-foreground border border-transparent"
+                selectedUnit === u.category ? "border border-primary/30 bg-primary/10 text-primary" : "border border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              {u.name} <span className="text-muted-foreground/60">({u.count})</span>
+              {u.name}
             </button>
           ))}
         </div>
@@ -253,27 +254,26 @@ export default function Blog() {
           <p className="text-muted-foreground">No articles found</p>
         </div>
       ) : groupedArticles && !search.trim() ? (
-        <div className="space-y-8">
+        <div className="space-y-10">
           {groupedArticles.map(group => (
             <div key={group.category}>
-              <div className="flex items-center gap-3 mb-1">
-                <h2 className="font-serif text-base font-bold text-foreground">{group.name}</h2>
-                <span className="text-xs text-muted-foreground">({group.articles.length})</span>
-                <div className="flex-1 border-b border-border" />
+              <div className="mb-3 flex items-center gap-3">
+                <h2 className="font-serif text-2xl font-bold text-foreground">{group.name}</h2>
+                <div className="h-px flex-1 bg-border" />
               </div>
-              <div>
+              <div className="space-y-3">
                 {group.articles.slice(0, 8).map(a => <ArticleCard key={a.id} article={a} />)}
               </div>
               {group.articles.length > 8 && (
-                <button onClick={() => setUnit(group.category)} className="mt-2 text-sm font-medium text-primary hover:underline">
-                  View all {group.articles.length} →
+                <button onClick={() => setUnit(group.category)} className="mt-3 text-sm font-semibold text-primary hover:underline">
+                  View all in {group.name} <ArrowRight className="inline h-3.5 w-3.5" />
                 </button>
               )}
             </div>
           ))}
         </div>
       ) : (
-        <div>
+        <div className="space-y-3">
           {filtered.map(a => <ArticleCard key={a.id} article={a} />)}
         </div>
       )}
