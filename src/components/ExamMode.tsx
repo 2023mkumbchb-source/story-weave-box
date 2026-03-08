@@ -331,7 +331,7 @@ export default function ExamMode({
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             className={`rounded-2xl border ${grade.bg} p-5 text-center`}>
             <div className="text-4xl mb-2">{grade.icon}</div>
-            <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground mb-1">{grade.label}</h2>
+            <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground mb-1">{grade.label}</h2>
             <p className="text-xs text-muted-foreground mb-3 truncate">{title}</p>
             <div className="flex items-center justify-center gap-4 sm:gap-6">
               <div>
