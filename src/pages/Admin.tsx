@@ -2865,6 +2865,7 @@ function StoriesTab() {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editCategory, setEditCategory] = useState("");
+  const [editCoverUrl, setEditCoverUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
