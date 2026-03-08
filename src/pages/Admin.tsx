@@ -2250,7 +2250,6 @@ function SeoIndexingTab() {
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [copiedBatch, setCopiedBatch] = useState<number | null>(null);
   const [siteUrlInput, setSiteUrlInput] = useState("https://ompathstud.lovable.app");
-  const [savingSiteUrl, setSavingSiteUrl] = useState(false);
   const [googleApiKey, setGoogleApiKey] = useState("");
 
   const sitemapUrl = `${siteUrlInput.replace(/\/+$/, "")}/sitemap.xml`;
