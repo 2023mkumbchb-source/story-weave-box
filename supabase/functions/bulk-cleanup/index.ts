@@ -757,11 +757,12 @@ serve(async (req) => {
         try {
           if (action === "migrate_mcqs") {
             const mcqSource = article.content.length > MAX_MCQ_EXTRACT_CHARS ? article.content.slice(0, MAX_MCQ_EXTRACT_CHARS) : article.content;
-            if (!isMcqContent(mcqSource)) {
+            const titleSuggestsMcq = /\bmcq\b|multiple\s+choice/i.test(article.title || "");
+            if (!isMcqContent(mcqSource) && !titleSuggestsMcq) {
               skipped++;
             } else {
               const mcqs = extractMcqsFromContent(mcqSource);
-              if (mcqs.length >= 5) {
+              if (mcqs.length >= 3 || (titleSuggestsMcq && mcqs.length >= 1)) {
                 const { error: mcqError } = await sb.from("mcq_sets").insert({
                   title: normalizeTitle(article.title),
                   questions: mcqs,
@@ -775,6 +776,8 @@ serve(async (req) => {
                   await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
                   migrated++;
                   migratedArticles.push(`${article.title} (${mcqs.length} MCQs)`);
+                } else {
+                  failed++;
                 }
               } else {
                 skipped++;
