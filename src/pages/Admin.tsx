@@ -869,7 +869,7 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
   );
 }
 
-// ===== ARTICLES LIST =====
+// ===== ARTICLES LIST (Year-based with batch Gemini update & image generation) =====
 function ArticlesList({
   initialEditId,
   onEditOpened,
@@ -880,22 +880,94 @@ function ArticlesList({
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Article | null>(null);
+  const [activeYear, setActiveYear] = useState<string>("all");
+  const [batchLoading, setBatchLoading] = useState<string | null>(null);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number; label: string } | null>(null);
+  const [updatedIds, setUpdatedIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
+
   const refresh = () => { getArticles().then((arts) => setArticles(arts.filter((a: any) => a.is_raw !== true))).finally(() => setLoading(false)); };
   useEffect(() => { refresh(); }, []);
   useEffect(() => {
     if (!initialEditId || editing || articles.length === 0) return;
     const target = articles.find((a) => a.id === initialEditId);
-    if (target) {
-      setEditing(target);
-      onEditOpened();
-    }
+    if (target) { setEditing(target); onEditOpened(); }
   }, [initialEditId, editing, articles, onEditOpened]);
+
   const handleDelete = async (id: string) => { await deleteArticle(id); refresh(); toast({ title: "Deleted" }); };
   const togglePublish = async (a: Article) => { await saveArticle({ ...a, published: !a.published }); refresh(); toast({ title: a.published ? "Unpublished" : "Published!" }); };
   const handleSaveEdit = async () => { if (!editing) return; await saveArticle(editing); setEditing(null); refresh(); toast({ title: "Article updated!" }); };
+
+  // Filter by year
+  const years = ["all", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5"];
+  const filteredArticles = activeYear === "all"
+    ? articles
+    : articles.filter(a => a.category.startsWith(activeYear));
+
+  // Group by category within selected year
+  const grouped = filteredArticles.reduce<Record<string, Article[]>>((acc, a) => {
+    const cat = a.category || "Uncategorized";
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(a);
+    return acc;
+  }, {});
+  const sortedGroups = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
+
+  // Year counts
+  const yearCounts: Record<string, number> = { all: articles.length };
+  years.slice(1).forEach(y => { yearCounts[y] = articles.filter(a => a.category.startsWith(y)).length; });
+
+  // Batch Gemini update for filtered articles
+  const handleBatchGeminiUpdate = async () => {
+    if (!filteredArticles.length) return;
+    setBatchLoading("gemini");
+    const newUpdated = new Set(updatedIds);
+    let errors = 0;
+    for (let i = 0; i < filteredArticles.length; i++) {
+      const art = filteredArticles[i];
+      if (newUpdated.has(art.id)) continue; // skip already updated
+      setBatchProgress({ current: i + 1, total: filteredArticles.length, label: art.title.slice(0, 50) });
+      try {
+        const { data, error } = await supabase.functions.invoke("content-upgrade", { body: { action: "upgrade", id: art.id, type: "format" } });
+        if (error) throw new Error(error.message);
+        if (!data?.improved_content) throw new Error("No content returned");
+        await supabase.functions.invoke("content-upgrade", { body: { action: "apply", id: art.id, content: data.improved_content, title: art.title } });
+        newUpdated.add(art.id);
+        setUpdatedIds(new Set(newUpdated));
+      } catch { errors++; }
+    }
+    setBatchProgress(null);
+    setBatchLoading(null);
+    toast({ title: errors === 0 ? `All ${filteredArticles.length} articles updated!` : `Done — ${errors} failed` });
+    refresh();
+  };
+
+  // Batch image generation for filtered articles
+  const handleBatchImageGen = async () => {
+    if (!filteredArticles.length) return;
+    setBatchLoading("images");
+    let errors = 0;
+    for (let i = 0; i < filteredArticles.length; i++) {
+      const art = filteredArticles[i];
+      setBatchProgress({ current: i + 1, total: filteredArticles.length, label: art.title.slice(0, 50) });
+      try {
+        const { data, error } = await supabase.functions.invoke("content-upgrade", { body: { action: "generate_image", id: art.id } });
+        if (error) throw new Error(error.message);
+        const imageDataUrl = data?.image_data_url as string | undefined;
+        if (!imageDataUrl) throw new Error("No image");
+        const contentWithoutTopImage = art.content.replace(/^!\[[^\]]*\]\([^)]+\)\s*\n*/m, "").trimStart();
+        const newContent = `![${art.title}](${imageDataUrl})\n\n${contentWithoutTopImage}`;
+        await supabase.functions.invoke("content-upgrade", { body: { action: "apply", id: art.id, title: art.title, content: newContent } });
+      } catch { errors++; }
+    }
+    setBatchProgress(null);
+    setBatchLoading(null);
+    toast({ title: errors === 0 ? `Images generated for ${filteredArticles.length} articles!` : `Done — ${errors} failed` });
+    refresh();
+  };
+
   if (loading) return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
-  if (articles.length === 0) return <p className="text-muted-foreground">No articles yet.</p>;
+
   if (editing) {
     return (
       <div className="rounded-xl border border-border bg-card p-6">
@@ -913,21 +985,93 @@ function ArticlesList({
       </div>
     );
   }
+
   return (
-    <div className="space-y-3">
-      {articles.map((a) => (
-        <div key={a.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
-          <div className="min-w-0 flex-1">
-            <h4 className="font-medium text-foreground truncate">{a.title}</h4>
-            <p className="text-xs text-muted-foreground">
-              {a.category !== "Uncategorized" && <span className="text-primary">{getCategoryDisplayName(a.category)} · </span>}
-              {new Date(a.created_at).toLocaleDateString()} · {a.published ? "Published" : "Draft"}
-            </p>
+    <div>
+      {/* Year filter tabs */}
+      <div className="mb-4 flex gap-1 rounded-xl border border-border bg-secondary/50 p-1 overflow-x-auto">
+        {years.map(y => (
+          <button key={y} onClick={() => setActiveYear(y)}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${activeYear === y ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            {y === "all" ? "All" : y}
+            <span className="ml-1.5 text-xs text-muted-foreground">({yearCounts[y] || 0})</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Batch action bar */}
+      {filteredArticles.length > 0 && (
+        <div className="mb-6 rounded-xl border border-primary/30 bg-primary/5 p-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-foreground">
+                {activeYear === "all" ? "All Articles" : activeYear} — {filteredArticles.length} article{filteredArticles.length !== 1 ? "s" : ""}
+              </h3>
+              {updatedIds.size > 0 && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  <span className="text-primary font-medium">{updatedIds.size}</span> updated with Gemini this session
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Button size="sm" onClick={handleBatchGeminiUpdate} disabled={!!batchLoading} className="gap-1.5 text-xs">
+                {batchLoading === "gemini" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                Update All with Gemini
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleBatchImageGen} disabled={!!batchLoading} className="gap-1.5 text-xs border-primary/30">
+                {batchLoading === "images" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
+                Generate Images for All
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2 ml-2">
-            <Button size="sm" variant="ghost" onClick={() => setEditing(a)}><Pencil className="h-4 w-4" /></Button>
-            <Button size="sm" variant="ghost" onClick={() => togglePublish(a)}>{a.published ? "Unpublish" : "Publish"}</Button>
-            <Button size="sm" variant="ghost" onClick={() => handleDelete(a.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+          {batchProgress && (
+            <div className="mt-3">
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-xs font-medium text-foreground truncate max-w-[70%]">{batchProgress.label}</span>
+                <span className="text-xs text-muted-foreground">{batchProgress.current}/{batchProgress.total}</span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
+                <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {filteredArticles.length === 0 && (
+        <div className="text-center py-16 text-muted-foreground">
+          <p className="font-medium text-foreground">No articles for {activeYear === "all" ? "any year" : activeYear}</p>
+        </div>
+      )}
+
+      {/* Articles grouped by category */}
+      {sortedGroups.map(([cat, arts]) => (
+        <div key={cat} className="mb-6">
+          <h4 className="mb-3 text-xs font-bold text-primary uppercase tracking-wide">{getCategoryDisplayName(cat)} ({arts.length})</h4>
+          <div className="space-y-2">
+            {arts.map(a => (
+              <div key={a.id} className={`flex items-center justify-between rounded-xl border bg-card p-4 transition-colors ${updatedIds.has(a.id) ? "border-primary/40 bg-primary/5" : "border-border"}`}>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h5 className="font-medium text-foreground truncate">{a.title}</h5>
+                    {updatedIds.has(a.id) && (
+                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
+                        <Check className="h-2.5 w-2.5" /> Updated
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(a.created_at).toLocaleDateString()} · {a.published ? "Published" : "Draft"}
+                  </p>
+                </div>
+                <div className="flex gap-1 ml-2 shrink-0">
+                  <Button size="sm" variant="ghost" asChild className="text-xs"><a href={`/blog/${a.slug || a.id}`} target="_blank" rel="noopener"><Eye className="h-3.5 w-3.5" /></a></Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditing(a)}><Pencil className="h-4 w-4" /></Button>
+                  <Button size="sm" variant="ghost" onClick={() => togglePublish(a)}>{a.published ? "Unpublish" : "Publish"}</Button>
+                  <Button size="sm" variant="ghost" onClick={() => handleDelete(a.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       ))}
