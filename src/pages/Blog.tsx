@@ -167,7 +167,7 @@ export default function Blog() {
       </div>
 
       {/* Recently Read */}
-      {!search.trim() && selectedYear === "All" && !selectedUnit && recentArticles.length > 0 && (
+      {!search.trim() && selectedYear !== "All" && !selectedUnit && filteredRecentArticles.length > 0 && (
         <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
           className="mb-8 rounded-2xl border border-border bg-card/60 p-4 sm:p-5">
           <div className="mb-3 flex items-center gap-2">
