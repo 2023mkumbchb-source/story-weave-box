@@ -395,14 +395,16 @@ async function fetchArticleBatch(
   batchSize: number,
   cursor: string | null,
   yearFilter: string | null,
+  includeUnpublished: boolean,
 ): Promise<ArticleLite[]> {
   let query = sb
     .from("articles")
     .select("id, title, content, category, is_raw")
-    .eq("published", true)
     .is("deleted_at", null)
     .order("id", { ascending: true })
     .limit(batchSize);
+
+  if (!includeUnpublished) query = query.eq("published", true);
 
   if (yearFilter) query = query.like("category", `${yearFilter}:%`);
   if (cursor) query = query.gt("id", cursor);
