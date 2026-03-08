@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { ArrowRight, Clock3 } from "lucide-react";
 import type { Article } from "@/lib/store";
 import { buildBlogPath, getCategoryDisplayName, getYearFromCategory } from "@/lib/store";
@@ -31,10 +31,13 @@ export default function ArticleCard({ article }: { article: Article }) {
   const year = getYearFromCategory(article.category);
   const cover = getArticleThumbnail(article);
   const createdDate = new Date(article.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const location = useLocation();
+  const fromPath = `${location.pathname}${location.search}`;
 
   return (
     <Link
       to={buildBlogPath(article)}
+      state={{ from: fromPath }}
       className="group block overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-card-hover)]"
     >
       <article className="grid min-h-[200px] gap-0 md:grid-cols-[240px_1fr]">

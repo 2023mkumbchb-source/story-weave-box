@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useSearchParams, Link, useNavigate } from "react-router-dom";
+import { useSearchParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { Search, X, Loader2, BookOpen, Clock, ArrowRight, ArrowLeft, Bone, Brain, FlaskConical, HeartPulse, Microscope } from "lucide-react";
 import {
   getCategoryDisplayName,
@@ -36,6 +36,8 @@ function timeAgo(ms: number): string {
 export default function Blog() {
   useEffect(() => { document.title = "Study Notes | Kenya Meds"; }, []);
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromPath = `${location.pathname}${location.search}`;
   const [searchParams, setSearchParams] = useSearchParams();
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
@@ -196,7 +198,7 @@ export default function Blog() {
           </div>
           <div className="space-y-1">
             {filteredRecentArticles.slice(0, 3).map(ra => (
-              <Link key={ra.id} to={buildBlogPath(ra)} className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/40">
+              <Link key={ra.id} to={buildBlogPath(ra)} state={{ from: fromPath }} className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/40">
                 <BookOpen className="h-3.5 w-3.5 shrink-0 text-primary" />
                 <span className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">{ra.title}</span>
                 <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{timeAgo(ra.visitedAt)}</span>

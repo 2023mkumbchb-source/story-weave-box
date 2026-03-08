@@ -527,11 +527,33 @@ export default function BlogPost() {
     const shouldConfirm = window.scrollY > 220;
     if (shouldConfirm && !window.confirm("Leave this article and go back?")) return;
 
-    if (window.history.length > 1) { navigate(-1); return; }
+    const fromPath = (location.state as { from?: string } | null)?.from;
+    if (fromPath && fromPath.startsWith("/blog")) {
+      navigate(fromPath);
+      return;
+    }
+
     const savedYear = sessionStorage.getItem("nav_year_filter");
     if (savedYear && /^Year [1-6]$/.test(savedYear)) navigate(`/blog?year=${encodeURIComponent(savedYear)}`);
     else navigate("/blog");
   };
+
+  useEffect(() => {
+    const resetToTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+
+    resetToTop();
+    const raf = requestAnimationFrame(resetToTop);
+    const timeoutId = window.setTimeout(resetToTop, 120);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timeoutId);
+    };
+  }, [slug]);
 
   const reloadCurrentArticle = async (id: string) => {
     const refreshed = await getArticleBySlugOrId(id);

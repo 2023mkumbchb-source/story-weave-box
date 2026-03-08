@@ -35,7 +35,7 @@ export default function Exams() {
   const [examSets, setExamSets] = useState<ExamSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [examPrice, setExamPrice] = useState(5);
-  const [phone, setPhone] = useState("");
+  const [phoneByExamId, setPhoneByExamId] = useState<Record<string, string>>({});
   const [paying, setPaying] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "pending" | "completed" | "failed">("idle");
   const [payingForExamId, setPayingForExamId] = useState<string | null>(null);
@@ -118,7 +118,8 @@ export default function Exams() {
   };
 
   const handlePay = async (exam: ExamSet) => {
-    if (!phone.trim()) return;
+    const phone = (phoneByExamId[exam.id] || "").trim();
+    if (!phone) return;
 
     setPaying(true);
     setPaymentStatus("pending");
@@ -127,7 +128,7 @@ export default function Exams() {
     try {
       const { data, error } = await supabase.functions.invoke("initiate-payment", {
         body: {
-          phone: phone.trim(),
+          phone,
           amount: examPrice,
           package_type: `exam:${inferUnit(exam)}`,
         },
@@ -278,10 +279,10 @@ export default function Exams() {
                         <Input
                           type="tel"
                           placeholder="07XX XXX XXX"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
+                          value={phoneByExamId[exam.id] || ""}
+                          onChange={(e) => setPhoneByExamId((prev) => ({ ...prev, [exam.id]: e.target.value }))}
                         />
-                        <Button onClick={() => handlePay(exam)} disabled={paying || !phone.trim()} className="gap-2">
+                        <Button onClick={() => handlePay(exam)} disabled={paying || !(phoneByExamId[exam.id] || "").trim()} className="gap-2">
                           <Phone className="h-4 w-4" /> Pay KES {examPrice}
                         </Button>
                       </div>

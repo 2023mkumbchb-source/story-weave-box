@@ -42,7 +42,14 @@ interface PersistedExam {
   submitReason: string;
 }
 
+interface PersistedExamSession {
+  sessionId: string;
+  answers: [number, number][];
+  elapsed: number;
+}
+
 const storageKey = (id: string) => `exam_result_${id}`;
+const sessionStorageKey = (id: string) => `exam_session_${id}`;
 // Key for saving student credentials across sessions
 const STUDENT_CREDS_KEY = "student_credentials";
 
@@ -55,6 +62,21 @@ function loadFromStorage(id: string): PersistedExam | null {
     const raw = localStorage.getItem(storageKey(id));
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
+}
+
+function saveSessionToStorage(data: PersistedExamSession) {
+  try { localStorage.setItem(sessionStorageKey(data.sessionId), JSON.stringify(data)); } catch {}
+}
+
+function loadSessionFromStorage(id: string): PersistedExamSession | null {
+  try {
+    const raw = localStorage.getItem(sessionStorageKey(id));
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function clearSessionFromStorage(id: string) {
+  try { localStorage.removeItem(sessionStorageKey(id)); } catch {}
 }
 
 function isAnswersUnlocked(submittedAt: number): boolean {
@@ -85,31 +107,42 @@ export default function ExamMode({
   const [submitted, setSubmitted] = useState(false);
   const [submitReason, setSubmitReason] = useState<SubmitReason>("manual");
   const [submittedAt, setSubmittedAt] = useState<number | null>(null);
-  const [startTime] = useState(Date.now());
+  const [startTime, setStartTime] = useState(() => Date.now());
   const [elapsed, setElapsed] = useState(0);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [answersUnlocked, setAnswersUnlocked] = useState(false);
   const [displayAnswers, setDisplayAnswers] = useState<Map<number, number>>(new Map());
   const submittedRef = useRef(false);
+  const sessionId = setId || `local_${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 
   const timeLimit = timeLimitMinutes ? timeLimitMinutes * 60 : undefined;
   const remaining = timeLimit ? Math.max(0, timeLimit - elapsed) : undefined;
 
-  // ── On mount: check if already submitted ──
+  // ── On mount: restore submitted result or in-progress session ──
   useEffect(() => {
-    if (!setId) return;
-    const saved = loadFromStorage(setId);
-    if (saved) {
-      submittedRef.current = true;
-      setSubmitted(true);
-      setSubmitReason(saved.submitReason as SubmitReason);
-      setSubmittedAt(saved.submittedAt);
-      setElapsed(saved.elapsed);
-      setDisplayAnswers(new Map(saved.answers));
-      setAnswersUnlocked(isAnswersUnlocked(saved.submittedAt));
+    if (setId) {
+      const savedResult = loadFromStorage(setId);
+      if (savedResult) {
+        submittedRef.current = true;
+        setSubmitted(true);
+        setSubmitReason(savedResult.submitReason as SubmitReason);
+        setSubmittedAt(savedResult.submittedAt);
+        setElapsed(savedResult.elapsed);
+        setDisplayAnswers(new Map(savedResult.answers));
+        setAnswersUnlocked(isAnswersUnlocked(savedResult.submittedAt));
+        return;
+      }
     }
-  }, [setId]);
+
+    const savedSession = loadSessionFromStorage(sessionId);
+    if (savedSession) {
+      const restoredAnswers = new Map(savedSession.answers);
+      setAnswers(restoredAnswers);
+      setElapsed(savedSession.elapsed);
+      setStartTime(Date.now() - savedSession.elapsed * 1000);
+    }
+  }, [setId, sessionId]);
 
   // ── Timer ──
   useEffect(() => {
@@ -117,6 +150,16 @@ export default function ExamMode({
     const id = setInterval(() => setElapsed(Math.floor((Date.now() - startTime) / 1000)), 1000);
     return () => clearInterval(id);
   }, [startTime, submitted]);
+
+  // ── Persist in-progress session ──
+  useEffect(() => {
+    if (submitted) return;
+    saveSessionToStorage({
+      sessionId,
+      answers: [...answers.entries()],
+      elapsed,
+    });
+  }, [answers, elapsed, submitted, sessionId]);
 
   // ── Midnight unlock polling ──
   useEffect(() => {
@@ -173,6 +216,8 @@ export default function ExamMode({
       });
     }
 
+    clearSessionFromStorage(sessionId);
+
     // Save student credentials so they don't need to re-enter next time
     if (studentInfo) {
       try {
@@ -205,7 +250,7 @@ export default function ExamMode({
         });
       } catch (e) { console.error("DB save failed:", e); }
     }
-  }, [answers, questions, setId, studentInfo, title, unitName, startTime]);
+  }, [answers, questions, setId, studentInfo, title, unitName, startTime, sessionId]);
 
   useEffect(() => {
     if (submittedRef.current || !timeLimit) return;
@@ -215,10 +260,8 @@ export default function ExamMode({
   useEffect(() => {
     if (submittedRef.current) return;
     const onVis = () => { if (document.hidden) doSubmit("tab_switch"); };
-    const onBlur = () => doSubmit("tab_switch");
     document.addEventListener("visibilitychange", onVis);
-    window.addEventListener("blur", onBlur);
-    return () => { document.removeEventListener("visibilitychange", onVis); window.removeEventListener("blur", onBlur); };
+    return () => { document.removeEventListener("visibilitychange", onVis); };
   }, [doSubmit]);
 
   const selectAnswer = (qIdx: number, optIdx: number) => {
@@ -232,6 +275,16 @@ export default function ExamMode({
 
   const correctCount = [...displayAnswers.entries()].filter(([qi, oi]) => questions[qi]?.correct_answer === oi).length;
   const pct = total > 0 ? Math.round((correctCount / total) * 100) : 0;
+
+  const handleExitWithSave = () => {
+    saveSessionToStorage({
+      sessionId,
+      answers: [...answers.entries()],
+      elapsed,
+    });
+    setShowExitConfirm(false);
+    onExit();
+  };
 
   // Color only — NO blinking/pulse classes anywhere
   const timeColor =
@@ -254,13 +307,13 @@ export default function ExamMode({
               <h3 className="font-serif text-base font-bold text-foreground">Exit Exam?</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-1">
-              Your progress will be <strong className="text-foreground">lost</strong> — this will be an incomplete attempt.
+              Your progress is <strong className="text-foreground">saved automatically</strong>.
             </p>
             <p className="text-xs text-muted-foreground mb-5">
-              You will <strong className="text-foreground">not</strong> see answers — they are only available after midnight.
+              You can come back and continue this exam from where you stopped.
             </p>
             <div className="flex gap-3">
-              <button onClick={() => { setShowExitConfirm(false); onExit(); }} style={{animation:"none",transition:"none"}} className="flex-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2.5">Yes, Exit</button>
+              <Button variant="destructive" onClick={handleExitWithSave} className="flex-1">Save & Exit</Button>
               <Button variant="outline" onClick={() => setShowExitConfirm(false)} className="flex-1">Keep Going</Button>
             </div>
           </motion.div>
@@ -311,6 +364,32 @@ export default function ExamMode({
       timeout: "Time ran out — exam was auto-submitted.",
       tab_switch: "Exam auto-submitted: you switched tabs or left the page.",
     };
+
+    const isIncompleteSubmission = submitReason !== "manual" || displayAnswers.size < total;
+
+    if (isIncompleteSubmission) {
+      return (
+        <div className="min-h-screen bg-background px-3 sm:px-6 py-6 pb-20">
+          <div className="mx-auto max-w-2xl space-y-4">
+            {reasonNote[submitReason] && (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 flex items-center gap-2 text-sm text-destructive">
+                <AlertTriangle className="h-4 w-4 shrink-0" /><span>{reasonNote[submitReason]}</span>
+              </div>
+            )}
+
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border bg-card p-6 text-center">
+              <div className="text-4xl mb-2">✅</div>
+              <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground mb-2">Thank you for submitting</h2>
+              <p className="text-sm text-muted-foreground">
+                Your attempt has been saved. Since the exam was not fully completed, results are hidden.
+              </p>
+            </motion.div>
+
+            <Button onClick={onExit} className="w-full">Back to Exams</Button>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="min-h-screen bg-background px-3 sm:px-6 py-6 pb-20">
