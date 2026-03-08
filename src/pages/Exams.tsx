@@ -29,6 +29,8 @@ function inferUnit(exam: ExamSet): string {
 
 export default function Exams() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const selectedYear = searchParams.get("year") || "All";
   const [examSets, setExamSets] = useState<ExamSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [examPrice, setExamPrice] = useState(5);
