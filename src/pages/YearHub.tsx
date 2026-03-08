@@ -40,6 +40,12 @@ export default function YearHub() {
       icon: ListChecks,
     },
     {
+      title: "Essays",
+      description: "SAQs & LAQs for this year",
+      to: `/essays?year=${encodeURIComponent(yearLabel)}`,
+      icon: FileText,
+    },
+    {
       title: "Exams",
       description: "Timed tests filtered to this year",
       to: `/exams?year=${encodeURIComponent(yearLabel)}`,

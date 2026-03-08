@@ -653,6 +653,7 @@ export default function Admin() {
       {tab === "articles" && <ArticlesList initialEditId={articleEditId} onEditOpened={() => setArticleEditId(null)} />}
       {tab === "flashcards" && <FlashcardsList />}
       {tab === "mcqs" && <McqsList />}
+      {tab === "stories" && <StoriesTab />}
       {tab === "exams" && <ExamResultsTab />}
       {tab === "raw" && <RawContentTab geminiKey={geminiKey} />}
       {tab === "recycle" && <RecycleBinTab />}
