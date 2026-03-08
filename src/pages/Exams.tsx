@@ -128,7 +128,7 @@ export default function Exams() {
     try {
       const { data, error } = await supabase.functions.invoke("initiate-payment", {
         body: {
-          phone: phone.trim(),
+          phone,
           amount: examPrice,
           package_type: `exam:${inferUnit(exam)}`,
         },
