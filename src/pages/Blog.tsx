@@ -198,7 +198,7 @@ export default function Blog() {
           </div>
           <div className="space-y-1">
             {filteredRecentArticles.slice(0, 3).map(ra => (
-              <Link key={ra.id} to={buildBlogPath(ra)} className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/40">
+              <Link key={ra.id} to={buildBlogPath(ra)} state={{ from: fromPath }} className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/40">
                 <BookOpen className="h-3.5 w-3.5 shrink-0 text-primary" />
                 <span className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">{ra.title}</span>
                 <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{timeAgo(ra.visitedAt)}</span>
