@@ -1381,7 +1381,7 @@ function ExamResultsTab() {
 
       {units.length > 0 && (
         <div className="mt-6 rounded-xl border border-border bg-card p-5">
-          <h3 className="mb-3 font-display text-base font-bold text-foreground">Download Results by Unit</h3>
+          <h3 className="mb-3 font-serif text-base font-bold text-foreground">Download Results by Unit</h3>
           <div className="flex flex-wrap gap-2">
             {units.map((u) => (
               <Button key={u} variant="outline" size="sm" onClick={() => generatePDF(u)} className="gap-1 text-xs">
