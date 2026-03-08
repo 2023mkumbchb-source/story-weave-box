@@ -5,8 +5,9 @@ import {
   ChevronLeft, ChevronRight, RotateCcw, Shuffle,
   Check, X, Lightbulb, BookOpen, GraduationCap,
   AlertCircle, Clock, Trophy, ListChecks, ChevronDown, ChevronUp,
-  Lock as LockIcon, Phone,
+  Lock as LockIcon, Phone, Loader2 as Loader2Icon, CheckCircle,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   getPublishedArticles, getPublishedFlashcardSets, getPublishedMcqSets, buildBlogPath,
