@@ -464,8 +464,61 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
     );
   }
 
+  // ── PAYWALL CHECK ──────────────────────────────────────────────────────────
+  const isPaywalled = freeLimit > 0 && !isPaid && current >= freeLimit;
+
   // ── QUIZ VIEW ──────────────────────────────────────────────────────────────
   const hasRelated = related && (related.articles.length > 0 || related.flashcards.length > 0 || related.mcqs.length > 0);
+
+  if (isPaywalled) {
+    return (
+      <div className="mx-auto max-w-2xl px-2">
+        <h2 className="mb-2 text-center font-serif text-xl sm:text-2xl font-bold text-foreground">{title}</h2>
+        <div className="mb-6 flex items-center justify-center gap-3 text-xs sm:text-sm text-muted-foreground">
+          <span>Question {current + 1} of {order.length}</span>
+          <span>·</span>
+          <span>Score: {score.correct}/{score.total}</span>
+        </div>
+
+        {/* Paywall card */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-background to-accent/5 p-6 sm:p-8 text-center">
+          <Lock className="mx-auto mb-4 h-10 w-10 text-primary" />
+          <h3 className="mb-2 font-serif text-xl font-bold text-foreground">Unlock Remaining Questions</h3>
+          <p className="mb-1 text-sm text-muted-foreground">
+            You've completed the first <strong className="text-foreground">{freeLimit}</strong> free questions.
+          </p>
+          <p className="mb-6 text-sm text-muted-foreground">
+            Pay <strong className="text-foreground">KES {mcqPrice}</strong> via M-Pesa to unlock all {questions.length} questions in this set.
+          </p>
+          {onPayRequest && (
+            <Button onClick={onPayRequest} className="gap-2 px-6">
+              <Phone className="h-4 w-4" /> Pay KES {mcqPrice} to Continue
+            </Button>
+          )}
+          <p className="mt-4 text-xs text-muted-foreground">Unlock is saved on this device after payment.</p>
+        </motion.div>
+
+        {/* SEO: render remaining questions hidden from users but visible to crawlers */}
+        <div className="sr-only" aria-hidden="false">
+          {questions.slice(freeLimit).map((q, i) => (
+            <div key={i}>
+              <p>{q.question}</p>
+              {q.options.map((opt, j) => <span key={j}>{opt}</span>)}
+              {q.explanation && <p>{q.explanation}</p>}
+            </div>
+          ))}
+        </div>
+
+        {/* Back button */}
+        <div className="mt-6 flex justify-center">
+          <Button variant="ghost" size="sm" onClick={goPrev} disabled={current === 0} className="gap-2">
+            <ChevronLeft className="h-4 w-4" /> Go Back
+          </Button>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-2">
