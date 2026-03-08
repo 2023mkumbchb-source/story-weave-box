@@ -25,6 +25,7 @@ export default function Blog() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "title">("newest");
   const [recentArticles, setRecentArticles] = useState<RecentArticle[]>([]);
   const selectedYear = searchParams.get("year") || "All";
   const selectedUnit = searchParams.get("unit");
