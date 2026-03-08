@@ -5,7 +5,7 @@ import { ArrowRight, CheckCircle, Clock, Loader2, Phone, Shield, Sparkles, Troph
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { getSetting, getCategoryDisplayName } from "@/lib/store";
+import { getSetting, getCategoryDisplayName, getYearFromCategory } from "@/lib/store";
 
 interface ExamSet {
   id: string;
