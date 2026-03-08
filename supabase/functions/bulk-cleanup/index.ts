@@ -553,9 +553,10 @@ serve(async (req) => {
           fixes.delete_empty = true;
         }
 
-        if (isMcqContent(analysisContent)) {
+        const titleSuggestsMcq = /\bmcq\b|multiple\s+choice/i.test(article.title || "");
+        if (isMcqContent(analysisContent) || titleSuggestsMcq) {
           const mcqs = extractMcqsFromContent(analysisContent);
-          if (mcqs.length >= 3) {
+          if (mcqs.length >= 3 || (titleSuggestsMcq && mcqs.length >= 1)) {
             issues.push(`Contains ${mcqs.length} MCQs - should migrate to MCQ section`);
             fixes.migrate_mcqs = true;
             fixes.mcq_count = mcqs.length;
