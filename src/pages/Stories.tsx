@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Loader2, BookOpen, Search, X, PenLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import pathologyThumb from "@/assets/thumb-pathology.jpg";
 import { buildStoryPath, stripRichText } from "@/lib/seo";
 
 interface Story {
