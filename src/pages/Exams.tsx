@@ -35,7 +35,7 @@ export default function Exams() {
   const [examSets, setExamSets] = useState<ExamSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [examPrice, setExamPrice] = useState(5);
-  const [phone, setPhone] = useState("");
+  const [phoneByExamId, setPhoneByExamId] = useState<Record<string, string>>({});
   const [paying, setPaying] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "pending" | "completed" | "failed">("idle");
   const [payingForExamId, setPayingForExamId] = useState<string | null>(null);
