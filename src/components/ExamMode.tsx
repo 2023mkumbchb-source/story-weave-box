@@ -276,7 +276,7 @@ export default function ExamMode({
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <motion.div initial={{ scale: 0.92 }} animate={{ scale: 1 }} exit={{ scale: 0.92 }}
             className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl">
-            <h3 className="font-display text-base font-bold text-foreground mb-2">Submit Exam?</h3>
+            <h3 className="font-serif text-base font-bold text-foreground mb-2">Submit Exam?</h3>
             {unanswered > 0 && (
               <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-2">
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
