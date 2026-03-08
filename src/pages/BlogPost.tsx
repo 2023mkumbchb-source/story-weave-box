@@ -238,6 +238,11 @@ function extractToc(content: string): TocItem[] {
       items.push({ id: `section-${secNum}`, text: `Question ${qMatch[2]}`, level: 2 });
     }
   }
+
+  if (items.length === 0) {
+    items.push({ id: "section-top", text: "Overview", level: 2 });
+  }
+
   return items;
 }
 
