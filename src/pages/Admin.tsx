@@ -392,7 +392,7 @@ export default function Admin() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
-      <h1 className="mb-6 font-display text-3xl font-bold text-foreground">Dashboard</h1>
+      <h1 className="mb-6 font-serif text-3xl font-bold text-foreground">Dashboard</h1>
       <div className="mb-8 flex gap-1 rounded-xl border border-border bg-secondary/50 p-1 overflow-x-auto">
         {tabs.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}

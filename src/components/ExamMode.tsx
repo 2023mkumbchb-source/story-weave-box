@@ -429,7 +429,7 @@ export default function ExamMode({
       <div className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur px-3 sm:px-6 py-2.5">
         <div className="mx-auto max-w-2xl flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <h2 className="font-display text-sm sm:text-base font-bold text-foreground truncate">{title}</h2>
+            <h2 className="font-serif text-sm sm:text-base font-bold text-foreground truncate">{title}</h2>
             <p className="text-[10px] sm:text-xs text-muted-foreground">
               {answered}/{total} answered{studentInfo && <> · {studentInfo.name}</>}
             </p>

@@ -121,7 +121,7 @@ export default function EssayStudy() {
       {/* LAQs */}
       {essay.long_answer_questions.length > 0 && (
         <div>
-          <h2 className="font-display text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+          <h2 className="font-serif text-lg font-bold text-foreground mb-3 flex items-center gap-2">
             <FileText className="h-5 w-5 text-accent" /> Long Answer Questions ({essay.long_answer_questions.length})
           </h2>
           <div className="space-y-2">

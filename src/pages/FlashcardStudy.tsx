@@ -33,7 +33,7 @@ export default function FlashcardStudy() {
   if (!set) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-        <h1 className="mb-4 font-display text-3xl font-bold text-foreground">Set not found</h1>
+        <h1 className="mb-4 font-serif text-3xl font-bold text-foreground">Set not found</h1>
         <Button asChild variant="outline">
           <Link to="/flashcards">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Flashcards

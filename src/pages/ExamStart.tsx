@@ -294,7 +294,7 @@ export default function ExamStart() {
             </div>
           ) : (
             <div className="mt-6 space-y-4 rounded-xl border border-primary/30 bg-primary/5 p-5">
-              <h3 className="flex items-center gap-2 font-display text-base font-bold text-foreground">
+              <h3 className="flex items-center gap-2 font-serif text-base font-bold text-foreground">
                 <GraduationCap className="h-5 w-5 text-primary" /> Student Information
               </h3>
 

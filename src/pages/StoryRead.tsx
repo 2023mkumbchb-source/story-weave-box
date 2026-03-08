@@ -59,7 +59,7 @@ export default function StoryRead() {
         <ArrowLeft className="h-4 w-4" /> Back to stories
       </Link>
 
-      <h1 className="font-display text-3xl sm:text-4xl font-bold text-foreground mb-4">{story.title}</h1>
+      <h1 className="font-serif text-3xl sm:text-4xl font-bold text-foreground mb-4">{story.title}</h1>
       
       {story.category && story.category !== "Uncategorized" && (
         <span className="inline-block rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium text-primary mb-4">
