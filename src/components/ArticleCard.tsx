@@ -31,6 +31,8 @@ export default function ArticleCard({ article }: { article: Article }) {
   const year = getYearFromCategory(article.category);
   const cover = getArticleThumbnail(article);
   const createdDate = new Date(article.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const location = useLocation();
+  const fromPath = `${location.pathname}${location.search}`;
 
   return (
     <Link
