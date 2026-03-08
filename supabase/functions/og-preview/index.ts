@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SITE_URL = "https://medicine.kenyaadverts.co.ke";
+const DEFAULT_SITE_URL = "https://medicine.kenyaadverts.co.ke";
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function slugify(value: string): string {
@@ -32,12 +32,31 @@ function normalizeStoryId(value: string | null): string | null {
   return match?.[1] || null;
 }
 
+function normalizeArticleId(value: string | null): string | null {
+  if (!value) return null;
+  if (UUID_REGEX.test(value)) return value;
+  const match = value.match(/^([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})(?:-|$)/i);
+  return match?.[1] || null;
+}
+
+function normalizeBaseUrl(url: string | null | undefined): string {
+  const trimmed = String(url || "").trim();
+  if (!trimmed) return DEFAULT_SITE_URL;
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  return withProtocol.replace(/\/+$/, "");
+}
+
+async function resolveSiteUrl(sb: ReturnType<typeof createClient>): Promise<string> {
+  const { data } = await sb.from("app_settings").select("value").eq("key", "site_url").maybeSingle();
+  return normalizeBaseUrl(data?.value);
+}
+
 function escapeHtml(str: string): string {
   return String(str || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function buildOgHtml(title: string, description: string, image: string, canonical: string, isCrawler: boolean): string {
-  const ogImage = image || `${SITE_URL}/icon-512.png`;
+  const ogImage = image || `${DEFAULT_SITE_URL}/icon-512.png`;
   const redirectMarkup = isCrawler ? "" : `<meta http-equiv="refresh" content="0;url=${escapeHtml(canonical)}">\n  <script>window.location.replace(${JSON.stringify(canonical)});</script>`;
 
   return `<!DOCTYPE html>
@@ -72,13 +91,13 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const slug = url.searchParams.get("slug")?.trim() || "";
+    const slugParam = decodeURIComponent(url.searchParams.get("slug")?.trim() || "");
     const storyParam = url.searchParams.get("story");
     const mcqParam = url.searchParams.get("mcq");
     const flashcardParam = url.searchParams.get("flashcard");
     const essayParam = url.searchParams.get("essay");
 
-    if (!slug && !storyParam && !mcqParam && !flashcardParam && !essayParam) {
+    if (!slugParam && !storyParam && !mcqParam && !flashcardParam && !essayParam) {
       return new Response(JSON.stringify({ error: "Missing param" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -86,6 +105,7 @@ serve(async (req) => {
     const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    const siteUrl = await resolveSiteUrl(supabase);
     const userAgent = (req.headers.get("user-agent") || "").toLowerCase();
     const isCrawler = /(bot|crawl|spider|facebookexternalhit|whatsapp|twitterbot|slackbot|telegrambot|discordbot|linkedinbot)/i.test(userAgent);
 
@@ -125,22 +145,53 @@ serve(async (req) => {
       canonicalPath = `/essays/${essayParam}`;
 
     } else {
-      // Article by slug or ID
-      let { data: article } = await supabase.from("articles").select("title, content, meta_title, meta_description, og_image_url, slug, id").eq("slug", slug).eq("published", true).is("deleted_at", null).maybeSingle();
-      if (!article) {
-        const { data: byId } = await supabase.from("articles").select("title, content, meta_title, meta_description, og_image_url, slug, id").eq("id", slug).eq("published", true).is("deleted_at", null).maybeSingle();
-        article = byId;
+      const articleId = normalizeArticleId(slugParam);
+      let article: any = null;
+
+      if (articleId) {
+        const byId = await supabase
+          .from("articles")
+          .select("title, content, meta_title, meta_description, og_image_url, slug, id")
+          .eq("id", articleId)
+          .eq("published", true)
+          .is("deleted_at", null)
+          .maybeSingle();
+        article = byId.data;
       }
+
+      if (!article) {
+        const bySlug = await supabase
+          .from("articles")
+          .select("title, content, meta_title, meta_description, og_image_url, slug, id")
+          .eq("slug", slugParam.toLowerCase())
+          .eq("published", true)
+          .is("deleted_at", null)
+          .maybeSingle();
+        article = bySlug.data;
+      }
+
+      if (!article) {
+        const { data: candidates } = await supabase
+          .from("articles")
+          .select("id, title, content, meta_title, meta_description, og_image_url, slug")
+          .eq("published", true)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .limit(500);
+
+        article = (candidates || []).find((row: any) => slugify(row.title) === slugParam.toLowerCase()) || null;
+      }
+
       if (!article) return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-      const articleSlug = article.slug || slugify(article.title) || article.id;
+      const articleSlug = article.slug || slugify(article.title) || "article";
       title = article.meta_title || article.title;
       description = article.meta_description || stripRichText(article.content || "") || `Study ${article.title} on Ompath Study.`;
       image = article.og_image_url || extractFirstImage(article.content || "") || "";
-      canonicalPath = `/blog/${articleSlug}`;
+      canonicalPath = `/blog/${article.id}-${articleSlug}`;
     }
 
-    const canonical = `${SITE_URL}${canonicalPath}`;
+    const canonical = `${siteUrl}${canonicalPath}`;
     const html = buildOgHtml(title, description, image, canonical, isCrawler);
 
     return new Response(html, {
