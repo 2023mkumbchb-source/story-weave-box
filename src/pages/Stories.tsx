@@ -49,7 +49,7 @@ export default function Stories() {
   return (
     <div className="mx-auto max-w-5xl px-5 sm:px-6 py-10 sm:py-12">
       <div className="mb-7">
-        <h1 className="mb-1 font-display text-3xl sm:text-4xl font-bold text-foreground">Stories</h1>
+        <h1 className="mb-1 font-serif text-3xl sm:text-4xl font-bold text-foreground">Stories</h1>
         <p className="text-muted-foreground text-sm sm:text-base">Medical stories and narratives</p>
       </div>
 
