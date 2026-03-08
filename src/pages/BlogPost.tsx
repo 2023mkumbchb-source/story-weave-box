@@ -807,9 +807,9 @@ export default function BlogPost() {
           </aside>
 
           {/* Article body */}
-          <article className="min-w-0">
-            <header className="mb-8">
-              <h1 className="mb-3 font-serif text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+          <article id="section-top" className="min-w-0">
+            <header className="mb-10">
+              <h1 className="mb-3 font-serif text-4xl font-bold leading-tight text-foreground sm:text-5xl">
                 {article.title.replace(/^#+\s*/, "")}
               </h1>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
