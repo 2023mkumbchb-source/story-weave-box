@@ -175,7 +175,7 @@ export default function Blog() {
             <h2 className="text-sm font-semibold text-foreground">Continue Reading</h2>
           </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {recentArticles.slice(0, 3).map((ra, i) => (
+            {filteredRecentArticles.slice(0, 3).map((ra, i) => (
               <motion.div key={ra.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
                 <Link to={`/blog/${ra.id}`}
                   className="group flex items-start gap-3 rounded-xl border border-border bg-background px-3 py-2.5 hover:border-primary/40 hover:bg-primary/5 transition-colors">
