@@ -5,8 +5,9 @@ import {
   ChevronLeft, ChevronRight, RotateCcw, Shuffle,
   Check, X, Lightbulb, BookOpen, GraduationCap,
   AlertCircle, Clock, Trophy, ListChecks, ChevronDown, ChevronUp,
-  Lock as LockIcon, Phone,
+  Lock as LockIcon, Phone, Loader2 as Loader2Icon, CheckCircle,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   getPublishedArticles, getPublishedFlashcardSets, getPublishedMcqSets, buildBlogPath,
@@ -31,7 +32,11 @@ interface Props {
   freeLimit?: number;
   mcqPrice?: number;
   isPaid?: boolean;
-  onPayRequest?: () => void;
+  paymentStatus?: "idle" | "pending" | "completed" | "failed";
+  phoneInput?: string;
+  onPhoneChange?: (v: string) => void;
+  onPay?: () => void;
+  onRetryPay?: () => void;
 }
 interface AttemptRecord {
   date: string;
@@ -115,7 +120,7 @@ function extractKeywords(text: string): string[] {
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
-export default function McqViewer({ questions, title, setId, category, hideAnswers = false, freeLimit = 0, mcqPrice = 10, isPaid = false, onPayRequest }: Props) {
+export default function McqViewer({ questions, title, setId, category, hideAnswers = false, freeLimit = 0, mcqPrice = 10, isPaid = false, paymentStatus = "idle", phoneInput = "", onPhoneChange, onPay, onRetryPay }: Props) {
   // Restore order + current from localStorage if available
   const [order, setOrder] = useState<number[]>(() => {
     if (setId) {
@@ -472,6 +477,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
   const hasRelated = related && (related.articles.length > 0 || related.flashcards.length > 0 || related.mcqs.length > 0);
 
   if (isPaywalled) {
+    // Show current question blurred with translucent payment overlay
     return (
       <div className="mx-auto max-w-2xl px-2">
         <h2 className="mb-2 text-center font-serif text-xl sm:text-2xl font-bold text-foreground">{title}</h2>
@@ -481,34 +487,92 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
           <span>Score: {score.correct}/{score.total}</span>
         </div>
 
-        {/* Paywall card */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-background to-accent/5 p-6 sm:p-8 text-center">
-          <LockIcon className="mx-auto mb-4 h-10 w-10 text-primary" />
-          <h3 className="mb-2 font-serif text-xl font-bold text-foreground">Unlock Remaining Questions</h3>
-          <p className="mb-1 text-sm text-muted-foreground">
-            You've completed the first <strong className="text-foreground">{freeLimit}</strong> free questions.
-          </p>
-          <p className="mb-6 text-sm text-muted-foreground">
-            Pay <strong className="text-foreground">KES {mcqPrice}</strong> via M-Pesa to unlock all {questions.length} questions in this set.
-          </p>
-          {onPayRequest && (
-            <Button onClick={onPayRequest} className="gap-2 px-6">
-              <Phone className="h-4 w-4" /> Pay KES {mcqPrice} to Continue
-            </Button>
-          )}
-          <p className="mt-4 text-xs text-muted-foreground">Unlock is saved on this device after payment.</p>
-        </motion.div>
+        {/* Blurred questions visible behind overlay */}
+        <div className="relative">
+          {/* Show a few upcoming questions blurred */}
+          <div className="pointer-events-none select-none space-y-4" style={{ filter: "blur(6px)", opacity: 0.5 }}>
+            {questions.slice(freeLimit, freeLimit + 3).map((bq, i) => (
+              <div key={i} className="rounded-2xl border border-border bg-card p-5">
+                <span className="mb-2 block text-xs font-medium uppercase tracking-wider text-primary">Question {freeLimit + i + 1}</span>
+                <p className="text-base font-medium text-foreground leading-relaxed">{cleanQuestionText(bq.question)}</p>
+                <div className="mt-3 space-y-2">
+                  {bq.options.map((opt, j) => (
+                    <div key={j} className="rounded-xl border border-border bg-card p-3 text-sm font-medium flex items-start gap-3">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
+                        {String.fromCharCode(65 + j)}
+                      </span>
+                      <span className="flex-1">{opt}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
 
-        {/* SEO: render remaining questions hidden from users but visible to crawlers */}
+          {/* Payment overlay */}
+          <div className="absolute inset-0 flex items-start justify-center pt-8 z-10">
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+              className="w-full max-w-sm rounded-2xl border-2 border-primary/40 bg-background/95 backdrop-blur-md p-6 shadow-2xl text-center">
+              <LockIcon className="mx-auto mb-3 h-8 w-8 text-primary" />
+              <h3 className="mb-1 font-serif text-lg font-bold text-foreground">Unlock All Questions</h3>
+              <p className="mb-1 text-sm text-muted-foreground">
+                First <strong className="text-foreground">{freeLimit}</strong> questions are free.
+              </p>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Pay <strong className="text-foreground">KES {mcqPrice}</strong> via M-Pesa to continue.
+              </p>
+
+              {paymentStatus === "pending" ? (
+                <div className="rounded-xl border border-primary/30 bg-primary/10 p-4">
+                  <Loader2Icon className="mx-auto h-5 w-5 animate-spin text-primary" />
+                  <p className="mt-2 text-sm font-medium text-foreground">Waiting for M-Pesa…</p>
+                  <p className="text-xs text-muted-foreground">Complete STK prompt on your phone.</p>
+                </div>
+              ) : paymentStatus === "failed" ? (
+                <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4">
+                  <p className="text-sm font-medium text-foreground">Payment failed</p>
+                  <Button size="sm" variant="outline" className="mt-2" onClick={onRetryPay}>Try again</Button>
+                </div>
+              ) : paymentStatus === "completed" ? (
+                <div className="rounded-xl border border-primary/30 bg-primary/10 p-4">
+                  <CheckCircle className="mx-auto h-5 w-5 text-primary" />
+                  <p className="mt-2 text-sm font-medium text-foreground">Unlocked!</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Input
+                    type="tel"
+                    placeholder="07XX XXX XXX"
+                    value={phoneInput}
+                    onChange={(e) => onPhoneChange?.(e.target.value)}
+                    className="text-center"
+                  />
+                  <Button onClick={onPay} disabled={!phoneInput.trim()} className="w-full gap-2">
+                    <Phone className="h-4 w-4" /> Pay KES {mcqPrice}
+                  </Button>
+                </div>
+              )}
+              <p className="mt-3 text-[10px] text-muted-foreground">Unlock saved on this device.</p>
+            </motion.div>
+          </div>
+        </div>
+
+        {/* SEO: remaining questions in DOM for crawlers */}
         <div className="sr-only" aria-hidden="false">
-          {questions.slice(freeLimit).map((q, i) => (
+          {questions.slice(freeLimit).map((sq, i) => (
             <div key={i}>
-              <p>{q.question}</p>
-              {q.options.map((opt, j) => <span key={j}>{opt}</span>)}
-              {q.explanation && <p>{q.explanation}</p>}
+              <p>{sq.question}</p>
+              {sq.options.map((opt, j) => <span key={j}>{opt}</span>)}
+              {sq.explanation && <p>{sq.explanation}</p>}
             </div>
           ))}
+        </div>
+
+        {/* Back button */}
+        <div className="mt-6 flex justify-center">
+          <Button variant="ghost" size="sm" onClick={goPrev} disabled={current === 0} className="gap-2">
+            <ChevronLeft className="h-4 w-4" /> Go Back
+          </Button>
         </div>
       </div>
     );

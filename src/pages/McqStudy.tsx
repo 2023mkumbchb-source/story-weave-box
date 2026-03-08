@@ -36,7 +36,6 @@ export default function McqStudy() {
   const [phoneInput, setPhoneInput] = useState("");
   const [paying, setPaying] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "pending" | "completed" | "failed">("idle");
-  const [showPaywall, setShowPaywall] = useState(false);
 
   const handleBack = () => {
     if (window.history.length > 1) navigate(-1);
@@ -157,47 +156,6 @@ export default function McqStudy() {
     );
   }
 
-  // Payment inline UI component
-  const PaymentInline = () => (
-    <div className="mb-6 rounded-2xl border-2 border-primary/30 bg-primary/5 p-6 text-center">
-      <Lock className="mx-auto mb-3 h-8 w-8 text-primary" />
-      <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Unlock Full Access</h3>
-      <p className="mb-4 text-sm text-muted-foreground">
-        Pay <strong className="text-foreground">KES {mcqPrice}</strong> via M-Pesa to unlock all {set.questions.length} questions and Exam Mode.
-      </p>
-
-      {paymentStatus === "pending" ? (
-        <div className="rounded-xl border border-primary/30 bg-primary/10 p-4">
-          <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
-          <p className="mt-2 text-sm font-medium text-foreground">Waiting for M-Pesa confirmation…</p>
-          <p className="text-xs text-muted-foreground">Complete STK prompt on your phone.</p>
-        </div>
-      ) : paymentStatus === "failed" ? (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4">
-          <p className="text-sm font-medium text-foreground">Payment failed</p>
-          <Button size="sm" variant="outline" className="mt-2" onClick={() => setPaymentStatus("idle")}>Try again</Button>
-        </div>
-      ) : paymentStatus === "completed" ? (
-        <div className="rounded-xl border border-primary/30 bg-primary/10 p-4">
-          <CheckCircle className="mx-auto h-5 w-5 text-primary" />
-          <p className="mt-2 text-sm font-medium text-foreground">Payment confirmed! Full access unlocked.</p>
-        </div>
-      ) : (
-        <div className="mx-auto flex max-w-xs items-center justify-center gap-2">
-          <Input
-            type="tel"
-            placeholder="07XX XXX XXX"
-            value={phoneInput}
-            onChange={(e) => setPhoneInput(e.target.value)}
-          />
-          <Button onClick={handlePay} disabled={paying || !phoneInput.trim()} size="sm" className="shrink-0 gap-2">
-            <Phone className="h-4 w-4" /> Pay
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <div className="mx-auto max-w-3xl px-5 pb-20 pt-10 sm:px-6 sm:py-12">
       <div className="mb-4 flex items-center justify-between">
@@ -210,13 +168,14 @@ export default function McqStudy() {
           className="gap-2"
           onClick={() => {
             if (needsPayForExam) {
-              setShowPaywall(true);
+              // Scroll down — the paywall in McqViewer will show
+              window.scrollTo({ top: 0, behavior: "smooth" });
             } else {
               setExamMode(true);
             }
           }}
         >
-          <ListChecks className="h-4 w-4" /> Exam Mode
+          <ListChecks className="h-4 w-4" /> Exam Mode {needsPayForExam && "🔒"}
         </Button>
       </div>
 
@@ -228,8 +187,13 @@ export default function McqStudy() {
         </div>
       )}
 
-      {/* Show paywall when exam mode requires payment */}
-      {showPaywall && needsPayForExam && <PaymentInline />}
+      {/* Exam mode paywall notice */}
+      {needsPayForExam && (
+        <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5 flex items-center gap-2 text-xs text-primary">
+          <Lock className="h-3.5 w-3.5 shrink-0" />
+          <span>Exam Mode requires unlocking all questions first (KES {mcqPrice})</span>
+        </div>
+      )}
 
       {isLocked && (
         <div className="mb-6 rounded-2xl border-2 border-amber-500/30 bg-amber-50 p-6 text-center dark:bg-amber-950/20">
@@ -268,7 +232,11 @@ export default function McqStudy() {
         freeLimit={mcqFreeLimit}
         mcqPrice={mcqPrice}
         isPaid={isPaid}
-        onPayRequest={() => setShowPaywall(true)}
+        paymentStatus={paymentStatus}
+        phoneInput={phoneInput}
+        onPhoneChange={setPhoneInput}
+        onPay={handlePay}
+        onRetryPay={() => setPaymentStatus("idle")}
       />
     </div>
   );
