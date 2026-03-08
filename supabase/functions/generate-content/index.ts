@@ -369,7 +369,7 @@ Rules:
         { role: "user", content: customTitle ? `Title: ${customTitle}\n\nContent:\n${safeNotes}` : safeNotes },
       ];
 
-      const text = await callAI(messages, geminiKey);
+      const text = await callAI(messages, geminiKey, allKeys);
       const result = normalizeArticleOutput(text);
       if (customTitle) result.title = customTitle;
 
