@@ -42,7 +42,17 @@ interface RelatedResult {
   mcqs: { set: any; startIndex: number }[];
 }
 
-// ── Storage ────────────────────────────────────────────────────────────────────
+// Strip markdown headers and "Choices:" suffix from question text
+function cleanQuestionText(text: string | undefined): string {
+  if (!text) return "";
+  return text
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^Question\s*\d+\s*/i, "")
+    .replace(/\s*Choices:\s*$/i, "")
+    .trim();
+}
+
+
 const HISTORY_KEY  = "mcq_history_";
 const PROGRESS_KEY = "mcq_progress_";
 
