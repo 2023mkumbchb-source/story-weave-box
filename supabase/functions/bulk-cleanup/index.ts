@@ -385,7 +385,7 @@ serve(async (req) => {
     const startedAt = Date.now();
 
     if (action === "scan") {
-      const articles = await fetchArticleBatch(sb, batchSize, cursor);
+      const articles = await fetchArticleBatch(sb, batchSize, cursor, yearFilter);
       if (articles.length === 0) {
         return new Response(JSON.stringify({ results: [], done: true, processed: 0, next_cursor: null }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
