@@ -121,6 +121,7 @@ function extractFirstImageUrl(markdown: string): string | null {
   const htmlImage = markdown.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i)?.[1];
   return htmlImage || null;
 }
+serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
