@@ -984,6 +984,7 @@ export default function BlogPost() {
             </header>
 
             <div className="prose-custom">
+
               <ArticleContent content={article.content} />
             </div>
 
