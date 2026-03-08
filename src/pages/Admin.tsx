@@ -385,6 +385,7 @@ export default function Admin() {
     { id: "articles", label: "Articles", icon: FileText },
     { id: "flashcards", label: "Flashcards", icon: Layers },
     { id: "mcqs", label: "MCQs", icon: ListChecks },
+    { id: "stories", label: "Stories", icon: BookOpen },
     { id: "exams", label: "Exam Results", icon: ListChecks },
     { id: "raw", label: "Raw", icon: AlertTriangle },
     { id: "upgrade", label: "AI Upgrade", icon: Sparkles },
