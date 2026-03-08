@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <sitemap>
-    <loc>https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/generate-sitemap</loc>
-  </sitemap>
-</sitemapindex>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://medicine.kenyaadverts.co.ke/</loc><priority>1.0</priority><changefreq>daily</changefreq></url>
+</urlset>
