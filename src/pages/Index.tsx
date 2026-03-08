@@ -13,6 +13,7 @@ const YEAR_META: Record<string, { color: string; border: string }> = {
   "Year 3": { color: "text-primary", border: "border-primary/30" },
   "Year 4": { color: "text-primary", border: "border-primary/30" },
   "Year 5": { color: "text-primary", border: "border-primary/30" },
+  "Year 6": { color: "text-primary", border: "border-primary/30" },
 };
 
 const NAV_ITEMS = [

@@ -13,7 +13,7 @@ import {
 import ArticleCard from "@/components/ArticleCard";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
 
-const YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5"];
+const YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
 
 function normalizeYear(value: string | null | undefined): string | null {
   if (!value) return null;
