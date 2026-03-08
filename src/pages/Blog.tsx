@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, X, Loader2, BookOpen, Clock, ArrowRight, ArrowLeft, Bone, Brain, FlaskConical, HeartPulse, Microscope } from "lucide-react";
+import { Search, X, Loader2, BookOpen, Clock, ArrowRight, ArrowLeft, ChevronDown } from "lucide-react";
 import {
   getCategoryDisplayName,
   getYearFromCategory,
@@ -14,6 +14,8 @@ import ArticleCard from "@/components/ArticleCard";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
 
 const YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
+const INITIAL_PER_GROUP = 6;
+const LOAD_MORE_STEP = 12;
 
 function normalizeYear(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -46,6 +48,8 @@ export default function Blog() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchMatches, setSearchMatches] = useState<Article[] | null>(null);
   const [recentArticles, setRecentArticles] = useState<RecentArticle[]>([]);
+  const [visibleCount, setVisibleCount] = useState(20);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const selectedYear =
     normalizeYear(searchParams.get("year")) ||
@@ -73,9 +77,9 @@ export default function Blog() {
         if (mounted) setLoading(false);
       });
     setRecentArticles(getRecentArticles());
-    return () => {
-      mounted = false;
-    };
+    setVisibleCount(20);
+    setExpandedGroups(new Set());
+    return () => { mounted = false; };
   }, [selectedYear]);
 
   useEffect(() => {
@@ -88,7 +92,6 @@ export default function Blog() {
     const t = setTimeout(async () => {
       setSearchLoading(true);
       try {
-        // Search across the whole selected year so unit tabs don't hide valid content hits
         const results = await searchPublishedArticles(
           normalizedSearch,
           selectedYear === "All" ? undefined : selectedYear,
@@ -113,6 +116,7 @@ export default function Blog() {
     if (unit) setSearchParams({ year: selectedYear, unit });
     else if (selectedYear !== "All") setSearchParams({ year: selectedYear });
     else setSearchParams({});
+    setVisibleCount(20);
   };
 
   const unitsForYear = useMemo(() => {
@@ -171,6 +175,15 @@ export default function Blog() {
         return a.name.localeCompare(b.name);
       });
   }, [filtered, selectedUnit, search, selectedYear]);
+
+  const toggleGroup = (category: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  };
 
   const yearRoute = selectedYear.match(/^Year\s([1-5])$/)?.[1];
 
@@ -256,7 +269,7 @@ export default function Blog() {
       </div>
 
       {/* Year tabs */}
-      <div className="mb-5 flex gap-1 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+      <div className="mb-5 flex gap-1 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0" style={{ scrollbarWidth: "none" }}>
         {YEARS.map(year => (
           <button
             key={year}
@@ -281,7 +294,7 @@ export default function Blog() {
               !selectedUnit ? "border border-primary/30 bg-primary/10 text-primary" : "border border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            All Units
+            All Units ({filtered.length})
           </button>
           {unitsForYear.map(u => (
             <button
@@ -291,7 +304,7 @@ export default function Blog() {
                 selectedUnit === u.category ? "border border-primary/30 bg-primary/10 text-primary" : "border border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              {u.name}
+              {u.name} ({u.count})
             </button>
           ))}
         </div>
@@ -304,26 +317,51 @@ export default function Blog() {
         </div>
       ) : groupedArticles && !search.trim() ? (
         <div className="space-y-10">
-          {groupedArticles.map(group => (
-            <div key={group.category}>
-              <div className="mb-3 flex items-center gap-3">
-                <h2 className="font-serif text-2xl font-bold text-foreground">{group.name}</h2>
-                <div className="h-px flex-1 bg-border" />
+          {groupedArticles.map(group => {
+            const isExpanded = expandedGroups.has(group.category);
+            const showCount = isExpanded ? group.articles.length : INITIAL_PER_GROUP;
+            const hasMore = group.articles.length > INITIAL_PER_GROUP;
+            return (
+              <div key={group.category}>
+                <div className="mb-3 flex items-center gap-3">
+                  <h2 className="font-serif text-xl font-bold text-foreground sm:text-2xl">{group.name}</h2>
+                  <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">{group.articles.length}</span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+                <div className="space-y-3">
+                  {group.articles.slice(0, showCount).map(a => <ArticleCard key={a.id} article={a} />)}
+                </div>
+                {hasMore && (
+                  <button
+                    onClick={() => toggleGroup(group.category)}
+                    className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                  >
+                    {isExpanded ? (
+                      <>Show less</>
+                    ) : (
+                      <>
+                        Show all {group.articles.length} in {group.name}
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
-              <div className="space-y-3">
-                {group.articles.slice(0, 8).map(a => <ArticleCard key={a.id} article={a} />)}
-              </div>
-              {group.articles.length > 8 && (
-                <button onClick={() => setUnit(group.category)} className="mt-3 text-sm font-semibold text-primary hover:underline">
-                  View all in {group.name} <ArrowRight className="inline h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map(a => <ArticleCard key={a.id} article={a} />)}
+          {filtered.slice(0, visibleCount).map(a => <ArticleCard key={a.id} article={a} />)}
+          {filtered.length > visibleCount && (
+            <button
+              onClick={() => setVisibleCount(prev => prev + LOAD_MORE_STEP)}
+              className="mx-auto flex items-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+            >
+              Load more ({filtered.length - visibleCount} remaining)
+              <ChevronDown className="h-4 w-4" />
+            </button>
+          )}
         </div>
       )}
     </div>

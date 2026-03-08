@@ -1,10 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ListChecks, Calendar, Layers, Loader2, Search, X, RotateCcw } from "lucide-react";
+import { ListChecks, Calendar, Layers, Loader2, Search, X, RotateCcw, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { getPublishedMcqSets, getCategoryDisplayName, getYearFromCategory, type McqSet } from "@/lib/store";
 import { getVisitedMcqIds } from "@/lib/progress-store";
 import CategoryTabs from "@/components/CategoryTabs";
+
+const INITIAL_VISIBLE = 12;
+const LOAD_MORE_STEP = 12;
 
 export default function Mcqs() {
   useEffect(() => { document.title = "MCQ Quizzes | Kenya Meds"; }, []);
@@ -14,6 +17,7 @@ export default function Mcqs() {
   const [query, setQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
   const [searchParams] = useSearchParams();
   const selectedYear = searchParams.get("year") || "All";
 
@@ -26,6 +30,7 @@ export default function Mcqs() {
 
   useEffect(() => {
     setSelectedCategory(null);
+    setVisibleCount(INITIAL_VISIBLE);
   }, [selectedYear]);
 
   const yearScopedSets = useMemo(() => {
@@ -145,7 +150,7 @@ export default function Mcqs() {
           counts={categoryCounts}
           totalCount={yearScopedSets.length}
           selected={selectedCategory}
-          onChange={setSelectedCategory}
+          onChange={(c) => { setSelectedCategory(c); setVisibleCount(INITIAL_VISIBLE); }}
         />
       )}
 
@@ -216,51 +221,62 @@ export default function Mcqs() {
               <p className="text-muted-foreground">No quizzes found for this selection.</p>
             </div>
           ) : (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((s, i) => {
-                const firstQ = (s.questions as any[])[0];
-                const rawSnippet = firstQ?.question ?? firstQ?.text ?? null;
-                const snippet = rawSnippet
-                  ? rawSnippet.replace(/^#{1,6}\s*(Question\s*\d+[:\s-]*)?/i, "").replace(/^Choices:\s*/i, "").replace(/^[*_]+|[*_]+$/g, "").trim() || null
-                  : null;
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filtered.slice(0, visibleCount).map((s, i) => {
+                  const firstQ = (s.questions as any[])[0];
+                  const rawSnippet = firstQ?.question ?? firstQ?.text ?? null;
+                  const snippet = rawSnippet
+                    ? rawSnippet.replace(/^#{1,6}\s*(Question\s*\d+[:\s-]*)?/i, "").replace(/^Choices:\s*/i, "").replace(/^[*_]+|[*_]+$/g, "").trim() || null
+                    : null;
 
-                return (
-                  <motion.div key={s.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                    <Link
-                      to={`/mcqs/${s.id}`}
-                      className="group relative flex h-full flex-col rounded-xl border border-border bg-card p-6 transition-shadow hover:[box-shadow:var(--shadow-card-hover)]"
-                      style={{ boxShadow: "var(--shadow-card)" }}
-                    >
-                      {visitedIds.has(s.id) && (
-                        <div className="absolute right-3 top-3"><ContinueBadge /></div>
-                      )}
-                      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-accent/20 text-accent">
-                        <ListChecks className="h-5 w-5" />
-                      </div>
-                      {s.category && s.category !== "Uncategorized" && (
-                        <span className="mb-2 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                          {getCategoryDisplayName(s.category)}
-                        </span>
-                      )}
-                      <h3 className="mb-2 line-clamp-2 font-serif text-base font-bold text-foreground transition-colors group-hover:text-primary">
-                        {s.title}
-                      </h3>
+                  return (
+                    <motion.div key={s.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.05 }}>
+                      <Link
+                        to={`/mcqs/${s.id}`}
+                        className="group relative flex h-full flex-col rounded-xl border border-border bg-card p-5 sm:p-6 transition-shadow hover:[box-shadow:var(--shadow-card-hover)]"
+                        style={{ boxShadow: "var(--shadow-card)" }}
+                      >
+                        {visitedIds.has(s.id) && (
+                          <div className="absolute right-3 top-3"><ContinueBadge /></div>
+                        )}
+                        <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-accent/20 text-accent sm:mb-4 sm:h-10 sm:w-10">
+                          <ListChecks className="h-4 w-4 sm:h-5 sm:w-5" />
+                        </div>
+                        {s.category && s.category !== "Uncategorized" && (
+                          <span className="mb-2 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                            {getCategoryDisplayName(s.category)}
+                          </span>
+                        )}
+                        <h3 className="mb-2 line-clamp-2 font-serif text-sm font-bold text-foreground transition-colors group-hover:text-primary sm:text-base">
+                          {s.title}
+                        </h3>
 
-                      {snippet && (
-                        <p className="mb-3 line-clamp-3 border-l-2 border-primary/20 pl-2 text-xs leading-relaxed text-muted-foreground">
-                          {snippet}
-                        </p>
-                      )}
+                        {snippet && (
+                          <p className="mb-3 line-clamp-2 border-l-2 border-primary/20 pl-2 text-xs leading-relaxed text-muted-foreground sm:line-clamp-3">
+                            {snippet}
+                          </p>
+                        )}
 
-                      <div className="mt-auto flex items-center gap-4 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1"><Layers className="h-3 w-3" /> {s.questions.length} questions</span>
-                        <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(s.created_at).toLocaleDateString()}</span>
-                      </div>
-                    </Link>
-                  </motion.div>
-                );
-              })}
-            </div>
+                        <div className="mt-auto flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1"><Layers className="h-3 w-3" /> {s.questions.length} Qs</span>
+                          <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(s.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+              </div>
+              {filtered.length > visibleCount && (
+                <button
+                  onClick={() => setVisibleCount(prev => prev + LOAD_MORE_STEP)}
+                  className="mx-auto mt-6 flex items-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+                >
+                  Load more ({filtered.length - visibleCount} remaining)
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              )}
+            </>
           )}
         </>
       )}
