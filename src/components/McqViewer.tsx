@@ -31,7 +31,11 @@ interface Props {
   freeLimit?: number;
   mcqPrice?: number;
   isPaid?: boolean;
-  onPayRequest?: () => void;
+  paymentStatus?: "idle" | "pending" | "completed" | "failed";
+  phoneInput?: string;
+  onPhoneChange?: (v: string) => void;
+  onPay?: () => void;
+  onRetryPay?: () => void;
 }
 interface AttemptRecord {
   date: string;
