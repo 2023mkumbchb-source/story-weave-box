@@ -339,9 +339,9 @@ Style requirements:
       if (error) throw error;
 
       const normalized = (articles || []).map((a: any) => {
-        const fallbackSlug = toSlug(a.title) || a.id;
+        const fallbackSlug = toSlug(a.title) || "article";
         const safeSlug = (a.slug && String(a.slug).trim()) ? String(a.slug).trim() : fallbackSlug;
-        const url = `${siteUrl}/blog/${safeSlug}`;
+        const url = `${siteUrl}/blog/${a.id}-${safeSlug}`;
         const missingFields = [
           !a.meta_title || !String(a.meta_title).trim(),
           !a.meta_description || !String(a.meta_description).trim(),
