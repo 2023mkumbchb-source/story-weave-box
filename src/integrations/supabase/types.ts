@@ -50,6 +50,7 @@ export type Database = {
           published: boolean
           slug: string | null
           title: string
+          updated_at: string
         }
         Insert: {
           category?: string
@@ -65,6 +66,7 @@ export type Database = {
           published?: boolean
           slug?: string | null
           title: string
+          updated_at?: string
         }
         Update: {
           category?: string
@@ -80,6 +82,7 @@ export type Database = {
           published?: boolean
           slug?: string | null
           title?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -94,6 +97,7 @@ export type Database = {
           published: boolean
           short_answer_questions: Json
           title: string
+          updated_at: string
         }
         Insert: {
           article_id?: string | null
@@ -105,6 +109,7 @@ export type Database = {
           published?: boolean
           short_answer_questions?: Json
           title: string
+          updated_at?: string
         }
         Update: {
           article_id?: string | null
@@ -116,6 +121,7 @@ export type Database = {
           published?: boolean
           short_answer_questions?: Json
           title?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -192,6 +198,7 @@ export type Database = {
           original_notes: string
           published: boolean
           title: string
+          updated_at: string
         }
         Insert: {
           cards?: Json
@@ -203,6 +210,7 @@ export type Database = {
           original_notes?: string
           published?: boolean
           title: string
+          updated_at?: string
         }
         Update: {
           cards?: Json
@@ -214,6 +222,7 @@ export type Database = {
           original_notes?: string
           published?: boolean
           title?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -229,6 +238,7 @@ export type Database = {
           published: boolean
           questions: Json
           title: string
+          updated_at: string
         }
         Insert: {
           access_password?: string
@@ -241,6 +251,7 @@ export type Database = {
           published?: boolean
           questions?: Json
           title: string
+          updated_at?: string
         }
         Update: {
           access_password?: string
@@ -253,6 +264,7 @@ export type Database = {
           published?: boolean
           questions?: Json
           title?: string
+          updated_at?: string
         }
         Relationships: []
       }
