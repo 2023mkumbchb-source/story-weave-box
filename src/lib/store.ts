@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { extractFirstImageFromContent, stripRichText } from "@/lib/seo";
 
 export interface Article {
   id: string;
