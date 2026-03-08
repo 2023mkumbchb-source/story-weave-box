@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export const SITE_URL = "https://medicine.kenyaadverts.co.ke";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -51,4 +53,15 @@ export function extractStoryIdFromParam(storyParam?: string): string | null {
 
   const match = storyParam.match(/^([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})(?:-|$)/i);
   return match?.[1] || null;
+}
+
+/**
+ * Auto-index: fire-and-forget URL submission to Google Indexing after publish.
+ * Silently fails — no user-facing errors.
+ */
+export function autoIndexUrls(urls: string[]) {
+  if (!urls.length) return;
+  supabase.functions.invoke("google-indexing", {
+    body: { action: "auto_index", urls },
+  }).catch(() => { /* silent */ });
 }
