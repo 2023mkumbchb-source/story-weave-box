@@ -2220,6 +2220,14 @@ function SeoIndexingTab() {
   const { toast } = useToast();
   const [seoYear, setSeoYear] = useState<string>("All");
   const [seoMode, setSeoMode] = useState<"missing" | "all">("missing");
+  const [includeUnpublished, setIncludeUnpublished] = useState(true);
+  const [seoFields, setSeoFields] = useState({
+    title: true,
+    meta_title: true,
+    meta_description: true,
+    slug: true,
+    og_image_url: true,
+  });
   const [generating, setGenerating] = useState(false);
   const [seoLog, setSeoLog] = useState<string[]>([]);
   const [seoArticles, setSeoArticles] = useState<Array<{
@@ -2230,6 +2238,7 @@ function SeoIndexingTab() {
     meta_title: string;
     meta_description: string;
     og_image_url: string;
+    published?: boolean;
     url: string;
     seo_status: "complete" | "missing";
     missing_count: number;
@@ -2240,8 +2249,10 @@ function SeoIndexingTab() {
   const [loadingBatches, setLoadingBatches] = useState(false);
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [copiedBatch, setCopiedBatch] = useState<number | null>(null);
+  const [siteUrlInput, setSiteUrlInput] = useState("https://ompathstud.lovable.app");
+  const [googleApiKey, setGoogleApiKey] = useState("");
 
-  const sitemapUrl = "https://ompathstud.lovable.app/sitemap.xml";
+  const sitemapUrl = `${siteUrlInput.replace(/\/+$/, "")}/sitemap.xml`;
 
   const handleLoadSeoArticles = async () => {
     setLoadingArticles(true);
@@ -2256,6 +2267,8 @@ function SeoIndexingTab() {
           body: {
             action: "list_articles_seo",
             year: seoYear === "All" ? null : seoYear,
+            include_unpublished: includeUnpublished,
+            site_url: siteUrlInput,
             batch_size: 150,
             cursor,
           },
@@ -2295,6 +2308,9 @@ function SeoIndexingTab() {
             cursor,
             year: seoYear === "All" ? null : seoYear,
             include_all: seoMode === "all",
+            include_unpublished: includeUnpublished,
+            fields: seoFields,
+            site_url: siteUrlInput,
           },
         });
         if (error) throw new Error(error.message);
@@ -2325,7 +2341,7 @@ function SeoIndexingTab() {
     setUpdatingOne(id);
     try {
       const { data, error } = await supabase.functions.invoke("content-upgrade", {
-        body: { action: "generate_seo_single", id },
+        body: { action: "generate_seo_single", id, fields: seoFields, site_url: siteUrlInput },
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
@@ -2342,7 +2358,7 @@ function SeoIndexingTab() {
     setLoadingBatches(true);
     try {
       const { data, error } = await supabase.functions.invoke("google-indexing", {
-        body: { action: "list_batches", year: seoYear === "All" ? null : seoYear },
+        body: { action: "list_batches", year: seoYear === "All" ? null : seoYear, site_url: siteUrlInput },
       });
       if (error) throw new Error(error.message);
       setBatches(data?.batches || []);
@@ -2360,7 +2376,7 @@ function SeoIndexingTab() {
   const handleCopyBatchUrls = async (batchNumber: number) => {
     try {
       const { data, error } = await supabase.functions.invoke("google-indexing", {
-        body: { action: "generate_urls", batch_number: batchNumber, year: seoYear === "All" ? null : seoYear },
+        body: { action: "generate_urls", batch_number: batchNumber, year: seoYear === "All" ? null : seoYear, site_url: siteUrlInput },
       });
       if (error) throw new Error(error.message);
       await navigator.clipboard.writeText(data?.urls_text || "");
@@ -2376,12 +2392,12 @@ function SeoIndexingTab() {
     setSubmitting(batchNumber);
     try {
       const { data: urlData, error: urlError } = await supabase.functions.invoke("google-indexing", {
-        body: { action: "generate_urls", batch_number: batchNumber, year: seoYear === "All" ? null : seoYear },
+        body: { action: "generate_urls", batch_number: batchNumber, year: seoYear === "All" ? null : seoYear, site_url: siteUrlInput },
       });
       if (urlError) throw new Error(urlError.message);
 
       const { data, error } = await supabase.functions.invoke("google-indexing", {
-        body: { action: "submit_to_google", urls: urlData?.urls || [] },
+        body: { action: "submit_to_google", urls: urlData?.urls || [], google_api_key: googleApiKey.trim() || undefined },
       });
       if (error) throw new Error(error.message);
 
@@ -2420,6 +2436,9 @@ function SeoIndexingTab() {
             <option value="missing">Only missing SEO</option>
             <option value="all">Regenerate all articles</option>
           </select>
+          <label className="flex items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-xs font-medium text-foreground">
+            <input type="checkbox" checked={includeUnpublished} onChange={(e) => setIncludeUnpublished(e.target.checked)} /> Include drafts/raw
+          </label>
           <Button onClick={handleGenerateSeo} disabled={generating} className="gap-2">
             {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {generating ? "Generating..." : "Generate SEO"}
@@ -2427,6 +2446,19 @@ function SeoIndexingTab() {
           <Button onClick={handleLoadSeoArticles} disabled={loadingArticles} variant="outline" className="gap-2">
             {loadingArticles ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Refresh list
           </Button>
+        </div>
+
+        <div className="grid gap-2 md:grid-cols-2">
+          <Input value={siteUrlInput} onChange={(e) => setSiteUrlInput(e.target.value)} placeholder="https://yourdomain.com" />
+          <Input value={googleApiKey} onChange={(e) => setGoogleApiKey(e.target.value)} placeholder="Google API key (optional for direct submit)" />
+        </div>
+
+        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+          <label className="flex items-center gap-1"><input type="checkbox" checked={seoFields.title} onChange={(e) => setSeoFields((p) => ({ ...p, title: e.target.checked }))} /> Title</label>
+          <label className="flex items-center gap-1"><input type="checkbox" checked={seoFields.meta_title} onChange={(e) => setSeoFields((p) => ({ ...p, meta_title: e.target.checked }))} /> Meta title</label>
+          <label className="flex items-center gap-1"><input type="checkbox" checked={seoFields.meta_description} onChange={(e) => setSeoFields((p) => ({ ...p, meta_description: e.target.checked }))} /> Meta description</label>
+          <label className="flex items-center gap-1"><input type="checkbox" checked={seoFields.slug} onChange={(e) => setSeoFields((p) => ({ ...p, slug: e.target.checked }))} /> Slug</label>
+          <label className="flex items-center gap-1"><input type="checkbox" checked={seoFields.og_image_url} onChange={(e) => setSeoFields((p) => ({ ...p, og_image_url: e.target.checked }))} /> Thumbnail URL</label>
         </div>
 
         <p className="text-xs text-muted-foreground">{seoArticles.length} articles · {completeCount} complete · {seoArticles.length - completeCount} missing fields</p>

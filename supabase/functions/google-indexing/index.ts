@@ -6,13 +6,42 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const BASE_URL = "https://ompathstud.lovable.app";
+const DEFAULT_BASE_URL = "https://ompathstud.lovable.app";
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function normalizeBaseUrl(url: string | null | undefined): string {
+  const trimmed = String(url || "").trim();
+  if (!trimmed) return DEFAULT_BASE_URL;
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  return withProtocol.replace(/\/+$/, "");
+}
+
+function slugFromTitle(title: string): string {
+  return (title || "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+async function resolveBaseUrl(sb: ReturnType<typeof createClient>, bodySiteUrl?: unknown): Promise<string> {
+  if (typeof bodySiteUrl === "string" && bodySiteUrl.trim()) return normalizeBaseUrl(bodySiteUrl);
+
+  const { data } = await sb
+    .from("app_settings")
+    .select("value")
+    .eq("key", "site_url")
+    .maybeSingle();
+
+  return normalizeBaseUrl(data?.value);
 }
 
 serve(async (req) => {
@@ -25,6 +54,39 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, supabaseKey);
+    const baseUrl = await resolveBaseUrl(sb, body?.site_url);
+
+    if (action === "get_config") {
+      return json({
+        base_url: baseUrl,
+        sitemap_url: `${baseUrl}/sitemap.xml`,
+      });
+    }
+
+    if (action === "set_site_url" || action === "set_config") {
+      const nextSiteUrl = normalizeBaseUrl(body?.site_url);
+
+      const { data: existing, error: existingError } = await sb
+        .from("app_settings")
+        .select("id")
+        .eq("key", "site_url")
+        .maybeSingle();
+      if (existingError) throw existingError;
+
+      if (existing) {
+        const { error } = await sb.from("app_settings").update({ value: nextSiteUrl }).eq("key", "site_url");
+        if (error) throw error;
+      } else {
+        const { error } = await sb.from("app_settings").insert({ key: "site_url", value: nextSiteUrl });
+        if (error) throw error;
+      }
+
+      return json({
+        success: true,
+        base_url: nextSiteUrl,
+        sitemap_url: `${nextSiteUrl}/sitemap.xml`,
+      });
+    }
 
     // Action: list_batches - get all articles grouped in batches of 50
     if (action === "list_batches") {
@@ -56,16 +118,16 @@ serve(async (req) => {
             id: a.id,
             title: a.title,
             category: a.category,
-            url: `${BASE_URL}/blog/${a.slug || a.id}`,
+            url: `${baseUrl}/blog/${a.slug || a.id}`,
             has_meta: !!(a.meta_title && a.meta_description),
           })),
         });
       }
 
-      return json({ total: (articles || []).length, batch_count: batches.length, batches });
+      return json({ total: (articles || []).length, batch_count: batches.length, batches, base_url: baseUrl });
     }
 
-    // Action: generate_sitemap_urls - generate a flat list of URLs for a batch
+    // Action: generate_urls - generate a flat list of URLs for a batch
     if (action === "generate_urls") {
       const batchNumber = body?.batch_number || 1;
       const yearFilter = body?.year || null;
@@ -89,14 +151,8 @@ serve(async (req) => {
       const batch = (articles || []).slice(start, start + batchSize);
 
       const urls = batch.map((a) => {
-        const slug = a.slug || a.title
-          .toLowerCase()
-          .replace(/&/g, " and ")
-          .replace(/[^a-z0-9\s-]/g, "")
-          .replace(/\s+/g, "-")
-          .replace(/-+/g, "-")
-          .replace(/^-|-$/g, "");
-        return `${BASE_URL}/blog/${slug || a.id}`;
+        const slug = a.slug || slugFromTitle(a.title);
+        return `${baseUrl}/blog/${slug || a.id}`;
       });
 
       return json({
@@ -104,6 +160,7 @@ serve(async (req) => {
         count: urls.length,
         urls,
         urls_text: urls.join("\n"),
+        sitemap_url: `${baseUrl}/sitemap.xml`,
       });
     }
 
@@ -114,7 +171,7 @@ serve(async (req) => {
 
       if (!urls.length) throw new Error("No URLs provided");
 
-      // If no API key, just return the URLs in a format ready for Google Search Console manual submission
+      // If no API key, return URLs for manual submission
       if (!googleApiKey) {
         return json({
           method: "manual",
@@ -124,7 +181,6 @@ serve(async (req) => {
         });
       }
 
-      // Use Google Indexing API with service account
       const results: Array<{ url: string; status: string; error?: string }> = [];
 
       for (const url of urls) {

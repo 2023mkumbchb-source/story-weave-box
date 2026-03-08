@@ -395,14 +395,16 @@ async function fetchArticleBatch(
   batchSize: number,
   cursor: string | null,
   yearFilter: string | null,
+  includeUnpublished: boolean,
 ): Promise<ArticleLite[]> {
   let query = sb
     .from("articles")
     .select("id, title, content, category, is_raw")
-    .eq("published", true)
     .is("deleted_at", null)
     .order("id", { ascending: true })
     .limit(batchSize);
+
+  if (!includeUnpublished) query = query.eq("published", true);
 
   if (yearFilter) query = query.like("category", `${yearFilter}:%`);
   if (cursor) query = query.gt("id", cursor);
@@ -511,6 +513,7 @@ serve(async (req) => {
     const batchSize = Math.min(Math.max(Number(body?.batch_size || 6), 1), 25);
     const cursor = typeof body?.cursor === "string" && body.cursor.length ? body.cursor : null;
     const yearFilter = normalizeYearFilter(body?.year);
+    const includeUnpublished = body?.include_unpublished !== false;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -518,7 +521,7 @@ serve(async (req) => {
     const startedAt = Date.now();
 
     if (action === "scan") {
-      const articles = await fetchArticleBatch(sb, batchSize, cursor, yearFilter);
+      const articles = await fetchArticleBatch(sb, batchSize, cursor, yearFilter, includeUnpublished);
       if (articles.length === 0) {
         return new Response(JSON.stringify({ results: [], done: true, processed: 0, next_cursor: null }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -664,7 +667,8 @@ serve(async (req) => {
       if (fixes.migrate_mcqs) {
         const mcqSource = content.length > MAX_MCQ_EXTRACT_CHARS ? content.slice(0, MAX_MCQ_EXTRACT_CHARS) : content;
         const mcqs = extractMcqsFromContent(mcqSource);
-        if (mcqs.length >= 3) {
+        const titleSuggestsMcq = /\bmcq\b|multiple\s+choice/i.test(title || "");
+        if (mcqs.length >= 3 || (titleSuggestsMcq && mcqs.length >= 1)) {
           const { error: mcqError } = await sb.from("mcq_sets").insert({
             title: normalizeTitle(title.replace(/MCQ.*$/i, "MCQs").replace(/Question.*$/i, "MCQs")),
             questions: mcqs,
@@ -683,12 +687,14 @@ serve(async (req) => {
           }
         }
         // Fallback: if MCQ parse failed and fallback_to_raw is requested, move to raw
-        if (mcqs.length < 3 && fixes.fallback_to_raw) {
-          await sb.from("articles").update({ is_raw: true, published: false }).eq("id", article_id);
-          changes.push("MCQ parse failed — moved to Raw (unpublished)");
-          return new Response(JSON.stringify({ success: true, changes, moved_to_raw: true }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+        if ((mcqs.length < 3 && !titleSuggestsMcq) || (titleSuggestsMcq && mcqs.length < 1)) {
+          if (fixes.fallback_to_raw) {
+            await sb.from("articles").update({ is_raw: true, published: false }).eq("id", article_id);
+            changes.push("MCQ parse failed — moved to Raw (unpublished)");
+            return new Response(JSON.stringify({ success: true, changes, moved_to_raw: true }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
         }
       }
 
@@ -733,7 +739,7 @@ serve(async (req) => {
     }
 
     if (action === "fix_all_safe" || action === "migrate_mcqs") {
-      const articles = await fetchArticleBatch(sb, batchSize, cursor, yearFilter);
+      const articles = await fetchArticleBatch(sb, batchSize, cursor, yearFilter, includeUnpublished);
       if (articles.length === 0) {
         return new Response(JSON.stringify({ fixed: 0, failed: 0, skipped: 0, migrated: 0, done: true, processed: 0, next_cursor: null }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -841,7 +847,7 @@ serve(async (req) => {
 
     if (action === "cleanup_non_ai_batch") {
       const nonAiBatchSize = Math.min(Math.max(Number(body?.batch_size || 6), 1), 12);
-      const articles = await fetchArticleBatch(sb, nonAiBatchSize, cursor, yearFilter);
+      const articles = await fetchArticleBatch(sb, nonAiBatchSize, cursor, yearFilter, includeUnpublished);
 
       if (articles.length === 0) {
         return new Response(JSON.stringify({
@@ -918,7 +924,7 @@ serve(async (req) => {
 
     if (action === "ai_fix_batch") {
       const aiBatchSize = Math.min(Math.max(Number(body?.batch_size || 1), 1), 2);
-      const articles = await fetchArticleBatch(sb, aiBatchSize, cursor, yearFilter);
+      const articles = await fetchArticleBatch(sb, aiBatchSize, cursor, yearFilter, includeUnpublished);
 
       if (articles.length === 0) {
         return new Response(JSON.stringify({ fixed: 0, migrated_mcqs: 0, migrated_essays: 0, deleted: 0, failed: 0, processed: 0, done: true, next_cursor: null, processed_articles: [] }), {
