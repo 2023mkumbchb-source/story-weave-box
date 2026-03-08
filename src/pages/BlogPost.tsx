@@ -367,7 +367,7 @@ function ArticleContent({ content }: { content: string }) {
       flushPractice(); inPractice = false;
       _sec++;
       els.push(
-        <h2 key={`h2-${i}`} id={`section-${_sec}`} className="mt-10 mb-4 font-serif font-bold text-xl sm:text-2xl text-foreground scroll-mt-20 border-b border-border pb-3">
+        <h2 key={`h2-${i}`} id={`section-${_sec}`} className="mt-10 mb-4 font-serif font-bold text-2xl text-foreground scroll-mt-20 border-b border-border pb-3 sm:text-[2rem]">
           {heading}
         </h2>
       );
