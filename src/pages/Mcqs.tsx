@@ -7,6 +7,7 @@ import { getVisitedMcqIds } from "@/lib/progress-store";
 import CategoryTabs from "@/components/CategoryTabs";
 
 export default function Mcqs() {
+  useEffect(() => { document.title = "MCQ Quizzes | Ompath Study"; }, []);
   const [sets, setSets] = useState<McqSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);

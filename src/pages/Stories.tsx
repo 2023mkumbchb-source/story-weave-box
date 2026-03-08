@@ -16,6 +16,7 @@ interface Story {
 }
 
 export default function Stories() {
+  useEffect(() => { document.title = "Stories | Ompath Study"; }, []);
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

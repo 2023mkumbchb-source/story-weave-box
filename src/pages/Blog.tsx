@@ -13,13 +13,13 @@ import {
 import ArticleCard from "@/components/ArticleCard";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
 
-const YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5"];
+const YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
 
 function normalizeYear(value: string | null | undefined): string | null {
   if (!value) return null;
   const trimmed = value.trim();
   if (trimmed === "All") return "All";
-  const match = trimmed.match(/year\s*([1-5])/i);
+  const match = trimmed.match(/year\s*([1-6])/i);
   return match ? `Year ${match[1]}` : null;
 }
 
@@ -34,6 +34,7 @@ function timeAgo(ms: number): string {
 }
 
 export default function Blog() {
+  useEffect(() => { document.title = "Study Notes | Ompath Study"; }, []);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [articles, setArticles] = useState<Article[]>([]);

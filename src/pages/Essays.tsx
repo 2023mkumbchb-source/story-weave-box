@@ -16,6 +16,7 @@ interface Essay {
 }
 
 export default function Essays() {
+  useEffect(() => { document.title = "Essays & SAQs | Ompath Study"; }, []);
   const [essays, setEssays] = useState<Essay[]>([]);
   const [loading, setLoading] = useState(true);
 
