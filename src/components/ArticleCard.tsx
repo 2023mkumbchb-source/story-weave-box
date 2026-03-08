@@ -37,6 +37,7 @@ export default function ArticleCard({ article }: { article: Article }) {
   return (
     <Link
       to={buildBlogPath(article)}
+      state={{ from: fromPath }}
       className="group block overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-card-hover)]"
     >
       <article className="grid min-h-[200px] gap-0 md:grid-cols-[240px_1fr]">
