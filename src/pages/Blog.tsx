@@ -8,6 +8,14 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5"];
 
+function normalizeYear(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (trimmed === "All") return "All";
+  const match = trimmed.match(/year\s*([1-5])/i);
+  return match ? `Year ${match[1]}` : null;
+}
+
 function timeAgo(ms: number): string {
   const diff = Date.now() - ms;
   const mins = Math.floor(diff / 60_000);
@@ -27,7 +35,7 @@ export default function Blog() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "title">("newest");
   const [recentArticles, setRecentArticles] = useState<RecentArticle[]>([]);
-  const selectedYear = searchParams.get("year") || "All";
+  const selectedYear = normalizeYear(searchParams.get("year")) || normalizeYear(sessionStorage.getItem("nav_year_filter")) || "All";
   const selectedUnit = searchParams.get("unit");
 
   useEffect(() => {
@@ -36,6 +44,7 @@ export default function Blog() {
   }, []);
 
   const setYear = (year: string) => {
+    sessionStorage.setItem("nav_year_filter", year);
     if (year === "All") setSearchParams({});
     else setSearchParams({ year });
   };
@@ -68,7 +77,8 @@ export default function Blog() {
       const matchesSearch = !search.trim() ||
         a.title.toLowerCase().includes(search.toLowerCase()) ||
         getCategoryDisplayName(a.category).toLowerCase().includes(search.toLowerCase());
-      const matchesYear = selectedYear === "All" || getYearFromCategory(a.category) === selectedYear;
+      const articleYear = normalizeYear(getYearFromCategory(a.category));
+      const matchesYear = selectedYear === "All" || articleYear === selectedYear;
       const matchesUnit = !selectedUnit || a.category === selectedUnit;
       return matchesSearch && matchesYear && matchesUnit;
     });
@@ -83,6 +93,16 @@ export default function Blog() {
     return base;
   }, [articles, search, selectedYear, selectedUnit, sortBy]);
 
+  const filteredRecentArticles = useMemo(() => {
+    if (selectedYear === "All") return recentArticles;
+    const byId = new Map(articles.map((article) => [article.id, article]));
+    return recentArticles.filter((recent) => {
+      const article = byId.get(recent.id);
+      if (!article) return false;
+      return normalizeYear(getYearFromCategory(article.category)) === selectedYear;
+    });
+  }, [articles, recentArticles, selectedYear]);
+
   // Group by unit - ONLY show groups from selected year when year is selected
   const groupedArticles = useMemo(() => {
     if (selectedUnit || search.trim()) return null;
@@ -90,8 +110,8 @@ export default function Blog() {
     filtered.forEach(a => {
       // Double-check year filter for grouped view
       if (selectedYear !== "All") {
-        const artYear = getYearFromCategory(a.category);
-        if (artYear !== selectedYear) return; // Skip articles not in selected year
+        const artYear = normalizeYear(getYearFromCategory(a.category));
+        if (artYear !== selectedYear) return;
       }
       const key = a.category || "Uncategorized";
       if (!groups.has(key)) groups.set(key, []);
@@ -137,13 +157,17 @@ export default function Blog() {
           </div>
           <div>
             <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">Study Notes</h1>
-            <p className="text-muted-foreground text-sm">{yearCounts.All} articles across {YEARS.length - 1} years</p>
+            <p className="text-muted-foreground text-sm">
+              {selectedYear === "All"
+                ? `${yearCounts.All} articles across ${YEARS.length - 1} years`
+                : `${yearCounts[selectedYear] || 0} articles in ${selectedYear}`}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Recently Read */}
-      {!search.trim() && selectedYear === "All" && !selectedUnit && recentArticles.length > 0 && (
+      {!search.trim() && selectedYear !== "All" && !selectedUnit && filteredRecentArticles.length > 0 && (
         <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
           className="mb-8 rounded-2xl border border-border bg-card/60 p-4 sm:p-5">
           <div className="mb-3 flex items-center gap-2">
@@ -151,7 +175,7 @@ export default function Blog() {
             <h2 className="text-sm font-semibold text-foreground">Continue Reading</h2>
           </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {recentArticles.slice(0, 3).map((ra, i) => (
+            {filteredRecentArticles.slice(0, 3).map((ra, i) => (
               <motion.div key={ra.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
                 <Link to={`/blog/${ra.id}`}
                   className="group flex items-start gap-3 rounded-xl border border-border bg-background px-3 py-2.5 hover:border-primary/40 hover:bg-primary/5 transition-colors">
