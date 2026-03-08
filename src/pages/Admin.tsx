@@ -2342,7 +2342,7 @@ function SeoIndexingTab() {
     setUpdatingOne(id);
     try {
       const { data, error } = await supabase.functions.invoke("content-upgrade", {
-        body: { action: "generate_seo_single", id },
+        body: { action: "generate_seo_single", id, fields: seoFields, site_url: siteUrlInput },
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
