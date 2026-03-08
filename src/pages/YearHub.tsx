@@ -51,7 +51,7 @@ export default function YearHub() {
     <div className="mx-auto max-w-5xl px-5 py-10 sm:py-12">
       <div className="rounded-2xl border border-border bg-card p-6 sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-primary">Study navigation</p>
-        <h1 className="mt-1 font-display text-3xl font-bold text-foreground">{yearLabel}</h1>
+        <h1 className="mt-1 font-serif text-3xl font-bold text-foreground">{yearLabel}</h1>
         <p className="mt-2 text-sm text-muted-foreground">Choose a section below to continue with {yearLabel} content only.</p>
       </div>
 
