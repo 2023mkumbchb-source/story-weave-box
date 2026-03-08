@@ -88,7 +88,7 @@ export default function EssayStudy() {
       {/* SAQs */}
       {essay.short_answer_questions.length > 0 && (
         <div className="mb-8">
-          <h2 className="font-display text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+          <h2 className="font-serif text-lg font-bold text-foreground mb-3 flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" /> Short Answer Questions ({essay.short_answer_questions.length})
           </h2>
           <div className="space-y-2">
