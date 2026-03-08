@@ -1171,7 +1171,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
         </div>
       </div>
       <div className="rounded-xl border border-primary/30 bg-primary/5 p-6">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">Weekly Exam Generator</h3>
+        <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Weekly Exam Generator</h3>
         <p className="mb-4 text-sm text-muted-foreground">Generates a comprehensive exam from all published content.</p>
         <Button onClick={handleGenerateExam} disabled={generatingExam} className="gap-2">
           {generatingExam && <Loader2 className="h-4 w-4 animate-spin" />}
