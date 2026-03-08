@@ -509,14 +509,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
             </div>
           ))}
         </div>
-
-        {/* Back button */}
-        <div className="mt-6 flex justify-center">
-          <Button variant="ghost" size="sm" onClick={goPrev} disabled={current === 0} className="gap-2">
-            <ChevronLeft className="h-4 w-4" /> Go Back
-          </Button>
-        </div>
-      </motion.div>
+      </div>
     );
   }
 
