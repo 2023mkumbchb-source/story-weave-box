@@ -189,12 +189,16 @@ Return ONLY the improved content.`;
       const body = await req.json().catch(() => ({}));
       const articleId = body?.id;
       const content = body?.content;
+      const title = typeof body?.title === "string" ? body.title.trim() : null;
 
       if (!articleId || !content) throw new Error("Missing id or content");
 
+      const updatePayload: Record<string, string> = { content };
+      if (title) updatePayload.title = title;
+
       const { error } = await sb
         .from("articles")
-        .update({ content })
+        .update(updatePayload)
         .eq("id", articleId);
 
       if (error) throw error;

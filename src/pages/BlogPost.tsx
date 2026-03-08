@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft, Loader2, GraduationCap, ListChecks,
@@ -9,7 +9,6 @@ import { getArticleBySlugOrId, getRelatedContent, getCategoryDisplayName, getYea
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { markArticleVisited } from "@/lib/progress-store";
-import BlogAudioPlayer from "@/components/BlogAudioPlayer";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,9 +29,11 @@ function Inline({ text }: { text: string }) {
   );
 }
 
-/* ─── Reading progress bar ─── */
+/* ─── Reading progress bar + dot ─── */
 function ReadingProgress() {
   const [pct, setPct] = useState(0);
+  const [expanded, setExpanded] = useState(false);
+
   useEffect(() => {
     const fn = () => {
       const d = document.documentElement;
@@ -40,13 +41,28 @@ function ReadingProgress() {
       setPct(total > 0 ? (d.scrollTop / total) * 100 : 0);
     };
     window.addEventListener("scroll", fn, { passive: true });
+    fn();
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
+  const rounded = Math.max(0, Math.min(100, Math.round(pct)));
+  const toneClass = rounded < 35 ? "bg-muted-foreground" : rounded < 75 ? "bg-accent" : "bg-primary";
+
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 h-[3px]">
-      <div className="h-full bg-primary transition-all duration-150" style={{ width: `${pct}%` }} />
-    </div>
+    <>
+      <div className="fixed left-0 right-0 top-0 z-50 h-[3px]">
+        <div className="h-full bg-primary transition-all duration-150" style={{ width: `${pct}%` }} />
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setExpanded((prev) => !prev)}
+        className={`fixed bottom-6 right-4 z-40 inline-flex items-center justify-center rounded-full border border-border text-primary-foreground shadow-[var(--shadow-elevated)] transition-all ${toneClass} ${expanded ? "h-9 px-3 text-xs font-semibold" : "h-3.5 w-3.5"}`}
+        aria-label="Reading progress"
+      >
+        <span className={`${expanded ? "opacity-100" : "sr-only"}`}>{rounded}%</span>
+      </button>
+    </>
   );
 }
 
@@ -500,13 +516,82 @@ export default function BlogPost() {
       const { data, error } = await supabase.functions.invoke("content-upgrade", { body: { action: "upgrade", id: article.id, type } });
       if (error) throw new Error(error.message);
       if (!data?.improved_content) throw new Error("No upgraded content returned");
-      const { error: applyError } = await supabase.functions.invoke("content-upgrade", { body: { action: "apply", id: article.id, content: data.improved_content } });
+      const { error: applyError } = await supabase.functions.invoke("content-upgrade", {
+        body: { action: "apply", id: article.id, content: data.improved_content, title: article.title },
+      });
       if (applyError) throw new Error(applyError.message);
       await reloadCurrentArticle(article.id);
       toast({ title: type === "format" ? "Formatting applied" : "Content expanded" });
     } catch (err: any) {
       toast({ title: "Action failed", description: err?.message, variant: "destructive" });
-    } finally { setActionLoading(null); }
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const runGenerateSaqs = async () => {
+    if (!article) return;
+    setActionLoading("saq");
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-content", {
+        body: { notes: article.content, type: "essay-qa" },
+      });
+      if (error) throw new Error(error.message);
+
+      const saqs = Array.isArray(data?.saqs) ? data.saqs : [];
+      if (!saqs.length) throw new Error("No SAQs generated");
+
+      const section = [
+        "",
+        "## Short Answer Questions",
+        ...saqs.map((q: any, i: number) => `### SAQ ${i + 1}\n${q.question}\n\n**Model answer:** ${q.answer || q.model_answer || ""}`),
+      ].join("\n\n");
+
+      const { error: applyError } = await supabase.functions.invoke("content-upgrade", {
+        body: { action: "apply", id: article.id, title: article.title, content: `${article.content}\n${section}` },
+      });
+      if (applyError) throw new Error(applyError.message);
+
+      await reloadCurrentArticle(article.id);
+      toast({ title: "SAQs added to the end of this article" });
+    } catch (err: any) {
+      toast({ title: "Action failed", description: err?.message, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const runTitleAndSubtitleCleanup = async () => {
+    if (!article) return;
+    setActionLoading("titles");
+    try {
+      const normalizedTitle = article.title
+        .replace(/^#+\s*/, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      const normalizedContent = article.content
+        .split("\n")
+        .map((line) => {
+          if (!/^#{1,3}\s+/.test(line.trim())) return line;
+          const prefix = line.match(/^#{1,3}/)?.[0] || "##";
+          const heading = line.replace(/^#{1,3}\s+/, "").replace(/\s+/g, " ").trim();
+          return `${prefix} ${heading}`;
+        })
+        .join("\n");
+
+      const { error: applyError } = await supabase.functions.invoke("content-upgrade", {
+        body: { action: "apply", id: article.id, title: normalizedTitle, content: normalizedContent },
+      });
+      if (applyError) throw new Error(applyError.message);
+
+      await reloadCurrentArticle(article.id);
+      toast({ title: "Title and subtitles cleaned" });
+    } catch (err: any) {
+      toast({ title: "Action failed", description: err?.message, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const runCleanupFix = async (fixes: Record<string, any>, successMessage: string) => {
@@ -515,12 +600,18 @@ export default function BlogPost() {
     try {
       const { data, error } = await supabase.functions.invoke("bulk-cleanup", { body: { action: "fix", article_id: article.id, fixes } });
       if (error) throw new Error(error.message);
-      if (data?.deleted_article) { toast({ title: successMessage }); navigate("/blog", { replace: true }); return; }
+      if (data?.deleted_article) {
+        toast({ title: successMessage });
+        navigate("/blog", { replace: true });
+        return;
+      }
       await reloadCurrentArticle(article.id);
       toast({ title: successMessage });
     } catch (err: any) {
       toast({ title: "Action failed", description: err?.message, variant: "destructive" });
-    } finally { setActionLoading(null); }
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   useEffect(() => {
@@ -607,11 +698,26 @@ export default function BlogPost() {
       {/* Admin toolbar */}
       {isAdmin && (
         <div className="border-b border-border bg-card">
-          <div className="mx-auto max-w-6xl px-5 py-2 flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground mr-1">Admin:</span>
-            <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" disabled={!!actionLoading} onClick={() => runGeminiUpgrade("format")}>
-              {actionLoading === "format" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} Gemini
-            </Button>
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-5 py-2">
+            <span className="mr-1 text-xs font-medium text-muted-foreground">Admin:</span>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" disabled={!!actionLoading}>
+                  {actionLoading === "format" || actionLoading === "expand" || actionLoading === "titles" || actionLoading === "saq"
+                    ? <Loader2 className="h-3 w-3 animate-spin" />
+                    : <Sparkles className="h-3 w-3" />}
+                  Gemini
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => runGeminiUpgrade("format")}>Improve article formatting</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => runGeminiUpgrade("expand")}>Expand article details</DropdownMenuItem>
+                <DropdownMenuItem onClick={runTitleAndSubtitleCleanup}>Update title + subtitles only</DropdownMenuItem>
+                <DropdownMenuItem onClick={runGenerateSaqs}>Generate SAQs at article end</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" disabled={!!actionLoading}>
@@ -623,6 +729,7 @@ export default function BlogPost() {
                 <DropdownMenuItem onClick={() => runCleanupFix({ migrate_essays: true }, "Migrated to Essays")}>To Essays</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" disabled={!!actionLoading}>
@@ -630,9 +737,7 @@ export default function BlogPost() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => runGeminiUpgrade("format")}>Improve formatting</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => runGeminiUpgrade("expand")}>Expand content</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => runCleanupFix({ fix_formatting: true, clean_emojis: true, clean_mku: true }, "Cleaned")}>Clean formatting</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => runCleanupFix({ fix_formatting: true, clean_emojis: true, clean_mku: true }, "Cleaned formatting")}>Clean formatting</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -650,7 +755,7 @@ export default function BlogPost() {
           {/* Article body */}
           <article className="min-w-0">
             <header className="mb-8">
-              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-foreground leading-tight mb-3">
+              <h1 className="mb-3 font-serif text-3xl font-bold leading-tight text-foreground sm:text-4xl">
                 {article.title.replace(/^#+\s*/, "")}
               </h1>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -661,9 +766,6 @@ export default function BlogPost() {
                     <span className="font-medium text-foreground/70">{unitName}</span>
                   </>
                 )}
-              </div>
-              <div className="mt-4">
-                <BlogAudioPlayer content={article.content} title={article.title} />
               </div>
             </header>
 
