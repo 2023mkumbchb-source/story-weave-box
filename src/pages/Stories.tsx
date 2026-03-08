@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Loader2, BookOpen, Search, X, PenLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import pathologyThumb from "@/assets/thumb-pathology.jpg";
 
 interface Story {
   id: string;
@@ -11,6 +12,7 @@ interface Story {
   category: string;
   published: boolean;
   created_at: string;
+  cover_image_url?: string | null;
 }
 
 export default function Stories() {
@@ -84,25 +86,47 @@ export default function Stories() {
         </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((story) => (
-            <motion.div key={story.id} whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 300 }}>
-              <Link to={`/stories/${story.id}`}
-                className="group block rounded-xl border border-border bg-card p-6 transition-shadow hover:[box-shadow:var(--shadow-card-hover)] h-full"
-                style={{ boxShadow: "var(--shadow-card)" }}>
-                {story.category && story.category !== "Uncategorized" && (
-                  <span className="mb-3 inline-block rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium text-primary">
-                    {story.category}
-                  </span>
-                )}
-                <h3 className="mb-2 font-serif text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                  {story.title}
-                </h3>
-                <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3">
-                  {story.content.slice(0, 150).replace(/[#*_`]/g, "").replace(/\s+/g, " ").trim()}...
-                </p>
-              </Link>
-            </motion.div>
-          ))}
+          {filtered.map((story) => {
+            const thumb = story.cover_image_url || pathologyThumb;
+            const preview = story.content
+              .replace(/<[^>]*>/g, "")
+              .replace(/^(\s*---\s*\n)+/, "")
+              .replace(/^#+\s.+$/gm, "")
+              .replace(/[#*_`|>\-]/g, "")
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 150);
+
+            return (
+              <motion.div key={story.id} whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 300 }}>
+                <Link to={`/stories/${story.id}`}
+                  className="group block rounded-xl border border-border bg-card overflow-hidden transition-shadow hover:[box-shadow:var(--shadow-card-hover)] h-full"
+                  style={{ boxShadow: "var(--shadow-card)" }}>
+                  <div className="relative h-40 overflow-hidden border-b border-border bg-muted">
+                    <img
+                      src={thumb}
+                      alt={story.title}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    />
+                  </div>
+                  <div className="p-5">
+                    {story.category && story.category !== "Uncategorized" && (
+                      <span className="mb-3 inline-block rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium text-primary">
+                        {story.category}
+                      </span>
+                    )}
+                    <h3 className="mb-2 font-serif text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                      {story.title}
+                    </h3>
+                    <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3">
+                      {preview}...
+                    </p>
+                  </div>
+                </Link>
+              </motion.div>
+            );
+          })}
         </div>
       )}
     </div>
