@@ -339,7 +339,7 @@ async function processNonAiArticle(
     }
   }
 
-  const essays = extractEssayQuestions(baseContent);
+  const essays = extractEssayQuestions(analysisContent);
   if (essays.saqs.length + essays.laqs.length >= 3) {
     const { error: essayErr } = await sb.from("essays").insert({
       title: normalizeTitle(newTitle),
