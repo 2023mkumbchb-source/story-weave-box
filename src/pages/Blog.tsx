@@ -100,8 +100,8 @@ export default function Blog() {
     filtered.forEach(a => {
       // Double-check year filter for grouped view
       if (selectedYear !== "All") {
-        const artYear = getYearFromCategory(a.category);
-        if (artYear !== selectedYear) return; // Skip articles not in selected year
+        const artYear = normalizeYear(getYearFromCategory(a.category));
+        if (artYear !== selectedYear) return;
       }
       const key = a.category || "Uncategorized";
       if (!groups.has(key)) groups.set(key, []);
