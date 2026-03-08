@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { BookOpen, GraduationCap, LayoutDashboard, ListChecks, Menu, X, Trophy } from "lucide-react";
+import { BookOpen, GraduationCap, LayoutDashboard, ListChecks, Menu, X, Trophy, BookMarked } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ThemeToggle from "./ThemeToggle";
@@ -9,6 +9,7 @@ const links = [
   { to: "/flashcards", label: "Flashcards", icon: GraduationCap },
   { to: "/mcqs", label: "MCQs", icon: ListChecks },
   { to: "/exams", label: "Exams", icon: Trophy },
+  { to: "/stories", label: "Stories", icon: BookMarked },
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
 ];
 

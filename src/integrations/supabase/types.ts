@@ -340,6 +340,36 @@ export type Database = {
         }
         Relationships: []
       }
+      stories: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          published: boolean
+          title: string
+        }
+        Insert: {
+          category?: string
+          content?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          published?: boolean
+          title: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          published?: boolean
+          title?: string
+        }
+        Relationships: []
+      }
       user_answers: {
         Row: {
           correct_answer: number

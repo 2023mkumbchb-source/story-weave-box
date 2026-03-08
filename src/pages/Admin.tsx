@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, Bolt, AlertTriangle, Building2, Check, X, Sparkles, Eye } from "lucide-react";
+import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, Bolt, AlertTriangle, Building2, Check, X, Sparkles, Eye, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import {
 } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 
-type Tab = "create" | "articles" | "flashcards" | "mcqs" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade";
+type Tab = "create" | "articles" | "flashcards" | "mcqs" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade" | "import";
 type DirectType = "article" | "mcqs" | "flashcards";
 
 export default function Admin() {
@@ -384,6 +384,7 @@ export default function Admin() {
     { id: "upgrade", label: "AI Upgrade", icon: Sparkles },
     { id: "recycle", label: "Recycle Bin", icon: Trash2 },
     { id: "institutions", label: "Institutions", icon: Building2 },
+    { id: "import", label: "Import", icon: Upload },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -648,6 +649,7 @@ export default function Admin() {
       {tab === "recycle" && <RecycleBinTab />}
       {tab === "institutions" && <InstitutionsTab />}
       {tab === "upgrade" && <ContentUpgradeTab />}
+      {tab === "import" && <ImportTab />}
       {tab === "settings" && <SettingsPanel setGeminiKey={setGeminiKey} />}
     </div>
   );
@@ -1759,6 +1761,139 @@ function ContentUpgradeTab() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WordPress Import Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ImportTab() {
+  const { toast } = useToast();
+  const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number; articles: number; mcqs: number; stories: number; skipped: number; errors: string[] } | null>(null);
+  const [jsonData, setJsonData] = useState<any[] | null>(null);
+  const [fileName, setFileName] = useState("");
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target?.result as string);
+        if (Array.isArray(parsed)) {
+          setJsonData(parsed);
+          toast({ title: `Loaded ${parsed.length} posts from ${file.name}` });
+        } else {
+          toast({ title: "Invalid JSON format", description: "Expected an array of posts", variant: "destructive" });
+        }
+      } catch {
+        toast({ title: "Failed to parse JSON file", variant: "destructive" });
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImport = async () => {
+    if (!jsonData?.length) return;
+    setImporting(true);
+    const batchSize = 20;
+    const totals = { done: 0, total: jsonData.length, articles: 0, mcqs: 0, stories: 0, skipped: 0, errors: [] as string[] };
+    setProgress({ ...totals });
+
+    for (let i = 0; i < jsonData.length; i += batchSize) {
+      const batch = jsonData.slice(i, i + batchSize);
+      try {
+        const { data, error } = await supabase.functions.invoke("import-wordpress", {
+          body: { posts: batch, action: "import" },
+        });
+        if (error) throw new Error(error.message);
+        if (data) {
+          totals.articles += data.articles || 0;
+          totals.mcqs += data.mcqs || 0;
+          totals.stories += data.stories || 0;
+          totals.skipped += data.skipped || 0;
+          if (data.errors?.length) totals.errors.push(...data.errors);
+        }
+      } catch (err: any) {
+        totals.errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${err.message}`);
+      }
+      totals.done = Math.min(i + batchSize, jsonData.length);
+      setProgress({ ...totals });
+    }
+
+    setImporting(false);
+    toast({
+      title: "Import complete!",
+      description: `${totals.articles} articles, ${totals.mcqs} MCQ sets, ${totals.stories} stories imported. ${totals.skipped} skipped.`,
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <Upload className="h-5 w-5 text-primary" />
+          <h3 className="font-display text-lg font-bold text-foreground">Import WordPress Posts</h3>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          Upload a WordPress JSON export file. Posts will be auto-classified as articles, MCQs, or stories and assigned categories.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+          <label className="flex-1 cursor-pointer rounded-xl border-2 border-dashed border-border hover:border-primary/50 transition-colors p-6 text-center">
+            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm font-medium text-foreground">{fileName || "Click to select JSON file"}</p>
+            {jsonData && <p className="text-xs text-primary mt-1">{jsonData.length} posts ready</p>}
+            <input type="file" accept=".json" onChange={handleFileSelect} className="hidden" />
+          </label>
+        </div>
+
+        {jsonData && (
+          <Button onClick={handleImport} disabled={importing} className="gap-2">
+            {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {importing ? `Importing... (${progress?.done || 0}/${progress?.total || 0})` : `Import ${jsonData.length} Posts`}
+          </Button>
+        )}
+
+        {progress && (
+          <div className="mt-4 space-y-3">
+            <div className="w-full bg-secondary rounded-full h-2.5">
+              <div className="bg-primary h-2.5 rounded-full transition-all" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="rounded-lg border border-border bg-background p-3 text-center">
+                <p className="text-2xl font-bold text-foreground">{progress.articles}</p>
+                <p className="text-xs text-muted-foreground">Articles</p>
+              </div>
+              <div className="rounded-lg border border-border bg-background p-3 text-center">
+                <p className="text-2xl font-bold text-foreground">{progress.mcqs}</p>
+                <p className="text-xs text-muted-foreground">MCQ Sets</p>
+              </div>
+              <div className="rounded-lg border border-border bg-background p-3 text-center">
+                <p className="text-2xl font-bold text-foreground">{progress.stories}</p>
+                <p className="text-xs text-muted-foreground">Stories</p>
+              </div>
+              <div className="rounded-lg border border-border bg-background p-3 text-center">
+                <p className="text-2xl font-bold text-foreground">{progress.skipped}</p>
+                <p className="text-xs text-muted-foreground">Skipped</p>
+              </div>
+            </div>
+            {progress.errors.length > 0 && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                <p className="text-xs font-bold text-destructive mb-1">Errors ({progress.errors.length})</p>
+                <div className="max-h-32 overflow-y-auto text-xs text-muted-foreground space-y-0.5">
+                  {progress.errors.slice(0, 20).map((err, i) => <p key={i}>{err}</p>)}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
