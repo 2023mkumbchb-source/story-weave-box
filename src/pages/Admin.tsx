@@ -2359,7 +2359,7 @@ function SeoIndexingTab() {
     setLoadingBatches(true);
     try {
       const { data, error } = await supabase.functions.invoke("google-indexing", {
-        body: { action: "list_batches", year: seoYear === "All" ? null : seoYear },
+        body: { action: "list_batches", year: seoYear === "All" ? null : seoYear, site_url: siteUrlInput },
       });
       if (error) throw new Error(error.message);
       setBatches(data?.batches || []);
