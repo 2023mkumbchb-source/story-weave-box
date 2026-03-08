@@ -1467,6 +1467,22 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
         </div>
       </div>
       <div className="rounded-xl border border-border bg-card p-6">
+        <h3 className="mb-2 font-serif text-lg font-bold text-foreground">MCQ Paywall — Free Questions</h3>
+        <p className="mb-4 text-sm text-muted-foreground">Number of free MCQs before the paywall kicks in. Default: 10.</p>
+        <div className="flex gap-2">
+          <Input type="number" placeholder="10" value={mcqFreeLimit} onChange={(e) => setMcqFreeLimit(e.target.value)} className="flex-1 max-w-[120px]" />
+          <Button onClick={async () => { setSaving(true); try { await saveSetting("mcq_free_limit", mcqFreeLimit); toast({ title: "MCQ free limit saved!" }); } catch {} finally { setSaving(false); } }} disabled={saving} size="sm" className="gap-2"><Save className="h-3 w-3" /> Save</Button>
+        </div>
+      </div>
+      <div className="rounded-xl border border-border bg-card p-6">
+        <h3 className="mb-2 font-serif text-lg font-bold text-foreground">MCQ Price (KES)</h3>
+        <p className="mb-4 text-sm text-muted-foreground">M-Pesa payment amount to unlock remaining MCQs in a set. Default: 10.</p>
+        <div className="flex gap-2">
+          <Input type="number" placeholder="10" value={mcqPrice} onChange={(e) => setMcqPrice(e.target.value)} className="flex-1 max-w-[120px]" />
+          <Button onClick={async () => { setSaving(true); try { await saveSetting("mcq_price", mcqPrice); toast({ title: "MCQ price saved!" }); } catch {} finally { setSaving(false); } }} disabled={saving} size="sm" className="gap-2"><Save className="h-3 w-3" /> Save</Button>
+        </div>
+      </div>
+      <div className="rounded-xl border border-border bg-card p-6">
         <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Exam Winner Award (KES)</h3>
         <p className="mb-4 text-sm text-muted-foreground">Default prize for the top-scoring student per unit exam.</p>
         <div className="flex gap-2">
