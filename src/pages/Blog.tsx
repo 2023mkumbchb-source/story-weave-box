@@ -36,6 +36,8 @@ function timeAgo(ms: number): string {
 export default function Blog() {
   useEffect(() => { document.title = "Study Notes | Kenya Meds"; }, []);
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromPath = `${location.pathname}${location.search}`;
   const [searchParams, setSearchParams] = useSearchParams();
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
