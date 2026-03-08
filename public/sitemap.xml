@@ -1,6 +1,5 @@
-<!-- Content fetched from: https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/generate-sitemap -->
-
-<!--?xml version="1.0" encoding="UTF-8"?--><html><body><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://medicine.kenyaadverts.co.ke/</loc><priority>1.0</priority><changefreq>daily</changefreq></url>
   <url><loc>https://medicine.kenyaadverts.co.ke/blog</loc><priority>0.9</priority><changefreq>daily</changefreq></url>
   <url><loc>https://medicine.kenyaadverts.co.ke/stories</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
