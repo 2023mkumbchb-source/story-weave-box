@@ -2547,12 +2547,13 @@ function SeoIndexingTab() {
   }>>([]);
   const [loadingArticles, setLoadingArticles] = useState(false);
   const [updatingOne, setUpdatingOne] = useState<string | null>(null);
-  const [batches, setBatches] = useState<Array<{ batch_number: number; count: number; articles: any[] }>>([]);
+  const [batches, setBatches] = useState<Array<{ batch_number: number; count: number; urls: any[] }>>([]);
   const [loadingBatches, setLoadingBatches] = useState(false);
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [copiedBatch, setCopiedBatch] = useState<number | null>(null);
   const [siteUrlInput, setSiteUrlInput] = useState("https://medicine.kenyaadverts.co.ke");
   const [googleApiKey, setGoogleApiKey] = useState("");
+  const [contentTypeFilter, setContentTypeFilter] = useState<string>("all");
 
   const sitemapUrl = `${siteUrlInput.replace(/\/+$/, "")}/sitemap.xml`;
 
