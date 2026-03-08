@@ -322,15 +322,16 @@ Style requirements:
       const yearFilter = body?.year || null;
       const batchSize = Math.min(Math.max(Number(body?.batch_size || 100), 1), 200);
       const cursor = typeof body?.cursor === "string" && body.cursor ? body.cursor : null;
+      const includeUnpublished = body?.include_unpublished !== false;
 
       let query = sb
         .from("articles")
         .select("id, title, category, slug, meta_title, meta_description, og_image_url, published")
         .is("deleted_at", null)
-        .eq("published", true)
         .order("id", { ascending: true })
         .limit(batchSize);
 
+      if (!includeUnpublished) query = query.eq("published", true);
       if (yearFilter && /^Year [1-5]$/.test(yearFilter)) query = query.like("category", `${yearFilter}:%`);
       if (cursor) query = query.gt("id", cursor);
 
@@ -340,7 +341,7 @@ Style requirements:
       const normalized = (articles || []).map((a: any) => {
         const fallbackSlug = toSlug(a.title) || a.id;
         const safeSlug = (a.slug && String(a.slug).trim()) ? String(a.slug).trim() : fallbackSlug;
-        const url = `${SITE_URL}/blog/${safeSlug}`;
+        const url = `${siteUrl}/blog/${safeSlug}`;
         const missingFields = [
           !a.meta_title || !String(a.meta_title).trim(),
           !a.meta_description || !String(a.meta_description).trim(),
@@ -356,6 +357,7 @@ Style requirements:
           meta_title: a.meta_title || "",
           meta_description: a.meta_description || "",
           og_image_url: a.og_image_url || "",
+          published: Boolean(a.published),
           url,
           seo_status: missingFields === 0 ? "complete" : "missing",
           missing_count: missingFields,
