@@ -22,6 +22,7 @@ export default function Admin() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [geminiKey, setGeminiKey] = useState("");
+  const [articleEditId, setArticleEditId] = useState<string | null>(null);
 
   useEffect(() => {
     if (sessionStorage.getItem("learninghub_auth") !== "true") {
