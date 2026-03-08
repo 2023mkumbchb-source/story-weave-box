@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const MAX_ANALYZE_CHARS = 40000;
-const MAX_MCQ_EXTRACT_CHARS = 120000;
+const MAX_MCQ_EXTRACT_CHARS = 32000;
 const OVERSIZED_ARTICLE_CHARS = 130000;
 const CPU_BUDGET_MS = 1600;
 const AI_MAX_CONTENT_CHARS = 18000;
@@ -268,6 +268,7 @@ async function fetchArticleBatch(
   sb: ReturnType<typeof createClient>,
   batchSize: number,
   cursor: string | null,
+  yearFilter: string | null,
 ): Promise<ArticleLite[]> {
   let query = sb
     .from("articles")
@@ -277,11 +278,101 @@ async function fetchArticleBatch(
     .order("id", { ascending: true })
     .limit(batchSize);
 
+  if (yearFilter) query = query.like("category", `${yearFilter}:%`);
   if (cursor) query = query.gt("id", cursor);
 
   const { data, error } = await query;
   if (error) throw error;
   return (data || []) as ArticleLite[];
+}
+
+function normalizeYearFilter(rawYear: unknown): string | null {
+  if (typeof rawYear !== "string") return null;
+  const trimmed = rawYear.trim();
+  if (/^Year [1-5]$/.test(trimmed)) return trimmed;
+  return null;
+}
+
+type ProcessNonAiResult = {
+  id: string;
+  title: string;
+  action: "updated" | "migrated_mcq" | "migrated_essay" | "deleted" | "no_change";
+  details?: string;
+};
+
+async function processNonAiArticle(
+  sb: ReturnType<typeof createClient>,
+  article: ArticleLite,
+): Promise<ProcessNonAiResult> {
+  const rawContent = article.content || "";
+  if (rawContent.length > OVERSIZED_ARTICLE_CHARS) {
+    return { id: article.id, title: article.title || "(untitled)", action: "no_change", details: "oversized_manual_review" };
+  }
+
+  const baseContent = cleanContent(rawContent);
+  const analysisContent = baseContent.slice(0, MAX_MCQ_EXTRACT_CHARS);
+  let newTitle = normalizeTitle(article.title || inferTitleFromContent(baseContent));
+  if (!newTitle) newTitle = inferTitleFromContent(baseContent);
+
+  const detectedCategory = detectBestCategory(newTitle, analysisContent.slice(0, MAX_ANALYZE_CHARS));
+  const newCategory = detectedCategory || article.category;
+
+  if (baseContent.replace(/\s+/g, "").length < 40) {
+    await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
+    return { id: article.id, title: newTitle, action: "deleted", details: "empty_or_too_short" };
+  }
+
+  const mcqs = extractMcqsFromContent(analysisContent);
+  if (mcqs.length >= 5) {
+    const { error: mcqError } = await sb.from("mcq_sets").insert({
+      title: normalizeTitle(newTitle),
+      questions: mcqs,
+      published: true,
+      original_notes: "",
+      category: newCategory,
+      access_password: "",
+    });
+
+    if (!mcqError) {
+      await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
+      return { id: article.id, title: newTitle, action: "migrated_mcq", details: `${mcqs.length} MCQs` };
+    }
+  }
+
+  const essays = extractEssayQuestions(analysisContent);
+  if (essays.saqs.length + essays.laqs.length >= 3) {
+    const { error: essayErr } = await sb.from("essays").insert({
+      title: normalizeTitle(newTitle),
+      short_answer_questions: essays.saqs,
+      long_answer_questions: essays.laqs,
+      category: newCategory,
+      published: true,
+      article_id: article.id,
+    });
+
+    if (!essayErr) {
+      await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
+      return {
+        id: article.id,
+        title: newTitle,
+        action: "migrated_essay",
+        details: `${essays.saqs.length} SAQs · ${essays.laqs.length} LAQs`,
+      };
+    }
+  }
+
+  const updates: Record<string, any> = {};
+  if (baseContent !== article.content) updates.content = baseContent;
+  if (newCategory !== article.category) updates.category = newCategory;
+  if (newTitle !== article.title) updates.title = newTitle;
+
+  if (Object.keys(updates).length > 0) {
+    const { error: updateErr } = await sb.from("articles").update(updates).eq("id", article.id);
+    if (updateErr) throw updateErr;
+    return { id: article.id, title: newTitle, action: "updated" };
+  }
+
+  return { id: article.id, title: article.title, action: "no_change" };
 }
 
 serve(async (req) => {
@@ -292,6 +383,7 @@ serve(async (req) => {
     const { action } = body;
     const batchSize = Math.min(Math.max(Number(body?.batch_size || 6), 1), 25);
     const cursor = typeof body?.cursor === "string" && body.cursor.length ? body.cursor : null;
+    const yearFilter = normalizeYearFilter(body?.year);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -299,7 +391,7 @@ serve(async (req) => {
     const startedAt = Date.now();
 
     if (action === "scan") {
-      const articles = await fetchArticleBatch(sb, batchSize, cursor);
+      const articles = await fetchArticleBatch(sb, batchSize, cursor, yearFilter);
       if (articles.length === 0) {
         return new Response(JSON.stringify({ results: [], done: true, processed: 0, next_cursor: null }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -497,7 +589,7 @@ serve(async (req) => {
     }
 
     if (action === "fix_all_safe" || action === "migrate_mcqs") {
-      const articles = await fetchArticleBatch(sb, batchSize, cursor);
+      const articles = await fetchArticleBatch(sb, batchSize, cursor, yearFilter);
       if (articles.length === 0) {
         return new Response(JSON.stringify({ fixed: 0, failed: 0, skipped: 0, migrated: 0, done: true, processed: 0, next_cursor: null }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -600,9 +692,86 @@ serve(async (req) => {
       });
     }
 
+    if (action === "cleanup_non_ai_batch") {
+      const nonAiBatchSize = Math.min(Math.max(Number(body?.batch_size || 6), 1), 12);
+      const articles = await fetchArticleBatch(sb, nonAiBatchSize, cursor, yearFilter);
+
+      if (articles.length === 0) {
+        return new Response(JSON.stringify({
+          updated: 0,
+          migrated_mcqs: 0,
+          migrated_essays: 0,
+          deleted: 0,
+          failed: 0,
+          skipped: 0,
+          processed: 0,
+          done: true,
+          next_cursor: null,
+          processed_articles: [],
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let updated = 0;
+      let migrated_mcqs = 0;
+      let migrated_essays = 0;
+      let deleted = 0;
+      let failed = 0;
+      let skipped = 0;
+      let processed = 0;
+      let lastCursor: string | null = cursor;
+      const processedArticles: Array<{ id: string; title: string; action: string; details?: string }> = [];
+      let timedOut = false;
+
+      for (const article of articles) {
+        processed++;
+        lastCursor = article.id;
+
+        try {
+          const result = await processNonAiArticle(sb, article);
+          processedArticles.push(result);
+
+          if (result.action === "updated") updated++;
+          else if (result.action === "migrated_mcq") migrated_mcqs++;
+          else if (result.action === "migrated_essay") migrated_essays++;
+          else if (result.action === "deleted") deleted++;
+          else skipped++;
+        } catch (err: any) {
+          failed++;
+          processedArticles.push({
+            id: article.id,
+            title: article.title,
+            action: "failed",
+            details: err?.message || "Unknown",
+          });
+        }
+
+        if (Date.now() - startedAt > CPU_BUDGET_MS) {
+          timedOut = true;
+          break;
+        }
+      }
+
+      return new Response(JSON.stringify({
+        updated,
+        migrated_mcqs,
+        migrated_essays,
+        deleted,
+        failed,
+        skipped,
+        processed,
+        processed_articles: processedArticles,
+        done: articles.length < nonAiBatchSize && !timedOut,
+        next_cursor: lastCursor,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "ai_fix_batch") {
       const aiBatchSize = Math.min(Math.max(Number(body?.batch_size || 1), 1), 2);
-      const articles = await fetchArticleBatch(sb, aiBatchSize, cursor);
+      const articles = await fetchArticleBatch(sb, aiBatchSize, cursor, yearFilter);
 
       if (articles.length === 0) {
         return new Response(JSON.stringify({ fixed: 0, migrated_mcqs: 0, migrated_essays: 0, deleted: 0, failed: 0, processed: 0, done: true, next_cursor: null, processed_articles: [] }), {
@@ -700,8 +869,38 @@ serve(async (req) => {
             processedArticles.push({ id: article.id, title: article.title, action: "no_change" });
           }
         } catch (err: any) {
+          const message = String(err?.message || "Unknown");
+          const isRateLimited = /429|rate-?limit/i.test(message);
+
+          if (isRateLimited) {
+            try {
+              const fallback = await processNonAiArticle(sb, article);
+              if (fallback.action === "updated") fixed++;
+              else if (fallback.action === "migrated_mcq") migrated_mcqs++;
+              else if (fallback.action === "migrated_essay") migrated_essays++;
+              else if (fallback.action === "deleted") deleted++;
+
+              processedArticles.push({
+                id: fallback.id,
+                title: fallback.title,
+                action: `${fallback.action}_fallback`,
+                details: "AI rate-limited",
+              });
+              continue;
+            } catch (fallbackErr: any) {
+              failed++;
+              processedArticles.push({
+                id: article.id,
+                title: article.title,
+                action: "failed",
+                error: fallbackErr?.message || message,
+              });
+              continue;
+            }
+          }
+
           failed++;
-          processedArticles.push({ id: article.id, title: article.title, action: "failed", error: err?.message || "Unknown" });
+          processedArticles.push({ id: article.id, title: article.title, action: "failed", error: message });
         }
 
         if (Date.now() - startedAt > CPU_BUDGET_MS) {
