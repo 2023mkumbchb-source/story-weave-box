@@ -212,7 +212,7 @@ function extractMcqsFromContent(content: string): ExtractedMcq[] {
       optionEntries.push([match[1].toUpperCase(), match[2].trim()]);
     }
 
-    if (optionEntries.length < 3) return null;
+    if (optionEntries.length < 4) return null;
 
     const answerLetter = optionsPart.match(/answer\s*[:\-]\s*([A-Ea-e])/i)?.[1]?.toUpperCase() || null;
     const correctAnswer = answerLetter ? Math.max(0, optionEntries.findIndex(([key]) => key === answerLetter)) : 0;
