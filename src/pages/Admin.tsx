@@ -2753,6 +2753,10 @@ function SeoIndexingTab() {
   };
 
   useEffect(() => {
+    loadSiteUrlConfig();
+  }, []);
+
+  useEffect(() => {
     handleLoadSeoArticles();
   }, [seoYear]);
 
