@@ -81,7 +81,7 @@ serve(async (req) => {
     const baseUrl = await resolveBaseUrl(sb, body?.site_url);
 
     if (action === "get_config") {
-      return json({ base_url: baseUrl, sitemap_url: `${baseUrl}/dynamic-sitemap.xml` });
+      return json({ base_url: baseUrl, sitemap_url: `${baseUrl}/sitemap-dynamic.xml` });
     }
 
     if (action === "set_site_url" || action === "set_config") {
