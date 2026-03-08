@@ -608,9 +608,9 @@ export default function BlogPost() {
         return null;
       })()}
       <div className="mx-auto max-w-3xl px-5 sm:px-6 py-8 sm:py-12">
-        <Link to="/blog" className="inline-flex items-center gap-2 text-[15px] text-muted-foreground hover:text-foreground transition-colors mb-10">
-          <ArrowLeft className="h-4 w-4" /> Back to Blog
-        </Link>
+        <button onClick={handleBack} className="inline-flex items-center gap-2 text-[15px] text-muted-foreground hover:text-foreground transition-colors mb-10">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
         <div className="flex flex-wrap items-center gap-2 mb-4 text-[15px] text-muted-foreground">
           <Calendar className="h-4 w-4" />
           <span>{date}</span>
