@@ -684,7 +684,7 @@ function MiniQuiz({ set, startIndex = 0, onDone }: { set: any; startIndex?: numb
         </p>
         <span className="text-[10px] text-muted-foreground">{score.correct}/{score.total}</span>
       </div>
-      <p className="text-xs font-medium text-foreground leading-snug mb-2 break-words">{q.question}</p>
+      <p className="text-xs font-medium text-foreground leading-snug mb-2 break-words">{cleanQuestionText(q.question)}</p>
       <div className="space-y-1 mb-2">
         {(q.options ?? []).map((opt: string, i: number) => {
           const isCorrect = revealed && i === q.correct_answer;
