@@ -171,7 +171,7 @@ export async function getPublishedArticles(): Promise<Article[]> {
 export async function getPublishedArticleSummaries(year?: string): Promise<Article[]> {
   let query = supabase
     .from("articles")
-    .select("id, title, category, created_at, published")
+    .select("id, title, category, created_at, published, content")
     .eq("published", true)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });

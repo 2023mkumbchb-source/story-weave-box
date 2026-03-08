@@ -6,11 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const GEMINI_MODELS = [
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-2.5-pro",
-];
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"];
 
 async function callGemini(apiKey: string, prompt: string, maxTokens = 8000): Promise<string> {
   for (const model of GEMINI_MODELS) {
@@ -39,23 +35,65 @@ async function callGemini(apiKey: string, prompt: string, maxTokens = 8000): Pro
       continue;
     }
   }
+
   throw new Error("All Gemini models failed");
+}
+
+async function generateArticleImage(prompt: string): Promise<string> {
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!lovableKey) throw new Error("LOVABLE_API_KEY not set");
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${lovableKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash-image",
+      messages: [{ role: "user", content: prompt }],
+      modalities: ["image", "text"],
+    }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) throw new Error("Rate limit reached. Try again in a moment.");
+    if (response.status === 402) throw new Error("AI credits exhausted. Please top up workspace usage.");
+    throw new Error("Failed to generate image");
+  }
+
+  const data = await response.json();
+  const imageUrl = data?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+  if (!imageUrl) throw new Error("No image returned by Gemini image model");
+
+  return imageUrl;
+}
+
+function json(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { action } = await req.json();
-    const geminiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!geminiKey) throw new Error("GEMINI_API_KEY not set");
+    const body = await req.json().catch(() => ({}));
+    const action = body?.action;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, supabaseKey);
 
+    const geminiKey = typeof body?.geminiKey === "string" && body.geminiKey.trim()
+      ? body.geminiKey.trim()
+      : Deno.env.get("GEMINI_API_KEY");
+
     if (action === "scan") {
-      // Scan articles for issues and return upgrade suggestions
+      if (!geminiKey) throw new Error("GEMINI_API_KEY not set");
+
       const { data: articles } = await sb
         .from("articles")
         .select("id, title, content, category, is_raw")
@@ -64,21 +102,17 @@ serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(50);
 
-      if (!articles || articles.length === 0) {
-        return new Response(JSON.stringify({ suggestions: [], message: "No articles to scan" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      if (!articles?.length) return json({ suggestions: [], message: "No articles to scan" });
 
-      // Summarize article issues for Gemini
-      const summaries = articles.map((a: any, i: number) => {
-        const hasTable = a.content?.includes("|---") || a.content?.includes("| ---");
-        const wordCount = a.content?.split(/\s+/).length || 0;
-        const bulletCount = (a.content?.match(/^- /gm) || []).length;
-        const headingCount = (a.content?.match(/^#{2,3}\s/gm) || []).length;
-        const isRaw = a.is_raw;
-        return `${i + 1}. "${a.title}" (${a.category}) – ${wordCount} words, ${headingCount} headings, ${bulletCount} bullets, raw=${isRaw}, hasTable=${hasTable}`;
-      }).join("\n");
+      const summaries = articles
+        .map((a: any, i: number) => {
+          const hasTable = a.content?.includes("|---") || a.content?.includes("| ---");
+          const wordCount = a.content?.split(/\s+/).length || 0;
+          const bulletCount = (a.content?.match(/^- /gm) || []).length;
+          const headingCount = (a.content?.match(/^#{2,3}\s/gm) || []).length;
+          return `${i + 1}. id=${a.id} | "${a.title}" (${a.category}) – ${wordCount} words, ${headingCount} headings, ${bulletCount} bullets, raw=${a.is_raw}, hasTable=${hasTable}`;
+        })
+        .join("\n");
 
       const scanPrompt = `You are a medical content quality reviewer. Review these articles and suggest improvements.
 
@@ -87,57 +121,42 @@ ${summaries}
 
 For each article that needs improvement, suggest ONE specific upgrade. Focus on:
 - Articles that are too short (< 500 words) → suggest "expand content"
-- Articles with too many bullet points and few paragraphs → suggest "improve formatting"  
+- Articles with too many bullet points and few paragraphs → suggest "improve formatting"
 - Raw/unformatted articles → suggest "format with AI"
 - Articles missing key sections → suggest "add missing sections"
 - Articles with poor category assignment → suggest "fix category"
 
-Return ONLY a JSON array (max 10 items), each with: {"id": "...", "title": "...", "suggestion": "...", "type": "format|expand|category|sections", "priority": "high|medium|low", "auto_safe": true/false}
-
-auto_safe=true means the upgrade won't delete content, only improve formatting or add details.
-auto_safe=false means it could change meaning or structure significantly.
-
+Return ONLY a JSON array (max 10 items), each with: {"id": "<real article id>", "title": "...", "suggestion": "...", "type": "format|expand|category|sections", "priority": "high|medium|low", "auto_safe": true/false}
 Return ONLY the JSON array, no markdown.`;
 
       const result = await callGemini(geminiKey, scanPrompt);
-      let suggestions;
       try {
         const cleaned = result.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-        suggestions = JSON.parse(cleaned);
+        return json({ suggestions: JSON.parse(cleaned) });
       } catch {
-        suggestions = [];
+        return json({ suggestions: [] });
       }
-
-      return new Response(JSON.stringify({ suggestions }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
 
     if (action === "upgrade") {
-      const { id, type } = await req.json().catch(() => ({ id: null, type: null }));
-      // Re-parse body properly
-      const body = JSON.parse(await new Request(req.url, { method: "POST", body: req.body }).text().catch(() => "{}"));
+      if (!geminiKey) throw new Error("GEMINI_API_KEY not set");
 
-      // Get article
-      const { data: article } = await sb
-        .from("articles")
-        .select("*")
-        .eq("id", id || body?.id)
-        .single();
+      const id = body?.id;
+      const upgradeType = body?.type || "format";
+      if (!id) throw new Error("Missing article id");
 
+      const { data: article } = await sb.from("articles").select("*").eq("id", id).single();
       if (!article) throw new Error("Article not found");
 
-      const upgradeType = type || body?.type || "format";
       let prompt = "";
-
       if (upgradeType === "format") {
-        prompt = `You are a medical content formatter. Take this article and improve its formatting for both mobile and desktop readability.
+        prompt = `You are a medical content formatter. Take this article and improve readability for mobile and desktop.
 
 Rules:
-- Use ## for major sections, ### for subsections
-- Write in clear paragraphs, NOT excessive bullet points
-- Keep ALL existing information — do NOT remove anything
-- Preserve any tables in proper markdown format
+- Use ## for major sections and ### for subsections
+- Prefer clear paragraphs over excessive bullets
+- Keep ALL existing information
+- Preserve any markdown tables
 - Bold key terms with **term**
 - Keep medical accuracy
 
@@ -145,15 +164,15 @@ Article title: ${article.title}
 Content:
 ${article.content}
 
-Return ONLY the improved content (no title, no explanations).`;
+Return ONLY the improved content.`;
       } else if (upgradeType === "expand") {
-        prompt = `You are a medical content expert. Expand this article with additional relevant details while keeping all existing content.
+        prompt = `You are a medical content expert. Expand this article while keeping all existing content.
 
 Rules:
 - Keep ALL existing content
-- Add more clinical details, pathophysiology, diagnosis, treatment where relevant
+- Add clinical details, pathophysiology, diagnosis, and treatment where relevant
 - Add a summary table at the end if appropriate
-- Maintain the same formatting style
+- Keep formatting clean and consistent
 - Target at least 800 words total
 
 Article title: ${article.title}
@@ -163,7 +182,7 @@ ${article.content}
 
 Return ONLY the expanded content.`;
       } else {
-        prompt = `Review and improve this medical article. Fix any formatting issues, add missing details, and ensure it reads well on both mobile and desktop.
+        prompt = `Review and improve this medical article. Fix formatting issues and add missing details without removing core information.
 
 Article: ${article.title}
 Content:
@@ -172,21 +191,46 @@ ${article.content}
 Return ONLY the improved content.`;
       }
 
-      const improved = await callGemini(geminiKey, prompt, 12000);
-
-      return new Response(JSON.stringify({
+      const improved = await callGemini(geminiKey, prompt, 12_000);
+      return json({
         id: article.id,
         title: article.title,
         original_length: article.content.length,
         improved_length: improved.length,
         improved_content: improved,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    if (action === "generate_image") {
+      const id = body?.id;
+      if (!id) throw new Error("Missing article id");
+
+      const { data: article } = await sb
+        .from("articles")
+        .select("id, title, category, content")
+        .eq("id", id)
+        .single();
+
+      if (!article) throw new Error("Article not found");
+
+      const imagePrompt = `Create a clean educational medical illustration for a study blog article.
+
+Title: ${article.title}
+Category: ${article.category}
+
+Style requirements:
+- medical textbook style
+- simple, clear anatomy/clinical concept
+- no logos, no text labels, no watermark
+- white or very light background
+- high clarity and professional look
+- suitable as a hero image for an education article`;
+
+      const imageDataUrl = await generateArticleImage(imagePrompt);
+      return json({ image_data_url: imageDataUrl });
+    }
+
     if (action === "apply") {
-      const body = await req.json().catch(() => ({}));
       const articleId = body?.id;
       const content = body?.content;
       const title = typeof body?.title === "string" ? body.title.trim() : null;
@@ -196,23 +240,14 @@ Return ONLY the improved content.`;
       const updatePayload: Record<string, string> = { content };
       if (title) updatePayload.title = title;
 
-      const { error } = await sb
-        .from("articles")
-        .update(updatePayload)
-        .eq("id", articleId);
-
+      const { error } = await sb.from("articles").update(updatePayload).eq("id", articleId);
       if (error) throw error;
 
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ success: true });
     }
 
     throw new Error("Unknown action");
   } catch (e: any) {
-    return new Response(JSON.stringify({ error: e?.message || "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: e?.message || "Unknown error" }, 500);
   }
 });

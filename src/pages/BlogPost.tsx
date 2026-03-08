@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft, Loader2, GraduationCap, ListChecks,
-  ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2,
+  ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2, ImagePlus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getArticleBySlugOrId, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, type Article } from "@/lib/store";
@@ -238,6 +238,11 @@ function extractToc(content: string): TocItem[] {
       items.push({ id: `section-${secNum}`, text: `Question ${qMatch[2]}`, level: 2 });
     }
   }
+
+  if (items.length === 0) {
+    items.push({ id: "section-top", text: "Overview", level: 2 });
+  }
+
   return items;
 }
 
@@ -280,8 +285,8 @@ function ArticleContent({ content }: { content: string }) {
   const pushBullet = (text: string, key: string) => {
     if (!listBuf || listBuf.type !== "ul") { flushList(); listBuf = { type: "ul", items: [] }; }
     listBuf.items.push(
-      <li key={key} className="flex items-start gap-2.5 text-[15px] text-foreground/85 leading-relaxed">
-        <span className="mt-[9px] h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+      <li key={key} className="flex items-start gap-2.5 text-base text-foreground/90 leading-8">
+        <span className="mt-3 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
         <span className="flex-1"><Inline text={text} /></span>
       </li>
     );
@@ -305,6 +310,23 @@ function ArticleContent({ content }: { content: string }) {
       return;
     }
 
+    // Markdown image
+    const imageMatch = t.match(/^!\[(.*?)\]\((.*?)\)$/);
+    if (imageMatch) {
+      flushList();
+      underSubheading = false;
+      const alt = imageMatch[1]?.trim() || "Medical illustration";
+      const src = imageMatch[2]?.trim();
+      if (src) {
+        els.push(
+          <figure key={`img-${i}`} className="my-6 overflow-hidden rounded-2xl border border-border bg-muted/20">
+            <img src={src} alt={alt} loading="lazy" className="w-full object-cover" />
+          </figure>
+        );
+      }
+      return;
+    }
+
     // QUESTION pattern
     const questionMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)[:\s-]*(.*)/i);
     if (questionMatch) {
@@ -318,7 +340,7 @@ function ArticleContent({ content }: { content: string }) {
             <span className="shrink-0 flex items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm w-10 h-10">
               Q{qNum}
             </span>
-            <h2 className="font-serif font-bold text-xl text-foreground leading-tight">
+            <h2 className="font-serif font-bold text-2xl text-foreground leading-tight sm:text-[2rem]">
               {qTitle || `Question ${qNum}`}
             </h2>
           </div>
@@ -350,7 +372,7 @@ function ArticleContent({ content }: { content: string }) {
       flushPractice(); inPractice = false;
       _sec++;
       els.push(
-        <h2 key={`h2-${i}`} id={`section-${_sec}`} className="mt-10 mb-4 font-serif font-bold text-xl sm:text-2xl text-foreground scroll-mt-20 border-b border-border pb-3">
+        <h2 key={`h2-${i}`} id={`section-${_sec}`} className="mt-10 mb-4 font-serif font-bold text-2xl text-foreground scroll-mt-20 border-b border-border pb-3 sm:text-[2rem]">
           {heading}
         </h2>
       );
@@ -361,7 +383,7 @@ function ArticleContent({ content }: { content: string }) {
     if (/^#{3,6}\s/.test(t)) {
       flushList(); underSubheading = true;
       const txt = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").trim();
-      els.push(<h3 key={`h3-${i}`} className="mt-6 mb-2 font-semibold text-base text-foreground">{txt}</h3>);
+      els.push(<h3 key={`h3-${i}`} className="mt-6 mb-2 font-semibold text-lg text-foreground">{txt}</h3>);
       return;
     }
 
@@ -394,8 +416,8 @@ function ArticleContent({ content }: { content: string }) {
       if (!listBuf || listBuf.type !== "ol") { flushList(); listBuf = { type: "ol", items: [] }; }
       const num = t.match(/^(\d+)/)?.[1] ?? "";
       listBuf.items.push(
-        <li key={`ol-${i}`} className="flex items-start gap-2.5 text-[15px] text-foreground/85 leading-relaxed">
-          <span className="shrink-0 flex items-center justify-center rounded-full border border-primary/40 bg-primary/5 text-primary text-xs font-semibold w-6 h-6 mt-0.5">{num}</span>
+        <li key={`ol-${i}`} className="flex items-start gap-2.5 text-base text-foreground/90 leading-8">
+          <span className="shrink-0 flex items-center justify-center rounded-full border border-primary/40 bg-primary/5 text-primary text-xs font-semibold w-6 h-6 mt-1">{num}</span>
           <span className="flex-1"><Inline text={t.replace(/^\d+\.\s/, "")} /></span>
         </li>
       );
@@ -415,7 +437,7 @@ function ArticleContent({ content }: { content: string }) {
     const isSubLabel = /^[A-Za-z*\s()–-]{2,60}:$/.test(t);
     if (isSubLabel) {
       flushList();
-      els.push(<h3 key={`sl-${i}`} className="mt-6 mb-2 font-semibold text-base text-foreground"><Inline text={t.slice(0, -1)} /></h3>);
+      els.push(<h3 key={`sl-${i}`} className="mt-6 mb-2 font-semibold text-lg text-foreground"><Inline text={t.slice(0, -1)} /></h3>);
       underSubheading = true;
       return;
     }
@@ -450,7 +472,7 @@ function ArticleContent({ content }: { content: string }) {
     }
 
     // Paragraph
-    els.push(<p key={`p-${i}`} className="mb-4 text-[15px] leading-[1.8] text-foreground/85"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
+    els.push(<p key={`p-${i}`} className="mb-5 text-base leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
   });
 
   flushList(); flushTable(); flushPractice();
@@ -459,7 +481,7 @@ function ArticleContent({ content }: { content: string }) {
 
 /* ─── Sidebar TOC ─── */
 function SidebarToc({ items, activeId }: { items: TocItem[]; activeId: string }) {
-  if (items.length < 2) return null;
+  if (items.length < 1) return null;
   return (
     <nav className="sticky top-20 space-y-0.5">
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Contents</p>
@@ -554,6 +576,37 @@ export default function BlogPost() {
 
       await reloadCurrentArticle(article.id);
       toast({ title: "SAQs added to the end of this article" });
+    } catch (err: any) {
+      toast({ title: "Action failed", description: err?.message, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const runGenerateCoverImage = async () => {
+    if (!article) return;
+    setActionLoading("image");
+
+    try {
+      const { data, error } = await supabase.functions.invoke("content-upgrade", {
+        body: { action: "generate_image", id: article.id },
+      });
+
+      if (error) throw new Error(error.message);
+      const imageDataUrl = data?.image_data_url as string | undefined;
+      if (!imageDataUrl) throw new Error("No image returned");
+
+      const contentWithoutTopImage = article.content.replace(/^!\[[^\]]*\]\([^)]+\)\s*\n*/m, "").trimStart();
+      const imageAlt = article.title.replace(/\s+/g, " ").trim() || "Medical illustration";
+      const newContent = `![${imageAlt}](${imageDataUrl})\n\n${contentWithoutTopImage}`;
+
+      const { error: applyError } = await supabase.functions.invoke("content-upgrade", {
+        body: { action: "apply", id: article.id, title: article.title, content: newContent },
+      });
+      if (applyError) throw new Error(applyError.message);
+
+      await reloadCurrentArticle(article.id);
+      toast({ title: "Gemini cover image generated" });
     } catch (err: any) {
       toast({ title: "Action failed", description: err?.message, variant: "destructive" });
     } finally {
@@ -697,14 +750,14 @@ export default function BlogPost() {
 
       {/* Admin toolbar */}
       {isAdmin && (
-        <div className="border-b border-border bg-card">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-5 py-2">
-            <span className="mr-1 text-xs font-medium text-muted-foreground">Admin:</span>
+        <div className="border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/90">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-5 py-2.5">
+            <span className="mr-1 text-xs font-semibold text-muted-foreground">Admin tools:</span>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" disabled={!!actionLoading}>
-                  {actionLoading === "format" || actionLoading === "expand" || actionLoading === "titles" || actionLoading === "saq"
+                <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" disabled={!!actionLoading}>
+                  {actionLoading === "format" || actionLoading === "expand" || actionLoading === "titles" || actionLoading === "saq" || actionLoading === "image"
                     ? <Loader2 className="h-3 w-3 animate-spin" />
                     : <Sparkles className="h-3 w-3" />}
                   Gemini
@@ -713,6 +766,7 @@ export default function BlogPost() {
               <DropdownMenuContent align="start">
                 <DropdownMenuItem onClick={() => runGeminiUpgrade("format")}>Improve article formatting</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => runGeminiUpgrade("expand")}>Expand article details</DropdownMenuItem>
+                <DropdownMenuItem onClick={runGenerateCoverImage}><ImagePlus className="mr-2 h-3.5 w-3.5" />Generate article image</DropdownMenuItem>
                 <DropdownMenuItem onClick={runTitleAndSubtitleCleanup}>Update title + subtitles only</DropdownMenuItem>
                 <DropdownMenuItem onClick={runGenerateSaqs}>Generate SAQs at article end</DropdownMenuItem>
               </DropdownMenuContent>
@@ -746,16 +800,16 @@ export default function BlogPost() {
 
       {/* Main layout: sidebar TOC + article */}
       <div className="mx-auto max-w-6xl px-5 py-8">
-        <div className="lg:grid lg:grid-cols-[220px_1fr_220px] lg:gap-8">
+        <div className="lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10">
           {/* Left sidebar: TOC */}
           <aside className="hidden lg:block">
             <SidebarToc items={toc} activeId={activeSection} />
           </aside>
 
           {/* Article body */}
-          <article className="min-w-0">
-            <header className="mb-8">
-              <h1 className="mb-3 font-serif text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+          <article id="section-top" className="min-w-0">
+            <header className="mb-10">
+              <h1 className="mb-3 font-serif text-4xl font-bold leading-tight text-foreground sm:text-5xl">
                 {article.title.replace(/^#+\s*/, "")}
               </h1>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -814,8 +868,6 @@ export default function BlogPost() {
             )}
           </article>
 
-          {/* Right sidebar: placeholder for future recommended reading */}
-          <aside className="hidden lg:block" />
         </div>
       </div>
     </>
