@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
-import { Loader2, ArrowLeft, Share2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { buildStoryPath, extractStoryIdFromParam, SITE_URL, stripRichText } from "@/lib/seo";
+import ShareButtons from "@/components/ShareButtons";
 
 export default function StoryRead() {
   const { id } = useParams<{ id: string }>();

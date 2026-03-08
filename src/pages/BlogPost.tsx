@@ -988,6 +988,16 @@ export default function BlogPost() {
               <ArticleContent content={article.content} />
             </div>
 
+            {/* Share after content */}
+            <div className="mt-10 pt-6 border-t border-border">
+              <ShareButtons
+                url={`${SITE_URL}${buildBlogPath(article)}`}
+                title={article.title}
+                description={article.meta_description || ""}
+                variant="full"
+              />
+            </div>
+
             {/* Related content */}
             {hasRelated && (
               <div className="mt-12 rounded-lg border border-border p-5">
