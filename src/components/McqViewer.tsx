@@ -484,7 +484,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
         {/* Paywall card */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
           className="rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-background to-accent/5 p-6 sm:p-8 text-center">
-          <Lock className="mx-auto mb-4 h-10 w-10 text-primary" />
+          <LockIcon className="mx-auto mb-4 h-10 w-10 text-primary" />
           <h3 className="mb-2 font-serif text-xl font-bold text-foreground">Unlock Remaining Questions</h3>
           <p className="mb-1 text-sm text-muted-foreground">
             You've completed the first <strong className="text-foreground">{freeLimit}</strong> free questions.
