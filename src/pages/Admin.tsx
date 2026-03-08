@@ -22,6 +22,7 @@ export default function Admin() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [geminiKey, setGeminiKey] = useState("");
+  const [articleEditId, setArticleEditId] = useState<string | null>(null);
 
   useEffect(() => {
     if (sessionStorage.getItem("learninghub_auth") !== "true") {
@@ -642,7 +643,7 @@ export default function Admin() {
         </div>
       )}
 
-      {tab === "articles" && <ArticlesList />}
+      {tab === "articles" && <ArticlesList initialEditId={articleEditId} onEditOpened={() => setArticleEditId(null)} />}
       {tab === "flashcards" && <FlashcardsList />}
       {tab === "mcqs" && <McqsList />}
       {tab === "exams" && <ExamResultsTab />}
@@ -650,7 +651,7 @@ export default function Admin() {
       {tab === "recycle" && <RecycleBinTab />}
       {tab === "institutions" && <InstitutionsTab />}
       {tab === "upgrade" && <ContentUpgradeTab />}
-      {tab === "cleanup" && <BulkCleanupTab />}
+      {tab === "cleanup" && <BulkCleanupTab onEditArticle={(id) => { setArticleEditId(id); setTab("articles"); }} />}
       {tab === "import" && <ImportTab />}
       {tab === "settings" && <SettingsPanel setGeminiKey={setGeminiKey} />}
     </div>
@@ -867,13 +868,27 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
 }
 
 // ===== ARTICLES LIST =====
-function ArticlesList() {
+function ArticlesList({
+  initialEditId,
+  onEditOpened,
+}: {
+  initialEditId: string | null;
+  onEditOpened: () => void;
+}) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Article | null>(null);
   const { toast } = useToast();
   const refresh = () => { getArticles().then((arts) => setArticles(arts.filter((a: any) => a.is_raw !== true))).finally(() => setLoading(false)); };
   useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    if (!initialEditId || editing || articles.length === 0) return;
+    const target = articles.find((a) => a.id === initialEditId);
+    if (target) {
+      setEditing(target);
+      onEditOpened();
+    }
+  }, [initialEditId, editing, articles, onEditOpened]);
   const handleDelete = async (id: string) => { await deleteArticle(id); refresh(); toast({ title: "Deleted" }); };
   const togglePublish = async (a: Article) => { await saveArticle({ ...a, published: !a.published }); refresh(); toast({ title: a.published ? "Unpublished" : "Published!" }); };
   const handleSaveEdit = async () => { if (!editing) return; await saveArticle(editing); setEditing(null); refresh(); toast({ title: "Article updated!" }); };
@@ -1605,7 +1620,7 @@ interface CleanupResult {
   word_count: number;
 }
 
-function BulkCleanupTab() {
+function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void }) {
   const { toast } = useToast();
   const [scanning, setScanning] = useState(false);
   const [results, setResults] = useState<CleanupResult[]>([]);
@@ -1620,31 +1635,37 @@ function BulkCleanupTab() {
     setResults([]);
     setScanProgress({ scanned: 0, done: false });
     setFixLog([]);
-    
-    let offset = 0;
-    const batchSize = 30;
+
+    let cursor: string | null = null;
+    let scanned = 0;
     const allResults: CleanupResult[] = [];
-    
+
     while (true) {
       try {
         const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
-          body: { action: "scan", batch_size: batchSize, offset },
+          body: { action: "scan", batch_size: 8, cursor },
         });
         if (error) throw new Error(error.message);
-        if (data?.results) allResults.push(...data.results);
-        setScanProgress({ scanned: offset + (data?.processed || 0), done: data?.done || false });
+
+        const processed = Number(data?.processed || 0);
+        scanned += processed;
+        if (data?.results) allResults.push(...(data.results as CleanupResult[]));
+
+        setScanProgress({ scanned, done: Boolean(data?.done) });
         setResults([...allResults]);
-        
+
         if (data?.done) break;
-        offset += batchSize;
+        const nextCursor = (data?.next_cursor as string | null) || null;
+        if (!nextCursor || nextCursor === cursor) break;
+        cursor = nextCursor;
       } catch (err: any) {
         toast({ title: "Scan error", description: err.message, variant: "destructive" });
         break;
       }
     }
-    
+
     setScanning(false);
-    toast({ title: `Scan complete: ${allResults.length} articles need fixes` });
+    toast({ title: `Scan complete: ${allResults.length} articles need review/fixes` });
   };
 
   const handleFix = async (item: CleanupResult) => {
@@ -1654,11 +1675,12 @@ function BulkCleanupTab() {
         body: { action: "fix", article_id: item.id, fixes: item.fixes },
       });
       if (error) throw new Error(error.message);
-      setFixLog(prev => [...prev, `✅ ${item.title}: ${(data?.changes || []).join(", ")}`]);
-      setResults(prev => prev.filter(r => r.id !== item.id));
-      toast({ title: "Fixed!", description: (data?.changes || []).join(", ") });
+      const changeText = (data?.changes || []).join(", ") || "Updated";
+      setFixLog((prev) => [...prev, `✅ ${item.title}: ${changeText}`]);
+      setResults((prev) => prev.filter((r) => r.id !== item.id));
+      toast({ title: "Fixed", description: changeText });
     } catch (err: any) {
-      setFixLog(prev => [...prev, `❌ ${item.title}: ${err.message}`]);
+      setFixLog((prev) => [...prev, `❌ ${item.title}: ${err.message}`]);
       toast({ title: "Fix failed", description: err.message, variant: "destructive" });
     } finally {
       setFixing(null);
@@ -1668,59 +1690,90 @@ function BulkCleanupTab() {
   const handleAutoFixAll = async () => {
     setAutoFixing(true);
     setFixLog([]);
-    let offset = 0;
+
+    let cursor: string | null = null;
     let totalFixed = 0;
-    
+    let totalFailed = 0;
+    let totalSkipped = 0;
+
     while (true) {
       try {
         const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
-          body: { action: "fix_all_safe", batch_size: 20, offset },
+          body: { action: "fix_all_safe", batch_size: 6, cursor },
         });
         if (error) throw new Error(error.message);
-        totalFixed += data?.fixed || 0;
-        setFixLog(prev => [...prev, `Batch: ${data?.fixed || 0} fixed (${data?.processed || 0} checked)`]);
+
+        const fixed = Number(data?.fixed || 0);
+        const failed = Number(data?.failed || 0);
+        const skipped = Number(data?.skipped || 0);
+        const processed = Number(data?.processed || 0);
+
+        totalFixed += fixed;
+        totalFailed += failed;
+        totalSkipped += skipped;
+
+        setFixLog((prev) => [
+          ...prev,
+          `Batch: ${fixed} fixed · ${failed} failed · ${skipped} skipped (${processed} checked)`,
+        ]);
+
         if (data?.done) break;
-        offset += 20;
+        const nextCursor = (data?.next_cursor as string | null) || null;
+        if (!nextCursor || nextCursor === cursor) break;
+        cursor = nextCursor;
       } catch (err: any) {
-        setFixLog(prev => [...prev, `Error: ${err.message}`]);
+        setFixLog((prev) => [...prev, `Error: ${err.message}`]);
         break;
       }
     }
-    
+
     setAutoFixing(false);
-    toast({ title: `Auto-fix complete: ${totalFixed} articles updated` });
+    toast({ title: `Auto-fix done: ${totalFixed} fixed · ${totalFailed} failed · ${totalSkipped} skipped` });
   };
 
   const handleMigrateMcqs = async () => {
     setMigratingMcqs(true);
     setFixLog([]);
-    let offset = 0;
+
+    let cursor: string | null = null;
     let totalMigrated = 0;
-    
+
     while (true) {
       try {
         const { data, error } = await supabase.functions.invoke("bulk-cleanup", {
-          body: { action: "migrate_mcqs", batch_size: 20, offset },
+          body: { action: "migrate_mcqs", batch_size: 4, cursor },
         });
         if (error) throw new Error(error.message);
-        totalMigrated += data?.migrated || 0;
+
+        const migrated = Number(data?.migrated || 0);
+        totalMigrated += migrated;
+
         if (data?.migratedArticles?.length) {
-          setFixLog(prev => [...prev, ...data.migratedArticles.map((a: string) => `📝→📋 ${a}`)]);
+          setFixLog((prev) => [
+            ...prev,
+            ...(data.migratedArticles as string[]).map((a: string) => `📝→📋 ${a}`),
+          ]);
+        } else {
+          setFixLog((prev) => [...prev, `Batch complete: ${migrated} migrated`]);
         }
+
         if (data?.done) break;
-        offset += 20;
+        const nextCursor = (data?.next_cursor as string | null) || null;
+        if (!nextCursor || nextCursor === cursor) break;
+        cursor = nextCursor;
       } catch (err: any) {
-        setFixLog(prev => [...prev, `Error: ${err.message}`]);
+        setFixLog((prev) => [...prev, `Error: ${err.message}`]);
         break;
       }
     }
-    
+
     setMigratingMcqs(false);
-    toast({ title: `MCQ migration complete: ${totalMigrated} articles converted to MCQ sets` });
+    toast({ title: `MCQ migration complete: ${totalMigrated} articles converted` });
   };
 
-  const mcqArticles = results.filter(r => r.fixes.migrate_mcqs);
-  const formatIssues = results.filter(r => !r.fixes.migrate_mcqs);
+  const mcqArticles = results.filter((r) => r.fixes.migrate_mcqs);
+  const manualReview = results.filter((r) => r.fixes.manual_review);
+  const formatIssues = results.filter((r) => !r.fixes.migrate_mcqs && !r.fixes.manual_review);
 
   return (
     <div className="space-y-6">
@@ -1730,7 +1783,7 @@ function BulkCleanupTab() {
           <h3 className="font-display text-lg font-bold text-foreground">Bulk Article Cleanup</h3>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
-          Scan all articles for formatting issues, wrong categories, emojis, MCQ content that should be migrated, and more.
+          Runs in safe small batches to avoid timeouts. Use “Open editor” for oversized/problematic notes.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button onClick={handleScan} disabled={scanning || autoFixing || migratingMcqs} className="gap-2">
@@ -1741,7 +1794,7 @@ function BulkCleanupTab() {
             {autoFixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
             {autoFixing ? "Fixing..." : "Auto-Fix Formatting"}
           </Button>
-          <Button onClick={handleMigrateMcqs} disabled={scanning || autoFixing || migratingMcqs} variant="outline" className="gap-2 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950">
+          <Button onClick={handleMigrateMcqs} disabled={scanning || autoFixing || migratingMcqs} variant="outline" className="gap-2">
             {migratingMcqs ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bolt className="h-4 w-4" />}
             {migratingMcqs ? "Migrating..." : "Migrate MCQ Articles"}
           </Button>
@@ -1757,23 +1810,49 @@ function BulkCleanupTab() {
         </div>
       )}
 
+      {manualReview.length > 0 && (
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+            {manualReview.length} articles need manual review (very large or complex)
+          </p>
+          <div className="space-y-2">
+            {manualReview.map((item) => (
+              <div key={item.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
+                <div className="min-w-0 flex-1">
+                  <h5 className="font-medium text-foreground text-sm truncate">{item.title}</h5>
+                  <p className="text-xs text-muted-foreground">{item.category} · {item.word_count} words</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => onEditArticle(item.id)} className="ml-3 gap-1 shrink-0">
+                  <Pencil className="h-3 w-3" />
+                  Open editor
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {mcqArticles.length > 0 && (
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-amber-600 mb-2">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
             {mcqArticles.length} articles contain MCQs (should migrate)
           </p>
           <div className="space-y-2">
             {mcqArticles.map((item) => (
-              <div key={item.id} className="flex items-center justify-between rounded-xl border border-amber-300/30 bg-amber-50/50 dark:bg-amber-950/20 p-4">
+              <div key={item.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
                 <div className="min-w-0 flex-1">
                   <h5 className="font-medium text-foreground text-sm truncate">{item.title}</h5>
                   <p className="text-xs text-muted-foreground">{item.category} · {item.fixes.mcq_count} MCQs detected · {item.word_count} words</p>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => handleFix(item)}
-                  disabled={fixing === item.id} className="ml-3 gap-1 shrink-0">
-                  {fixing === item.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bolt className="h-3 w-3" />}
-                  Migrate
-                </Button>
+                <div className="flex items-center gap-2 ml-3 shrink-0">
+                  <Button size="sm" variant="outline" onClick={() => onEditArticle(item.id)}>
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleFix(item)} disabled={fixing === item.id} className="gap-1">
+                    {fixing === item.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bolt className="h-3 w-3" />}
+                    Migrate
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -1797,11 +1876,15 @@ function BulkCleanupTab() {
                     ))}
                   </div>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => handleFix(item)}
-                  disabled={fixing === item.id} className="ml-3 gap-1 shrink-0">
-                  {fixing === item.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wrench className="h-3 w-3" />}
-                  Fix
-                </Button>
+                <div className="flex items-center gap-2 ml-3 shrink-0">
+                  <Button size="sm" variant="outline" onClick={() => onEditArticle(item.id)}>
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleFix(item)} disabled={fixing === item.id} className="gap-1">
+                    {fixing === item.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wrench className="h-3 w-3" />}
+                    Fix
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -1811,7 +1894,7 @@ function BulkCleanupTab() {
       {results.length === 0 && !scanning && scanProgress.done && (
         <div className="text-center py-16 text-muted-foreground">
           <p className="text-4xl mb-3">✨</p>
-          <p className="font-medium text-foreground">All articles look clean!</p>
+          <p className="font-medium text-foreground">All scanned articles look clean.</p>
         </div>
       )}
     </div>

@@ -3,8 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const MAX_ANALYZE_CHARS = 40000;
+const MAX_MCQ_EXTRACT_CHARS = 120000;
+const OVERSIZED_ARTICLE_CHARS = 130000;
 
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
   "Year 1: Anatomy": ["anatomy", "limb", "dissection", "histology", "upper limb", "lower limb", "head and neck", "thorax", "abdomen", "pelvis", "musculoskeletal", "osteology", "myology", "brachial plexus", "femoral", "gluteal"],
@@ -36,12 +40,39 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   "Year 3: Junior Clerkship/Practicals in General Pathology I": ["junior clerkship pathology", "practicals in pathology"],
 };
 
-function detectBestCategory(title: string, content: string, currentCategory: string): string | null {
+type ArticleLite = {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  is_raw?: boolean | null;
+};
+
+function normalizeTitle(title: string): string {
+  const trimmed = title.replace(/\s+/g, " ").trim();
+  const withoutNoise = trimmed
+    .replace(/^\d{4}\s+(end\s+year|mid\s+year|supplementary)\s+/i, "")
+    .replace(/^yr\s*\d+\s+/i, "")
+    .replace(/\s*\|\s*complete\s*set$/i, "")
+    .trim();
+
+  const likelyAllCaps = withoutNoise.length > 10 && withoutNoise === withoutNoise.toUpperCase();
+  if (!likelyAllCaps) return withoutNoise || trimmed;
+
+  return (withoutNoise || trimmed)
+    .toLowerCase()
+    .replace(/\b([a-z])/g, (m) => m.toUpperCase())
+    .replace(/\bMcq\b/g, "MCQ")
+    .replace(/\bMcu\b/g, "MCU")
+    .replace(/\bCvs\b/g, "CVS");
+}
+
+function detectBestCategory(title: string, content: string): string | null {
   const text = `${title} ${content.slice(0, 3000)}`.toLowerCase();
-  
+
   let bestMatch: string | null = null;
   let bestScore = 0;
-  
+
   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
     let score = 0;
     for (const kw of keywords) {
@@ -52,7 +83,7 @@ function detectBestCategory(title: string, content: string, currentCategory: str
       bestMatch = category;
     }
   }
-  
+
   return bestScore >= 2 ? bestMatch : null;
 }
 
@@ -67,70 +98,82 @@ function isMcqContent(content: string): boolean {
     const matches = content.match(pat);
     if (matches && matches.length >= 3) mcqSignals++;
   }
-  
+
   const hasQuestionNumbers = (content.match(/\*\*Question \d+/g) || []).length >= 5;
   return mcqSignals >= 2 || hasQuestionNumbers;
 }
 
 function extractMcqsFromContent(content: string): { question: string; options: string[]; correct_answer: number; explanation?: string }[] {
   const questions: any[] = [];
-  
-  // Split by question patterns
+
   const qBlocks = content.split(/(?=\*\*Question \d+|###\s*Question \d+|\d+\.\s*\*\*)/);
-  
+
   for (const block of qBlocks) {
     if (block.trim().length < 20) continue;
-    
-    // Extract question text
+
     const qMatch = block.match(/(?:\*\*Question \d+\*\*[\s\n]*)?(.+?)(?=\n\s*[A-E]\))/s);
     if (!qMatch) continue;
-    
-    let questionText = qMatch[1].replace(/\*\*/g, '').replace(/^[\d.]+\s*/, '').trim();
+
+    const questionText = qMatch[1].replace(/\*\*/g, "").replace(/^[\d.]+\s*/, "").trim();
     if (questionText.length < 10) continue;
-    
-    // Extract options
+
     const optionMatches = block.match(/([A-E])\)\s*([^\n]+)/g);
     if (!optionMatches || optionMatches.length < 3) continue;
-    
-    const options = optionMatches.map(o => o.replace(/^[A-E]\)\s*/, '').trim());
-    
-    // Extract answer
+
+    const options = optionMatches.map((o) => o.replace(/^[A-E]\)\s*/, "").trim());
+
     const ansMatch = block.match(/\*\*Answer:\s*([A-E])\)/i) || block.match(/correct.*?([A-E])\)/i);
     let correctAnswer = 0;
     if (ansMatch) {
       correctAnswer = ansMatch[1].charCodeAt(0) - 65;
     }
-    
-    // Extract explanation
+
     const expMatch = block.match(/\*\*Explanation:\*\*\s*(.+?)(?=\n\n|\*\*Question|$)/s);
     const explanation = expMatch ? expMatch[1].trim() : undefined;
-    
+
     questions.push({ question: questionText, options, correct_answer: correctAnswer, explanation });
   }
-  
+
   return questions;
 }
 
 function cleanContent(content: string): string {
   let cleaned = content;
-  
-  // Remove emojis
-  cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2702}-\u{27B0}]|[\u{FE00}-\u{FE0F}]|[\u{1F900}-\u{1F9FF}]|[\u{200D}]|[\u{20E3}]|[\u{FE0F}]/gu, '');
-  
-  // Remove "Mount Kenya University" references
-  cleaned = cleaned.replace(/Mount Kenya University/gi, '');
-  cleaned = cleaned.replace(/MKU\s+/gi, '');
-  
-  // Fix broken option formatting (A) B) C) D) on same line)
-  cleaned = cleaned.replace(/([A-E]\))\s*([^\n]{3,}?)(?=\s*[B-E]\))/g, '$1 $2\n');
-  
-  // Remove excessive blank lines
-  cleaned = cleaned.replace(/\n{4,}/g, '\n\n\n');
-  
-  // Remove trailing spaces
-  cleaned = cleaned.replace(/[ \t]+$/gm, '');
-  
+
+  cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2702}-\u{27B0}]|[\u{FE00}-\u{FE0F}]|[\u{1F900}-\u{1F9FF}]|[\u{200D}]|[\u{20E3}]|[\u{FE0F}]/gu, "");
+
+  cleaned = cleaned.replace(/Mount Kenya University/gi, "");
+  cleaned = cleaned.replace(/MKU\s+/gi, "");
+
+  cleaned = cleaned.replace(/([A-E]\))\s*([^\n]{3,}?)(?=\s*[B-E]\))/g, "$1 $2\n");
+
+  cleaned = cleaned.replace(/\n{4,}/g, "\n\n\n");
+
+  cleaned = cleaned.replace(/[ \t]+$/gm, "");
+
   return cleaned.trim();
+}
+
+async function fetchArticleBatch(
+  sb: ReturnType<typeof createClient>,
+  batchSize: number,
+  cursor: string | null,
+): Promise<ArticleLite[]> {
+  let query = sb
+    .from("articles")
+    .select("id, title, content, category, is_raw")
+    .eq("published", true)
+    .is("deleted_at", null)
+    .order("id", { ascending: true })
+    .limit(batchSize);
+
+  if (cursor) {
+    query = query.gt("id", cursor);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data || []) as ArticleLite[];
 }
 
 serve(async (req) => {
@@ -138,25 +181,18 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, batch_size = 10, offset = 0 } = body;
+    const { action } = body;
+    const batchSize = Math.min(Math.max(Number(body?.batch_size || 6), 1), 25);
+    const cursor = typeof body?.cursor === "string" && body.cursor.length ? body.cursor : null;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, supabaseKey);
 
     if (action === "scan") {
-      // Get all published articles
-      const { data: articles, error } = await sb
-        .from("articles")
-        .select("id, title, content, category, is_raw")
-        .eq("published", true)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .range(offset, offset + batch_size - 1);
-
-      if (error) throw error;
-      if (!articles || articles.length === 0) {
-        return new Response(JSON.stringify({ results: [], done: true, processed: 0 }), {
+      const articles = await fetchArticleBatch(sb, batchSize, cursor);
+      if (articles.length === 0) {
+        return new Response(JSON.stringify({ results: [], done: true, processed: 0, next_cursor: null }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -165,57 +201,64 @@ serve(async (req) => {
       for (const article of articles) {
         const issues: string[] = [];
         const fixes: Record<string, any> = {};
-        
-        // Check if MCQ content
-        if (isMcqContent(article.content)) {
-          const mcqs = extractMcqsFromContent(article.content);
+
+        const analysisContent = article.content.slice(0, MAX_ANALYZE_CHARS);
+
+        if (article.content.length > OVERSIZED_ARTICLE_CHARS) {
+          issues.push("Very large article - open in editor for manual review");
+          fixes.manual_review = true;
+        }
+
+        if (isMcqContent(analysisContent)) {
+          const mcqs = extractMcqsFromContent(analysisContent);
           if (mcqs.length >= 3) {
             issues.push(`Contains ${mcqs.length} MCQs - should migrate to MCQ section`);
             fixes.migrate_mcqs = true;
             fixes.mcq_count = mcqs.length;
           }
         }
-        
-        // Check category
-        const betterCategory = detectBestCategory(article.title, article.content, article.category);
+
+        const betterCategory = detectBestCategory(article.title, analysisContent);
         if (betterCategory && betterCategory !== article.category) {
           issues.push(`Category mismatch: "${article.category}" → "${betterCategory}"`);
           fixes.new_category = betterCategory;
         }
-        
-        // Check formatting
-        const hasEmojis = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]/u.test(article.content);
+
+        const normalizedTitle = normalizeTitle(article.title);
+        if (normalizedTitle !== article.title) {
+          issues.push("Title formatting can be improved");
+          fixes.new_title = normalizedTitle;
+        }
+
+        const hasEmojis = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]/u.test(analysisContent);
         if (hasEmojis) {
           issues.push("Contains emojis");
           fixes.clean_emojis = true;
         }
-        
-        const hasMKU = /Mount Kenya University|MKU\s/i.test(article.content);
+
+        const hasMKU = /Mount Kenya University|MKU\s/i.test(analysisContent);
         if (hasMKU) {
           issues.push("Contains university references");
           fixes.clean_mku = true;
         }
-        
-        // Check broken formatting
-        const brokenOptions = (article.content.match(/[A-E]\)\s*[^\n]{3,}[B-E]\)/g) || []).length;
+
+        const brokenOptions = (analysisContent.match(/[A-E]\)\s*[^\n]{3,}[B-E]\)/g) || []).length;
         if (brokenOptions > 2) {
           issues.push("Broken option formatting (options on same line)");
           fixes.fix_formatting = true;
         }
-        
-        // Check if too short
+
         const wordCount = article.content.split(/\s+/).length;
         if (wordCount < 100) {
           issues.push(`Very short article (${wordCount} words)`);
           fixes.too_short = true;
         }
-        
-        // Check for excessive blank lines
-        if ((article.content.match(/\n{4,}/g) || []).length > 3) {
+
+        if ((analysisContent.match(/\n{4,}/g) || []).length > 3) {
           issues.push("Excessive blank lines");
           fixes.fix_formatting = true;
         }
-        
+
         if (issues.length > 0) {
           results.push({
             id: article.id,
@@ -228,161 +271,174 @@ serve(async (req) => {
         }
       }
 
-      return new Response(JSON.stringify({ 
-        results, 
-        done: articles.length < batch_size,
+      return new Response(JSON.stringify({
+        results,
+        done: articles.length < batchSize,
         processed: articles.length,
-        offset,
+        next_cursor: articles[articles.length - 1]?.id ?? null,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (action === "fix") {
-      const { article_id, fixes } = body;
-      
+      const { article_id, fixes = {} } = body;
+
       const { data: article, error } = await sb
         .from("articles")
         .select("*")
         .eq("id", article_id)
         .single();
-      
+
       if (error || !article) throw new Error("Article not found");
-      
+
       let content = article.content;
       let category = article.category;
+      let title = article.title;
       const changes: string[] = [];
-      
-      // Apply fixes
+
       if (fixes.clean_emojis || fixes.clean_mku || fixes.fix_formatting) {
         content = cleanContent(content);
         changes.push("Cleaned formatting");
       }
-      
+
       if (fixes.new_category) {
         category = fixes.new_category;
         changes.push(`Category: ${article.category} → ${category}`);
       }
-      
-      // Migrate MCQs
+
+      if (fixes.new_title) {
+        title = fixes.new_title;
+        changes.push("Updated title formatting");
+      }
+
       if (fixes.migrate_mcqs) {
-        const mcqs = extractMcqsFromContent(content);
+        const mcqSource = content.length > MAX_MCQ_EXTRACT_CHARS ? content.slice(0, MAX_MCQ_EXTRACT_CHARS) : content;
+        const mcqs = extractMcqsFromContent(mcqSource);
         if (mcqs.length >= 3) {
-          // Create MCQ set
           const { error: mcqError } = await sb.from("mcq_sets").insert({
-            title: article.title.replace(/MCQ.*$/i, 'MCQs').replace(/Question.*$/i, 'MCQs'),
+            title: title.replace(/MCQ.*$/i, "MCQs").replace(/Question.*$/i, "MCQs"),
             questions: mcqs,
             published: true,
-            original_notes: '',
-            category: category,
-            access_password: '',
+            original_notes: "",
+            category,
+            access_password: "",
           });
-          
+
           if (!mcqError) {
             changes.push(`Migrated ${mcqs.length} MCQs to MCQ section`);
-            // Soft-delete the article since it's now an MCQ set
             await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article_id);
-            return new Response(JSON.stringify({ 
-              success: true, 
+            return new Response(JSON.stringify({
+              success: true,
               changes,
               migrated_mcqs: mcqs.length,
-              deleted_article: true 
+              deleted_article: true,
             }), {
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
           }
         }
       }
-      
-      // Update article
-      if (content !== article.content || category !== article.category) {
+
+      if (content !== article.content || category !== article.category || title !== article.title) {
         const { error: updateError } = await sb
           .from("articles")
-          .update({ content, category })
+          .update({ content, category, title })
           .eq("id", article_id);
-        
+
         if (updateError) throw updateError;
       }
-      
+
       return new Response(JSON.stringify({ success: true, changes }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (action === "fix_all_safe") {
-      // Auto-fix all safe issues (formatting, emojis, MKU references)
-      const { data: articles, error } = await sb
-        .from("articles")
-        .select("id, title, content, category")
-        .eq("published", true)
-        .is("deleted_at", null)
-        .range(offset, offset + batch_size - 1);
-
-      if (error) throw error;
-      if (!articles || articles.length === 0) {
-        return new Response(JSON.stringify({ fixed: 0, done: true }), {
+      const articles = await fetchArticleBatch(sb, batchSize, cursor);
+      if (articles.length === 0) {
+        return new Response(JSON.stringify({ fixed: 0, failed: 0, skipped: 0, done: true, processed: 0, next_cursor: null }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
       let fixed = 0;
+      let failed = 0;
+      let skipped = 0;
+
       for (const article of articles) {
-        const cleaned = cleanContent(article.content);
-        const betterCat = detectBestCategory(article.title, article.content, article.category);
-        
-        let needsUpdate = cleaned !== article.content;
-        const updates: Record<string, any> = {};
-        
-        if (needsUpdate) updates.content = cleaned;
-        if (betterCat && betterCat !== article.category) {
-          updates.category = betterCat;
-          needsUpdate = true;
-        }
-        
-        if (needsUpdate) {
-          await sb.from("articles").update(updates).eq("id", article.id);
-          fixed++;
+        try {
+          const cleaned = cleanContent(article.content);
+          const betterCat = detectBestCategory(article.title, article.content.slice(0, MAX_ANALYZE_CHARS));
+          const betterTitle = normalizeTitle(article.title);
+
+          let needsUpdate = cleaned !== article.content;
+          const updates: Record<string, any> = {};
+
+          if (needsUpdate) updates.content = cleaned;
+          if (betterCat && betterCat !== article.category) {
+            updates.category = betterCat;
+            needsUpdate = true;
+          }
+          if (betterTitle !== article.title) {
+            updates.title = betterTitle;
+            needsUpdate = true;
+          }
+
+          if (article.content.length > OVERSIZED_ARTICLE_CHARS && !needsUpdate) {
+            skipped++;
+            continue;
+          }
+
+          if (needsUpdate) {
+            const { error: updateErr } = await sb.from("articles").update(updates).eq("id", article.id);
+            if (updateErr) throw updateErr;
+            fixed++;
+          }
+        } catch {
+          failed++;
         }
       }
 
-      return new Response(JSON.stringify({ 
-        fixed, 
-        done: articles.length < batch_size,
+      return new Response(JSON.stringify({
+        fixed,
+        failed,
+        skipped,
+        done: articles.length < batchSize,
         processed: articles.length,
+        next_cursor: articles[articles.length - 1]?.id ?? null,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (action === "migrate_mcqs") {
-      // Find and migrate all MCQ articles
-      const { data: articles, error } = await sb
-        .from("articles")
-        .select("id, title, content, category")
-        .eq("published", true)
-        .is("deleted_at", null)
-        .range(offset, offset + batch_size - 1);
+      const articles = await fetchArticleBatch(sb, batchSize, cursor);
+      if (articles.length === 0) {
+        return new Response(JSON.stringify({ migrated: 0, done: true, processed: 0, next_cursor: null, migratedArticles: [] }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-      if (error) throw error;
-      
       let migrated = 0;
       const migratedArticles: string[] = [];
-      
-      for (const article of articles || []) {
-        if (!isMcqContent(article.content)) continue;
-        
-        const mcqs = extractMcqsFromContent(article.content);
+
+      for (const article of articles) {
+        const mcqSource = article.content.length > MAX_MCQ_EXTRACT_CHARS ? article.content.slice(0, MAX_MCQ_EXTRACT_CHARS) : article.content;
+        if (!isMcqContent(mcqSource)) continue;
+
+        const mcqs = extractMcqsFromContent(mcqSource);
         if (mcqs.length < 5) continue;
-        
+
         const { error: mcqError } = await sb.from("mcq_sets").insert({
-          title: article.title,
+          title: normalizeTitle(article.title),
           questions: mcqs,
           published: true,
-          original_notes: '',
+          original_notes: "",
           category: article.category,
-          access_password: '',
+          access_password: "",
         });
-        
+
         if (!mcqError) {
           await sb.from("articles").update({ deleted_at: new Date().toISOString() }).eq("id", article.id);
           migrated++;
@@ -390,11 +446,12 @@ serve(async (req) => {
         }
       }
 
-      return new Response(JSON.stringify({ 
-        migrated, 
+      return new Response(JSON.stringify({
+        migrated,
         migratedArticles,
-        done: (articles || []).length < batch_size,
-        processed: (articles || []).length,
+        done: articles.length < batchSize,
+        processed: articles.length,
+        next_cursor: articles[articles.length - 1]?.id ?? null,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
