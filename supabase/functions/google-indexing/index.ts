@@ -92,7 +92,7 @@ serve(async (req) => {
       } else {
         await sb.from("app_settings").insert({ key: "site_url", value: nextSiteUrl });
       }
-      return json({ success: true, base_url: nextSiteUrl, sitemap_url: `${nextSiteUrl}/dynamic-sitemap.xml` });
+      return json({ success: true, base_url: nextSiteUrl, sitemap_url: `${nextSiteUrl}/sitemap-dynamic.xml` });
     }
 
     if (action === "list_all_urls") {
