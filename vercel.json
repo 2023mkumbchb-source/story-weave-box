@@ -1,12 +1,8 @@
 {
   "rewrites": [
     {
-      "source": "/dynamic-sitemap.xml",
+      "source": "/sitemap-dynamic.xml",
       "destination": "/api/sitemap"
-    },
-    {
-      "source": "/sitemap.xml",
-      "destination": "/dynamic-sitemap.xml"
     },
     {
       "source": "/blog/:slug",

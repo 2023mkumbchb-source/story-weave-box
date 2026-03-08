@@ -48,7 +48,7 @@ function buildStoryUrl(base: string, s: { id: string; title: string }) {
 }
 
 async function pingSearchEngines(baseUrl: string) {
-  const sitemapUrl = `${baseUrl}/dynamic-sitemap.xml`;
+  const sitemapUrl = `${baseUrl}/sitemap-dynamic.xml`;
   const targets = [
     `https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`,
     `https://www.bing.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`,
@@ -81,7 +81,7 @@ serve(async (req) => {
     const baseUrl = await resolveBaseUrl(sb, body?.site_url);
 
     if (action === "get_config") {
-      return json({ base_url: baseUrl, sitemap_url: `${baseUrl}/dynamic-sitemap.xml` });
+      return json({ base_url: baseUrl, sitemap_url: `${baseUrl}/sitemap-dynamic.xml` });
     }
 
     if (action === "set_site_url" || action === "set_config") {
@@ -92,7 +92,7 @@ serve(async (req) => {
       } else {
         await sb.from("app_settings").insert({ key: "site_url", value: nextSiteUrl });
       }
-      return json({ success: true, base_url: nextSiteUrl, sitemap_url: `${nextSiteUrl}/dynamic-sitemap.xml` });
+      return json({ success: true, base_url: nextSiteUrl, sitemap_url: `${nextSiteUrl}/sitemap-dynamic.xml` });
     }
 
     if (action === "list_all_urls") {
@@ -191,7 +191,7 @@ serve(async (req) => {
       const batch = (articles || []).slice(start, start + batchSize);
       const urls = batch.map(a => buildArticleUrl(baseUrl, a));
 
-      return json({ batch_number: batchNumber, count: urls.length, urls, urls_text: urls.join("\n"), sitemap_url: `${baseUrl}/dynamic-sitemap.xml` });
+      return json({ batch_number: batchNumber, count: urls.length, urls, urls_text: urls.join("\n"), sitemap_url: `${baseUrl}/sitemap-dynamic.xml` });
     }
 
     if (action === "auto_index") {
