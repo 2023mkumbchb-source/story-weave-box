@@ -157,7 +157,11 @@ export default function Blog() {
           </div>
           <div>
             <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">Study Notes</h1>
-            <p className="text-muted-foreground text-sm">{yearCounts.All} articles across {YEARS.length - 1} years</p>
+            <p className="text-muted-foreground text-sm">
+              {selectedYear === "All"
+                ? `${yearCounts.All} articles across ${YEARS.length - 1} years`
+                : `${yearCounts[selectedYear] || 0} articles in ${selectedYear}`}
+            </p>
           </div>
         </div>
       </div>
