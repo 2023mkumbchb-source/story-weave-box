@@ -698,11 +698,26 @@ export default function BlogPost() {
       {/* Admin toolbar */}
       {isAdmin && (
         <div className="border-b border-border bg-card">
-          <div className="mx-auto max-w-6xl px-5 py-2 flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground mr-1">Admin:</span>
-            <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" disabled={!!actionLoading} onClick={() => runGeminiUpgrade("format")}>
-              {actionLoading === "format" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} Gemini
-            </Button>
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-5 py-2">
+            <span className="mr-1 text-xs font-medium text-muted-foreground">Admin:</span>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" disabled={!!actionLoading}>
+                  {actionLoading === "format" || actionLoading === "expand" || actionLoading === "titles" || actionLoading === "saq"
+                    ? <Loader2 className="h-3 w-3 animate-spin" />
+                    : <Sparkles className="h-3 w-3" />}
+                  Gemini
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => runGeminiUpgrade("format")}>Improve article formatting</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => runGeminiUpgrade("expand")}>Expand article details</DropdownMenuItem>
+                <DropdownMenuItem onClick={runTitleAndSubtitleCleanup}>Update title + subtitles only</DropdownMenuItem>
+                <DropdownMenuItem onClick={runGenerateSaqs}>Generate SAQs at article end</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" disabled={!!actionLoading}>
@@ -714,6 +729,7 @@ export default function BlogPost() {
                 <DropdownMenuItem onClick={() => runCleanupFix({ migrate_essays: true }, "Migrated to Essays")}>To Essays</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" disabled={!!actionLoading}>
@@ -721,9 +737,7 @@ export default function BlogPost() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => runGeminiUpgrade("format")}>Improve formatting</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => runGeminiUpgrade("expand")}>Expand content</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => runCleanupFix({ fix_formatting: true, clean_emojis: true, clean_mku: true }, "Cleaned")}>Clean formatting</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => runCleanupFix({ fix_formatting: true, clean_emojis: true, clean_mku: true }, "Cleaned formatting")}>Clean formatting</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
