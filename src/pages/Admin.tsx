@@ -1882,7 +1882,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="flex items-center gap-2 mb-2">
           <Wrench className="h-5 w-5 text-primary" />
-          <h3 className="font-display text-lg font-bold text-foreground">Bulk Article Cleanup</h3>
+          <h3 className="font-serif text-lg font-bold text-foreground">Bulk Article Cleanup</h3>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
           Run cleanup in safe batches. Start with Year 1 using Manual Cleanup (No AI) to avoid AI rate-limit errors.
