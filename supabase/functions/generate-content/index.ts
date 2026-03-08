@@ -190,9 +190,18 @@ function parseEssayOutput(raw: string) {
   return { saqs, laqs };
 }
 
-async function callAI(messages: any[], geminiKey?: string): Promise<string> {
-  const apiKey = geminiKey?.trim() || Deno.env.get("GEMINI_API_KEY");
-  if (!apiKey) throw new Error("No Gemini API key configured. Please save your Gemini API key in Settings.");
+async function callAI(messages: any[], geminiKey?: string, allKeys?: string[]): Promise<string> {
+  // Build list of keys to try: provided keys array > single key > env var
+  const keyList: string[] = [];
+  if (allKeys && allKeys.length > 0) {
+    keyList.push(...allKeys.filter(k => k?.trim()));
+  } else if (geminiKey?.trim()) {
+    keyList.push(geminiKey.trim());
+  }
+  const envKey = Deno.env.get("GEMINI_API_KEY");
+  if (envKey) keyList.push(envKey);
+
+  if (keyList.length === 0) throw new Error("No Gemini API key configured. Please save your Gemini API key in Settings.");
 
   const systemMsg = messages.find((m: any) => m.role === "system")?.content || "";
   const userMsg = messages.find((m: any) => m.role === "user")?.content || "";
@@ -202,61 +211,68 @@ async function callAI(messages: any[], geminiKey?: string): Promise<string> {
   const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
   const REQUEST_TIMEOUT_MS = 45000;
 
-  for (const model of MODELS) {
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  for (const apiKey of keyList) {
+    for (const model of MODELS) {
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-      try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-            signal: controller.signal,
+        try {
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+              signal: controller.signal,
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.error) throw new Error(`Gemini error: ${data.error.message || JSON.stringify(data.error)}`);
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            if (!text) throw new Error("Gemini returned an empty response.");
+            return text;
           }
-        );
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.error) throw new Error(`Gemini error: ${data.error.message || JSON.stringify(data.error)}`);
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          if (!text) throw new Error("Gemini returned an empty response.");
-          return text;
-        }
-
-        const errText = await response.text();
-        if (response.status === 429) {
-          if (attempt < MAX_RETRIES - 1) {
-            await new Promise((r) => setTimeout(r, Math.pow(2, attempt) * 1500));
-            continue;
+          const errText = await response.text();
+          if (response.status === 429) {
+            if (attempt < MAX_RETRIES - 1) {
+              await new Promise((r) => setTimeout(r, Math.pow(2, attempt) * 1500));
+              continue;
+            }
+            // Exhausted retries for this model — try next model, then next key
+            break;
           }
-          break;
-        }
 
-        if (response.status === 404) break;
-        throw new Error(`Gemini API error (${response.status}): ${errText.slice(0, 300)}`);
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") {
-          if (attempt < MAX_RETRIES - 1) continue;
-          break;
+          if (response.status === 404) break;
+          throw new Error(`Gemini API error (${response.status}): ${errText.slice(0, 300)}`);
+        } catch (err) {
+          if (err instanceof DOMException && err.name === "AbortError") {
+            if (attempt < MAX_RETRIES - 1) continue;
+            break;
+          }
+          throw err;
+        } finally {
+          clearTimeout(timeout);
         }
-        throw err;
-      } finally {
-        clearTimeout(timeout);
       }
     }
+    // All models exhausted for this key — try next key
+    console.log(`Key ending ...${apiKey.slice(-4)} exhausted, trying next key`);
   }
 
-  throw new Error("Gemini is currently rate-limited. Wait a bit and retry.");
+  throw new Error("All Gemini API keys are currently rate-limited. Wait a bit and retry, or add more keys in Settings.");
 }
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { notes, type, count = 20, geminiKey, title: customTitle } = await req.json();
+    const { notes, type, count = 20, geminiKey, geminiKeys, title: customTitle } = await req.json();
+    // geminiKeys is an array of API keys for rotation; geminiKey is legacy single key
+    const allKeys: string[] = Array.isArray(geminiKeys) ? geminiKeys.filter((k: string) => k?.trim()) : [];
     const cardCount = Math.min(Math.max(Number(count) || 20, 5), 100);
 
     if (!notes || typeof notes !== "string") {
@@ -276,7 +292,7 @@ serve(async (req) => {
       ];
 
       try {
-        const category = (await callAI(messages, geminiKey)).trim().replace(/^"|"$/g, "");
+        const category = (await callAI(messages, geminiKey, allKeys)).trim().replace(/^"|"$/g, "");
         const exact = UNIT_CATEGORIES.find((c) => c.toLowerCase() === category.toLowerCase());
         if (exact) {
           return new Response(JSON.stringify({ category: exact }), {
@@ -311,7 +327,7 @@ REQUIREMENTS:
         { role: "user", content: safeNotes },
       ];
 
-      const text = await callAI(messages, geminiKey);
+      const text = await callAI(messages, geminiKey, allKeys);
       const result = parseEssayOutput(text);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -353,7 +369,7 @@ Rules:
         { role: "user", content: customTitle ? `Title: ${customTitle}\n\nContent:\n${safeNotes}` : safeNotes },
       ];
 
-      const text = await callAI(messages, geminiKey);
+      const text = await callAI(messages, geminiKey, allKeys);
       const result = normalizeArticleOutput(text);
       if (customTitle) result.title = customTitle;
 
@@ -380,7 +396,7 @@ Rules:
         { role: "user", content: safeNotes },
       ];
 
-      const text = await callAI(messages, geminiKey);
+      const text = await callAI(messages, geminiKey, allKeys);
       const result = parseAndNormalizeMcqs(text, cardCount);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -396,7 +412,7 @@ Rules:
         { role: "user", content: safeNotes },
       ];
 
-      const text = await callAI(messages, geminiKey);
+      const text = await callAI(messages, geminiKey, allKeys);
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (!jsonMatch) throw new Error("Failed to parse flashcards");
       const parsed = JSON.parse(jsonMatch[0]);
@@ -446,7 +462,7 @@ Return ONLY valid JSON array: [{"question":"...","answer":"..."}]`;
       },
     ];
 
-    const text = await callAI(messages, geminiKey);
+    const text = await callAI(messages, geminiKey, allKeys);
 
     let result: any;
     if (type === "article") {

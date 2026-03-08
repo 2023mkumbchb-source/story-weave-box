@@ -22,14 +22,19 @@ export default function Admin() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [geminiKey, setGeminiKey] = useState("");
+  const [geminiKeysAll, setGeminiKeysAll] = useState<string[]>([]);
   const [articleEditId, setArticleEditId] = useState<string | null>(null);
 
   useEffect(() => {
     if (sessionStorage.getItem("learninghub_auth") !== "true") {
       navigate("/login");
     }
-    getSetting("gemini_api_key").then((key) => {
+    Promise.all([getSetting("gemini_api_key"), getSetting("gemini_api_keys")]).then(([key, multiRaw]) => {
       setGeminiKey(key || "");
+      try {
+        const parsed = JSON.parse(multiRaw || "[]");
+        if (Array.isArray(parsed)) setGeminiKeysAll(parsed.filter(Boolean));
+      } catch { /* ignore */ }
     });
   }, [navigate]);
 
@@ -68,7 +73,7 @@ export default function Admin() {
 
   const generateArticle = async (notesInput: string): Promise<{ title: string; content: string }> => {
     const { data, error } = await supabase.functions.invoke('generate-content', {
-      body: { notes: notesInput, type: 'article', geminiKey },
+      body: { notes: notesInput, type: 'article', geminiKey, geminiKeys: geminiKeysAll },
     });
     if (error) throw new Error(error.message || "Failed to generate article");
     if (data?.error) throw new Error(data.error);
@@ -77,7 +82,7 @@ export default function Admin() {
 
   const generateFlashcards = async (notesInput: string, count: number = 20): Promise<{ question: string; answer: string }[]> => {
     const { data, error } = await supabase.functions.invoke('generate-content', {
-      body: { notes: notesInput, type: 'flashcards', count, geminiKey },
+      body: { notes: notesInput, type: 'flashcards', count, geminiKey, geminiKeys: geminiKeysAll },
     });
     if (error) throw new Error(error.message || "Failed to generate flashcards");
     if (data?.error) throw new Error(data.error);
@@ -86,7 +91,7 @@ export default function Admin() {
 
   const generateMcqs = async (notesInput: string, count: number = 15): Promise<{ question: string; options: string[]; correct_answer: number; explanation?: string }[]> => {
     const { data, error } = await supabase.functions.invoke('generate-content', {
-      body: { notes: notesInput, type: 'mcqs', count, geminiKey },
+      body: { notes: notesInput, type: 'mcqs', count, geminiKey, geminiKeys: geminiKeysAll },
     });
     if (error) throw new Error(error.message || "Failed to generate MCQs");
     if (data?.error) throw new Error(data.error);
@@ -95,7 +100,7 @@ export default function Admin() {
 
   const autoCategorizе = async (notesInput: string): Promise<string> => {
     const { data, error } = await supabase.functions.invoke('generate-content', {
-      body: { notes: notesInput, type: 'categorize', geminiKey },
+      body: { notes: notesInput, type: 'categorize', geminiKey, geminiKeys: geminiKeysAll },
     });
     if (error) return "Uncategorized";
     return data?.category || "Uncategorized";
@@ -1233,28 +1238,49 @@ function McqsList() {
 
 // ===== SETTINGS PANEL =====
 function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }) {
-  const [localGeminiKey, setLocalGeminiKey] = useState("");
+  const [geminiKeys, setGeminiKeys] = useState<string[]>([""]);
   const [examPassword, setExamPassword] = useState("");
   const [examPrice, setExamPrice] = useState("5");
   const [examAward, setExamAward] = useState("1000");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [generatingExam, setGeneratingExam] = useState(false);
+  const [auditRunning, setAuditRunning] = useState(false);
+  const [auditLog, setAuditLog] = useState<string[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
-    Promise.all([getSetting("gemini_api_key"), getSetting("exam_password"), getSetting("exam_price"), getSetting("exam_award")]).then(([key, pwd, price, award]) => {
-      setLocalGeminiKey(key || ""); setExamPassword(pwd || ""); setExamPrice(price || "5"); setExamAward(award || "1000"); setLoading(false);
+    Promise.all([getSetting("gemini_api_keys"), getSetting("gemini_api_key"), getSetting("exam_password"), getSetting("exam_price"), getSetting("exam_award")]).then(([multiKeys, singleKey, pwd, price, award]) => {
+      // Load multi-key list, falling back to single key
+      if (multiKeys) {
+        try {
+          const parsed = JSON.parse(multiKeys);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setGeminiKeys(parsed.filter(Boolean).length ? parsed.filter(Boolean) : [""]);
+          } else {
+            setGeminiKeys(singleKey ? [singleKey] : [""]);
+          }
+        } catch {
+          setGeminiKeys(singleKey ? [singleKey] : [""]);
+        }
+      } else {
+        setGeminiKeys(singleKey ? [singleKey] : [""]);
+      }
+      setExamPassword(pwd || ""); setExamPrice(price || "5"); setExamAward(award || "1000"); setLoading(false);
     });
   }, []);
 
-  const handleSave = async () => {
+  const handleSaveKeys = async () => {
     setSaving(true);
     try {
-      const normalized = localGeminiKey.trim();
-      await saveSetting("gemini_api_key", normalized);
-      setGeminiKey(normalized); setLocalGeminiKey(normalized);
-      toast({ title: "Gemini API key saved!" });
+      const validKeys = geminiKeys.map(k => k.trim()).filter(Boolean);
+      await saveSetting("gemini_api_keys", JSON.stringify(validKeys));
+      // Also save the first key as primary for backward compatibility
+      if (validKeys.length > 0) {
+        await saveSetting("gemini_api_key", validKeys[0]);
+        setGeminiKey(validKeys[0]);
+      }
+      toast({ title: `${validKeys.length} API key(s) saved!`, description: "Keys will auto-rotate when quota is exceeded." });
     } catch (err: any) {
       toast({ title: "Failed to save", description: err.message, variant: "destructive" });
     } finally { setSaving(false); }
@@ -1279,19 +1305,148 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
     } finally { setGeneratingExam(false); }
   };
 
+  // MCQ Audit — find essay content misclassified as MCQs
+  const handleAuditMcqs = async () => {
+    setAuditRunning(true);
+    setAuditLog(["Starting MCQ audit..."]);
+    try {
+      const { data: mcqSets } = await supabase
+        .from("mcq_sets")
+        .select("id, title, questions, category")
+        .eq("published", true)
+        .is("deleted_at", null);
+
+      if (!mcqSets?.length) {
+        setAuditLog(prev => [...prev, "No published MCQ sets found."]);
+        setAuditRunning(false);
+        return;
+      }
+
+      const essaySignals = ["marks", "marking points", "discuss", "describe", "outline", "explain in detail", "enumerate", "differentiate between", "total:", "model answer", "saq", "laq"];
+      let movedCount = 0;
+
+      for (const mcqSet of mcqSets) {
+        const questions = mcqSet.questions as any[];
+        if (!Array.isArray(questions) || questions.length === 0) continue;
+
+        // Check if "questions" look like essays
+        let essayScore = 0;
+        let mcqScore = 0;
+        for (const q of questions) {
+          const text = (q.question || "").toLowerCase() + " " + (q.options || []).join(" ").toLowerCase();
+          // Essay signals
+          for (const signal of essaySignals) {
+            if (text.includes(signal)) essayScore++;
+          }
+          // MCQ signals: has 4 short options
+          if (Array.isArray(q.options) && q.options.length >= 4 && q.options.every((o: string) => typeof o === "string" && o.length < 200)) {
+            mcqScore++;
+          }
+          // Options that are paragraphs = essay
+          if (Array.isArray(q.options) && q.options.some((o: string) => typeof o === "string" && o.length > 300)) {
+            essayScore += 3;
+          }
+        }
+
+        if (essayScore > mcqScore && essayScore >= 3) {
+          setAuditLog(prev => [...prev, `⚠️ "${mcqSet.title}" looks like essays (essay=${essayScore} vs mcq=${mcqScore}). Moving...`]);
+
+          // Convert to essay format
+          const saqs = questions.slice(0, 6).map((q: any) => ({
+            question: (q.question || "").replace(/^#{1,6}\s+/gm, "").replace(/Choices:\s*$/i, "").trim(),
+            answer: (q.options || []).join("\n- "),
+            marks: 5,
+          }));
+          const laqs = questions.length > 6 ? [{
+            question: (questions[6].question || "").replace(/^#{1,6}\s+/gm, "").trim(),
+            answer: (questions[6].options || []).join("\n- "),
+            marks: 20,
+          }] : [];
+
+          // Insert into essays
+          await supabase.from("essays").insert({
+            title: mcqSet.title,
+            category: mcqSet.category,
+            short_answer_questions: saqs,
+            long_answer_questions: laqs,
+            published: true,
+          });
+
+          // Soft-delete the MCQ set
+          await supabase.from("mcq_sets").update({ deleted_at: new Date().toISOString() } as any).eq("id", mcqSet.id);
+          movedCount++;
+          setAuditLog(prev => [...prev, `✅ Moved "${mcqSet.title}" to Essays`]);
+        }
+      }
+
+      setAuditLog(prev => [...prev, `Done! Audited ${mcqSets.length} MCQ sets. Moved ${movedCount} to Essays.`]);
+      if (movedCount > 0) {
+        toast({ title: `Audit complete`, description: `${movedCount} essay-like MCQ sets moved to Essays section.` });
+      } else {
+        toast({ title: "Audit complete", description: "No misclassified content found." });
+      }
+    } catch (err: any) {
+      setAuditLog(prev => [...prev, `❌ Error: ${err.message}`]);
+      toast({ title: "Audit failed", description: err.message, variant: "destructive" });
+    } finally { setAuditRunning(false); }
+  };
+
   if (loading) return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
 
   return (
     <div className="max-w-lg space-y-6">
       <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Google Gemini API</h3>
-        <p className="mb-4 text-sm text-muted-foreground">Enter your Gemini API key from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google AI Studio</a>.</p>
-        <div className="flex gap-2">
-          <Input type="password" placeholder="Enter your Gemini API key" value={localGeminiKey} onChange={(e) => setLocalGeminiKey(e.target.value)} className="flex-1" />
-          <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2"><Key className="h-3 w-3" /> {saving ? "Saving..." : "Save"}</Button>
+        <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Google Gemini API Keys</h3>
+        <p className="mb-4 text-sm text-muted-foreground">Add multiple keys from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google AI Studio</a>. When one key hits its quota, the system automatically switches to the next.</p>
+        <div className="space-y-2 mb-3">
+          {geminiKeys.map((key, i) => (
+            <div key={i} className="flex gap-2">
+              <Input
+                type="password"
+                placeholder={`API Key ${i + 1}`}
+                value={key}
+                onChange={(e) => {
+                  const updated = [...geminiKeys];
+                  updated[i] = e.target.value;
+                  setGeminiKeys(updated);
+                }}
+                className="flex-1"
+              />
+              {geminiKeys.length > 1 && (
+                <Button size="sm" variant="ghost" onClick={() => setGeminiKeys(geminiKeys.filter((_, j) => j !== i))}>
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          ))}
         </div>
-        {localGeminiKey && <p className="mt-2 text-xs text-primary">API key configured</p>}
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setGeminiKeys([...geminiKeys, ""])} className="gap-1">
+            + Add Key
+          </Button>
+          <Button onClick={handleSaveKeys} disabled={saving} size="sm" className="gap-2">
+            <Key className="h-3 w-3" /> {saving ? "Saving..." : "Save All Keys"}
+          </Button>
+        </div>
+        {geminiKeys.filter(k => k.trim()).length > 0 && (
+          <p className="mt-2 text-xs text-primary">{geminiKeys.filter(k => k.trim()).length} key(s) configured — auto-rotation enabled</p>
+        )}
       </div>
+
+      <div className="rounded-xl border border-border bg-card p-6">
+        <h3 className="mb-2 font-serif text-lg font-bold text-foreground">MCQ Content Audit</h3>
+        <p className="mb-4 text-sm text-muted-foreground">Scan all MCQ sets for essay-like content (marking points, long answers) and move them to the Essays section automatically.</p>
+        <Button onClick={handleAuditMcqs} disabled={auditRunning} className="gap-2">
+          {auditRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertTriangle className="h-4 w-4" />}
+          {auditRunning ? "Auditing..." : "Run MCQ Audit"}
+        </Button>
+        {auditLog.length > 0 && (
+          <div className="mt-3 max-h-40 overflow-y-auto rounded-lg border border-border bg-background p-3 text-xs font-mono text-muted-foreground space-y-0.5">
+            {auditLog.map((log, i) => <p key={i}>{log}</p>)}
+          </div>
+        )}
+      </div>
+
       <div className="rounded-xl border border-border bg-card p-6">
         <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Default Exam Password</h3>
         <p className="mb-4 text-sm text-muted-foreground">Set a default password for auto-generated weekly exams.</p>
