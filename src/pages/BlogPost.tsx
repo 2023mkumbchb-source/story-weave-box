@@ -745,14 +745,14 @@ export default function BlogPost() {
 
       {/* Admin toolbar */}
       {isAdmin && (
-        <div className="border-b border-border bg-card">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-5 py-2">
-            <span className="mr-1 text-xs font-medium text-muted-foreground">Admin:</span>
+        <div className="border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/90">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-5 py-2.5">
+            <span className="mr-1 text-xs font-semibold text-muted-foreground">Admin tools:</span>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" disabled={!!actionLoading}>
-                  {actionLoading === "format" || actionLoading === "expand" || actionLoading === "titles" || actionLoading === "saq"
+                <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" disabled={!!actionLoading}>
+                  {actionLoading === "format" || actionLoading === "expand" || actionLoading === "titles" || actionLoading === "saq" || actionLoading === "image"
                     ? <Loader2 className="h-3 w-3 animate-spin" />
                     : <Sparkles className="h-3 w-3" />}
                   Gemini
@@ -761,6 +761,7 @@ export default function BlogPost() {
               <DropdownMenuContent align="start">
                 <DropdownMenuItem onClick={() => runGeminiUpgrade("format")}>Improve article formatting</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => runGeminiUpgrade("expand")}>Expand article details</DropdownMenuItem>
+                <DropdownMenuItem onClick={runGenerateCoverImage}><ImagePlus className="mr-2 h-3.5 w-3.5" />Generate article image</DropdownMenuItem>
                 <DropdownMenuItem onClick={runTitleAndSubtitleCleanup}>Update title + subtitles only</DropdownMenuItem>
                 <DropdownMenuItem onClick={runGenerateSaqs}>Generate SAQs at article end</DropdownMenuItem>
               </DropdownMenuContent>
