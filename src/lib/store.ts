@@ -247,7 +247,7 @@ export async function getPublishedArticleSummaries(year?: string): Promise<Artic
     .select("id, title, category, created_at, published, slug, meta_description")
     .eq("published", true)
     .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+    .order("updated_at", { ascending: false });
 
   if (year && /^Year [1-6]$/.test(year)) {
     query = query.like("category", `${year}:%`);
