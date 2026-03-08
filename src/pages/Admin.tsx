@@ -2211,6 +2211,248 @@ function ContentUpgradeTab() {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SEO & Indexing Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CLEANUP_SEO_YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5"] as const;
+
+function SeoIndexingTab() {
+  const { toast } = useToast();
+  const [seoYear, setSeoYear] = useState<string>("All");
+  const [generating, setGenerating] = useState(false);
+  const [seoLog, setSeoLog] = useState<string[]>([]);
+  const [batches, setBatches] = useState<Array<{ batch_number: number; count: number; articles: any[] }>>([]);
+  const [loadingBatches, setLoadingBatches] = useState(false);
+  const [submitting, setSubmitting] = useState<number | null>(null);
+  const [copiedBatch, setCopiedBatch] = useState<number | null>(null);
+
+  const handleGenerateSeo = async () => {
+    setGenerating(true);
+    setSeoLog([]);
+
+    let cursor: string | null = null;
+    let totalUpdated = 0;
+
+    while (true) {
+      try {
+        const { data, error } = await supabase.functions.invoke("content-upgrade", {
+          body: { action: "generate_seo", batch_size: 5, cursor, year: seoYear === "All" ? null : seoYear },
+        });
+        if (error) throw new Error(error.message);
+
+        totalUpdated += Number(data?.updated || 0);
+
+        const processedArticles = (data?.processed_articles || []) as Array<{ id: string; title: string; action: string }>;
+        if (processedArticles.length) {
+          setSeoLog((prev) => [
+            ...prev,
+            ...processedArticles.map((a) => `SEO: ${a.title} → ${a.action}`),
+          ]);
+        }
+
+        if (data?.done) break;
+        const nextCursor = (data?.next_cursor as string | null) || null;
+        if (!nextCursor || nextCursor === cursor) break;
+        cursor = nextCursor;
+        await new Promise((r) => setTimeout(r, 200));
+      } catch (err: any) {
+        setSeoLog((prev) => [...prev, `Error: ${err.message}`]);
+        break;
+      }
+    }
+
+    setGenerating(false);
+    toast({ title: `SEO generation done: ${totalUpdated} articles updated` });
+  };
+
+  const handleLoadBatches = async () => {
+    setLoadingBatches(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("google-indexing", {
+        body: { action: "list_batches", year: seoYear === "All" ? null : seoYear },
+      });
+      if (error) throw new Error(error.message);
+      setBatches(data?.batches || []);
+      toast({ title: `${data?.total || 0} articles in ${data?.batch_count || 0} batches` });
+    } catch (err: any) {
+      toast({ title: "Failed to load batches", description: err.message, variant: "destructive" });
+    } finally {
+      setLoadingBatches(false);
+    }
+  };
+
+  const handleCopyBatchUrls = async (batchNumber: number) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("google-indexing", {
+        body: { action: "generate_urls", batch_number: batchNumber, year: seoYear === "All" ? null : seoYear },
+      });
+      if (error) throw new Error(error.message);
+      const urlsText = data?.urls_text || "";
+      await navigator.clipboard.writeText(urlsText);
+      setCopiedBatch(batchNumber);
+      setTimeout(() => setCopiedBatch(null), 2000);
+      toast({ title: `Copied ${data?.count || 0} URLs from batch ${batchNumber}` });
+    } catch (err: any) {
+      toast({ title: "Failed to copy URLs", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleSubmitBatch = async (batchNumber: number) => {
+    setSubmitting(batchNumber);
+    try {
+      const { data: urlData, error: urlError } = await supabase.functions.invoke("google-indexing", {
+        body: { action: "generate_urls", batch_number: batchNumber, year: seoYear === "All" ? null : seoYear },
+      });
+      if (urlError) throw new Error(urlError.message);
+
+      const { data, error } = await supabase.functions.invoke("google-indexing", {
+        body: { action: "submit_to_google", urls: urlData?.urls || [] },
+      });
+      if (error) throw new Error(error.message);
+
+      if (data?.method === "manual") {
+        await navigator.clipboard.writeText(data.urls_text);
+        toast({
+          title: "URLs copied for manual submission",
+          description: "Paste in Google Search Console → URL Inspection → Submit to Google",
+        });
+      } else {
+        toast({ title: `Submitted: ${data?.submitted || 0} URLs, Failed: ${data?.failed || 0}` });
+      }
+    } catch (err: any) {
+      toast({ title: "Submission failed", description: err.message, variant: "destructive" });
+    } finally {
+      setSubmitting(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* SEO Generation */}
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <Search className="h-5 w-5 text-primary" />
+          <h3 className="font-serif text-lg font-bold text-foreground">Generate SEO Metadata</h3>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          Use AI to generate meta titles, descriptions, slugs, and OG image prompts for all articles missing SEO data. Each article becomes independently shareable.
+        </p>
+
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Year scope</label>
+          <select
+            value={seoYear}
+            onChange={(e) => setSeoYear(e.target.value)}
+            className="rounded-lg border border-input bg-background px-3 py-2 text-xs font-medium text-foreground"
+            disabled={generating}
+          >
+            {CLEANUP_SEO_YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
+
+        <Button onClick={handleGenerateSeo} disabled={generating} className="gap-2">
+          {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {generating ? "Generating SEO..." : "Generate SEO for Missing Articles"}
+        </Button>
+      </div>
+
+      {seoLog.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <h4 className="text-sm font-bold text-foreground mb-2">SEO Activity Log</h4>
+          <div className="max-h-56 overflow-y-auto space-y-0.5 text-xs text-muted-foreground font-mono">
+            {seoLog.map((log, i) => <p key={i}>{log}</p>)}
+          </div>
+        </div>
+      )}
+
+      {/* Google Indexing */}
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <Globe className="h-5 w-5 text-primary" />
+          <h3 className="font-serif text-lg font-bold text-foreground">Google Indexing</h3>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          Articles are grouped into batches of 50. Copy the URLs from each batch and submit them to Google Search Console.
+          Go to <span className="font-medium text-foreground">Google Search Console → Sitemaps</span> and paste the sitemap URL, or use <span className="font-medium text-foreground">URL Inspection → Request Indexing</span> for individual URLs.
+        </p>
+
+        <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-3">
+          <p className="text-xs font-semibold text-primary mb-1">Sitemap URL (submit to Google Search Console)</p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-xs text-foreground bg-background rounded px-2 py-1 border border-border break-all">
+              https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/generate-sitemap
+            </code>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 gap-1"
+              onClick={() => {
+                navigator.clipboard.writeText("https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/generate-sitemap");
+                toast({ title: "Sitemap URL copied!" });
+              }}
+            >
+              <Copy className="h-3 w-3" /> Copy
+            </Button>
+          </div>
+        </div>
+
+        <Button onClick={handleLoadBatches} disabled={loadingBatches} className="gap-2">
+          {loadingBatches ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+          {loadingBatches ? "Loading..." : "Load Article Batches"}
+        </Button>
+      </div>
+
+      {batches.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            {batches.length} batches ({batches.reduce((s, b) => s + b.count, 0)} articles total)
+          </p>
+          {batches.map((batch) => (
+            <div key={batch.batch_number} className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h5 className="font-medium text-foreground">Batch {batch.batch_number}</h5>
+                  <p className="text-xs text-muted-foreground">{batch.count} articles</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleCopyBatchUrls(batch.batch_number)}
+                    className="gap-1"
+                  >
+                    {copiedBatch === batch.batch_number ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    {copiedBatch === batch.batch_number ? "Copied!" : "Copy URLs"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleSubmitBatch(batch.batch_number)}
+                    disabled={submitting === batch.batch_number}
+                    className="gap-1"
+                  >
+                    {submitting === batch.batch_number ? <Loader2 className="h-3 w-3 animate-spin" /> : <ExternalLink className="h-3 w-3" />}
+                    Submit
+                  </Button>
+                </div>
+              </div>
+              <div className="max-h-32 overflow-y-auto space-y-0.5">
+                {batch.articles.slice(0, 5).map((a: any) => (
+                  <div key={a.id} className="flex items-center gap-2 text-xs">
+                    <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${a.has_meta ? "bg-green-500" : "bg-muted-foreground"}`} />
+                    <span className="truncate text-muted-foreground">{a.title}</span>
+                  </div>
+                ))}
+                {batch.count > 5 && <p className="text-xs text-muted-foreground">...and {batch.count - 5} more</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // WordPress Import Tab
 // ─────────────────────────────────────────────────────────────────────────────
 
