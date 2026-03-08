@@ -2634,6 +2634,14 @@ function SeoIndexingTab() {
     let cursor: string | null = null;
     let totalUpdated = 0;
 
+    try {
+      await syncSiteUrlConfig();
+    } catch (err: any) {
+      setGenerating(false);
+      toast({ title: "Failed to save site URL", description: err.message, variant: "destructive" });
+      return;
+    }
+
     while (true) {
       try {
         const { data, error } = await supabase.functions.invoke("content-upgrade", {
