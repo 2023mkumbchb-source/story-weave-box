@@ -791,8 +791,8 @@ export default function BlogPost() {
       "image": ogImage,
       "url": canonicalUrl,
       "datePublished": article.created_at,
-      "author": { "@type": "Organization", "name": "Ompath Study" },
-      "publisher": { "@type": "Organization", "name": "Ompath Study" },
+      "author": { "@type": "Organization", "name": "Kenya Meds" },
+      "publisher": { "@type": "Organization", "name": "Kenya Meds" },
     });
 
     return () => {

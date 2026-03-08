@@ -310,7 +310,7 @@ export default function Exams() {
           <div>
             <p className="text-sm font-bold text-foreground mb-1">Every exam supports this platform</p>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Ompath Study is built by and for health students in Kenya. The small fee helps cover question generation, platform hosting, and new study tools — so we can keep growing and keep everything else free.
+              Kenya Meds is built by and for health students in Kenya. The small fee helps cover question generation, platform hosting, and new study tools — so we can keep growing and keep everything else free.
             </p>
           </div>
         </motion.div>
