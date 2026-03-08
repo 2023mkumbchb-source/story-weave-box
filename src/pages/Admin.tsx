@@ -382,6 +382,7 @@ export default function Admin() {
     { id: "exams", label: "Exam Results", icon: ListChecks },
     { id: "raw", label: "Raw", icon: AlertTriangle },
     { id: "upgrade", label: "AI Upgrade", icon: Sparkles },
+    { id: "cleanup", label: "Bulk Cleanup", icon: Wrench },
     { id: "recycle", label: "Recycle Bin", icon: Trash2 },
     { id: "institutions", label: "Institutions", icon: Building2 },
     { id: "import", label: "Import", icon: Upload },
