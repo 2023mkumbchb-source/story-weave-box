@@ -866,6 +866,19 @@ export default function BlogPost() {
                 <DropdownMenuItem onClick={runGenerateCoverImage}><ImagePlus className="mr-2 h-3.5 w-3.5" />Generate article image</DropdownMenuItem>
                 <DropdownMenuItem onClick={runTitleAndSubtitleCleanup}>Update title + subtitles only</DropdownMenuItem>
                 <DropdownMenuItem onClick={runGenerateSaqs}>Generate SAQs at article end</DropdownMenuItem>
+                <DropdownMenuItem onClick={async () => {
+                  if (!article) return;
+                  setActionLoading("seo");
+                  try {
+                    const { data, error } = await supabase.functions.invoke("content-upgrade", { body: { action: "generate_seo_single", id: article.id } });
+                    if (error) throw new Error(error.message);
+                    if (data?.error) throw new Error(data.error);
+                    toast({ title: "SEO metadata generated", description: `Title: ${data?.seo?.meta_title || ""}` });
+                    await reloadCurrentArticle(article.id);
+                  } catch (err: any) {
+                    toast({ title: "SEO generation failed", description: err?.message, variant: "destructive" });
+                  } finally { setActionLoading(null); }
+                }}>Generate SEO metadata</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
