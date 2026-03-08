@@ -32,12 +32,19 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
     const [{ data: articles }, { data: mcqs }, { data: flashcards }, { data: essays }, { data: stories }] = await Promise.all([
-      supabase.from("articles").select("id, title, slug, created_at").eq("published", true).is("deleted_at", null),
-      supabase.from("mcq_sets").select("id, created_at").eq("published", true).is("deleted_at", null),
-      supabase.from("flashcard_sets").select("id, created_at").eq("published", true).is("deleted_at", null),
-      supabase.from("essays").select("id, created_at").eq("published", true).is("deleted_at", null),
-      supabase.from("stories").select("id, title, created_at").eq("published", true).is("deleted_at", null),
+      supabase.from("articles").select("id, title, slug, created_at, category").eq("published", true).is("deleted_at", null),
+      supabase.from("mcq_sets").select("id, title, created_at, category").eq("published", true).is("deleted_at", null),
+      supabase.from("flashcard_sets").select("id, title, created_at, category").eq("published", true).is("deleted_at", null),
+      supabase.from("essays").select("id, title, created_at, category").eq("published", true).is("deleted_at", null),
+      supabase.from("stories").select("id, title, created_at, category").eq("published", true).is("deleted_at", null),
     ]);
+
+    // Collect all years for year hub pages
+    const years = new Set<number>();
+    [...(articles || []), ...(mcqs || []), ...(flashcards || []), ...(essays || [])].forEach(item => {
+      const m = (item.category || "").match(/^Year (\d)/);
+      if (m) years.add(parseInt(m[1]));
+    });
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -48,24 +55,30 @@ serve(async (req) => {
   <url><loc>${baseUrl}/mcqs</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
   <url><loc>${baseUrl}/exams</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
   <url><loc>${baseUrl}/essays</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
+  <url><loc>${baseUrl}/submit-story</loc><priority>0.5</priority><changefreq>monthly</changefreq></url>
 `;
+
+    // Year hub pages
+    for (const y of Array.from(years).sort()) {
+      xml += `  <url><loc>${baseUrl}/year/${y}</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>\n`;
+    }
 
     for (const a of articles || []) {
       const articleSlug = a.slug || slugify(a.title) || a.id;
-      xml += `  <url><loc>${baseUrl}/blog/${articleSlug}</loc><lastmod>${new Date(a.created_at).toISOString().split("T")[0]}</lastmod><priority>0.7</priority></url>\n`;
+      xml += `  <url><loc>${baseUrl}/blog/${articleSlug}</loc><lastmod>${new Date(a.created_at).toISOString().split("T")[0]}</lastmod><priority>0.7</priority><changefreq>weekly</changefreq></url>\n`;
     }
     for (const s of stories || []) {
       const storySlug = slugify(s.title) || "story";
-      xml += `  <url><loc>${baseUrl}/stories/${s.id}-${storySlug}</loc><lastmod>${new Date(s.created_at).toISOString().split("T")[0]}</lastmod><priority>0.7</priority></url>\n`;
+      xml += `  <url><loc>${baseUrl}/stories/${s.id}-${storySlug}</loc><lastmod>${new Date(s.created_at).toISOString().split("T")[0]}</lastmod><priority>0.7</priority><changefreq>weekly</changefreq></url>\n`;
     }
     for (const m of mcqs || []) {
-      xml += `  <url><loc>${baseUrl}/mcqs/${m.id}</loc><lastmod>${new Date(m.created_at).toISOString().split("T")[0]}</lastmod><priority>0.7</priority></url>\n`;
+      xml += `  <url><loc>${baseUrl}/mcqs/${m.id}</loc><lastmod>${new Date(m.created_at).toISOString().split("T")[0]}</lastmod><priority>0.6</priority><changefreq>weekly</changefreq></url>\n`;
     }
     for (const f of flashcards || []) {
-      xml += `  <url><loc>${baseUrl}/flashcards/${f.id}</loc><lastmod>${new Date(f.created_at).toISOString().split("T")[0]}</lastmod><priority>0.7</priority></url>\n`;
+      xml += `  <url><loc>${baseUrl}/flashcards/${f.id}</loc><lastmod>${new Date(f.created_at).toISOString().split("T")[0]}</lastmod><priority>0.6</priority><changefreq>weekly</changefreq></url>\n`;
     }
     for (const e of essays || []) {
-      xml += `  <url><loc>${baseUrl}/essays/${e.id}</loc><lastmod>${new Date(e.created_at).toISOString().split("T")[0]}</lastmod><priority>0.7</priority></url>\n`;
+      xml += `  <url><loc>${baseUrl}/essays/${e.id}</loc><lastmod>${new Date(e.created_at).toISOString().split("T")[0]}</lastmod><priority>0.6</priority><changefreq>weekly</changefreq></url>\n`;
     }
 
     xml += `</urlset>`;

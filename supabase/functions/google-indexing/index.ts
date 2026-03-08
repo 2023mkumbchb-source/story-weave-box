@@ -34,14 +34,17 @@ function slugFromTitle(title: string): string {
 
 async function resolveBaseUrl(sb: ReturnType<typeof createClient>, bodySiteUrl?: unknown): Promise<string> {
   if (typeof bodySiteUrl === "string" && bodySiteUrl.trim()) return normalizeBaseUrl(bodySiteUrl);
-
-  const { data } = await sb
-    .from("app_settings")
-    .select("value")
-    .eq("key", "site_url")
-    .maybeSingle();
-
+  const { data } = await sb.from("app_settings").select("value").eq("key", "site_url").maybeSingle();
   return normalizeBaseUrl(data?.value);
+}
+
+function buildArticleUrl(base: string, a: { id: string; title: string; slug?: string | null }) {
+  const slug = a.slug || slugFromTitle(a.title) || a.id;
+  return `${base}/blog/${slug}`;
+}
+
+function buildStoryUrl(base: string, s: { id: string; title: string }) {
+  return `${base}/stories/${s.id}-${slugFromTitle(s.title) || "story"}`;
 }
 
 serve(async (req) => {
@@ -57,167 +60,173 @@ serve(async (req) => {
     const baseUrl = await resolveBaseUrl(sb, body?.site_url);
 
     if (action === "get_config") {
-      return json({
-        base_url: baseUrl,
-        sitemap_url: `${baseUrl}/sitemap.xml`,
-      });
+      return json({ base_url: baseUrl, sitemap_url: `${baseUrl}/sitemap.xml` });
     }
 
     if (action === "set_site_url" || action === "set_config") {
       const nextSiteUrl = normalizeBaseUrl(body?.site_url);
-
-      const { data: existing, error: existingError } = await sb
-        .from("app_settings")
-        .select("id")
-        .eq("key", "site_url")
-        .maybeSingle();
-      if (existingError) throw existingError;
-
+      const { data: existing } = await sb.from("app_settings").select("id").eq("key", "site_url").maybeSingle();
       if (existing) {
-        const { error } = await sb.from("app_settings").update({ value: nextSiteUrl }).eq("key", "site_url");
-        if (error) throw error;
+        await sb.from("app_settings").update({ value: nextSiteUrl }).eq("key", "site_url");
       } else {
-        const { error } = await sb.from("app_settings").insert({ key: "site_url", value: nextSiteUrl });
-        if (error) throw error;
+        await sb.from("app_settings").insert({ key: "site_url", value: nextSiteUrl });
       }
-
-      return json({
-        success: true,
-        base_url: nextSiteUrl,
-        sitemap_url: `${nextSiteUrl}/sitemap.xml`,
-      });
+      return json({ success: true, base_url: nextSiteUrl, sitemap_url: `${nextSiteUrl}/sitemap.xml` });
     }
 
-    // Action: list_batches - get all articles grouped in batches of 50
-    if (action === "list_batches") {
+    // ─── List ALL content URLs ───
+    if (action === "list_all_urls") {
       const yearFilter = body?.year || null;
+      const contentType = body?.content_type || "all"; // all, articles, stories, mcqs, flashcards, essays
 
-      let query = sb
-        .from("articles")
-        .select("id, title, category, created_at, meta_title, meta_description, slug")
-        .eq("published", true)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false });
+      const urls: Array<{ type: string; id: string; title: string; url: string; has_meta?: boolean; category?: string }> = [];
 
-      if (yearFilter && /^Year [1-6]$/.test(yearFilter)) {
-        query = query.like("category", `${yearFilter}:%`);
+      if (contentType === "all" || contentType === "articles") {
+        let q = sb.from("articles").select("id, title, category, meta_title, meta_description, og_image_url, slug").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false });
+        if (yearFilter && /^Year [1-6]$/.test(yearFilter)) q = q.like("category", `${yearFilter}:%`);
+        const { data } = await q;
+        (data || []).forEach(a => urls.push({
+          type: "article", id: a.id, title: a.title, category: a.category,
+          url: buildArticleUrl(baseUrl, a),
+          has_meta: !!(a.meta_title && a.meta_description && a.og_image_url),
+        }));
       }
 
+      if (contentType === "all" || contentType === "stories") {
+        const { data } = await sb.from("stories").select("id, title, category, cover_image_url").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false });
+        (data || []).forEach(s => urls.push({
+          type: "story", id: s.id, title: s.title, category: s.category,
+          url: buildStoryUrl(baseUrl, s),
+          has_meta: !!s.cover_image_url,
+        }));
+      }
+
+      if (contentType === "all" || contentType === "mcqs") {
+        const { data } = await sb.from("mcq_sets").select("id, title, category").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false });
+        (data || []).forEach(m => urls.push({
+          type: "mcq", id: m.id, title: m.title, category: m.category,
+          url: `${baseUrl}/mcqs/${m.id}`, has_meta: true,
+        }));
+      }
+
+      if (contentType === "all" || contentType === "flashcards") {
+        const { data } = await sb.from("flashcard_sets").select("id, title, category").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false });
+        (data || []).forEach(f => urls.push({
+          type: "flashcard", id: f.id, title: f.title, category: f.category,
+          url: `${baseUrl}/flashcards/${f.id}`, has_meta: true,
+        }));
+      }
+
+      if (contentType === "all" || contentType === "essays") {
+        const { data } = await sb.from("essays").select("id, title, category").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false });
+        (data || []).forEach(e => urls.push({
+          type: "essay", id: e.id, title: e.title, category: e.category,
+          url: `${baseUrl}/essays/${e.id}`, has_meta: true,
+        }));
+      }
+
+      // Batch into groups of 50
+      const batchSize = 50;
+      const batches: Array<{ batch_number: number; count: number; urls: typeof urls }> = [];
+      for (let i = 0; i < urls.length; i += batchSize) {
+        batches.push({ batch_number: Math.floor(i / batchSize) + 1, count: Math.min(batchSize, urls.length - i), urls: urls.slice(i, i + batchSize) });
+      }
+
+      return json({ total: urls.length, batch_count: batches.length, batches, base_url: baseUrl });
+    }
+
+    // ─── Legacy: list_batches (articles only) ───
+    if (action === "list_batches") {
+      const yearFilter = body?.year || null;
+      let query = sb.from("articles").select("id, title, category, created_at, meta_title, meta_description, slug, og_image_url").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false });
+      if (yearFilter && /^Year [1-6]$/.test(yearFilter)) query = query.like("category", `${yearFilter}:%`);
       const { data: articles, error } = await query;
       if (error) throw error;
 
       const batchSize = 50;
       const batches: Array<{ batch_number: number; count: number; articles: any[] }> = [];
-
       for (let i = 0; i < (articles || []).length; i += batchSize) {
         const batch = articles!.slice(i, i + batchSize);
         batches.push({
           batch_number: Math.floor(i / batchSize) + 1,
           count: batch.length,
-          articles: batch.map((a) => ({
-            id: a.id,
-            title: a.title,
-            category: a.category,
-            url: `${baseUrl}/blog/${a.slug || a.id}`,
+          articles: batch.map(a => ({
+            id: a.id, title: a.title, category: a.category,
+            url: buildArticleUrl(baseUrl, a),
             has_meta: !!(a.meta_title && a.meta_description),
           })),
         });
       }
-
       return json({ total: (articles || []).length, batch_count: batches.length, batches, base_url: baseUrl });
     }
 
-    // Action: generate_urls - generate a flat list of URLs for a batch
+    // ─── Generate URLs for a batch ───
     if (action === "generate_urls") {
       const batchNumber = body?.batch_number || 1;
       const yearFilter = body?.year || null;
-
-      let query = sb
-        .from("articles")
-        .select("id, title, slug")
-        .eq("published", true)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false });
-
-      if (yearFilter && /^Year [1-6]$/.test(yearFilter)) {
-        query = query.like("category", `${yearFilter}:%`);
-      }
-
+      let query = sb.from("articles").select("id, title, slug").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false });
+      if (yearFilter && /^Year [1-6]$/.test(yearFilter)) query = query.like("category", `${yearFilter}:%`);
       const { data: articles, error } = await query;
       if (error) throw error;
 
       const batchSize = 50;
       const start = (batchNumber - 1) * batchSize;
       const batch = (articles || []).slice(start, start + batchSize);
+      const urls = batch.map(a => buildArticleUrl(baseUrl, a));
 
-      const urls = batch.map((a) => {
-        const slug = a.slug || slugFromTitle(a.title);
-        return `${baseUrl}/blog/${slug || a.id}`;
-      });
-
-      return json({
-        batch_number: batchNumber,
-        count: urls.length,
-        urls,
-        urls_text: urls.join("\n"),
-        sitemap_url: `${baseUrl}/sitemap.xml`,
-      });
+      return json({ batch_number: batchNumber, count: urls.length, urls, urls_text: urls.join("\n"), sitemap_url: `${baseUrl}/sitemap.xml` });
     }
 
-    // Action: submit_to_google - submit URLs to Google Indexing API
-    if (action === "submit_to_google") {
-      const googleApiKey = body?.google_api_key;
+    // ─── Auto-index: submit specific URLs ───
+    if (action === "auto_index") {
       const urls: string[] = body?.urls || [];
+      if (!urls.length) return json({ skipped: true, reason: "No URLs" });
 
-      if (!urls.length) throw new Error("No URLs provided");
-
-      // If no API key, return URLs for manual submission
+      // Try Google Indexing API if key available
+      const googleApiKey = body?.google_api_key;
       if (!googleApiKey) {
-        return json({
-          method: "manual",
-          message: "No Google API key provided. Copy these URLs and paste them into Google Search Console > URL Inspection > Submit to Google.",
-          urls,
-          urls_text: urls.join("\n"),
-        });
+        // Store for manual batch later - just return the URLs
+        return json({ method: "queued", urls, message: "URLs ready for manual submission to Google Search Console" });
       }
 
       const results: Array<{ url: string; status: string; error?: string }> = [];
-
-      for (const url of urls) {
+      for (const url of urls.slice(0, 10)) { // max 10 at a time
         try {
           const response = await fetch(
             `https://indexing.googleapis.com/v3/urlNotifications:publish?key=${googleApiKey}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                url,
-                type: "URL_UPDATED",
-              }),
-            }
+            { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url, type: "URL_UPDATED" }) },
           );
-
-          if (response.ok) {
-            results.push({ url, status: "submitted" });
-          } else {
-            const errData = await response.text();
-            results.push({ url, status: "failed", error: errData.slice(0, 200) });
-          }
+          results.push({ url, status: response.ok ? "submitted" : "failed", error: response.ok ? undefined : (await response.text()).slice(0, 200) });
         } catch (e: any) {
           results.push({ url, status: "failed", error: e.message });
         }
       }
+      return json({ method: "api", results, submitted: results.filter(r => r.status === "submitted").length });
+    }
 
-      const submitted = results.filter((r) => r.status === "submitted").length;
-      const failed = results.filter((r) => r.status === "failed").length;
+    // ─── Submit to Google ───
+    if (action === "submit_to_google") {
+      const googleApiKey = body?.google_api_key;
+      const urls: string[] = body?.urls || [];
+      if (!urls.length) throw new Error("No URLs provided");
 
-      return json({
-        method: "api",
-        submitted,
-        failed,
-        total: urls.length,
-        results,
-      });
+      if (!googleApiKey) {
+        return json({ method: "manual", message: "No Google API key. Copy URLs and paste into Google Search Console.", urls, urls_text: urls.join("\n") });
+      }
+
+      const results: Array<{ url: string; status: string; error?: string }> = [];
+      for (const url of urls) {
+        try {
+          const response = await fetch(
+            `https://indexing.googleapis.com/v3/urlNotifications:publish?key=${googleApiKey}`,
+            { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url, type: "URL_UPDATED" }) },
+          );
+          results.push({ url, status: response.ok ? "submitted" : "failed", error: response.ok ? undefined : (await response.text()).slice(0, 200) });
+        } catch (e: any) {
+          results.push({ url, status: "failed", error: e.message });
+        }
+      }
+      return json({ method: "api", submitted: results.filter(r => r.status === "submitted").length, failed: results.filter(r => r.status === "failed").length, total: urls.length, results });
     }
 
     throw new Error("Unknown action");
