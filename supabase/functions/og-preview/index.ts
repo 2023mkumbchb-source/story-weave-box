@@ -56,7 +56,7 @@ function escapeHtml(str: string): string {
 }
 
 function buildOgHtml(title: string, description: string, image: string, canonical: string, isCrawler: boolean): string {
-  const ogImage = image || `${DEFAULT_SITE_URL}/icon-512.png`;
+  const ogImage = image || `${DEFAULT_SITE_URL}/og-default.jpg`;
   const redirectMarkup = isCrawler ? "" : `<meta http-equiv="refresh" content="0;url=${escapeHtml(canonical)}">\n  <script>window.location.replace(${JSON.stringify(canonical)});</script>`;
 
   return `<!DOCTYPE html>
