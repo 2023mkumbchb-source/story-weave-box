@@ -280,8 +280,8 @@ function ArticleContent({ content }: { content: string }) {
   const pushBullet = (text: string, key: string) => {
     if (!listBuf || listBuf.type !== "ul") { flushList(); listBuf = { type: "ul", items: [] }; }
     listBuf.items.push(
-      <li key={key} className="flex items-start gap-2.5 text-[15px] text-foreground/85 leading-relaxed">
-        <span className="mt-[9px] h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+      <li key={key} className="flex items-start gap-2.5 text-base text-foreground/90 leading-8">
+        <span className="mt-3 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
         <span className="flex-1"><Inline text={text} /></span>
       </li>
     );
