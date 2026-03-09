@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/generate-sitemap"
+    },
+    {
       "source": "/sitemap-dynamic.xml",
       "destination": "/api/sitemap"
     },
@@ -59,7 +63,9 @@
       ],
       "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?essay=:id"
     },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
-
