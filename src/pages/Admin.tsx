@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, Bolt, AlertTriangle, Building2, Check, X, Sparkles, Eye, Upload, Wrench, Globe, Search, Copy, ExternalLink, BookOpen, ChevronDown, RotateCcw, ChevronRight } from "lucide-react";
+import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, Bolt, AlertTriangle, Building2, Check, X, Sparkles, Eye, Upload, Wrench, Globe, Search, Copy, ExternalLink, BookOpen, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -18,32 +18,6 @@ import { autoIndexUrls, SITE_URL, slugifyText } from "@/lib/seo";
 
 type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo";
 type DirectType = "article" | "mcqs" | "flashcards";
-
-// ── Persistence helpers ──────────────────────────────────────────────────────
-const UPDATED_KEY = (year: string) => `ompath_updated_${year.replace(/\s+/g, "_")}`;
-
-function loadPersistedUpdated(year: string): Set<string> {
-  try {
-    const raw = localStorage.getItem(UPDATED_KEY(year));
-    if (!raw) return new Set();
-    return new Set(JSON.parse(raw) as string[]);
-  } catch {
-    return new Set();
-  }
-}
-
-function persistUpdated(year: string, ids: Set<string>) {
-  try {
-    localStorage.setItem(UPDATED_KEY(year), JSON.stringify([...ids]));
-  } catch { /* quota exceeded — ignore */ }
-}
-
-function clearPersistedUpdated(year: string) {
-  try {
-    localStorage.removeItem(UPDATED_KEY(year));
-  } catch { /* ignore */ }
-}
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -947,9 +921,7 @@ function RawContentTab({ geminiKey }: { geminiKey: string }) {
   );
 }
 
-// ===== ARTICLES LIST — Fixed: persistent progress, resume, fast loading =====
-const ARTICLES_PAGE_SIZE = 25;
-
+// ===== ARTICLES LIST (Year-based with batch Gemini update & image generation) =====
 function ArticlesList({
   initialEditId,
   onEditOpened,
@@ -963,29 +935,11 @@ function ArticlesList({
   const [activeYear, setActiveYear] = useState<string>("all");
   const [batchLoading, setBatchLoading] = useState<string | null>(null);
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number; label: string } | null>(null);
-  // updatedIds is loaded from localStorage for the active year
   const [updatedIds, setUpdatedIds] = useState<Set<string>>(new Set());
-  const [visibleCount, setVisibleCount] = useState(ARTICLES_PAGE_SIZE);
-  const [searchQuery, setSearchQuery] = useState("");
-  const abortRef = useRef(false);
   const { toast } = useToast();
 
-  // Load articles — only fetch IDs + titles initially for speed
-  const refresh = useCallback(() => {
-    setLoading(true);
-    getArticles()
-      .then((arts) => setArticles(arts.filter((a: any) => a.is_raw !== true)))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => { refresh(); }, [refresh]);
-
-  // Load persisted updated IDs whenever year changes
-  useEffect(() => {
-    setUpdatedIds(loadPersistedUpdated(activeYear));
-    setVisibleCount(ARTICLES_PAGE_SIZE);
-  }, [activeYear]);
-
+  const refresh = () => { getArticles().then((arts) => setArticles(arts.filter((a: any) => a.is_raw !== true))).finally(() => setLoading(false)); };
+  useEffect(() => { refresh(); }, []);
   useEffect(() => {
     if (!initialEditId || editing || articles.length === 0) return;
     const target = articles.find((a) => a.id === initialEditId);
@@ -998,22 +952,12 @@ function ArticlesList({
 
   // Filter by year
   const years = ["all", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
-
-  const filteredByYear = activeYear === "all"
+  const filteredArticles = activeYear === "all"
     ? articles
     : articles.filter(a => a.category.startsWith(activeYear));
 
-  const filteredArticles = searchQuery.trim()
-    ? filteredByYear.filter(a =>
-        a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        a.category.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : filteredByYear;
-
-  const visibleArticles = filteredArticles.slice(0, visibleCount);
-
-  // Group visible articles by category
-  const grouped = visibleArticles.reduce<Record<string, Article[]>>((acc, a) => {
+  // Group by category within selected year
+  const grouped = filteredArticles.reduce<Record<string, Article[]>>((acc, a) => {
     const cat = a.category || "Uncategorized";
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(a);
@@ -1025,171 +969,56 @@ function ArticlesList({
   const yearCounts: Record<string, number> = { all: articles.length };
   years.slice(1).forEach(y => { yearCounts[y] = articles.filter(a => a.category.startsWith(y)).length; });
 
-  // Pending (not yet updated) count for this year
-  const pendingCount = filteredArticles.filter(a => !updatedIds.has(a.id)).length;
-
-  // Mark one article as updated and persist
-  const markUpdated = useCallback((id: string) => {
-    setUpdatedIds(prev => {
-      const next = new Set(prev);
-      next.add(id);
-      persistUpdated(activeYear, next);
-      return next;
-    });
-  }, [activeYear]);
-
-  // Batch Gemini update — skips already-updated articles, persists after each
-  // Sleep helper
-  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-
-  // Try one article with up to maxRetries, exponential backoff on rate-limit errors
-  const updateOneWithRetry = async (art: Article, maxRetries = 3): Promise<"ok" | "skip"> => {
-    const isRateLimit = (msg: string) =>
-      /quota|rate.?limit|429|too many|resource.?exhausted/i.test(msg);
-
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      if (abortRef.current) return "skip";
+  // Batch Gemini update for filtered articles
+  const handleBatchGeminiUpdate = async () => {
+    if (!filteredArticles.length) return;
+    setBatchLoading("gemini");
+    const newUpdated = new Set(updatedIds);
+    let errors = 0;
+    for (let i = 0; i < filteredArticles.length; i++) {
+      const art = filteredArticles[i];
+      if (newUpdated.has(art.id)) continue; // skip already updated
+      setBatchProgress({ current: i + 1, total: filteredArticles.length, label: art.title.slice(0, 50) });
       try {
-        const { data, error } = await supabase.functions.invoke("content-upgrade", {
-          body: { action: "upgrade", id: art.id, type: "format" },
-        });
+        const { data, error } = await supabase.functions.invoke("content-upgrade", { body: { action: "upgrade", id: art.id, type: "format" } });
         if (error) throw new Error(error.message);
         if (!data?.improved_content) throw new Error("No content returned");
-        await supabase.functions.invoke("content-upgrade", {
-          body: { action: "apply", id: art.id, content: data.improved_content, title: art.title },
-        });
-        return "ok";
-      } catch (err: any) {
-        const msg = err?.message || "";
-        if (isRateLimit(msg) && attempt < maxRetries) {
-          // Exponential backoff: 15s → 30s → 60s
-          const waitMs = 15_000 * Math.pow(2, attempt);
-          setBatchProgress(prev => prev
-            ? { ...prev, label: `⏳ Rate limit — waiting ${waitMs / 1000}s then retrying "${art.title.slice(0, 35)}..."` }
-            : prev
-          );
-          await sleep(waitMs);
-          if (abortRef.current) return "skip";
-          // Reset label back
-          setBatchProgress(prev => prev
-            ? { ...prev, label: `🔄 Retrying (${attempt + 1}/${maxRetries}): ${art.title.slice(0, 40)}` }
-            : prev
-          );
-        } else {
-          // Non-rate-limit error or exhausted retries — skip this article
-          return "skip";
-        }
-      }
+        await supabase.functions.invoke("content-upgrade", { body: { action: "apply", id: art.id, content: data.improved_content, title: art.title } });
+        newUpdated.add(art.id);
+        setUpdatedIds(new Set(newUpdated));
+      } catch { errors++; }
     }
-    return "skip";
-  };
-
-  const handleBatchGeminiUpdate = async () => {
-    const toUpdate = filteredArticles.filter(a => !updatedIds.has(a.id));
-    if (!toUpdate.length) {
-      toast({ title: "All articles in this year are already updated!", description: "Click Reset to start over." });
-      return;
-    }
-    abortRef.current = false;
-    setBatchLoading("gemini");
-    let succeeded = 0;
-    let skipped = 0;
-
-    for (let i = 0; i < toUpdate.length; i++) {
-      if (abortRef.current) break;
-      const art = toUpdate[i];
-      setBatchProgress({
-        current: i + 1,
-        total: toUpdate.length,
-        label: `${art.title.slice(0, 50)}`,
-      });
-
-      const result = await updateOneWithRetry(art);
-      if (result === "ok") {
-        // Persist immediately — even if we crash later this one is saved
-        markUpdated(art.id);
-        succeeded++;
-        // Small polite gap between articles to avoid hammering the API
-        if (!abortRef.current) await sleep(1200);
-      } else {
-        skipped++;
-      }
-    }
-
     setBatchProgress(null);
     setBatchLoading(null);
-    abortRef.current = false;
-
-    toast({
-      title: skipped === 0
-        ? `✅ Done! All ${succeeded} articles updated.`
-        : `Done — ${succeeded} updated, ${skipped} skipped (will retry next run)`,
-    });
+    toast({ title: errors === 0 ? `All ${filteredArticles.length} articles updated!` : `Done — ${errors} failed` });
     refresh();
   };
 
-  const handleStopUpdate = () => {
-    abortRef.current = true;
-    toast({ title: "Stopping after current article finishes..." });
-  };
-
-  // Reset persisted progress for this year
-  const handleResetProgress = () => {
-    clearPersistedUpdated(activeYear);
-    setUpdatedIds(new Set());
-    toast({ title: `Progress reset for ${activeYear === "all" ? "All" : activeYear}. Next update will start from scratch.` });
-  };
-
-  // Single article update — uses same retry logic as batch
-  const handleUpdateOne = async (art: Article) => {
-    setBatchLoading(`one_${art.id}`);
-    const result = await updateOneWithRetry(art, 2);
-    if (result === "ok") {
-      markUpdated(art.id);
-      toast({ title: "Article updated with Gemini!" });
-      refresh();
-    } else {
-      toast({ title: "Update failed — will retry in next batch run", variant: "destructive" });
-    }
-    setBatchLoading(null);
-  };
-
-  // Batch image generation
+  // Batch image generation for filtered articles
   const handleBatchImageGen = async () => {
     if (!filteredArticles.length) return;
-    abortRef.current = false;
     setBatchLoading("images");
     let errors = 0;
     for (let i = 0; i < filteredArticles.length; i++) {
-      if (abortRef.current) break;
       const art = filteredArticles[i];
       setBatchProgress({ current: i + 1, total: filteredArticles.length, label: art.title.slice(0, 50) });
       try {
-        const { data, error } = await supabase.functions.invoke("content-upgrade", {
-          body: { action: "generate_image", id: art.id },
-        });
+        const { data, error } = await supabase.functions.invoke("content-upgrade", { body: { action: "generate_image", id: art.id } });
         if (error) throw new Error(error.message);
         const imageDataUrl = data?.image_data_url as string | undefined;
         if (!imageDataUrl) throw new Error("No image");
         const contentWithoutTopImage = art.content.replace(/^!\[[^\]]*\]\([^)]+\)\s*\n*/m, "").trimStart();
         const newContent = `![${art.title}](${imageDataUrl})\n\n${contentWithoutTopImage}`;
-        await supabase.functions.invoke("content-upgrade", {
-          body: { action: "apply", id: art.id, title: art.title, content: newContent },
-        });
+        await supabase.functions.invoke("content-upgrade", { body: { action: "apply", id: art.id, title: art.title, content: newContent } });
       } catch { errors++; }
     }
     setBatchProgress(null);
     setBatchLoading(null);
-    toast({ title: errors === 0 ? `Images generated!` : `Done — ${errors} failed` });
+    toast({ title: errors === 0 ? `Images generated for ${filteredArticles.length} articles!` : `Done — ${errors} failed` });
     refresh();
   };
 
-  if (loading) return (
-    <div className="flex items-center gap-3 py-16 justify-center">
-      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      <span className="text-sm text-muted-foreground">Loading articles...</span>
-    </div>
-  );
+  if (loading) return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
 
   if (editing) {
     return (
@@ -1222,83 +1051,31 @@ function ArticlesList({
         ))}
       </div>
 
-      {/* Search */}
-      <div className="mb-4 relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search articles..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
-      </div>
-
       {/* Batch action bar */}
       {filteredArticles.length > 0 && (
         <div className="mb-6 rounded-xl border border-primary/30 bg-primary/5 p-4">
-          <div className="flex items-start justify-between flex-wrap gap-3">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               <h3 className="text-sm font-bold text-foreground">
-                {activeYear === "all" ? "All Articles" : activeYear}
-                {searchQuery ? ` · "${searchQuery}"` : ""}
-                {" — "}{filteredArticles.length} article{filteredArticles.length !== 1 ? "s" : ""}
+                {activeYear === "all" ? "All Articles" : activeYear} — {filteredArticles.length} article{filteredArticles.length !== 1 ? "s" : ""}
               </h3>
-              <div className="flex items-center gap-3 mt-1 flex-wrap">
-                {updatedIds.size > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    <span className="text-primary font-medium">{updatedIds.size}</span> updated
-                    {pendingCount > 0 && <span> · <span className="text-amber-600 font-medium">{pendingCount} pending</span></span>}
-                  </p>
-                )}
-                {updatedIds.size > 0 && (
-                  <button
-                    onClick={handleResetProgress}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors"
-                    title="Reset progress — start over from scratch"
-                  >
-                    <RotateCcw className="h-3 w-3" /> Reset progress
-                  </button>
-                )}
-              </div>
-              {/* Progress bar showing completion */}
-              {filteredArticles.length > 0 && updatedIds.size > 0 && (
-                <div className="mt-2 w-48">
-                  <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all duration-500"
-                      style={{ width: `${Math.min(100, (filteredArticles.filter(a => updatedIds.has(a.id)).length / filteredArticles.length) * 100)}%` }}
-                    />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    {filteredArticles.filter(a => updatedIds.has(a.id)).length}/{filteredArticles.length} complete
-                  </p>
-                </div>
+              {updatedIds.size > 0 && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  <span className="text-primary font-medium">{updatedIds.size}</span> updated with Gemini this session
+                </p>
               )}
             </div>
             <div className="flex gap-2 flex-wrap">
-              {batchLoading === "gemini" ? (
-                <Button size="sm" variant="destructive" onClick={handleStopUpdate} className="gap-1.5 text-xs">
-                  <X className="h-3 w-3" /> Stop
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  onClick={handleBatchGeminiUpdate}
-                  disabled={!!batchLoading}
-                  className="gap-1.5 text-xs"
-                  title={pendingCount === 0 ? "All updated — reset to start over" : `Update ${pendingCount} pending articles`}
-                >
-                  {batchLoading === "gemini" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                  {pendingCount === 0 ? "All Updated ✓" : `Update ${pendingCount} with Gemini`}
-                </Button>
-              )}
+              <Button size="sm" onClick={handleBatchGeminiUpdate} disabled={!!batchLoading} className="gap-1.5 text-xs">
+                {batchLoading === "gemini" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                Update All with Gemini
+              </Button>
               <Button size="sm" variant="outline" onClick={handleBatchImageGen} disabled={!!batchLoading} className="gap-1.5 text-xs border-primary/30">
                 {batchLoading === "images" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
-                Generate Images
+                Generate Images for All
               </Button>
             </div>
           </div>
-
           {batchProgress && (
             <div className="mt-3">
               <div className="mb-1 flex items-center justify-between">
@@ -1315,13 +1092,11 @@ function ArticlesList({
 
       {filteredArticles.length === 0 && (
         <div className="text-center py-16 text-muted-foreground">
-          <p className="font-medium text-foreground">
-            {searchQuery ? `No articles matching "${searchQuery}"` : `No articles for ${activeYear === "all" ? "any year" : activeYear}`}
-          </p>
+          <p className="font-medium text-foreground">No articles for {activeYear === "all" ? "any year" : activeYear}</p>
         </div>
       )}
 
-      {/* Articles grouped by category (paginated) */}
+      {/* Articles grouped by category */}
       {sortedGroups.map(([cat, arts]) => (
         <div key={cat} className="mb-6">
           <h4 className="mb-3 text-xs font-bold text-primary uppercase tracking-wide">{getCategoryDisplayName(cat)} ({arts.length})</h4>
@@ -1344,24 +1119,9 @@ function ArticlesList({
                   </div>
                 </div>
                 <div className="flex gap-1 mt-2 pt-2 border-t border-border/50 flex-wrap">
-                  <Button size="sm" variant="ghost" asChild className="text-xs h-8">
-                    <a href={buildBlogPath(a)} target="_blank" rel="noopener"><Eye className="h-3.5 w-3.5 mr-1" /><span className="sm:inline hidden">View</span></a>
-                  </Button>
+                  <Button size="sm" variant="ghost" asChild className="text-xs h-8"><a href={buildBlogPath(a)} target="_blank" rel="noopener"><Eye className="h-3.5 w-3.5 mr-1" /><span className="sm:inline hidden">View</span></a></Button>
                   <Button size="sm" variant="ghost" onClick={() => setEditing(a)} className="h-8"><Pencil className="h-3.5 w-3.5 mr-1" /><span className="sm:inline hidden">Edit</span></Button>
                   <Button size="sm" variant="ghost" onClick={() => togglePublish(a)} className="h-8 text-xs">{a.published ? "Unpublish" : "Publish"}</Button>
-                  {!updatedIds.has(a.id) && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleUpdateOne(a)}
-                      disabled={batchLoading === `one_${a.id}`}
-                      className="h-8 text-xs gap-1"
-                      title="Update this article with Gemini"
-                    >
-                      {batchLoading === `one_${a.id}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                      <span className="sm:inline hidden">Update</span>
-                    </Button>
-                  )}
                   <Button size="sm" variant="ghost" onClick={() => handleDelete(a.id)} className="text-destructive h-8 ml-auto"><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
@@ -1369,24 +1129,6 @@ function ArticlesList({
           </div>
         </div>
       ))}
-
-      {/* Load more */}
-      {visibleCount < filteredArticles.length && (
-        <div className="mt-4 text-center">
-          <Button
-            variant="outline"
-            onClick={() => setVisibleCount(v => v + ARTICLES_PAGE_SIZE)}
-            className="gap-2"
-          >
-            <ChevronRight className="h-4 w-4" />
-            Load more ({filteredArticles.length - visibleCount} remaining)
-          </Button>
-        </div>
-      )}
-
-      {filteredArticles.length > ARTICLES_PAGE_SIZE && visibleCount >= filteredArticles.length && (
-        <p className="text-center text-xs text-muted-foreground mt-4">All {filteredArticles.length} articles shown</p>
-      )}
     </div>
   );
 }
@@ -1396,7 +1138,6 @@ function FlashcardsList() {
   const [sets, setSets] = useState<FlashcardSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<FlashcardSet | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   const refresh = () => { getFlashcardSets().then((s) => setSets(s.filter((f: any) => f.is_raw !== true))).finally(() => setLoading(false)); };
   useEffect(() => { refresh(); }, []);
@@ -1407,12 +1148,8 @@ function FlashcardsList() {
     if (!editing) return;
     const cards = [...editing.cards]; cards[i] = { ...cards[i], [field]: value }; setEditing({ ...editing, cards });
   };
-
-  const filteredSets = searchQuery.trim()
-    ? sets.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase()) || s.category.toLowerCase().includes(searchQuery.toLowerCase()))
-    : sets;
-
   if (loading) return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
+  if (sets.length === 0) return <p className="text-muted-foreground">No flashcard sets yet.</p>;
   if (editing) {
     return (
       <div className="rounded-xl border border-border bg-card p-6">
@@ -1433,33 +1170,24 @@ function FlashcardsList() {
       </div>
     );
   }
-
   return (
-    <div>
-      <div className="mb-4 relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search flashcard sets..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
-      </div>
-      <p className="mb-3 text-xs text-muted-foreground">{filteredSets.length} set{filteredSets.length !== 1 ? "s" : ""}</p>
-      {filteredSets.length === 0 && <p className="text-muted-foreground">No flashcard sets found.</p>}
-      <div className="space-y-3">
-        {filteredSets.map((s) => (
-          <div key={s.id} className="rounded-xl border border-border bg-card p-3 sm:p-4">
-            <div className="min-w-0">
-              <h4 className="font-medium text-foreground text-sm break-words">{s.title}</h4>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {s.category !== "Uncategorized" && <span className="text-primary">{getCategoryDisplayName(s.category)} · </span>}
-                {s.cards.length} cards · {new Date(s.created_at).toLocaleDateString()} · {s.published ? "Published" : "Draft"}
-              </p>
-            </div>
-            <div className="flex gap-1 mt-2 pt-2 border-t border-border/50 flex-wrap">
-              <Button size="sm" variant="ghost" onClick={() => setEditing(s)} className="h-8"><Pencil className="h-3.5 w-3.5 mr-1" /><span className="text-xs">Edit</span></Button>
-              <Button size="sm" variant="ghost" onClick={() => togglePublish(s)} className="h-8 text-xs">{s.published ? "Unpublish" : "Publish"}</Button>
-              <Button size="sm" variant="ghost" onClick={() => handleDelete(s.id)} className="text-destructive h-8 ml-auto"><Trash2 className="h-3.5 w-3.5" /></Button>
-            </div>
+    <div className="space-y-3">
+      {sets.map((s) => (
+        <div key={s.id} className="rounded-xl border border-border bg-card p-3 sm:p-4">
+          <div className="min-w-0">
+            <h4 className="font-medium text-foreground text-sm break-words">{s.title}</h4>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {s.category !== "Uncategorized" && <span className="text-primary">{getCategoryDisplayName(s.category)} · </span>}
+              {s.cards.length} cards · {new Date(s.created_at).toLocaleDateString()} · {s.published ? "Published" : "Draft"}
+            </p>
           </div>
-        ))}
-      </div>
+          <div className="flex gap-1 mt-2 pt-2 border-t border-border/50 flex-wrap">
+            <Button size="sm" variant="ghost" onClick={() => setEditing(s)} className="h-8"><Pencil className="h-3.5 w-3.5 mr-1" /><span className="text-xs">Edit</span></Button>
+            <Button size="sm" variant="ghost" onClick={() => togglePublish(s)} className="h-8 text-xs">{s.published ? "Unpublish" : "Publish"}</Button>
+            <Button size="sm" variant="ghost" onClick={() => handleDelete(s.id)} className="text-destructive h-8 ml-auto"><Trash2 className="h-3.5 w-3.5" /></Button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1471,8 +1199,6 @@ function McqsList() {
   const [editing, setEditing] = useState<McqSet | null>(null);
   const [passwordSetId, setPasswordSetId] = useState<string | null>(null);
   const [passwordValue, setPasswordValue] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [yearFilter, setYearFilter] = useState("all");
   const { toast } = useToast();
   const refresh = () => { getMcqSets().then((s) => setSets(s.filter((m: any) => m.is_raw !== true))).finally(() => setLoading(false)); };
   useEffect(() => { refresh(); }, []);
@@ -1483,14 +1209,8 @@ function McqsList() {
   const handleRemovePassword = async (s: McqSet) => { await saveMcqSet({ ...s, access_password: "" }); refresh(); toast({ title: "Password removed" }); };
   const updateQuestion = (i: number, field: string, value: any) => { if (!editing) return; const questions = [...editing.questions]; questions[i] = { ...questions[i], [field]: value }; setEditing({ ...editing, questions }); };
   const updateOption = (qi: number, oi: number, value: string) => { if (!editing) return; const questions = [...editing.questions]; const options = [...questions[qi].options]; options[oi] = value; questions[qi] = { ...questions[qi], options }; setEditing({ ...editing, questions }); };
-
-  const years = ["all", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
-  const filteredByYear = yearFilter === "all" ? sets : sets.filter(s => s.category.startsWith(yearFilter));
-  const filteredSets = searchQuery.trim()
-    ? filteredByYear.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase()) || s.category.toLowerCase().includes(searchQuery.toLowerCase()))
-    : filteredByYear;
-
   if (loading) return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
+  if (sets.length === 0) return <p className="text-muted-foreground">No MCQ sets yet.</p>;
   if (editing) {
     return (
       <div className="rounded-xl border border-border bg-card p-6">
@@ -1521,63 +1241,44 @@ function McqsList() {
       </div>
     );
   }
-
   return (
-    <div>
-      {/* Year filter */}
-      <div className="mb-4 flex gap-1 rounded-xl border border-border bg-secondary/50 p-1 overflow-x-auto">
-        {years.map(y => (
-          <button key={y} onClick={() => setYearFilter(y)}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap ${yearFilter === y ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-            {y === "all" ? "All" : y}
-          </button>
-        ))}
-      </div>
-      {/* Search */}
-      <div className="mb-4 relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search MCQ sets..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
-      </div>
-      <p className="mb-3 text-xs text-muted-foreground">{filteredSets.length} set{filteredSets.length !== 1 ? "s" : ""}</p>
-      {filteredSets.length === 0 && <p className="text-muted-foreground">No MCQ sets found.</p>}
-      <div className="space-y-3">
-        {filteredSets.map((s) => (
-          <div key={s.id} className="rounded-xl border border-border bg-card p-3 sm:p-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h4 className="font-medium text-foreground text-sm break-words">{s.title}</h4>
+    <div className="space-y-3">
+      {sets.map((s) => (
+        <div key={s.id} className="rounded-xl border border-border bg-card p-3 sm:p-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="font-medium text-foreground text-sm break-words">{s.title}</h4>
+              {s.access_password && s.access_password !== "" && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                  <Key className="h-2.5 w-2.5" /> Locked
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {s.category !== "Uncategorized" && <span className="text-primary">{getCategoryDisplayName(s.category)} · </span>}
+              {s.questions.length} questions · {new Date(s.created_at).toLocaleDateString()} · {s.published ? "Published" : "Draft"}
+            </p>
+          </div>
+          <div className="flex gap-1 mt-2 pt-2 border-t border-border/50 flex-wrap">
+            <Button size="sm" variant="ghost" onClick={() => { setPasswordSetId(passwordSetId === s.id ? null : s.id); setPasswordValue(s.access_password || ""); }} className="h-8"><Key className="h-3.5 w-3.5" /></Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing(s)} className="h-8"><Pencil className="h-3.5 w-3.5 mr-1" /><span className="text-xs">Edit</span></Button>
+            <Button size="sm" variant="ghost" onClick={() => togglePublish(s)} className="h-8 text-xs">{s.published ? "Unpublish" : "Publish"}</Button>
+            <Button size="sm" variant="ghost" onClick={() => handleDelete(s.id)} className="text-destructive h-8 ml-auto"><Trash2 className="h-3.5 w-3.5" /></Button>
+          </div>
+          {passwordSetId === s.id && (
+            <div className="mt-3 pt-3 border-t border-border">
+              <p className="text-xs font-medium text-foreground mb-2">Set Password (leave empty to remove)</p>
+              <div className="flex gap-2">
+                <Input type="text" placeholder="Enter password" value={passwordValue} onChange={(e) => setPasswordValue(e.target.value)} className="flex-1 text-sm" />
+                <Button size="sm" onClick={() => handleSetPassword(s)} className="gap-1"><Save className="h-3 w-3" /> Save</Button>
                 {s.access_password && s.access_password !== "" && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                    <Key className="h-2.5 w-2.5" /> Locked
-                  </span>
+                  <Button size="sm" variant="destructive" onClick={() => handleRemovePassword(s)}>Remove</Button>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {s.category !== "Uncategorized" && <span className="text-primary">{getCategoryDisplayName(s.category)} · </span>}
-                {s.questions.length} questions · {new Date(s.created_at).toLocaleDateString()} · {s.published ? "Published" : "Draft"}
-              </p>
             </div>
-            <div className="flex gap-1 mt-2 pt-2 border-t border-border/50 flex-wrap">
-              <Button size="sm" variant="ghost" onClick={() => { setPasswordSetId(passwordSetId === s.id ? null : s.id); setPasswordValue(s.access_password || ""); }} className="h-8"><Key className="h-3.5 w-3.5" /></Button>
-              <Button size="sm" variant="ghost" onClick={() => setEditing(s)} className="h-8"><Pencil className="h-3.5 w-3.5 mr-1" /><span className="text-xs">Edit</span></Button>
-              <Button size="sm" variant="ghost" onClick={() => togglePublish(s)} className="h-8 text-xs">{s.published ? "Unpublish" : "Publish"}</Button>
-              <Button size="sm" variant="ghost" onClick={() => handleDelete(s.id)} className="text-destructive h-8 ml-auto"><Trash2 className="h-3.5 w-3.5" /></Button>
-            </div>
-            {passwordSetId === s.id && (
-              <div className="mt-3 pt-3 border-t border-border">
-                <p className="text-xs font-medium text-foreground mb-2">Set Password (leave empty to remove)</p>
-                <div className="flex gap-2">
-                  <Input type="text" placeholder="Enter password" value={passwordValue} onChange={(e) => setPasswordValue(e.target.value)} className="flex-1 text-sm" />
-                  <Button size="sm" onClick={() => handleSetPassword(s)} className="gap-1"><Save className="h-3 w-3" /> Save</Button>
-                  {s.access_password && s.access_password !== "" && (
-                    <Button size="sm" variant="destructive" onClick={() => handleRemovePassword(s)}>Remove</Button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -1599,6 +1300,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
 
   useEffect(() => {
     Promise.all([getSetting("gemini_api_keys"), getSetting("gemini_api_key"), getSetting("exam_password"), getSetting("exam_price"), getSetting("exam_award"), getSetting("mcq_free_limit"), getSetting("mcq_price")]).then(([multiKeys, singleKey, pwd, price, award, freeLimit, mPrice]) => {
+      // Load multi-key list, falling back to single key
       if (multiKeys) {
         try {
           const parsed = JSON.parse(multiKeys);
@@ -1622,6 +1324,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
     try {
       const validKeys = geminiKeys.map(k => k.trim()).filter(Boolean);
       await saveSetting("gemini_api_keys", JSON.stringify(validKeys));
+      // Also save the first key as primary for backward compatibility
       if (validKeys.length > 0) {
         await saveSetting("gemini_api_key", validKeys[0]);
         setGeminiKey(validKeys[0]);
@@ -1651,6 +1354,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
     } finally { setGeneratingExam(false); }
   };
 
+  // MCQ Audit — find essay content misclassified as MCQs
   const handleAuditMcqs = async () => {
     setAuditRunning(true);
     setAuditLog(["Starting MCQ audit..."]);
@@ -1673,16 +1377,21 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
       for (const mcqSet of mcqSets) {
         const questions = mcqSet.questions as any[];
         if (!Array.isArray(questions) || questions.length === 0) continue;
+
+        // Check if "questions" look like essays
         let essayScore = 0;
         let mcqScore = 0;
         for (const q of questions) {
           const text = (q.question || "").toLowerCase() + " " + (q.options || []).join(" ").toLowerCase();
+          // Essay signals
           for (const signal of essaySignals) {
             if (text.includes(signal)) essayScore++;
           }
+          // MCQ signals: has 4 short options
           if (Array.isArray(q.options) && q.options.length >= 4 && q.options.every((o: string) => typeof o === "string" && o.length < 200)) {
             mcqScore++;
           }
+          // Options that are paragraphs = essay
           if (Array.isArray(q.options) && q.options.some((o: string) => typeof o === "string" && o.length > 300)) {
             essayScore += 3;
           }
@@ -1690,6 +1399,8 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
 
         if (essayScore > mcqScore && essayScore >= 3) {
           setAuditLog(prev => [...prev, `⚠️ "${mcqSet.title}" looks like essays (essay=${essayScore} vs mcq=${mcqScore}). Moving...`]);
+
+          // Convert to essay format
           const saqs = questions.slice(0, 6).map((q: any) => ({
             question: (q.question || "").replace(/^#{1,6}\s+/gm, "").replace(/Choices:\s*$/i, "").trim(),
             answer: (q.options || []).join("\n- "),
@@ -1700,6 +1411,8 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
             answer: (questions[6].options || []).join("\n- "),
             marks: 20,
           }] : [];
+
+          // Insert into essays
           await supabase.from("essays").insert({
             title: mcqSet.title,
             category: mcqSet.category,
@@ -1707,6 +1420,8 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
             long_answer_questions: laqs,
             published: true,
           });
+
+          // Soft-delete the MCQ set
           await supabase.from("mcq_sets").update({ deleted_at: new Date().toISOString() } as any).eq("id", mcqSet.id);
           movedCount++;
           setAuditLog(prev => [...prev, `✅ Moved "${mcqSet.title}" to Essays`]);
@@ -1769,7 +1484,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
 
       <div className="rounded-xl border border-border bg-card p-6">
         <h3 className="mb-2 font-serif text-lg font-bold text-foreground">MCQ Content Audit</h3>
-        <p className="mb-4 text-sm text-muted-foreground">Scan all MCQ sets for essay-like content and move them to the Essays section automatically.</p>
+        <p className="mb-4 text-sm text-muted-foreground">Scan all MCQ sets for essay-like content (marking points, long answers) and move them to the Essays section automatically.</p>
         <Button onClick={handleAuditMcqs} disabled={auditRunning} className="gap-2">
           {auditRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertTriangle className="h-4 w-4" />}
           {auditRunning ? "Auditing..." : "Run MCQ Audit"}
@@ -1791,6 +1506,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
       </div>
       <div className="rounded-xl border border-border bg-card p-6">
         <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Exam Price (KES)</h3>
+        <p className="mb-4 text-sm text-muted-foreground">Set the M-Pesa payment amount for exam access.</p>
         <div className="flex gap-2">
           <Input type="number" placeholder="5" value={examPrice} onChange={(e) => setExamPrice(e.target.value)} className="flex-1 max-w-[120px]" />
           <Button onClick={async () => { setSaving(true); try { await saveSetting("exam_price", examPrice); toast({ title: "Exam price saved!" }); } catch {} finally { setSaving(false); } }} disabled={saving} size="sm" className="gap-2"><Save className="h-3 w-3" /> Save</Button>
@@ -1806,6 +1522,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
       </div>
       <div className="rounded-xl border border-border bg-card p-6">
         <h3 className="mb-2 font-serif text-lg font-bold text-foreground">MCQ Price (KES)</h3>
+        <p className="mb-4 text-sm text-muted-foreground">M-Pesa payment amount to unlock remaining MCQs in a set. Default: 10.</p>
         <div className="flex gap-2">
           <Input type="number" placeholder="10" value={mcqPrice} onChange={(e) => setMcqPrice(e.target.value)} className="flex-1 max-w-[120px]" />
           <Button onClick={async () => { setSaving(true); try { await saveSetting("mcq_price", mcqPrice); toast({ title: "MCQ price saved!" }); } catch {} finally { setSaving(false); } }} disabled={saving} size="sm" className="gap-2"><Save className="h-3 w-3" /> Save</Button>
@@ -1813,6 +1530,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
       </div>
       <div className="rounded-xl border border-border bg-card p-6">
         <h3 className="mb-2 font-serif text-lg font-bold text-foreground">Exam Winner Award (KES)</h3>
+        <p className="mb-4 text-sm text-muted-foreground">Default prize for the top-scoring student per unit exam.</p>
         <div className="flex gap-2">
           <Input type="number" placeholder="1000" value={examAward} onChange={(e) => setExamAward(e.target.value)} className="flex-1 max-w-[120px]" />
           <Button onClick={async () => { setSaving(true); try { await saveSetting("exam_award", examAward); toast({ title: "Exam award saved!" }); } catch {} finally { setSaving(false); } }} disabled={saving} size="sm" className="gap-2"><Save className="h-3 w-3" /> Save</Button>
@@ -1859,6 +1577,7 @@ function ExamResultsTab() {
     return matchesSearch && matchesUnit;
   });
 
+  // ── FIXED PDF: no emoji in title, proper charset, clean HTML entities ──
   const generatePDF = (unit: string) => {
     const unitResults = [...results]
       .filter((r) => r.unit === unit)
@@ -1917,6 +1636,7 @@ function ExamResultsTab() {
 </body>
 </html>`;
 
+    // base64 data URL preserves UTF-8 charset — blob URLs cause garbled emoji/special chars
     const encoded = btoa(unescape(encodeURIComponent(html)));
     const dataUrl = `data:text/html;charset=utf-8;base64,${encoded}`;
     const win = window.open(dataUrl, "_blank");
@@ -1931,6 +1651,7 @@ function ExamResultsTab() {
 
   return (
     <div>
+      {/* Stats summary */}
       <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-xl border border-border bg-card p-4 text-center">
           <p className="text-2xl font-bold text-foreground">{results.length}</p>
@@ -2040,6 +1761,7 @@ function ExamResultsTab() {
   );
 }
 
+// Safe HTML escaping for PDF — prevents encoding issues
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
@@ -2355,14 +2077,18 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
         });
         if (error) throw new Error(error.message);
 
-        totalFixed += Number(data?.fixed || 0);
-        totalFailed += Number(data?.failed || 0);
-        totalSkipped += Number(data?.skipped || 0);
+        const fixed = Number(data?.fixed || 0);
+        const failed = Number(data?.failed || 0);
+        const skipped = Number(data?.skipped || 0);
         const processed = Number(data?.processed || 0);
+
+        totalFixed += fixed;
+        totalFailed += failed;
+        totalSkipped += skipped;
 
         setFixLog((prev) => [
           ...prev,
-          `Auto-fix batch (${scopeLabel}): ${data?.fixed || 0} fixed · ${data?.failed || 0} failed · ${data?.skipped || 0} skipped (${processed} checked)`,
+          `Auto-fix batch (${scopeLabel}): ${fixed} fixed · ${failed} failed · ${skipped} skipped (${processed} checked)`,
         ]);
 
         if (data?.done) break;
@@ -2393,7 +2119,8 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
         });
         if (error) throw new Error(error.message);
 
-        totalMigrated += Number(data?.migrated || 0);
+        const migrated = Number(data?.migrated || 0);
+        totalMigrated += migrated;
 
         if (data?.migratedArticles?.length) {
           setFixLog((prev) => [
@@ -2401,7 +2128,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
             ...(data.migratedArticles as string[]).map((a: string) => `📝→📋 ${a}`),
           ]);
         } else {
-          setFixLog((prev) => [...prev, `MCQ migration batch (${scopeLabel}): ${data?.migrated || 0} migrated`]);
+          setFixLog((prev) => [...prev, `MCQ migration batch (${scopeLabel}): ${migrated} migrated`]);
         }
 
         if (data?.done) break;
@@ -2533,6 +2260,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
             value={cleanupYear}
             onChange={(e) => setCleanupYear(e.target.value as (typeof CLEANUP_YEAR_OPTIONS)[number])}
             className="rounded-lg border border-input bg-background px-3 py-2 text-xs font-medium text-foreground"
+            aria-label="Select cleanup year"
             disabled={anyRunning}
           >
             {CLEANUP_YEAR_OPTIONS.map((year) => (
@@ -2546,18 +2274,22 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
             {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             {scanning ? `Scanning... (${scanProgress.scanned} checked)` : "Scan Articles"}
           </Button>
+
           <Button onClick={handleManualCleanup} disabled={anyRunning} variant="default" className="gap-2">
             {manualFixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
             {manualFixing ? "Manual Cleaning..." : "Manual Cleanup (No AI)"}
           </Button>
+
           <Button onClick={handleAutoFixAll} disabled={anyRunning} variant="outline" className="gap-2">
             {autoFixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
             {autoFixing ? "Fixing..." : "Auto-Fix Formatting"}
           </Button>
+
           <Button onClick={handleMigrateMcqs} disabled={anyRunning} variant="outline" className="gap-2">
             {migratingMcqs ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bolt className="h-4 w-4" />}
             {migratingMcqs ? "Migrating..." : "Migrate MCQ Articles"}
           </Button>
+
           <Button onClick={handleAiFixAll} disabled={anyRunning} variant="outline" className="gap-2">
             {aiFixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {aiFixing ? "AI Cleaning..." : "AI Cleanup (Lovable AI)"}
@@ -2577,7 +2309,7 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
       {manualReview.length > 0 && (
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-            {manualReview.length} articles need manual review
+            {manualReview.length} articles need manual review (very large or complex)
           </p>
           <div className="space-y-2">
             {manualReview.map((item) => (
@@ -2587,7 +2319,8 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
                   <p className="text-xs text-muted-foreground">{item.category} · {item.word_count} words</p>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => onEditArticle(item.id)} className="ml-3 gap-1 shrink-0">
-                  <Pencil className="h-3 w-3" /> Open editor
+                  <Pencil className="h-3 w-3" />
+                  Open editor
                 </Button>
               </div>
             ))}
@@ -2664,8 +2397,9 @@ function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void
   );
 }
 
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Content Upgrade Tab
+// Content Upgrade Tab (Gemini AI)
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface UpgradeSuggestion {
@@ -2839,8 +2573,9 @@ function ContentUpgradeTab() {
   );
 }
 
+
 // ─────────────────────────────────────────────────────────────────────────────
-// SEO & Indexing Tab — unchanged from original
+// SEO & Indexing Tab
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CLEANUP_SEO_YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"] as const;
@@ -2852,14 +2587,26 @@ function SeoIndexingTab() {
   const [seoMode, setSeoMode] = useState<"missing" | "all">("missing");
   const [includeUnpublished, setIncludeUnpublished] = useState(true);
   const [seoFields, setSeoFields] = useState({
-    title: true, meta_title: true, meta_description: true, slug: true, og_image_url: true,
+    title: true,
+    meta_title: true,
+    meta_description: true,
+    slug: true,
+    og_image_url: true,
   });
   const [generating, setGenerating] = useState(false);
   const [seoLog, setSeoLog] = useState<string[]>([]);
   const [seoArticles, setSeoArticles] = useState<Array<{
-    id: string; title: string; category: string; slug: string; meta_title: string;
-    meta_description: string; og_image_url: string; published?: boolean; url: string;
-    seo_status: "complete" | "missing"; missing_count: number;
+    id: string;
+    title: string;
+    category: string;
+    slug: string;
+    meta_title: string;
+    meta_description: string;
+    og_image_url: string;
+    published?: boolean;
+    url: string;
+    seo_status: "complete" | "missing";
+    missing_count: number;
   }>>([]);
   const [loadingArticles, setLoadingArticles] = useState(false);
   const [updatingOne, setUpdatingOne] = useState<string | null>(null);
@@ -2881,6 +2628,7 @@ function SeoIndexingTab() {
       body: { action: "set_config", site_url: normalized },
     });
     if (error) throw new Error(error.message);
+
     const nextUrl = data?.base_url || normalized;
     setSiteUrlInput(nextUrl);
     if (showToast) toast({ title: "Site URL saved" });
@@ -2895,7 +2643,11 @@ function SeoIndexingTab() {
       });
       if (error) throw new Error(error.message);
       if (data?.base_url) setSiteUrlInput(data.base_url);
-    } catch { /* keep local default */ } finally { setLoadingConfig(false); }
+    } catch {
+      // keep local default
+    } finally {
+      setLoadingConfig(false);
+    }
   };
 
   const handleLoadSeoArticles = async () => {
@@ -2906,11 +2658,20 @@ function SeoIndexingTab() {
       let cursor: string | null = null;
       let done = false;
       let guard = 0;
+
       while (!done && guard < 40) {
         const { data, error } = await supabase.functions.invoke("content-upgrade", {
-          body: { action: "list_articles_seo", year: seoYear === "All" ? null : seoYear, include_unpublished: includeUnpublished, site_url: siteUrlInput, batch_size: 150, cursor },
+          body: {
+            action: "list_articles_seo",
+            year: seoYear === "All" ? null : seoYear,
+            include_unpublished: includeUnpublished,
+            site_url: siteUrlInput,
+            batch_size: 150,
+            cursor,
+          },
         });
         if (error) throw new Error(error.message);
+
         const chunk = Array.isArray(data?.articles) ? data.articles : [];
         all.push(...chunk);
         done = Boolean(data?.done);
@@ -2919,37 +2680,63 @@ function SeoIndexingTab() {
         cursor = nextCursor;
         guard += 1;
       }
+
       setSeoArticles(all);
     } catch (err: any) {
       toast({ title: "Failed to load articles", description: err.message, variant: "destructive" });
-    } finally { setLoadingArticles(false); }
+    } finally {
+      setLoadingArticles(false);
+    }
   };
 
   const handleGenerateSeo = async () => {
     setGenerating(true);
     setSeoLog([]);
-    try { await syncSiteUrlConfig(); } catch (err: any) {
+
+    let cursor: string | null = null;
+    let totalUpdated = 0;
+
+    try {
+      await syncSiteUrlConfig();
+    } catch (err: any) {
       setGenerating(false);
       toast({ title: "Failed to save site URL", description: err.message, variant: "destructive" });
       return;
     }
-    let cursor: string | null = null;
-    let totalUpdated = 0;
+
     while (true) {
       try {
         const { data, error } = await supabase.functions.invoke("content-upgrade", {
-          body: { action: "generate_seo", batch_size: 8, cursor, year: seoYear === "All" ? null : seoYear, include_all: seoMode === "all", include_unpublished: includeUnpublished, fields: seoFields, site_url: siteUrlInput },
+          body: {
+            action: "generate_seo",
+            batch_size: 8,
+            cursor,
+            year: seoYear === "All" ? null : seoYear,
+            include_all: seoMode === "all",
+            include_unpublished: includeUnpublished,
+            fields: seoFields,
+            site_url: siteUrlInput,
+          },
         });
         if (error) throw new Error(error.message);
+
         totalUpdated += Number(data?.updated || 0);
+
         const processedArticles = (data?.processed_articles || []) as Array<{ id: string; title: string; action: string }>;
-        if (processedArticles.length) setSeoLog((prev) => [...prev, ...processedArticles.map((a) => `SEO: ${a.title} → ${a.action}`)]);
+        if (processedArticles.length) {
+          setSeoLog((prev) => [...prev, ...processedArticles.map((a) => `SEO: ${a.title} → ${a.action}`)]);
+        }
+
         if (data?.done) break;
         const nextCursor = (data?.next_cursor as string | null) || null;
         if (!nextCursor || nextCursor === cursor) break;
         cursor = nextCursor;
-      } catch (err: any) { setSeoLog((prev) => [...prev, `Error: ${err.message}`]); break; }
+      } catch (err: any) {
+        setSeoLog((prev) => [...prev, `Error: ${err.message}`]);
+        break;
+      }
     }
+
     setGenerating(false);
     await handleLoadSeoArticles();
     toast({ title: `SEO generation done: ${totalUpdated} articles updated` });
@@ -2967,7 +2754,9 @@ function SeoIndexingTab() {
       toast({ title: "SEO updated for article" });
     } catch (err: any) {
       toast({ title: "SEO update failed", description: err.message, variant: "destructive" });
-    } finally { setUpdatingOne(null); }
+    } finally {
+      setUpdatingOne(null);
+    }
   };
 
   const handleLoadBatches = async () => {
@@ -2981,15 +2770,20 @@ function SeoIndexingTab() {
       setBatches(data?.batches || []);
       toast({ title: `${data?.total || 0} URLs in ${data?.batch_count || 0} batches` });
     } catch (err: any) {
-      const description = err.message?.includes("FunctionsHttpError") || err.message?.includes("404") ? "Indexing service is not available yet." : err.message;
+      const description = err.message?.includes("FunctionsHttpError") || err.message?.includes("404")
+        ? "Indexing service is not available yet."
+        : err.message;
       toast({ title: "Failed to load batches", description, variant: "destructive" });
-    } finally { setLoadingBatches(false); }
+    } finally {
+      setLoadingBatches(false);
+    }
   };
 
   const handleCopyBatchUrls = async (batchNumber: number) => {
     const batch = batches.find(b => b.batch_number === batchNumber);
     if (!batch) return;
-    await navigator.clipboard.writeText(batch.urls.map((u: any) => u.url).join("\n"));
+    const urlsText = batch.urls.map((u: any) => u.url).join("\n");
+    await navigator.clipboard.writeText(urlsText);
     setCopiedBatch(batchNumber);
     setTimeout(() => setCopiedBatch(null), 2000);
     toast({ title: `Copied ${batch.count} URLs from batch ${batchNumber}` });
@@ -3000,10 +2794,13 @@ function SeoIndexingTab() {
     try {
       const batch = batches.find(b => b.batch_number === batchNumber);
       if (!batch) throw new Error("Batch not found");
+      const urls = batch.urls.map((u: any) => u.url);
+
       const { data, error } = await supabase.functions.invoke("google-indexing", {
-        body: { action: "submit_to_google", urls: batch.urls.map((u: any) => u.url), google_api_key: googleApiKey.trim() || undefined },
+        body: { action: "submit_to_google", urls, google_api_key: googleApiKey.trim() || undefined },
       });
       if (error) throw new Error(error.message);
+
       if (data?.method === "manual") {
         await navigator.clipboard.writeText(data.urls_text || "");
         toast({ title: "URLs copied for manual submission" });
@@ -3012,11 +2809,18 @@ function SeoIndexingTab() {
       }
     } catch (err: any) {
       toast({ title: "Submission failed", description: err.message, variant: "destructive" });
-    } finally { setSubmitting(null); }
+    } finally {
+      setSubmitting(null);
+    }
   };
 
-  useEffect(() => { loadSiteUrlConfig(); }, []);
-  useEffect(() => { handleLoadSeoArticles(); }, [seoYear]);
+  useEffect(() => {
+    loadSiteUrlConfig();
+  }, []);
+
+  useEffect(() => {
+    handleLoadSeoArticles();
+  }, [seoYear]);
 
   const completeCount = seoArticles.filter((a) => a.seo_status === "complete").length;
 
@@ -3027,6 +2831,7 @@ function SeoIndexingTab() {
           <Search className="h-5 w-5 text-primary" />
           <h3 className="font-serif text-lg font-bold text-foreground">Generate SEO Metadata</h3>
         </div>
+
         <div className="flex flex-wrap items-center gap-2">
           <select value={seoYear} onChange={(e) => setSeoYear(e.target.value)} className="rounded-lg border border-input bg-background px-3 py-2 text-xs font-medium text-foreground" disabled={generating || loadingArticles}>
             {CLEANUP_SEO_YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
@@ -3046,17 +2851,30 @@ function SeoIndexingTab() {
             {loadingArticles ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Refresh list
           </Button>
         </div>
+
         <div className="grid gap-2 md:grid-cols-[1fr_auto_1fr]">
           <Input value={siteUrlInput} onChange={(e) => setSiteUrlInput(e.target.value)} placeholder="https://yourdomain.com" disabled={loadingConfig || savingSiteUrl} />
-          <Button variant="outline" className="gap-2" disabled={loadingConfig || savingSiteUrl} onClick={async () => {
-            setSavingSiteUrl(true);
-            try { await syncSiteUrlConfig(true); } catch (err: any) { toast({ title: "Failed to save site URL", description: err.message, variant: "destructive" }); } finally { setSavingSiteUrl(false); }
-          }}>
+          <Button
+            variant="outline"
+            className="gap-2"
+            disabled={loadingConfig || savingSiteUrl}
+            onClick={async () => {
+              setSavingSiteUrl(true);
+              try {
+                await syncSiteUrlConfig(true);
+              } catch (err: any) {
+                toast({ title: "Failed to save site URL", description: err.message, variant: "destructive" });
+              } finally {
+                setSavingSiteUrl(false);
+              }
+            }}
+          >
             {loadingConfig || savingSiteUrl ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
             {loadingConfig ? "Loading..." : savingSiteUrl ? "Saving..." : "Save URL"}
           </Button>
-          <Input value={googleApiKey} onChange={(e) => setGoogleApiKey(e.target.value)} placeholder="Google API key (optional)" />
+          <Input value={googleApiKey} onChange={(e) => setGoogleApiKey(e.target.value)} placeholder="Google API key (optional for direct submit)" />
         </div>
+
         <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
           <label className="flex items-center gap-1"><input type="checkbox" checked={seoFields.title} onChange={(e) => setSeoFields((p) => ({ ...p, title: e.target.checked }))} /> Title</label>
           <label className="flex items-center gap-1"><input type="checkbox" checked={seoFields.meta_title} onChange={(e) => setSeoFields((p) => ({ ...p, meta_title: e.target.checked }))} /> Meta title</label>
@@ -3064,6 +2882,7 @@ function SeoIndexingTab() {
           <label className="flex items-center gap-1"><input type="checkbox" checked={seoFields.slug} onChange={(e) => setSeoFields((p) => ({ ...p, slug: e.target.checked }))} /> Slug</label>
           <label className="flex items-center gap-1"><input type="checkbox" checked={seoFields.og_image_url} onChange={(e) => setSeoFields((p) => ({ ...p, og_image_url: e.target.checked }))} /> Thumbnail URL</label>
         </div>
+
         <p className="text-xs text-muted-foreground">{seoArticles.length} articles · {completeCount} complete · {seoArticles.length - completeCount} missing fields</p>
       </div>
 
@@ -3124,8 +2943,11 @@ function SeoIndexingTab() {
                 {batch.urls.map((u: any) => (
                   <div key={u.id} className="flex items-center gap-2 text-xs">
                     <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
-                      u.type === "article" ? "bg-primary/10 text-primary" : u.type === "story" ? "bg-purple-500/10 text-purple-600"
-                      : u.type === "mcq" ? "bg-amber-500/10 text-amber-600" : u.type === "flashcard" ? "bg-blue-500/10 text-blue-600" : "bg-green-500/10 text-green-600"
+                      u.type === "article" ? "bg-primary/10 text-primary"
+                      : u.type === "story" ? "bg-purple-500/10 text-purple-600"
+                      : u.type === "mcq" ? "bg-amber-500/10 text-amber-600"
+                      : u.type === "flashcard" ? "bg-blue-500/10 text-blue-600"
+                      : "bg-green-500/10 text-green-600"
                     }`}>{u.type}</span>
                     <span className="truncate text-muted-foreground">{u.title}</span>
                     {!u.has_meta && <span className="shrink-0 text-[10px] text-destructive font-semibold">SEO ✗</span>}
@@ -3205,8 +3027,11 @@ function StoriesTab() {
   useEffect(() => { fetchStories(); fetchPending(); }, []);
 
   const handleEdit = (story: any) => {
-    setEditId(story.id); setEditTitle(story.title); setEditContent(story.content);
-    setEditCategory(story.category); setEditCoverUrl(story.cover_image_url || "");
+    setEditId(story.id);
+    setEditTitle(story.title);
+    setEditContent(story.content);
+    setEditCategory(story.category);
+    setEditCoverUrl(story.cover_image_url || "");
   };
 
   const handleSave = async () => {
@@ -3237,17 +3062,22 @@ function StoriesTab() {
     if (!toUpdate.length) { toast({ title: "All stories are already well-formatted" }); return; }
     setBulkUpdating(true);
     setBulkProgress({ done: 0, total: toUpdate.length });
+
     for (let i = 0; i < toUpdate.length; i++) {
       try {
         const { data, error } = await supabase.functions.invoke("generate-content", {
           body: { notes: toUpdate[i].content, type: "expand-story", title: toUpdate[i].title },
         });
         if (!error && data?.content) {
-          await supabase.from("stories").update({ content: data.content, title: data.title || toUpdate[i].title }).eq("id", toUpdate[i].id);
+          await supabase.from("stories").update({
+            content: data.content,
+            title: data.title || toUpdate[i].title,
+          }).eq("id", toUpdate[i].id);
         }
       } catch { /* continue */ }
       setBulkProgress({ done: i + 1, total: toUpdate.length });
     }
+
     setBulkUpdating(false);
     toast({ title: "Bulk update complete!" });
     fetchStories();
@@ -3317,6 +3147,7 @@ function StoriesTab() {
           </div>
         </div>
       )}
+
       <div className="flex items-center justify-between">
         <h3 className="font-serif text-lg font-bold text-foreground">All Stories ({stories.length})</h3>
         <Button onClick={handleBulkAIUpdate} disabled={bulkUpdating} variant="outline" className="gap-2">
@@ -3324,11 +3155,13 @@ function StoriesTab() {
           {bulkUpdating ? `Updating ${bulkProgress.done}/${bulkProgress.total}...` : "AI Expand Short Stories"}
         </Button>
       </div>
+
       {bulkUpdating && (
         <div className="w-full bg-secondary rounded-full h-2">
           <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${(bulkProgress.done / bulkProgress.total) * 100}%` }} />
         </div>
       )}
+
       <div className="space-y-3">
         {stories.map(s => (
           <div key={s.id} className="rounded-lg border border-border bg-card p-4">
@@ -3390,6 +3223,7 @@ function ImportTab() {
     const batchSize = 20;
     const totals = { done: 0, total: jsonData.length, articles: 0, mcqs: 0, stories: 0, skipped: 0, errors: [] as string[] };
     setProgress({ ...totals });
+
     for (let i = 0; i < jsonData.length; i += batchSize) {
       const batch = jsonData.slice(i, i + batchSize);
       try {
@@ -3410,6 +3244,7 @@ function ImportTab() {
       totals.done = Math.min(i + batchSize, jsonData.length);
       setProgress({ ...totals });
     }
+
     setImporting(false);
     toast({
       title: "Import complete!",
@@ -3427,6 +3262,7 @@ function ImportTab() {
         <p className="text-sm text-muted-foreground mb-4">
           Upload a WordPress JSON export file. Posts will be auto-classified as articles, MCQs, or stories and assigned categories.
         </p>
+
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <label className="flex-1 cursor-pointer rounded-xl border-2 border-dashed border-border hover:border-primary/50 transition-colors p-6 text-center">
             <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
@@ -3435,12 +3271,14 @@ function ImportTab() {
             <input type="file" accept=".json" onChange={handleFileSelect} className="hidden" />
           </label>
         </div>
+
         {jsonData && (
           <Button onClick={handleImport} disabled={importing} className="gap-2">
             {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             {importing ? `Importing... (${progress?.done || 0}/${progress?.total || 0})` : `Import ${jsonData.length} Posts`}
           </Button>
         )}
+
         {progress && (
           <div className="mt-4 space-y-3">
             <div className="w-full bg-secondary rounded-full h-2.5">
@@ -3478,3 +3316,4 @@ function ImportTab() {
     </div>
   );
 }
+
