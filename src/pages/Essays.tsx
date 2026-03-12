@@ -7,6 +7,7 @@ import { getCategoryDisplayName, getYearFromCategory } from "@/lib/store";
 
 interface Essay {
   id: string;
+  slug: string;
   title: string;
   category: string;
   short_answer_questions: { question: string; answer: string }[];
@@ -89,7 +90,7 @@ export default function Essays() {
                   transition={{ delay: Math.min(i, 8) * 0.04 }}
                 >
                   <Link
-                    to={`/essays/${e.id}`}
+                    to={`/essays/${e.slug || e.id}`}
                     className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 sm:p-5 transition-shadow hover:shadow-md"
                   >
                     <div className="min-w-0 flex-1">
