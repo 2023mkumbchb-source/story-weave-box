@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface Essay {
   id: string;
+  slug: string;
   title: string;
   category: string;
   short_answer_questions: { question: string; answer: string }[];
@@ -16,7 +17,7 @@ interface Essay {
 }
 
 export default function EssayStudy() {
-  const { id } = useParams();
+  const { slug } = useParams();
   const [essay, setEssay] = useState<Essay | null>(null);
   const [loading, setLoading] = useState(true);
   const [openSaq, setOpenSaq] = useState<Set<number>>(new Set());
@@ -24,18 +25,30 @@ export default function EssayStudy() {
   const [linkedArticlePath, setLinkedArticlePath] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!slug) return;
 
     supabase
       .from("essays")
       .select("*")
-      .eq("id", id)
+      .eq("slug", slug)
       .maybeSingle()
       .then(({ data }) => {
+        // fallback: if slug not found, try fetching by id (for old links)
+        if (!data) {
+          return supabase
+            .from("essays")
+            .select("*")
+            .eq("id", slug)
+            .maybeSingle()
+            .then(({ data: fallbackData }) => {
+              setEssay(fallbackData as unknown as Essay | null);
+              setLoading(false);
+            });
+        }
         setEssay(data as unknown as Essay | null);
         setLoading(false);
       });
-  }, [id]);
+  }, [slug]);
 
   useEffect(() => {
     let mounted = true;
