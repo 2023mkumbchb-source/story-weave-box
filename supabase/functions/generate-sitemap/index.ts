@@ -41,11 +41,11 @@ serve(async (req) => {
     const baseUrl = normalizeBaseUrl(siteUrlSetting?.value);
 
     const [{ data: articles }, { data: mcqs }, { data: flashcards }, { data: essays }, { data: stories }] = await Promise.all([
-      supabase.from("articles").select("id, title, slug, created_at, category").eq("published", true).is("deleted_at", null),
-      supabase.from("mcq_sets").select("id, title, created_at, category").eq("published", true).is("deleted_at", null),
-      supabase.from("flashcard_sets").select("id, title, created_at, category").eq("published", true).is("deleted_at", null),
-      supabase.from("essays").select("id, title, created_at, category").eq("published", true).is("deleted_at", null),
-      supabase.from("stories").select("id, title, created_at, category").eq("published", true).is("deleted_at", null),
+      supabase.from("articles").select("id, title, slug, created_at, updated_at, category").eq("published", true).is("deleted_at", null),
+      supabase.from("mcq_sets").select("id, title, slug, created_at, updated_at, category").eq("published", true).is("deleted_at", null),
+      supabase.from("flashcard_sets").select("id, title, slug, created_at, updated_at, category").eq("published", true).is("deleted_at", null),
+      supabase.from("essays").select("id, title, slug, created_at, updated_at, category").eq("published", true).is("deleted_at", null),
+      supabase.from("stories").select("id, title, slug, created_at, updated_at, category").eq("published", true).is("deleted_at", null),
     ]);
 
     const years = new Set<number>();
@@ -63,29 +63,45 @@ serve(async (req) => {
   <url><loc>${baseUrl}/mcqs</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
   <url><loc>${baseUrl}/exams</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
   <url><loc>${baseUrl}/essays</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
-  <url><loc>${baseUrl}/submit-story</loc><priority>0.5</priority><changefreq>monthly</changefreq></url>
 `;
 
     for (const y of Array.from(years).sort()) {
       xml += `  <url><loc>${baseUrl}/year/${y}</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>\n`;
     }
 
+    // Articles — use clean slug only, fallback to slugified title
     for (const a of articles || []) {
       const articleSlug = a.slug || slugify(a.title) || "article";
-      xml += `  <url><loc>${baseUrl}/blog/${a.id}-${articleSlug}</loc><lastmod>${new Date(a.created_at).toISOString().split("T")[0]}</lastmod><priority>0.7</priority><changefreq>weekly</changefreq></url>\n`;
+      const lastmod = (a.updated_at || a.created_at) ? new Date(a.updated_at || a.created_at).toISOString().split("T")[0] : "";
+      xml += `  <url><loc>${baseUrl}/blog/${articleSlug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<priority>0.7</priority><changefreq>weekly</changefreq></url>\n`;
     }
+
+    // Stories — use clean slug only
     for (const s of stories || []) {
-      const storySlug = slugify(s.title) || "story";
-      xml += `  <url><loc>${baseUrl}/stories/${s.id}-${storySlug}</loc><lastmod>${new Date(s.created_at).toISOString().split("T")[0]}</lastmod><priority>0.7</priority><changefreq>weekly</changefreq></url>\n`;
+      const storySlug = s.slug || slugify(s.title) || "story";
+      const lastmod = (s.updated_at || s.created_at) ? new Date(s.updated_at || s.created_at).toISOString().split("T")[0] : "";
+      xml += `  <url><loc>${baseUrl}/stories/${storySlug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<priority>0.7</priority><changefreq>weekly</changefreq></url>\n`;
     }
+
+    // MCQs — use slug if available, fallback to slugified title
     for (const m of mcqs || []) {
-      xml += `  <url><loc>${baseUrl}/mcqs/${m.id}</loc><lastmod>${new Date(m.created_at).toISOString().split("T")[0]}</lastmod><priority>0.6</priority><changefreq>weekly</changefreq></url>\n`;
+      const mcqSlug = m.slug || slugify(m.title) || m.id;
+      const lastmod = (m.updated_at || m.created_at) ? new Date(m.updated_at || m.created_at).toISOString().split("T")[0] : "";
+      xml += `  <url><loc>${baseUrl}/mcqs/${mcqSlug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<priority>0.6</priority><changefreq>weekly</changefreq></url>\n`;
     }
+
+    // Flashcards — use slug if available, fallback to slugified title
     for (const f of flashcards || []) {
-      xml += `  <url><loc>${baseUrl}/flashcards/${f.id}</loc><lastmod>${new Date(f.created_at).toISOString().split("T")[0]}</lastmod><priority>0.6</priority><changefreq>weekly</changefreq></url>\n`;
+      const flashcardSlug = f.slug || slugify(f.title) || f.id;
+      const lastmod = (f.updated_at || f.created_at) ? new Date(f.updated_at || f.created_at).toISOString().split("T")[0] : "";
+      xml += `  <url><loc>${baseUrl}/flashcards/${flashcardSlug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<priority>0.6</priority><changefreq>weekly</changefreq></url>\n`;
     }
+
+    // Essays — use slug (we just added these to the DB)
     for (const e of essays || []) {
-      xml += `  <url><loc>${baseUrl}/essays/${e.id}</loc><lastmod>${new Date(e.created_at).toISOString().split("T")[0]}</lastmod><priority>0.6</priority><changefreq>weekly</changefreq></url>\n`;
+      const essaySlug = e.slug || slugify(e.title) || e.id;
+      const lastmod = (e.updated_at || e.created_at) ? new Date(e.updated_at || e.created_at).toISOString().split("T")[0] : "";
+      xml += `  <url><loc>${baseUrl}/essays/${essaySlug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<priority>0.6</priority><changefreq>weekly</changefreq></url>\n`;
     }
 
     xml += `</urlset>`;
