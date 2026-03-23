@@ -69,18 +69,18 @@ serve(async (req) => {
       xml += `  <url><loc>${baseUrl}/year/${y}</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>\n`;
     }
 
-    // Articles — use clean slug only, fallback to slugified title
+    // Articles — use {id}-{slug} format
     for (const a of articles || []) {
       const articleSlug = a.slug || slugify(a.title) || "article";
       const lastmod = (a.updated_at || a.created_at) ? new Date(a.updated_at || a.created_at).toISOString().split("T")[0] : "";
-      xml += `  <url><loc>${baseUrl}/blog/${articleSlug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<priority>0.7</priority><changefreq>weekly</changefreq></url>\n`;
+      xml += `  <url><loc>${baseUrl}/blog/${a.id}-${articleSlug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<priority>0.7</priority><changefreq>weekly</changefreq></url>\n`;
     }
 
-    // Stories — use clean slug only
+    // Stories — use {id}-{slug} format
     for (const s of stories || []) {
       const storySlug = s.slug || slugify(s.title) || "story";
       const lastmod = (s.updated_at || s.created_at) ? new Date(s.updated_at || s.created_at).toISOString().split("T")[0] : "";
-      xml += `  <url><loc>${baseUrl}/stories/${storySlug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<priority>0.7</priority><changefreq>weekly</changefreq></url>\n`;
+      xml += `  <url><loc>${baseUrl}/stories/${s.id}-${storySlug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<priority>0.7</priority><changefreq>weekly</changefreq></url>\n`;
     }
 
     // MCQs — use slug if available, fallback to slugified title
