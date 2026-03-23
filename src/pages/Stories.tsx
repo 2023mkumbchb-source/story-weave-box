@@ -17,7 +17,7 @@ interface Story {
 
 export default function Stories() {
   useEffect(() => {
-    document.title = "Stories | Kenya Meds";
+    document.title = "Stories | OMPATH";
   }, []);
 
   const [stories, setStories] = useState<Story[]>([]);

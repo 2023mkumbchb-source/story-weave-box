@@ -81,11 +81,11 @@ function buildOgHtml(options: {
     ...(publishedAt ? { "datePublished": publishedAt } : {}),
     "author": {
       "@type": "Organization",
-      "name": author || "Kenya Meds"
+      "name": author || "OMPATH"
     },
     "publisher": {
       "@type": "Organization",
-      "name": "Kenya Meds",
+      "name": "OMPATH",
       "logo": {
         "@type": "ImageObject",
         "url": `${DEFAULT_SITE_URL}/icon-512.png`
@@ -97,10 +97,10 @@ function buildOgHtml(options: {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>${escapeHtml(title)} | Kenya Meds</title>
+  <title>${escapeHtml(title)} | OMPATH</title>
   <meta name="description" content="${escapeHtml(description)}">
   <meta property="og:type" content="${escapeHtml(type === 'article' ? 'article' : 'website')}">
-  <meta property="og:site_name" content="Kenya Meds">
+  <meta property="og:site_name" content="OMPATH">
   <meta property="og:title" content="${escapeHtml(title)}">
   <meta property="og:description" content="${escapeHtml(description)}">
   <meta property="og:image" content="${escapeHtml(ogImage)}">
@@ -128,7 +128,7 @@ function buildOgHtml(options: {
       <h1>${escapeHtml(title)}</h1>
       <div class="meta">
         ${publishedAt ? `Published on ${new Date(publishedAt).toLocaleDateString()} · ` : ""}
-        By ${author || "Kenya Meds"}
+        By ${author || "OMPATH"}
       </div>
       ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(title)}" class="hero">` : ""}
     </header>
@@ -229,7 +229,7 @@ serve(async (req) => {
       if (!story) return new Response(JSON.stringify({ error: "Story not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
       title = story.title;
-      description = stripRichText(story.content || "") || `Read ${story.title} on Kenya Meds.`;
+      description = stripRichText(story.content || "") || `Read ${story.title} on OMPATH.`;
       image = story.cover_image_url || extractFirstImage(story.content || "") || "";
       content = stripRichText(story.content || "", 4000).split('\n').map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '').join('\n');
       publishedAt = story.created_at;
@@ -239,7 +239,7 @@ serve(async (req) => {
       const { data: mcq } = await supabase.from("mcq_sets").select("title, category, questions, created_at").eq("id", mcqParam).eq("published", true).is("deleted_at", null).maybeSingle();
       if (!mcq) return new Response(JSON.stringify({ error: "MCQ not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       title = mcq.title;
-      description = `Practice MCQ quiz: ${mcq.title}. Test your ${mcq.category || "medical"} knowledge on Kenya Meds.`;
+      description = `Practice MCQ quiz: ${mcq.title}. Test your ${mcq.category || "medical"} knowledge on OMPATH.`;
       publishedAt = mcq.created_at;
       type = "website";
       content = Array.isArray(mcq.questions) 
@@ -251,7 +251,7 @@ serve(async (req) => {
       const { data: fc } = await supabase.from("flashcard_sets").select("title, category, cards, created_at").eq("id", flashcardParam).eq("published", true).is("deleted_at", null).maybeSingle();
       if (!fc) return new Response(JSON.stringify({ error: "Flashcard set not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       title = fc.title;
-      description = `Study flashcards: ${fc.title}. Review ${fc.category || "medical"} concepts on Kenya Meds.`;
+      description = `Study flashcards: ${fc.title}. Review ${fc.category || "medical"} concepts on OMPATH.`;
       publishedAt = fc.created_at;
       type = "website";
       content = Array.isArray(fc.cards)
@@ -263,7 +263,7 @@ serve(async (req) => {
       const { data: essay } = await supabase.from("essays").select("title, category, created_at").eq("id", essayParam).eq("published", true).is("deleted_at", null).maybeSingle();
       if (!essay) return new Response(JSON.stringify({ error: "Essay not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       title = essay.title;
-      description = `Essay questions: ${essay.title}. Practice ${essay.category || "medical"} SAQs and LAQs on Kenya Meds.`;
+      description = `Essay questions: ${essay.title}. Practice ${essay.category || "medical"} SAQs and LAQs on OMPATH.`;
       publishedAt = essay.created_at;
       type = "website";
       canonicalPath = `/essays/${essayParam}`;
@@ -310,14 +310,14 @@ serve(async (req) => {
 
       const articleSlug = article.slug || slugify(article.title) || "article";
       title = article.meta_title || article.title;
-      description = article.meta_description || stripRichText(article.content || "") || `Study ${article.title} on Kenya Meds.`;
+      description = article.meta_description || stripRichText(article.content || "") || `Study ${article.title} on OMPATH.`;
       image = article.og_image_url || extractFirstImage(article.content || "") || "";
       content = stripRichText(article.content || "", 8000).split('\n').map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '').join('\n');
       publishedAt = article.created_at;
       canonicalPath = `/blog/${article.id}-${articleSlug}`;
     } else {
       // Root fallback
-      title = "Kenya Meds – Medical Study Platform";
+      title = "OMPATH – Medical Study Platform";
       description = "Free articles, flashcards, MCQ quizzes, and timed exams for medical students in Kenya.";
       canonicalPath = "/";
       type = "website";

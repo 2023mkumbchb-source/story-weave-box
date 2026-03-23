@@ -14,7 +14,7 @@ async function fetchFromSupabase(table, field, value) {
 }
 
 function buildHTML({ title, description, content, url, image }) {
-  const safeTitle = (title || "Kenya Meds").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const safeTitle = (title || "OMPATH").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const safeDesc = (description || "Medical study platform for Kenyan students").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const safeContent = (content || "").replace(/</g, "&lt;").replace(/>/g, "&gt;").slice(0, 5000);
 
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.title,
-          description: record.excerpt || record.meta_description || `${record.title} - Kenya Meds`,
+          description: record.excerpt || record.meta_description || `${record.title} - OMPATH`,
           content: record.content,
           url: pageUrl,
           image: record.cover_image || record.image_url,
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.title,
-          description: record.description || `${record.title} MCQs - Kenya Meds`,
+          description: record.description || `${record.title} MCQs - OMPATH`,
           content: record.description,
           url: pageUrl,
         }));
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.title,
-          description: record.description || `${record.title} Flashcards - Kenya Meds`,
+          description: record.description || `${record.title} Flashcards - OMPATH`,
           content: record.description,
           url: pageUrl,
         }));
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.title,
-          description: record.description || `${record.title} - Kenya Meds`,
+          description: record.description || `${record.title} - OMPATH`,
           content: record.content,
           url: pageUrl,
         }));
@@ -120,7 +120,7 @@ export default async function handler(req, res) {
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.title,
-          description: record.description || `${record.title} - Kenya Meds`,
+          description: record.description || `${record.title} - OMPATH`,
           content: record.content,
           url: pageUrl,
         }));
@@ -129,24 +129,24 @@ export default async function handler(req, res) {
 
     // Prerender listing pages
     const pageTitles = {
-      blog: "Medical Blog Posts - Kenya Meds",
-      mcqs: "Medical MCQs - Kenya Meds",
-      flashcards: "Medical Flashcards - Kenya Meds",
-      essays: "Medical Essays - Kenya Meds",
-      stories: "Medical Stories - Kenya Meds",
-      exams: "Medical Exams - Kenya Meds",
+      blog: "Medical Blog Posts - OMPATH",
+      mcqs: "Medical MCQs - OMPATH",
+      flashcards: "Medical Flashcards - OMPATH",
+      essays: "Medical Essays - OMPATH",
+      stories: "Medical Stories - OMPATH",
+      exams: "Medical Exams - OMPATH",
     };
     if (prerender && pageTitles[prerender]) {
       return res.status(200).send(buildHTML({
         title: pageTitles[prerender],
-        description: `Study ${prerender} for Kenyan medical students on Kenya Meds`,
+        description: `Study ${prerender} for Kenyan medical students on OMPATH`,
         url: `https://medicine.kenyaadverts.co.ke/${prerender}`,
       }));
     }
 
     // Fallback
     return res.status(200).send(buildHTML({
-      title: "Kenya Meds – Medical Study Platform",
+      title: "OMPATH – Medical Study Platform",
       description: "Medical study platform for Kenyan students",
       url: "https://medicine.kenyaadverts.co.ke",
     }));
@@ -154,7 +154,7 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error("OG Proxy Error:", error);
     return res.status(500).send(buildHTML({
-      title: "Kenya Meds",
+      title: "OMPATH",
       description: "Medical study platform",
     }));
   }

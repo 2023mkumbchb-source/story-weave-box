@@ -20,7 +20,7 @@ const INITIAL_VISIBLE = 20;
 const LOAD_MORE_STEP = 20;
 
 export default function Essays() {
-  useEffect(() => { document.title = "Essays & SAQs | Kenya Meds"; }, []);
+  useEffect(() => { document.title = "Essays & SAQs | OMPATH"; }, []);
   const [essays, setEssays] = useState<Essay[]>([]);
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);

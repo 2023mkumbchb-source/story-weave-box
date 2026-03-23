@@ -35,7 +35,7 @@ export default function StoryRead() {
             navigate(canonicalPath, { replace: true });
           }
 
-          document.title = `${data.title} | Kenya Meds`;
+          document.title = `${data.title} | OMPATH`;
 
           const url = `${SITE_URL}${canonicalPath}`;
           const desc = stripRichText(data.content || "", 160);

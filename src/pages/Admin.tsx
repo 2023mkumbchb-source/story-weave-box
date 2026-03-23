@@ -11,12 +11,13 @@ import {
   getMcqSets, saveMcqSet, deleteMcqSet,
   getSetting, saveSetting,
   UNIT_CATEGORIES, getCategoryDisplayName, buildBlogPath,
-  type Article, type FlashcardSet, type McqSet,
+  getArticleCategories, saveArticleCategory, deleteArticleCategory,
+  type Article, type FlashcardSet, type McqSet, type ArticleCategory,
 } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { autoIndexUrls, SITE_URL, slugifyText } from "@/lib/seo";
 
-type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo";
+type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo" | "categories";
 type DirectType = "article" | "mcqs" | "flashcards";
 
 export default function Admin() {
@@ -46,6 +47,11 @@ export default function Admin() {
   const [category, setCategory] = useState("");
   const [cardCount, setCardCount] = useState(20);
   const [mcqCount, setMcqCount] = useState(15);
+  const [customCategories, setCustomCategories] = useState<ArticleCategory[]>([]);
+
+  useEffect(() => {
+    getArticleCategories().then(setCustomCategories).catch(() => {});
+  }, [tab]);
 
   const [genArticle, setGenArticle] = useState(true);
   const [genFlashcards, setGenFlashcards] = useState(true);
@@ -384,6 +390,7 @@ export default function Admin() {
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: "create", label: "Create", icon: FileText },
     { id: "articles", label: "Articles", icon: FileText },
+    { id: "categories", label: "Categories", icon: Layers },
     { id: "flashcards", label: "Flashcards", icon: Layers },
     { id: "mcqs", label: "MCQs", icon: ListChecks },
     { id: "stories", label: "Stories", icon: BookOpen },
@@ -401,7 +408,7 @@ export default function Admin() {
   const activeTab = tabs.find(t => t.id === tab);
 
   const tabGroups = [
-    { label: "Content", items: tabs.filter(t => ["create","articles","flashcards","mcqs","stories","exams"].includes(t.id)) },
+    { label: "Content", items: tabs.filter(t => ["create","articles","categories","flashcards","mcqs","stories","exams"].includes(t.id)) },
     { label: "Tools", items: tabs.filter(t => ["upgrade","cleanup","seo"].includes(t.id)) },
     { label: "Data", items: tabs.filter(t => ["raw","import","recycle"].includes(t.id)) },
     { label: "System", items: tabs.filter(t => ["institutions","settings"].includes(t.id)) },
@@ -696,6 +703,7 @@ export default function Admin() {
       )}
 
       {tab === "articles" && <ArticlesList initialEditId={articleEditId} onEditOpened={() => setArticleEditId(null)} />}
+      {tab === "categories" && <CategoriesTab />}
       {tab === "flashcards" && <FlashcardsList />}
       {tab === "mcqs" && <McqsList />}
       {tab === "stories" && <StoriesTab />}
@@ -708,6 +716,87 @@ export default function Admin() {
       {tab === "seo" && <SeoIndexingTab />}
       {tab === "import" && <ImportTab />}
       {tab === "settings" && <SettingsPanel setGeminiKey={setGeminiKey} />}
+    </div>
+  );
+}
+
+// ===== CATEGORIES TAB =====
+function CategoriesTab() {
+  const [categories, setCategories] = useState<ArticleCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newName, setNewName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const data = await getArticleCategories();
+      setCategories(data);
+    } catch (err: any) {
+      toast({ title: "Failed to load categories", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { refresh(); }, []);
+
+  const handleAdd = async () => {
+    if (!newName.trim()) return;
+    setSaving(true);
+    try {
+      await saveArticleCategory(newName);
+      setNewName("");
+      await refresh();
+      toast({ title: "Category added!" });
+    } catch (err: any) {
+      toast({ title: "Failed to add", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure? Articles in this category will become 'Uncategorized'.")) return;
+    try {
+      await deleteArticleCategory(id);
+      await refresh();
+      toast({ title: "Category deleted" });
+    } catch (err: any) {
+      toast({ title: "Delete failed", description: err.message, variant: "destructive" });
+    }
+  };
+
+  if (loading) return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
+
+  return (
+    <div className="max-w-2xl">
+      <div className="mb-6 rounded-xl border border-border bg-card p-5">
+        <h3 className="mb-4 font-serif text-lg font-bold text-foreground">Manage Article Categories</h3>
+        <div className="flex gap-2">
+          <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Category name (e.g. Clinical Pharmacology)" className="flex-1" />
+          <Button onClick={handleAdd} disabled={saving || !newName.trim()} className="gap-2">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Layers className="h-4 w-4" />}
+            Add Category
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {categories.length === 0 ? (
+          <p className="text-center py-8 text-muted-foreground">No custom categories yet.</p>
+        ) : (
+          categories.map((c) => (
+            <div key={c.id} className="flex items-center justify-between rounded-lg border border-border bg-card p-3">
+              <span className="font-medium text-foreground">{c.name}</span>
+              <Button size="sm" variant="ghost" onClick={() => handleDelete(c.id)} className="text-destructive h-8 w-8 p-0">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
@@ -930,25 +1019,85 @@ function ArticlesList({
   onEditOpened: () => void;
 }) {
   const [articles, setArticles] = useState<Article[]>([]);
+  const [customCategories, setCustomCategories] = useState<ArticleCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Article | null>(null);
   const [activeYear, setActiveYear] = useState<string>("all");
   const [batchLoading, setBatchLoading] = useState<string | null>(null);
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number; label: string } | null>(null);
   const [updatedIds, setUpdatedIds] = useState<Set<string>>(new Set());
+  const [aiGenerating, setAiGenerating] = useState(false);
   const { toast } = useToast();
 
-  const refresh = () => { getArticles().then((arts) => setArticles(arts.filter((a: any) => a.is_raw !== true))).finally(() => setLoading(false)); };
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const [arts, cats] = await Promise.all([
+        getArticles(),
+        getArticleCategories(),
+      ]);
+      setArticles(arts.filter((a: any) => a.is_raw !== true));
+      setCustomCategories(cats);
+    } catch (err: any) {
+      toast({ title: "Failed to load articles", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => { refresh(); }, []);
+
   useEffect(() => {
     if (!initialEditId || editing || articles.length === 0) return;
     const target = articles.find((a) => a.id === initialEditId);
     if (target) { setEditing(target); onEditOpened(); }
   }, [initialEditId, editing, articles, onEditOpened]);
 
-  const handleDelete = async (id: string) => { await deleteArticle(id); refresh(); toast({ title: "Deleted" }); };
-  const togglePublish = async (a: Article) => { await saveArticle({ ...a, published: !a.published }); refresh(); toast({ title: a.published ? "Unpublished" : "Published!" }); };
-  const handleSaveEdit = async () => { if (!editing) return; await saveArticle(editing); setEditing(null); refresh(); toast({ title: "Article updated!" }); };
+  const handleDelete = async (id: string) => { 
+    if (!confirm("Are you sure you want to delete this article?")) return;
+    await deleteArticle(id); 
+    refresh(); 
+    toast({ title: "Deleted" }); 
+  };
+
+  const togglePublish = async (a: Article) => { 
+    await saveArticle({ ...a, published: !a.published }); 
+    refresh(); 
+    toast({ title: a.published ? "Unpublished" : "Published!" }); 
+  };
+
+  const handleSaveEdit = async () => { 
+    if (!editing) return; 
+    try {
+      await saveArticle(editing); 
+      setEditing(null); 
+      refresh(); 
+      toast({ title: "Article updated!" }); 
+    } catch (err: any) {
+      toast({ title: "Save failed", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleAiGenerateSeo = async () => {
+    if (!editing) return;
+    setAiGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("content-upgrade", {
+        body: { action: "generate_seo_single", id: editing.id, fields: { meta_title: true, meta_description: true, slug: true } }
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Reload the editing article with new SEO values
+      const { data: updatedArt } = await supabase.from("articles").select("*").eq("id", editing.id).single();
+      if (updatedArt) setEditing(updatedArt as Article);
+      toast({ title: "AI SEO metadata generated!" });
+    } catch (err: any) {
+      toast({ title: "AI Generation failed", description: err.message, variant: "destructive" });
+    } finally {
+      setAiGenerating(false);
+    }
+  };
 
   // Filter by year
   const years = ["all", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
@@ -977,7 +1126,7 @@ function ArticlesList({
     let errors = 0;
     for (let i = 0; i < filteredArticles.length; i++) {
       const art = filteredArticles[i];
-      if (newUpdated.has(art.id)) continue; // skip already updated
+      if (newUpdated.has(art.id)) continue; 
       setBatchProgress({ current: i + 1, total: filteredArticles.length, label: art.title.slice(0, 50) });
       try {
         const { data, error } = await supabase.functions.invoke("content-upgrade", { body: { action: "upgrade", id: art.id, type: "format" } });
@@ -990,7 +1139,7 @@ function ArticlesList({
     }
     setBatchProgress(null);
     setBatchLoading(null);
-    toast({ title: errors === 0 ? `All ${filteredArticles.length} articles updated!` : `Done — ${errors} failed` });
+    toast({ title: errors === 0 ? `All ${filteredArticles.length} articles updated!` : `Done \u2014 ${errors} failed` });
     refresh();
   };
 
@@ -1014,7 +1163,7 @@ function ArticlesList({
     }
     setBatchProgress(null);
     setBatchLoading(null);
-    toast({ title: errors === 0 ? `Images generated for ${filteredArticles.length} articles!` : `Done — ${errors} failed` });
+    toast({ title: errors === 0 ? `Images generated for ${filteredArticles.length} articles!` : `Done \u2014 ${errors} failed` });
     refresh();
   };
 
@@ -1022,17 +1171,105 @@ function ArticlesList({
 
   if (editing) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-4 font-serif text-lg font-bold text-foreground">Edit Article</h3>
-        <Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="mb-3 font-bold" placeholder="Title" />
-        <select value={editing.category} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className="w-full mb-3 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground">
-          <option value="Uncategorized">Uncategorized</option>
-          {UNIT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <Textarea value={editing.content} onChange={(e) => setEditing({ ...editing, content: e.target.value })} className="mb-4 min-h-[300px]" />
-        <div className="flex gap-3">
-          <Button onClick={handleSaveEdit} className="gap-2"><Save className="h-4 w-4" /> Save</Button>
-          <Button onClick={() => setEditing(null)} variant="outline">Cancel</Button>
+      <div className="space-y-6">
+        <div className="rounded-xl border border-border bg-card p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-serif text-xl font-bold text-foreground">Edit Article</h3>
+            <div className="flex gap-2">
+              <Button onClick={handleSaveEdit} className="gap-2"><Save className="h-4 w-4" /> Save Changes</Button>
+              <Button onClick={() => setEditing(null)} variant="outline">Discard</Button>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1 block">Article Title</label>
+                <Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="font-bold text-lg" placeholder="Enter article title" />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1 block">Content (Markdown)</label>
+                <Textarea value={editing.content} onChange={(e) => setEditing({ ...editing, content: e.target.value })} className="min-h-[500px] font-mono text-sm leading-relaxed" />
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="rounded-lg border border-border bg-secondary/30 p-4 space-y-4">
+                <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-primary" /> SEO & Metadata
+                </h4>
+                
+                <Button 
+                  onClick={handleAiGenerateSeo} 
+                  disabled={aiGenerating} 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full gap-2 border-primary/30 hover:bg-primary/5"
+                >
+                  {aiGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                  Generate AI SEO
+                </Button>
+
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">URL Slug</label>
+                    <Input value={editing.slug || ""} onChange={(e) => setEditing({ ...editing, slug: e.target.value })} className="text-xs" placeholder="master-pharmacology" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Meta Title</label>
+                    <Input value={editing.meta_title || ""} onChange={(e) => setEditing({ ...editing, meta_title: e.target.value })} className="text-xs" placeholder="SEO Title (60 chars)" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Meta Description</label>
+                    <Textarea value={editing.meta_description || ""} onChange={(e) => setEditing({ ...editing, meta_description: e.target.value })} className="text-xs h-24" placeholder="SEO Description (160 chars)" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border bg-secondary/30 p-4 space-y-4">
+                <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-primary" /> Categorization
+                </h4>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Primary Category</label>
+                  <select 
+                    value={editing.category} 
+                    onChange={(e) => setEditing({ ...editing, category: e.target.value })} 
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs text-foreground focus:ring-1 focus:ring-primary"
+                  >
+                    <optgroup label="Core Medical Units">
+                      {UNIT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </optgroup>
+                    {customCategories.length > 0 && (
+                      <optgroup label="Custom Categories">
+                        {customCategories.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                      </optgroup>
+                    )}
+                    <option value="Uncategorized">Uncategorized</option>
+                  </select>
+                </div>
+                <div className="pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={editing.published} onChange={(e) => setEditing({ ...editing, published: e.target.checked })} className="accent-primary" />
+                    <span className="text-xs font-medium text-foreground">Published & Publicly Visible</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
+                <h4 className="font-bold text-sm text-destructive mb-2">Danger Zone</h4>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => { if (confirm("Delete permanently?")) handleDelete(editing.id); setEditing(null); }} 
+                  className="w-full text-destructive hover:bg-destructive/10 gap-2"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete Article
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1632,7 +1869,7 @@ function ExamResultsTab() {
     </thead>
     <tbody>${rows}</tbody>
   </table>
-  <p style="margin-top:32px;text-align:center;font-size:10px;color:#9ca3af">Kenya Meds Exam Results &bull; Confidential</p>
+  <p style="margin-top:32px;text-align:center;font-size:10px;color:#9ca3af">OMPATH Exam Results &bull; Confidential</p>
 </body>
 </html>`;
 

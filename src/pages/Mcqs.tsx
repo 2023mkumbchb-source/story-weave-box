@@ -10,7 +10,7 @@ const INITIAL_VISIBLE = 12;
 const LOAD_MORE_STEP = 12;
 
 export default function Mcqs() {
-  useEffect(() => { document.title = "MCQ Quizzes | Kenya Meds"; }, []);
+  useEffect(() => { document.title = "MCQ Quizzes | OMPATH"; }, []);
   const [sets, setSets] = useState<McqSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);

@@ -17,6 +17,12 @@ export interface Article {
   slug?: string;
 }
 
+export interface ArticleCategory {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
 export interface FlashcardSet {
   id: string;
   title: string;
@@ -358,7 +364,7 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
   const normalizedMetaDescription = (
     article.meta_description?.trim() ||
     generatedDescription ||
-    `Study ${article.title} on Kenya Meds.`
+    `Study ${article.title} on OMPATH.`
   ).slice(0, 160);
   const normalizedOgImage = article.og_image_url?.trim() || extractFirstImageFromContent(article.content || "") || null;
 
@@ -595,6 +601,30 @@ export async function getCategories(): Promise<{ name: string; count: number }[]
     counts[cat] = (counts[cat] || 0) + 1;
   });
   return Object.entries(counts).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+}
+
+export async function getArticleCategories(): Promise<ArticleCategory[]> {
+  const { data, error } = await supabase
+    .from("article_categories")
+    .select("*")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return (data || []) as ArticleCategory[];
+}
+
+export async function saveArticleCategory(name: string): Promise<ArticleCategory> {
+  const { data, error } = await supabase
+    .from("article_categories")
+    .insert({ name: name.trim() })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as ArticleCategory;
+}
+
+export async function deleteArticleCategory(id: string) {
+  const { error } = await supabase.from("article_categories").delete().eq("id", id);
+  if (error) throw error;
 }
 
 export async function getSetting(key: string): Promise<string> {

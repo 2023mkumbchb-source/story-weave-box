@@ -36,7 +36,7 @@ function timeAgo(ms: number): string {
 }
 
 export default function Blog() {
-  useEffect(() => { document.title = "Study Notes | Kenya Meds"; }, []);
+  useEffect(() => { document.title = "Study Notes | OMPATH"; }, []);
   const navigate = useNavigate();
   const location = useLocation();
   const fromPath = `${location.pathname}${location.search}`;

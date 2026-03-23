@@ -10,7 +10,7 @@ const INITIAL_VISIBLE = 12;
 const LOAD_MORE_STEP = 12;
 
 export default function Flashcards() {
-  useEffect(() => { document.title = "Flashcards | Kenya Meds"; }, []);
+  useEffect(() => { document.title = "Flashcards | OMPATH"; }, []);
   const [sets, setSets] = useState<FlashcardSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);

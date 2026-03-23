@@ -46,10 +46,10 @@ export default function Index() {
         <div className="relative mx-auto max-w-5xl px-5 py-14 sm:py-20">
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
             <h1 className="font-serif text-3xl sm:text-5xl font-bold mb-3 leading-tight">
-              Kenya <span className="text-[hsl(174,80%,65%)]">Meds</span>
+              OM<span className="text-[hsl(174,80%,65%)]">PATH</span>
             </h1>
             <p className="text-white/70 text-base sm:text-lg max-w-xl leading-relaxed mb-8">
-              Comprehensive MBChB study notes, flashcards, MCQs, and exam preparation — organized by year and unit.
+              Comprehensive medical study notes, flashcards, MCQs, and exam preparation — organized by unit.
             </p>
 
             <div className="flex flex-wrap gap-2">
@@ -122,9 +122,9 @@ export default function Index() {
       {/* Footer */}
       <footer className="border-t border-border">
         <div className="mx-auto max-w-5xl px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Kenya Meds
-          </div>
+          <p className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} OMPATH
+          </p>
           <div className="flex gap-2">
             <a href="tel:+254115475543" className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors">
               <Phone className="h-3.5 w-3.5" />

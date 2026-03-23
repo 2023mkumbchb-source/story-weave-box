@@ -545,6 +545,52 @@ Content preview: ${contentSnippet}`;
       return json({ success: true, seo: updateData, url: `${siteUrl}/blog/${article.id}-${finalSlug}` });
     }
 
+    if (action === "bulk_seo") {
+      if (!geminiKey) throw new Error("GEMINI_API_KEY not set");
+
+      const { data: articles, error: fetchError } = await sb
+        .from("articles")
+        .select("id, title, content")
+        .eq("published", true)
+        .is("deleted_at", null)
+        .or("meta_description.is.null,meta_description.eq.")
+        .limit(10);
+
+      if (fetchError) throw fetchError;
+      if (!articles?.length) return json({ updated: 0, message: "No articles missing meta description" });
+
+      const results = [];
+      for (const article of articles) {
+        try {
+          const contentSnippet = (article.content || "").slice(0, 500);
+          const prompt = `Generate a compelling SEO meta description (150-160 characters) for this medical article.
+Title: ${article.title}
+Content: ${contentSnippet}
+
+Return ONLY the description text, no quotes, no labels. Keep it between 150-160 characters.`;
+
+          const description = await callGemini(geminiKey, prompt, 100);
+          const cleanDescription = description.replace(/^["']|["']$/g, "").trim().slice(0, 160);
+
+          const { error: updateError } = await sb
+            .from("articles")
+            .update({ meta_description: cleanDescription })
+            .eq("id", article.id);
+
+          if (updateError) throw updateError;
+          results.push({ id: article.id, title: article.title, status: "updated" });
+        } catch (e: any) {
+          results.push({ id: article.id, title: article.title, status: "error", error: e.message });
+        }
+      }
+
+      return json({ 
+        updated: results.filter(r => r.status === "updated").length, 
+        processed: results.length,
+        results 
+      });
+    }
+
     throw new Error("Unknown action");
   } catch (e: any) {
     return json({ error: e?.message || "Unknown error" }, 500);
