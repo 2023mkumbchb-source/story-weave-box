@@ -172,7 +172,8 @@ export function slugifyTitle(title: string): string {
 
 export function buildBlogPath(article: Pick<Article, "id" | "title"> & { slug?: string }): string {
   const slug = article.slug || slugifyTitle(article.title) || "article";
-  return `/blog/${article.id}-${slug}`;
+  const cleanSlug = slug.replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i, "");
+  return `/blog/${cleanSlug}`;
 }
 
 function toArticlePreview(row: any): Article {
@@ -326,7 +327,7 @@ export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | 
   const { data: slugMatch } = await supabase
     .from("articles")
     .select("id")
-    .eq("slug", normalizedParam)
+    .or(`slug.eq.${normalizedParam},slug.ilike.%-${normalizedParam}`)
     .eq("published", true)
     .is("deleted_at", null)
     .maybeSingle();
