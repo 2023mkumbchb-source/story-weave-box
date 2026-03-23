@@ -13,5 +13,5 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://medicine.kenyaadverts.co.ke/sitemap.xml
-Sitemap: https://medicine.kenyaadverts.co.ke/sitemap-dynamic.xml
+Sitemap: https://ompath.azaniispproject.co.ke/sitemap.xml
+Sitemap: https://ompath.azaniispproject.co.ke/sitemap-dynamic.xml

@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"];
-const DEFAULT_SITE_URL = "https://medicine.kenyaadverts.co.ke";
+const DEFAULT_SITE_URL = "https://ompath.azaniispproject.co.ke";
 
 function normalizeBaseUrl(url: string | null | undefined): string {
   const trimmed = String(url || "").trim();
@@ -426,20 +426,14 @@ Style requirements:
       for (const article of articles) {
         try {
           const contentSnippet = (article.content || "").slice(0, 10000);
-          const seoPrompt = `You are an SEO editor for medical study content. Return ONLY valid JSON.
+          const seoPrompt = `You are a professional medical SEO editor. Generate optimized metadata for this article.
+Return ONLY valid JSON.
 Schema:
-{"title":"string","meta_title":"string max 60 chars","meta_description":"string max 155 chars","slug":"url-friendly lowercase hyphenated"}
-Rules:
-- Keep medical meaning accurate.
-- Avoid clickbait.
-- Make title natural and specific to content.
-- meta_title should be concise and searchable.
-- meta_description must be clear and compelling.
-- slug must be readable and concise.
+{"title":"string (concise article title)","meta_title":"string (60 chars max, high-volume keywords, professional)","meta_description":"string (150-160 chars, compelling, summarizes key learning points, ends with a call to study)","slug":"url-friendly lowercase hyphenated"}
 
-Article title: ${article.title}
+Article: ${article.title}
 Category: ${article.category}
-Content preview: ${contentSnippet}`;
+Content: ${contentSnippet}`;
 
           const text = await callGemini(geminiKey, seoPrompt, 1200);
           const seo = extractJsonFromResponse(text);

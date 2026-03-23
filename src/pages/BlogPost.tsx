@@ -787,11 +787,11 @@ export default function BlogPost() {
     if (!article) return;
     const metaTitle = article.meta_title || article.title;
     const fallbackDesc = stripRichText(article.content || "", 160);
-    const metaDesc = article.meta_description || fallbackDesc || `Study ${article.title} - medical notes, key concepts and practice questions on Kenya Meds.`;
-    const ogImage = article.og_image_url || extractFirstImageFromContent(article.content || "") || `${SITE_URL}/icon-512.png`;
+    const metaDesc = article.meta_description || fallbackDesc || `Study ${article.title} - medical notes, key concepts and practice questions on OMPATH.`;
+    const ogImage = article.og_image_url || extractFirstImageFromContent(article.content || "") || `${SITE_URL}/og-default.jpg`;
     const canonicalUrl = `${SITE_URL}${buildBlogPath(article)}`;
 
-    document.title = `${metaTitle} | Kenya Meds`;
+    document.title = `${metaTitle} | OMPATH`;
 
     const setMeta = (attr: string, key: string, content: string) => {
       let el = document.querySelector(`meta[${attr}="${key}"]`) as HTMLMetaElement | null;

@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const DEFAULT_BASE_URL = "https://medicine.kenyaadverts.co.ke";
+const DEFAULT_BASE_URL = "https://ompath.azaniispproject.co.ke";
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
