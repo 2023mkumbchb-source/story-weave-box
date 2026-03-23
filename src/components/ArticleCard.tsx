@@ -30,7 +30,7 @@ export default function ArticleCard({ article }: { article: Article }) {
   const unit = getCategoryDisplayName(article.category);
   const year = getYearFromCategory(article.category);
   const cover = getArticleThumbnail(article);
-  const createdDate = new Date(article.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const displayDate = new Date(article.updated_at || article.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const location = useLocation();
   const fromPath = `${location.pathname}${location.search}`;
 
@@ -57,7 +57,7 @@ export default function ArticleCard({ article }: { article: Article }) {
           <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[10px] font-medium text-muted-foreground sm:mb-3 sm:gap-2 sm:text-xs">
             {year && <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 sm:px-2.5 sm:py-1">{year}</span>}
             {unit && unit !== "Uncategorized" && <span className="hidden rounded-full border border-border bg-muted px-2.5 py-1 sm:inline">{unit}</span>}
-            <span className="inline-flex items-center gap-1"><Clock3 className="h-3 w-3" /> {createdDate}</span>
+            <span className="inline-flex items-center gap-1"><Clock3 className="h-3 w-3" /> {displayDate}</span>
           </div>
 
           <h3 className="line-clamp-2 text-sm font-bold leading-tight text-foreground transition-colors group-hover:text-primary sm:font-serif sm:text-xl md:text-2xl md:leading-tight">

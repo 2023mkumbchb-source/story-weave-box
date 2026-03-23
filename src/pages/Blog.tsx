@@ -143,7 +143,7 @@ export default function Blog() {
           const matchesUnit = !selectedUnit || a.category === selectedUnit;
           return matchesYear && matchesUnit;
         });
-    return [...base].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return [...base].sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime());
   }, [articles, search, searchMatches, selectedYear, selectedUnit]);
 
   const filteredRecentArticles = useMemo(() => {

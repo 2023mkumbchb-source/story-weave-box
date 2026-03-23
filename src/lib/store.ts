@@ -6,6 +6,7 @@ export interface Article {
   title: string;
   content: string;
   created_at: string;
+  updated_at: string;
   published: boolean;
   original_notes: string;
   category: string;
@@ -21,6 +22,7 @@ export interface FlashcardSet {
   title: string;
   cards: { question: string; answer: string }[];
   created_at: string;
+  updated_at: string;
   published: boolean;
   original_notes: string;
   category: string;
@@ -32,6 +34,7 @@ export interface McqSet {
   title: string;
   questions: { question: string; options: string[]; correct_answer: number; explanation?: string }[];
   created_at: string;
+  updated_at: string;
   published: boolean;
   original_notes: string;
   category: string;
@@ -178,6 +181,7 @@ function toArticlePreview(row: any): Article {
     title: row.title,
     category: row.category,
     created_at: row.created_at,
+    updated_at: row.updated_at,
     published: row.published,
     content: row.content ?? "",
     original_notes: row.original_notes ?? "",
@@ -251,7 +255,7 @@ export async function getPublishedArticleSummaries(year?: string): Promise<Artic
 
   let query = supabase
     .from("articles")
-    .select("id, title, category, created_at, published, slug, meta_description")
+    .select("id, title, category, created_at, updated_at, published, slug, meta_description")
     .eq("published", true)
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
@@ -275,7 +279,7 @@ export async function searchPublishedArticles(queryText: string, year?: string, 
   const safeQ = q.replace(/[,%]/g, " ").slice(0, 80);
   let query = supabase
     .from("articles")
-    .select("id, title, category, created_at, published, slug, meta_description")
+    .select("id, title, category, created_at, updated_at, published, slug, meta_description")
     .eq("published", true)
     .is("deleted_at", null)
     .or(`title.ilike.%${safeQ}%,category.ilike.%${safeQ}%,content.ilike.%${safeQ}%`)
