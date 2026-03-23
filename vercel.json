@@ -48,7 +48,7 @@
   "rewrites": [
     {
       "source": "/sitemap.xml",
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/generate-sitemap"
+      "destination": "/sitemap.xml"
     },
     {
       "source": "/sitemap-dynamic.xml",
@@ -63,7 +63,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=blog"
+      "destination": "/api/og-proxy?prerender=blog"
     },
     {
       "source": "/blog/:slug",
@@ -74,7 +74,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?slug=:slug"
+      "destination": "/api/og-proxy?slug=:slug"
     },
     {
       "source": "/stories",
@@ -85,7 +85,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=stories"
+      "destination": "/api/og-proxy?prerender=stories"
     },
     {
       "source": "/stories/:id",
@@ -96,7 +96,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?story=:id"
+      "destination": "/api/og-proxy?story=:id"
     },
     {
       "source": "/mcqs",
@@ -107,7 +107,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=mcqs"
+      "destination": "/api/og-proxy?prerender=mcqs"
     },
     {
       "source": "/mcqs/:id",
@@ -118,7 +118,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?mcq=:id"
+      "destination": "/api/og-proxy?mcq=:id"
     },
     {
       "source": "/flashcards",
@@ -129,7 +129,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=flashcards"
+      "destination": "/api/og-proxy?prerender=flashcards"
     },
     {
       "source": "/flashcards/:id",
@@ -140,7 +140,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?flashcard=:id"
+      "destination": "/api/og-proxy?flashcard=:id"
     },
     {
       "source": "/essays",
@@ -151,7 +151,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=essays"
+      "destination": "/api/og-proxy?prerender=essays"
     },
     {
       "source": "/essays/:id",
@@ -162,7 +162,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?essay=:id"
+      "destination": "/api/og-proxy?essay=:id"
     },
     {
       "source": "/exams",
@@ -173,7 +173,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=exams"
+      "destination": "/api/og-proxy?prerender=exams"
     },
     {
       "source": "/year/:year",
@@ -184,7 +184,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?year=:year"
+      "destination": "/api/og-proxy?year=:year"
     },
     {
       "source": "/(.*)",
