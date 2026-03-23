@@ -3,7 +3,7 @@ import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { buildStoryPath, extractStoryIdFromParam, SITE_URL, stripRichText } from "@/lib/seo";
+import { buildStoryPath, extractStoryIdFromParam, SITE_URL, stripRichText, updateMetaTags } from "@/lib/seo";
 import ShareButtons from "@/components/ShareButtons";
 
 export default function StoryRead() {
@@ -35,40 +35,17 @@ export default function StoryRead() {
             navigate(canonicalPath, { replace: true });
           }
 
-          document.title = `${data.title} | OMPATH`;
-
           const url = `${SITE_URL}${canonicalPath}`;
           const desc = stripRichText(data.content || "", 160);
-          const image = data.cover_image_url || `${SITE_URL}/icon-512.png`;
+          const image = data.cover_image_url || `${SITE_URL}/og-default.jpg`;
 
-          const setMeta = (attr: string, key: string, content: string) => {
-            let el = document.querySelector(`meta[${attr}="${key}"]`) as HTMLMetaElement | null;
-            if (!el) {
-              el = document.createElement("meta");
-              el.setAttribute(attr, key);
-              document.head.appendChild(el);
-            }
-            el.content = content;
-          };
-
-          setMeta("name", "description", desc);
-          setMeta("property", "og:title", data.title);
-          setMeta("property", "og:description", desc);
-          setMeta("property", "og:image", image);
-          setMeta("property", "og:url", url);
-          setMeta("property", "og:type", "article");
-          setMeta("name", "twitter:card", "summary_large_image");
-          setMeta("name", "twitter:title", data.title);
-          setMeta("name", "twitter:description", desc);
-          setMeta("name", "twitter:image", image);
-
-          let canonical = document.querySelector("link[rel='canonical']") as HTMLLinkElement | null;
-          if (!canonical) {
-            canonical = document.createElement("link");
-            canonical.rel = "canonical";
-            document.head.appendChild(canonical);
-          }
-          canonical.href = url;
+          updateMetaTags({
+            title: data.title,
+            description: desc,
+            image: image,
+            url: url,
+            type: "article"
+          });
         }
       });
   }, [id, location.pathname, navigate]);

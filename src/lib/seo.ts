@@ -65,3 +65,50 @@ export function autoIndexUrls(urls: string[]) {
     body: { action: "auto_index", urls },
   }).catch(() => { /* silent */ });
 }
+
+interface MetaConfig {
+  title: string;
+  description?: string;
+  image?: string;
+  url?: string;
+  type?: "website" | "article";
+}
+
+export function updateMetaTags({ title, description, image, url, type = "website" }: MetaConfig) {
+  const fullTitle = `${title} | OMPATH`;
+  document.title = fullTitle;
+
+  const tags = [
+    { name: "description", content: description },
+    { property: "og:title", content: fullTitle },
+    { property: "og:description", content: description },
+    { property: "og:image", content: image || `${SITE_URL}/og-default.jpg` },
+    { property: "og:url", content: url || window.location.href },
+    { property: "og:type", content: type },
+    { name: "twitter:title", content: fullTitle },
+    { name: "twitter:description", content: description },
+    { name: "twitter:image", content: image || `${SITE_URL}/og-default.jpg` },
+  ];
+
+  tags.forEach(tag => {
+    if (!tag.content) return;
+    const selector = tag.name ? `meta[name="${tag.name}"]` : `meta[property="${tag.property}"]`;
+    let element = document.querySelector(selector);
+    if (!element) {
+      element = document.createElement("meta");
+      if (tag.name) element.setAttribute("name", tag.name);
+      if (tag.property) element.setAttribute("property", tag.property);
+      document.head.appendChild(element);
+    }
+    element.setAttribute("content", tag.content);
+  });
+
+  // Update canonical
+  let canonical = document.querySelector('link[rel="canonical"]');
+  if (!canonical) {
+    canonical = document.createElement("link");
+    canonical.setAttribute("rel", "canonical");
+    document.head.appendChild(canonical);
+  }
+  canonical.setAttribute("href", url || window.location.href);
+}

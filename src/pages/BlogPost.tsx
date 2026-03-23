@@ -7,7 +7,7 @@ import {
 import ShareButtons from "@/components/ShareButtons";
 import { motion, AnimatePresence } from "framer-motion";
 import { getArticleBySlugOrId, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, type Article } from "@/lib/store";
-import { extractFirstImageFromContent, SITE_URL, stripRichText } from "@/lib/seo";
+import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags, autoIndexUrls } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { markArticleVisited } from "@/lib/progress-store";
@@ -791,28 +791,13 @@ export default function BlogPost() {
     const ogImage = article.og_image_url || extractFirstImageFromContent(article.content || "") || `${SITE_URL}/og-default.jpg`;
     const canonicalUrl = `${SITE_URL}${buildBlogPath(article)}`;
 
-    document.title = `${metaTitle} | OMPATH`;
-
-    const setMeta = (attr: string, key: string, content: string) => {
-      let el = document.querySelector(`meta[${attr}="${key}"]`) as HTMLMetaElement | null;
-      if (!el) { el = document.createElement("meta"); el.setAttribute(attr, key); document.head.appendChild(el); }
-      el.content = content;
-    };
-
-    setMeta("name", "description", metaDesc);
-    setMeta("property", "og:title", metaTitle);
-    setMeta("property", "og:description", metaDesc);
-    setMeta("property", "og:image", ogImage);
-    setMeta("property", "og:url", canonicalUrl);
-    setMeta("property", "og:type", "article");
-    setMeta("name", "twitter:card", "summary_large_image");
-    setMeta("name", "twitter:title", metaTitle);
-    setMeta("name", "twitter:description", metaDesc);
-    setMeta("name", "twitter:image", ogImage);
-
-    let canonical = document.querySelector("link[rel='canonical']") as HTMLLinkElement | null;
-    if (!canonical) { canonical = document.createElement("link"); canonical.rel = "canonical"; document.head.appendChild(canonical); }
-    canonical.href = canonicalUrl;
+    updateMetaTags({
+      title: metaTitle,
+      description: metaDesc,
+      image: ogImage,
+      url: canonicalUrl,
+      type: "article"
+    });
 
     let ldScript = document.querySelector("script[data-article-ld]") as HTMLScriptElement | null;
     if (!ldScript) { ldScript = document.createElement("script"); ldScript.type = "application/ld+json"; ldScript.setAttribute("data-article-ld", "true"); document.head.appendChild(ldScript); }
@@ -827,6 +812,8 @@ export default function BlogPost() {
       "author": { "@type": "Organization", "name": "OMPATH" },
       "publisher": { "@type": "Organization", "name": "OMPATH" },
     });
+
+    autoIndexUrls([canonicalUrl]);
 
     return () => {
       const ldEl = document.querySelector("script[data-article-ld]");

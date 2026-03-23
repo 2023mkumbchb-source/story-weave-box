@@ -466,10 +466,12 @@ export default function Admin() {
           <Textarea placeholder="Paste your notes here..." value={notes} onChange={(e) => setNotes(e.target.value)} className="mb-4 min-h-[200px] resize-y" />
           <div className="mb-4">
             <label className="mb-2 block text-sm font-medium text-foreground">Unit/Category</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground">
-              <option value="">Auto-detect (AI categorization)</option>
-              {UNIT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <CategorySelector 
+              value={category} 
+              onChange={setCategory} 
+              customCategories={customCategories} 
+            />
+            {!category && <p className="mt-1 text-[10px] text-muted-foreground italic">If left empty, AI will auto-detect the unit.</p>}
           </div>
           <div className="mb-4 grid gap-4 sm:grid-cols-2">
             <div className="rounded-lg border border-border bg-card p-3">
@@ -648,10 +650,11 @@ export default function Admin() {
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-foreground">Unit/Category</label>
-                <select value={directCategory} onChange={(e) => setDirectCategory(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground">
-                  <option value="">Uncategorized</option>
-                  {UNIT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <CategorySelector 
+                  value={directCategory} 
+                  onChange={setDirectCategory} 
+                  customCategories={customCategories} 
+                />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-foreground">Title (optional)</label>
@@ -716,6 +719,92 @@ export default function Admin() {
       {tab === "seo" && <SeoIndexingTab />}
       {tab === "import" && <ImportTab />}
       {tab === "settings" && <SettingsPanel setGeminiKey={setGeminiKey} />}
+    </div>
+  );
+}
+
+// ===== SHARED UI COMPONENTS =====
+
+function CategorySelector({
+  value,
+  onChange,
+  customCategories,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  customCategories: ArticleCategory[];
+}) {
+  const [isTyping, setIsTyping] = useState(false);
+  const [inputValue, setInputValue] = useState("");
+
+  const allOptions = [
+    ...UNIT_CATEGORIES,
+    ...customCategories.map((c) => c.name),
+    "Uncategorized",
+  ];
+
+  if (isTyping) {
+    return (
+      <div className="flex gap-2">
+        <Input
+          value={inputValue}
+          onChange={(e) => {
+            setInputValue(e.target.value);
+            onChange(e.target.value);
+          }}
+          placeholder="Type new category..."
+          className="flex-1 text-sm h-9"
+          autoFocus
+        />
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            setIsTyping(false);
+            if (!inputValue.trim()) onChange("Uncategorized");
+          }}
+          className="h-9 px-2 text-xs"
+        >
+          Cancel
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex gap-2">
+      <select
+        value={allOptions.includes(value) ? value : "Other"}
+        onChange={(e) => {
+          if (e.target.value === "Other") {
+            setIsTyping(true);
+            setInputValue("");
+          } else {
+            onChange(e.target.value);
+          }
+        }}
+        className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-primary h-9"
+      >
+        <optgroup label="Standard Units">
+          {UNIT_CATEGORIES.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </optgroup>
+        {customCategories.length > 0 && (
+          <optgroup label="Custom Categories">
+            {customCategories.map((c) => (
+              <option key={c.id} value={c.name}>{c.name}</option>
+            ))}
+          </optgroup>
+        )}
+        <option value="Uncategorized">Uncategorized</option>
+        <option value="Other">+ Type New Category...</option>
+      </select>
+      {!allOptions.includes(value) && value && (
+        <div className="flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary border border-primary/20">
+          NEW: {value}
+        </div>
+      )}
     </div>
   );
 }
