@@ -17,12 +17,13 @@ export function slugifyText(value: string): string {
 
 export function stripRichText(input: string, maxLength?: number): string {
   const normalized = (input || "")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/!\[[^\]]*\]\((.*?)\)/g, " ")
-    .replace(/\[[^\]]+\]\((.*?)\)/g, "$1")
-    .replace(/^#+\s+/gm, "")
-    .replace(/[\*_`>|]/g, " ")
-    .replace(/\s+/g, " ")
+    .replace(/<[^>]*>/g, " ") // Remove HTML tags
+    .replace(/!\[[^\]]*\]\((.*?)\)/g, " ") // Remove markdown images
+    .replace(/\[[^\]]+\]\((.*?)\)/g, "$1") // Remove markdown links, keep text
+    .replace(/^#+\s+/gm, "") // Remove headers
+    .replace(/[\*_`>|]/g, " ") // Remove bold, italic, code, blockquote, table pipes
+    .replace(/#\w+/g, "") // Remove hashtags
+    .replace(/\s+/g, " ") // Consolidate whitespace
     .trim();
 
   if (typeof maxLength === "number" && maxLength > 0) {
@@ -75,19 +76,18 @@ interface MetaConfig {
 }
 
 export function updateMetaTags({ title, description, image, url, type = "website" }: MetaConfig) {
-  const fullTitle = `${title} | OMPATH`;
-  document.title = fullTitle;
+  document.title = title;
 
   const tags = [
     { name: "description", content: description },
-    { property: "og:title", content: fullTitle },
+    { property: "og:title", content: title },
     { property: "og:description", content: description },
-    { property: "og:image", content: image || `${SITE_URL}/og-default.jpg` },
+    { property: "og:image", content: image || `${SITE_URL}/og-default.png` },
     { property: "og:url", content: url || window.location.href },
     { property: "og:type", content: type },
-    { name: "twitter:title", content: fullTitle },
+    { name: "twitter:title", content: title },
     { name: "twitter:description", content: description },
-    { name: "twitter:image", content: image || `${SITE_URL}/og-default.jpg` },
+    { name: "twitter:image", content: image || `${SITE_URL}/og-default.png` },
   ];
 
   tags.forEach(tag => {

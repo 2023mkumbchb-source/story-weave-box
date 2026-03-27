@@ -33,6 +33,10 @@ export interface FlashcardSet {
   original_notes: string;
   category: string;
   is_raw?: boolean;
+  meta_title?: string;
+  meta_description?: string;
+  og_image_url?: string;
+  slug?: string;
 }
 
 export interface McqSet {
@@ -46,6 +50,38 @@ export interface McqSet {
   category: string;
   access_password: string;
   is_raw?: boolean;
+  meta_title?: string;
+  meta_description?: string;
+  og_image_url?: string;
+  slug?: string;
+}
+
+export interface Story {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  published: boolean;
+  created_at: string;
+  cover_image_url?: string;
+  meta_title?: string;
+  meta_description?: string;
+  og_image_url?: string;
+  slug?: string;
+}
+
+export interface Essay {
+  id: string;
+  title: string;
+  category: string;
+  short_answer_questions: any[];
+  long_answer_questions: any[];
+  published: boolean;
+  created_at: string;
+  meta_title?: string;
+  meta_description?: string;
+  og_image_url?: string;
+  slug?: string;
 }
 
 const ADMIN_PASSWORD = "Davis";

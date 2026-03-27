@@ -1,17 +1,22 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { GraduationCap, Calendar, Layers, ChevronDown, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
 import { getPublishedFlashcardSets, getCategoryDisplayName, getYearFromCategory, type FlashcardSet } from "@/lib/store";
 import { getVisitedFlashcardIds } from "@/lib/progress-store";
+import { updateMetaTags } from "@/lib/seo";
 import CategoryTabs from "@/components/CategoryTabs";
-import { Helmet } from "react-helmet-async";
 
 const INITIAL_VISIBLE = 12;
 const LOAD_MORE_STEP = 12;
 
 export default function Flashcards() {
-  const location = useLocation();
+  useEffect(() => {
+    updateMetaTags({
+      title: "Flashcard Sets | OMPATH",
+      description: "Interactive medical flashcards generated from Kenyan medical notes. Study smarter with unit-based flashcard sets.",
+    });
+  }, []);
   const [sets, setSets] = useState<FlashcardSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -19,18 +24,6 @@ export default function Flashcards() {
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
   const [searchParams] = useSearchParams();
   const selectedYear = searchParams.get("year") || "All";
-  const ogUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}${location.pathname}${location.search}`
-      : location.pathname;
-  const title =
-    selectedYear === "All"
-      ? "Flashcards | OmpathStudy Kenya"
-      : `${selectedYear} Flashcards | OmpathStudy Kenya`;
-  const description =
-    "Study faster with OmpathStudy flashcards for medical and health students in Kenya. Review key concepts by year and unit and track your progress.";
-  const keywords =
-    "OmpathStudy, flashcards Kenya, medical flashcards, nursing flashcards, clinical revision, spaced repetition, exam prep, medical education Kenya";
 
   useEffect(() => {
     getPublishedFlashcardSets().then(setSets).finally(() => setLoading(false));
@@ -81,18 +74,6 @@ export default function Flashcards() {
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-10 sm:px-6 sm:py-12">
-      <Helmet>
-        <title>{title}</title>
-        <meta name="description" content={description} />
-        <meta name="keywords" content={keywords} />
-        <meta property="og:title" content={title} />
-        <meta property="og:description" content={description} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={ogUrl} />
-        <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content={title} />
-        <meta name="twitter:description" content={description} />
-      </Helmet>
       <div className="mb-7">
         <h1 className="mb-1 font-serif text-3xl font-bold text-foreground sm:text-4xl">Flashcards</h1>
         <p className="text-sm text-muted-foreground sm:text-base">

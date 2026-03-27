@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Loader2, BookOpen, Search, X, PenLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { buildStoryPath, stripRichText } from "@/lib/seo";
-import { Helmet } from "react-helmet-async";
+import { buildStoryPath, stripRichText, updateMetaTags } from "@/lib/seo";
 
 interface Story {
   id: string;
@@ -17,16 +16,12 @@ interface Story {
 }
 
 export default function Stories() {
-  const location = useLocation();
-  const ogUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}${location.pathname}${location.search}`
-      : location.pathname;
-  const title = "Stories | OmpathStudy Kenya Medical Education";
-  const description =
-    "Read medical stories and narratives from students and clinicians. OmpathStudy shares experiences for Kenyan medical and health students to learn and reflect.";
-  const keywords =
-    "OmpathStudy, medical stories, clinical narratives, medical students Kenya, nursing students Kenya, reflective practice, health education Kenya";
+  useEffect(() => {
+    updateMetaTags({
+      title: "Medical Stories | OMPATH",
+      description: "Medical stories, narratives and experiences from Kenyan medical students and professionals.",
+    });
+  }, []);
 
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,18 +57,6 @@ export default function Stories() {
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-10 sm:px-6 sm:py-12">
-      <Helmet>
-        <title>{title}</title>
-        <meta name="description" content={description} />
-        <meta name="keywords" content={keywords} />
-        <meta property="og:title" content={title} />
-        <meta property="og:description" content={description} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={ogUrl} />
-        <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content={title} />
-        <meta name="twitter:description" content={description} />
-      </Helmet>
       <div className="mb-7 flex items-start justify-between gap-4">
         <div>
           <h1 className="mb-1 font-serif text-3xl font-bold text-foreground sm:text-4xl">Stories</h1>

@@ -8,34 +8,12 @@ import ShareButtons from "@/components/ShareButtons";
 import { motion, AnimatePresence } from "framer-motion";
 import { getArticleBySlugOrId, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, type Article } from "@/lib/store";
 import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags, autoIndexUrls } from "@/lib/seo";
-import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { markArticleVisited } from "@/lib/progress-store";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-
-const OG_FALLBACK_IMAGE = "https://ompathnotes.vercel.app/og-default.png";
-
-function cleanForMetaSnippet(input: string): string {
-  if (!input) return "";
-  const withoutMarkdown = input
-    // common markdown symbols
-    .replace(/[#*_`>]+/g, " ")
-    // list markers / bullets
-    .replace(/^\s*[-•]\s+/gm, "")
-    // collapse whitespace
-    .replace(/\s+/g, " ")
-    .trim();
-  return withoutMarkdown;
-}
-
-function to160(input: string): string {
-  const s = cleanForMetaSnippet(input);
-  if (!s) return "";
-  return s.length <= 160 ? s : s.slice(0, 160).trimEnd();
-}
 
 /* ─── Inline text: bold/italic ─── */
 const Inline = forwardRef<HTMLSpanElement, { text: string }>(({ text }, ref) => {
@@ -807,19 +785,10 @@ export default function BlogPost() {
   // Dynamic OG meta tags for sharing
   useEffect(() => {
     if (!article) return;
-    const metaTitle = article.meta_title || article.title;
-    const summaryOrExcerpt = (article as any).summary || (article as any).excerpt || "";
-    const fallbackFromContent = to160(stripRichText(article.content || ""));
-    const metaDesc =
-      article.meta_description ||
-      to160(summaryOrExcerpt) ||
-      fallbackFromContent ||
-      `Study ${article.title} with OmpathStudy—medical notes, key concepts and practice questions for students in Kenya.`;
-
-    const ogImage =
-      (article as any).cover_image ||
-      (article as any).image ||
-      OG_FALLBACK_IMAGE;
+    const metaTitle = article.meta_title?.includes("OMPATH") ? article.meta_title : `${article.title} | OMPATH`;
+    const fallbackDesc = stripRichText(article.content || "", 155);
+    const metaDesc = article.meta_description ? stripRichText(article.meta_description, 155) : fallbackDesc;
+    const ogImage = article.og_image_url || extractFirstImageFromContent(article.content || "") || `${SITE_URL}/og-default.png`;
     const canonicalUrl = `${SITE_URL}${buildBlogPath(article)}`;
 
     updateMetaTags({
@@ -869,40 +838,9 @@ export default function BlogPost() {
   const unitName = getCategoryDisplayName(article.category);
   const yearName = getYearFromCategory(article.category);
   const hasRelated = related.flashcards.length > 0 || related.mcqs.length > 0;
-  const ogUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}${location.pathname}${location.search}`
-      : location.pathname;
-  const metaTitle = article.meta_title || article.title;
-  const summaryOrExcerpt = (article as any).summary || (article as any).excerpt || "";
-  const fallbackFromContent = to160(stripRichText(article.content || ""));
-  const metaDesc =
-    article.meta_description ||
-    to160(summaryOrExcerpt) ||
-    fallbackFromContent ||
-    `Study ${article.title} with OmpathStudy—medical notes, key concepts and practice questions for students in Kenya.`;
-  const ogImage =
-    (article as any).cover_image ||
-    (article as any).image ||
-    OG_FALLBACK_IMAGE;
-  const keywords =
-    `OmpathStudy, study notes Kenya, medical notes, ${yearName || ""}, ${unitName || ""}, clinical revision, exam preparation, medical education Kenya`;
 
   return (
     <>
-      <Helmet>
-        <title>{metaTitle}</title>
-        <meta name="description" content={metaDesc} />
-        <meta name="keywords" content={keywords} />
-        <meta property="og:title" content={metaTitle} />
-        <meta property="og:description" content={metaDesc} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={ogUrl} />
-        <meta property="og:image" content={ogImage} />
-        <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content={metaTitle} />
-        <meta name="twitter:description" content={metaDesc} />
-      </Helmet>
       <ReadingProgress />
 
       {/* Breadcrumbs */}

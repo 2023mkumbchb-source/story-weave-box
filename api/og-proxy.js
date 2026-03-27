@@ -65,11 +65,11 @@ export default async function handler(req, res) {
       pageUrl = `https://ompath.azaniispproject.co.ke/blog/${slug}`;
       if (record) {
         return res.status(200).send(buildHTML({
-          title: record.title,
-          description: record.excerpt || record.meta_description || `${record.title} - OMPATH`,
+          title: record.meta_title || record.title,
+          description: record.meta_description || record.excerpt || `${record.title} - OMPATH`,
           content: record.content,
           url: pageUrl,
-          image: record.cover_image || record.image_url,
+          image: record.og_image_url || record.cover_image || record.image_url,
         }));
       }
     }
@@ -80,49 +80,56 @@ export default async function handler(req, res) {
       pageUrl = `https://ompath.azaniispproject.co.ke/mcqs/${mcq}`;
       if (record) {
         return res.status(200).send(buildHTML({
-          title: record.title,
-          description: record.description || `${record.title} MCQs - OMPATH`,
+          title: record.meta_title || record.title,
+          description: record.meta_description || record.description || `${record.title} MCQs - OMPATH`,
           content: record.description,
           url: pageUrl,
+          image: record.og_image_url,
         }));
       }
     }
 
     if (flashcard) {
       record = await fetchFromSupabase("flashcard_sets", "id", flashcard);
+      if (!record) record = await fetchFromSupabase("flashcard_sets", "slug", flashcard);
       pageUrl = `https://ompath.azaniispproject.co.ke/flashcards/${flashcard}`;
       if (record) {
         return res.status(200).send(buildHTML({
-          title: record.title,
-          description: record.description || `${record.title} Flashcards - OMPATH`,
+          title: record.meta_title || record.title,
+          description: record.meta_description || record.description || `${record.title} Flashcards - OMPATH`,
           content: record.description,
           url: pageUrl,
+          image: record.og_image_url,
         }));
       }
     }
 
     if (essay) {
       record = await fetchFromSupabase("essays", "id", essay);
+      if (!record) record = await fetchFromSupabase("essays", "slug", essay);
       pageUrl = `https://ompath.azaniispproject.co.ke/essays/${essay}`;
       if (record) {
         return res.status(200).send(buildHTML({
-          title: record.title,
-          description: record.description || `${record.title} - OMPATH`,
+          title: record.meta_title || record.title,
+          description: record.meta_description || record.description || `${record.title} - OMPATH`,
           content: record.content,
           url: pageUrl,
+          image: record.og_image_url,
         }));
       }
     }
 
     if (story) {
       record = await fetchFromSupabase("stories", "id", story);
+      if (!record) record = await fetchFromSupabase("stories", "slug", story);
       pageUrl = `https://ompath.azaniispproject.co.ke/stories/${story}`;
       if (record) {
         return res.status(200).send(buildHTML({
-          title: record.title,
-          description: record.description || `${record.title} - OMPATH`,
+          title: record.meta_title || record.title,
+          description: record.meta_description || record.description || `${record.title} - OMPATH`,
           content: record.content,
           url: pageUrl,
+          image: record.og_image_url || record.cover_image_url,
         }));
       }
     }

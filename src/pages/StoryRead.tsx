@@ -51,12 +51,14 @@ export default function StoryRead() {
           }
 
           const url = `${SITE_URL}${canonicalPath}`;
-          const desc = stripRichText(data.content || "", 160);
-          const image = data.cover_image_url || `${SITE_URL}/og-default.jpg`;
+          const fallbackDesc = stripRichText(data.content || "", 160);
+          const metaTitle = data.meta_title || `${data.title} | OMPATH Stories`;
+          const metaDesc = data.meta_description || fallbackDesc;
+          const image = data.og_image_url || data.cover_image_url || `${SITE_URL}/og-default.png`;
 
           updateMetaTags({
-            title: data.title,
-            description: desc,
+            title: metaTitle,
+            description: metaDesc,
             image: image,
             url: url,
             type: "article"

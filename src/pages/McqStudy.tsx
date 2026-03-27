@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Lock, Unlock, ListChecks, Phone, CheckCircle } from "lucide-react";
 import { getMcqSetById, getCategoryDisplayName, getSetting, type McqSet } from "@/lib/store";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import McqViewer from "@/components/McqViewer";
 import ExamMode from "@/components/ExamMode";
 import { markMcqVisited } from "@/lib/progress-store";
 import { supabase } from "@/integrations/supabase/client";
-import { Helmet } from "react-helmet-async";
+import { updateMetaTags, stripRichText } from "@/lib/seo";
 
 const MCQ_UNLOCKED_KEY = "unlocked_mcqs";
 
@@ -23,7 +23,6 @@ function persistUnlockedMcqs(set: Set<string>) {
 export default function McqStudy() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
   const [set, setSet] = useState<McqSet | null>(null);
   const [loading, setLoading] = useState(true);
   const [passwordUnlocked, setPasswordUnlocked] = useState(false);
@@ -38,17 +37,6 @@ export default function McqStudy() {
   const [phoneInput, setPhoneInput] = useState("");
   const [paying, setPaying] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "pending" | "completed" | "failed">("idle");
-  const ogUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}${location.pathname}${location.search}`
-      : location.pathname;
-  const title = set?.title
-    ? `${set.title} | MCQ Quiz | OmpathStudy Kenya`
-    : "MCQ Quiz | OmpathStudy Kenya";
-  const description =
-    "Answer MCQ questions on OmpathStudy—built for Kenyan medical and health students. Practice, learn explanations, and prepare for exams.";
-  const keywords =
-    "OmpathStudy, MCQ quiz, medical MCQs Kenya, nursing MCQs Kenya, exam preparation, clinical questions, medical education Kenya";
 
   const handleBack = () => {
     if (window.history.length > 1) navigate(-1);
@@ -65,7 +53,13 @@ export default function McqStudy() {
       getSetting("mcq_price"),
     ]).then(([s, limitStr, priceStr]) => {
       setSet(s);
-      if (s) markMcqVisited(s.id);
+      if (s) {
+        markMcqVisited(s.id);
+        updateMetaTags({
+          title: `${s.title} – MCQs | OMPATH`,
+          description: s.description ? stripRichText(s.description, 155) : `Practice ${s.title} MCQs on OMPATH. Interactive medical study quiz with answers and explanations.`,
+        });
+      }
       if (s && (!s.access_password || s.access_password === "")) setPasswordUnlocked(true);
       if (limitStr && !isNaN(Number(limitStr))) setMcqFreeLimit(Number(limitStr));
       if (priceStr && !isNaN(Number(priceStr))) setMcqPrice(Number(priceStr));
@@ -159,18 +153,6 @@ export default function McqStudy() {
   if (examMode) {
     return (
       <div className="mx-auto max-w-3xl px-5 pb-20 pt-10 sm:px-6 sm:py-12">
-        <Helmet>
-          <title>{title}</title>
-          <meta name="description" content={description} />
-          <meta name="keywords" content={keywords} />
-          <meta property="og:title" content={title} />
-          <meta property="og:description" content={description} />
-          <meta property="og:type" content="website" />
-          <meta property="og:url" content={ogUrl} />
-          <meta name="twitter:card" content="summary" />
-          <meta name="twitter:title" content={title} />
-          <meta name="twitter:description" content={description} />
-        </Helmet>
         <ExamMode
           questions={set.questions}
           title={set.title}
@@ -183,18 +165,6 @@ export default function McqStudy() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 pb-20 pt-10 sm:px-6 sm:py-12">
-      <Helmet>
-        <title>{title}</title>
-        <meta name="description" content={description} />
-        <meta name="keywords" content={keywords} />
-        <meta property="og:title" content={title} />
-        <meta property="og:description" content={description} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={ogUrl} />
-        <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content={title} />
-        <meta name="twitter:description" content={description} />
-      </Helmet>
       <div className="mb-4 flex items-center justify-between">
         <Button variant="ghost" size="sm" className="-ml-1 gap-2 text-muted-foreground" onClick={handleBack}>
           <ArrowLeft className="h-4 w-4" /> Back

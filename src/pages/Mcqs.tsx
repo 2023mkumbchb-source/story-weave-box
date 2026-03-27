@@ -1,17 +1,22 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ListChecks, Calendar, Layers, Loader2, Search, X, RotateCcw, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { getPublishedMcqSets, getCategoryDisplayName, getYearFromCategory, type McqSet } from "@/lib/store";
 import { getVisitedMcqIds } from "@/lib/progress-store";
+import { updateMetaTags } from "@/lib/seo";
 import CategoryTabs from "@/components/CategoryTabs";
-import { Helmet } from "react-helmet-async";
 
 const INITIAL_VISIBLE = 12;
 const LOAD_MORE_STEP = 12;
 
 export default function Mcqs() {
-  const location = useLocation();
+  useEffect(() => {
+    updateMetaTags({
+      title: "MCQ Question Bank | OMPATH",
+      description: "Interactive medical multiple choice quizzes from Kenyan medical notes. Practice with unit-based MCQ sets.",
+    });
+  }, []);
   const [sets, setSets] = useState<McqSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -21,18 +26,6 @@ export default function Mcqs() {
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
   const [searchParams] = useSearchParams();
   const selectedYear = searchParams.get("year") || "All";
-  const ogUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}${location.pathname}${location.search}`
-      : location.pathname;
-  const title =
-    selectedYear === "All"
-      ? "MCQ Quizzes | OmpathStudy Kenya"
-      : `${selectedYear} MCQ Quizzes | OmpathStudy Kenya`;
-  const description =
-    "Practice MCQ quizzes on OmpathStudy for Kenyan medical and health students. Search questions, revise by year and unit, and track progress.";
-  const keywords =
-    "OmpathStudy, MCQs Kenya, medical MCQs, nursing MCQs, clinical revision, exam practice, multiple choice questions, medical education Kenya";
 
   useEffect(() => {
     getPublishedMcqSets().then((all) => {
@@ -121,18 +114,6 @@ export default function Mcqs() {
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-10 sm:px-6 sm:py-12">
-      <Helmet>
-        <title>{title}</title>
-        <meta name="description" content={description} />
-        <meta name="keywords" content={keywords} />
-        <meta property="og:title" content={title} />
-        <meta property="og:description" content={description} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={ogUrl} />
-        <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content={title} />
-        <meta name="twitter:description" content={description} />
-      </Helmet>
       <div className="mb-7">
         <h1 className="mb-1 font-serif text-3xl font-bold text-foreground sm:text-4xl">MCQ Quizzes</h1>
         <p className="text-sm text-muted-foreground sm:text-base">

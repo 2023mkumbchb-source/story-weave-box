@@ -1504,6 +1504,27 @@ function FlashcardsList() {
       <div className="rounded-xl border border-border bg-card p-6">
         <h3 className="mb-4 font-serif text-lg font-bold text-foreground">Edit Flashcard Set</h3>
         <Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="mb-4 font-bold" placeholder="Title" />
+        
+        <div className="mb-6 rounded-lg border border-border bg-secondary/30 p-4 space-y-4">
+          <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
+            <Globe className="h-4 w-4 text-primary" /> SEO & Metadata
+          </h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">URL Slug</label>
+              <Input value={editing.slug || ""} onChange={(e) => setEditing({ ...editing, slug: e.target.value })} className="text-xs" placeholder="slug-path" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Meta Title</label>
+              <Input value={editing.meta_title || ""} onChange={(e) => setEditing({ ...editing, meta_title: e.target.value })} className="text-xs" placeholder="SEO Title" />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Meta Description</label>
+            <Textarea value={editing.meta_description || ""} onChange={(e) => setEditing({ ...editing, meta_description: e.target.value })} className="text-xs h-20" placeholder="SEO Description" />
+          </div>
+        </div>
+
         <div className="mb-4 max-h-96 overflow-y-auto space-y-2">
           {editing.cards.map((c, i) => (
             <div key={i} className="rounded-lg border border-border p-3 space-y-2">
@@ -1569,6 +1590,27 @@ function McqsList() {
           <option value="Uncategorized">Uncategorized</option>
           {UNIT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
+
+        <div className="mb-6 rounded-lg border border-border bg-secondary/30 p-4 space-y-4">
+          <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
+            <Globe className="h-4 w-4 text-primary" /> SEO & Metadata
+          </h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">URL Slug</label>
+              <Input value={editing.slug || ""} onChange={(e) => setEditing({ ...editing, slug: e.target.value })} className="text-xs" placeholder="slug-path" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Meta Title</label>
+              <Input value={editing.meta_title || ""} onChange={(e) => setEditing({ ...editing, meta_title: e.target.value })} className="text-xs" placeholder="SEO Title" />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Meta Description</label>
+            <Textarea value={editing.meta_description || ""} onChange={(e) => setEditing({ ...editing, meta_description: e.target.value })} className="text-xs h-20" placeholder="SEO Description" />
+          </div>
+        </div>
+
         <div className="mb-4 max-h-[500px] overflow-y-auto space-y-3">
           {editing.questions.map((q, i) => (
             <div key={i} className="rounded-lg border border-border p-3 space-y-2">
@@ -3356,6 +3398,10 @@ function StoriesTab() {
   const [editContent, setEditContent] = useState("");
   const [editCategory, setEditCategory] = useState("");
   const [editCoverUrl, setEditCoverUrl] = useState("");
+  const [editMetaTitle, setEditMetaTitle] = useState("");
+  const [editMetaDescription, setEditMetaDescription] = useState("");
+  const [editSlug, setEditSlug] = useState("");
+  const [editOgImage, setEditOgImage] = useState("");
   const [saving, setSaving] = useState(false);
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
@@ -3381,12 +3427,25 @@ function StoriesTab() {
     setEditContent(story.content);
     setEditCategory(story.category);
     setEditCoverUrl(story.cover_image_url || "");
+    setEditMetaTitle(story.meta_title || "");
+    setEditMetaDescription(story.meta_description || "");
+    setEditSlug(story.slug || "");
+    setEditOgImage(story.og_image_url || "");
   };
 
   const handleSave = async () => {
     if (!editId) return;
     setSaving(true);
-    const { error } = await supabase.from("stories").update({ title: editTitle, content: editContent, category: editCategory, cover_image_url: editCoverUrl || null }).eq("id", editId);
+    const { error } = await supabase.from("stories").update({
+      title: editTitle,
+      content: editContent,
+      category: editCategory,
+      cover_image_url: editCoverUrl || null,
+      meta_title: editMetaTitle,
+      meta_description: editMetaDescription,
+      slug: editSlug,
+      og_image_url: editOgImage
+    }).eq("id", editId);
     if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
     else { toast({ title: "Story updated" }); setEditId(null); fetchStories(); }
     setSaving(false);
@@ -3443,6 +3502,31 @@ function StoriesTab() {
         </div>
         <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Title" className="font-bold" />
         <Input value={editCategory} onChange={e => setEditCategory(e.target.value)} placeholder="Category" />
+        
+        <div className="rounded-lg border border-border bg-secondary/30 p-4 space-y-4">
+          <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
+            <Globe className="h-4 w-4 text-primary" /> SEO & Metadata
+          </h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">URL Slug</label>
+              <Input value={editSlug} onChange={(e) => setEditSlug(e.target.value)} className="text-xs" placeholder="slug-path" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Meta Title</label>
+              <Input value={editMetaTitle} onChange={(e) => setEditMetaTitle(e.target.value)} className="text-xs" placeholder="SEO Title" />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Meta Description</label>
+            <Textarea value={editMetaDescription} onChange={(e) => setEditMetaDescription(e.target.value)} className="text-xs h-20" placeholder="SEO Description" />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">OG Image URL</label>
+            <Input value={editOgImage} onChange={(e) => setEditOgImage(e.target.value)} className="text-xs" placeholder="https://..." />
+          </div>
+        </div>
+
         <div>
           <label className="mb-1.5 block text-sm font-medium text-foreground">Cover Image URL</label>
           <Input value={editCoverUrl} onChange={e => setEditCoverUrl(e.target.value)} placeholder="https://... (paste image URL)" />

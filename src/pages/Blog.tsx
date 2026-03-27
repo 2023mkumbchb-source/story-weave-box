@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { Search, X, Loader2, BookOpen, Clock, ArrowRight, ArrowLeft, ChevronDown } from "lucide-react";
-import { Helmet } from "react-helmet-async";
 import {
   getCategoryDisplayName,
   getYearFromCategory,
@@ -13,6 +12,7 @@ import {
 } from "@/lib/store";
 import ArticleCard from "@/components/ArticleCard";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
+import { updateMetaTags } from "@/lib/seo";
 
 const YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
 const INITIAL_PER_GROUP = 6;
@@ -37,6 +37,12 @@ function timeAgo(ms: number): string {
 }
 
 export default function Blog() {
+  useEffect(() => {
+    updateMetaTags({
+      title: "Medical Study Notes | OMPATH",
+      description: "Comprehensive medical study notes and articles for Kenyan health students. Organized by unit and year.",
+    });
+  }, []);
   const navigate = useNavigate();
   const location = useLocation();
   const fromPath = `${location.pathname}${location.search}`;
@@ -57,15 +63,6 @@ export default function Blog() {
     "All";
 
   const selectedUnit = searchParams.get("unit");
-  const ogUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}${location.pathname}${location.search}`
-      : location.pathname;
-  const title = "Study Notes | OmpathStudy Kenya Medical Education";
-  const description =
-    "Browse structured medical study notes for Kenyan medical and health students. Filter by year and unit, search topics, and study smarter with OmpathStudy.";
-  const keywords =
-    "OmpathStudy, study notes Kenya, medical notes, clinical notes, nursing notes, year 1, year 2, year 3, year 4, year 5, year 6, medical education Kenya";
 
   useEffect(() => {
     const qpYear = normalizeYear(searchParams.get("year"));
@@ -224,18 +221,6 @@ export default function Blog() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <Helmet>
-        <title>{title}</title>
-        <meta name="description" content={description} />
-        <meta name="keywords" content={keywords} />
-        <meta property="og:title" content={title} />
-        <meta property="og:description" content={description} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={ogUrl} />
-        <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content={title} />
-        <meta name="twitter:description" content={description} />
-      </Helmet>
       {/* Header */}
       <div className="mb-7">
         <h1 className="font-serif text-3xl font-bold leading-tight text-foreground sm:text-4xl">Study Notes</h1>
