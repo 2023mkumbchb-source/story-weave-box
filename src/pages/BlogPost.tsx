@@ -16,6 +16,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
+const OG_FALLBACK_IMAGE = "https://ompathnotes.vercel.app/og-default.png";
+
+function cleanForMetaSnippet(input: string): string {
+  if (!input) return "";
+  const withoutMarkdown = input
+    // common markdown symbols
+    .replace(/[#*_`>]+/g, " ")
+    // list markers / bullets
+    .replace(/^\s*[-•]\s+/gm, "")
+    // collapse whitespace
+    .replace(/\s+/g, " ")
+    .trim();
+  return withoutMarkdown;
+}
+
+function to160(input: string): string {
+  const s = cleanForMetaSnippet(input);
+  if (!s) return "";
+  return s.length <= 160 ? s : s.slice(0, 160).trimEnd();
+}
+
 /* ─── Inline text: bold/italic ─── */
 const Inline = forwardRef<HTMLSpanElement, { text: string }>(({ text }, ref) => {
   const parts = text.replace(/⭐+/g, "").split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
@@ -787,9 +808,18 @@ export default function BlogPost() {
   useEffect(() => {
     if (!article) return;
     const metaTitle = article.meta_title || article.title;
-    const fallbackDesc = stripRichText(article.content || "", 160);
-    const metaDesc = article.meta_description || fallbackDesc || `Study ${article.title} - medical notes, key concepts and practice questions on OMPATH.`;
-    const ogImage = article.og_image_url || extractFirstImageFromContent(article.content || "") || `${SITE_URL}/og-default.jpg`;
+    const summaryOrExcerpt = (article as any).summary || (article as any).excerpt || "";
+    const fallbackFromContent = to160(stripRichText(article.content || ""));
+    const metaDesc =
+      article.meta_description ||
+      to160(summaryOrExcerpt) ||
+      fallbackFromContent ||
+      `Study ${article.title} with OmpathStudy—medical notes, key concepts and practice questions for students in Kenya.`;
+
+    const ogImage =
+      (article as any).cover_image ||
+      (article as any).image ||
+      OG_FALLBACK_IMAGE;
     const canonicalUrl = `${SITE_URL}${buildBlogPath(article)}`;
 
     updateMetaTags({
@@ -844,10 +874,17 @@ export default function BlogPost() {
       ? `${window.location.origin}${location.pathname}${location.search}`
       : location.pathname;
   const metaTitle = article.meta_title || article.title;
+  const summaryOrExcerpt = (article as any).summary || (article as any).excerpt || "";
+  const fallbackFromContent = to160(stripRichText(article.content || ""));
   const metaDesc =
     article.meta_description ||
-    stripRichText(article.content || "", 160) ||
+    to160(summaryOrExcerpt) ||
+    fallbackFromContent ||
     `Study ${article.title} with OmpathStudy—medical notes, key concepts and practice questions for students in Kenya.`;
+  const ogImage =
+    (article as any).cover_image ||
+    (article as any).image ||
+    OG_FALLBACK_IMAGE;
   const keywords =
     `OmpathStudy, study notes Kenya, medical notes, ${yearName || ""}, ${unitName || ""}, clinical revision, exam preparation, medical education Kenya`;
 
@@ -861,6 +898,7 @@ export default function BlogPost() {
         <meta property="og:description" content={metaDesc} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={ogUrl} />
+        <meta property="og:image" content={ogImage} />
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:title" content={metaTitle} />
         <meta name="twitter:description" content={metaDesc} />

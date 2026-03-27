@@ -60,7 +60,7 @@
         {
           "type": "header",
           "key": "user-agent",
-          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
+          "value": ".*(Googlebot|facebookexternalhit|Twitterbot|LinkedInBot).*"
         }
       ],
       "destination": "/api/og-proxy?prerender=blog"
@@ -71,10 +71,10 @@
         {
           "type": "header",
           "key": "user-agent",
-          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
+          "value": ".*(Googlebot|facebookexternalhit|Twitterbot|LinkedInBot).*"
         }
       ],
-      "destination": "/api/og-proxy?slug=:slug"
+      "destination": "/api/og-meta?path=/blog/:slug"
     },
     {
       "source": "/stories",
@@ -82,7 +82,7 @@
         {
           "type": "header",
           "key": "user-agent",
-          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
+          "value": ".*(Googlebot|facebookexternalhit|Twitterbot|LinkedInBot).*"
         }
       ],
       "destination": "/api/og-proxy?prerender=stories"
@@ -93,10 +93,10 @@
         {
           "type": "header",
           "key": "user-agent",
-          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
+          "value": ".*(Googlebot|facebookexternalhit|Twitterbot|LinkedInBot).*"
         }
       ],
-      "destination": "/api/og-proxy?story=:id"
+      "destination": "/api/og-meta?path=/stories/:id"
     },
     {
       "source": "/mcqs",
@@ -104,7 +104,7 @@
         {
           "type": "header",
           "key": "user-agent",
-          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
+          "value": ".*(Googlebot|facebookexternalhit|Twitterbot|LinkedInBot).*"
         }
       ],
       "destination": "/api/og-proxy?prerender=mcqs"
@@ -115,10 +115,10 @@
         {
           "type": "header",
           "key": "user-agent",
-          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
+          "value": ".*(Googlebot|facebookexternalhit|Twitterbot|LinkedInBot).*"
         }
       ],
-      "destination": "/api/og-proxy?mcq=:id"
+      "destination": "/api/og-meta?path=/mcqs/:id"
     },
     {
       "source": "/flashcards",
@@ -137,10 +137,10 @@
         {
           "type": "header",
           "key": "user-agent",
-          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
+          "value": ".*(Googlebot|facebookexternalhit|Twitterbot|LinkedInBot).*"
         }
       ],
-      "destination": "/api/og-proxy?flashcard=:id"
+      "destination": "/api/og-meta?path=/flashcards/:id"
     },
     {
       "source": "/essays",
@@ -159,10 +159,10 @@
         {
           "type": "header",
           "key": "user-agent",
-          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
+          "value": ".*(Googlebot|facebookexternalhit|Twitterbot|LinkedInBot).*"
         }
       ],
-      "destination": "/api/og-proxy?essay=:id"
+      "destination": "/api/og-meta?path=/essays/:id"
     },
     {
       "source": "/exams",
