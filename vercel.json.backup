@@ -85,7 +85,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "/api/og-meta?path=/stories"
+      "destination": "/api/og-meta?path=
     },
     {
       "source": "/stories/:id",
@@ -96,7 +96,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "/api/og-meta?path=/stories/:id"
+      "destination": "/api/og-meta?path=
     },
     {
       "source": "/mcqs",
@@ -107,7 +107,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "/api/og-meta?path=/mcqs"
+      "destination": "/api/og-meta?path=
     },
     {
       "source": "/mcqs/:id",
@@ -118,7 +118,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "/api/og-meta?path=/mcqs/:id"
+      "destination": "/api/og-meta?path=
     },
     {
       "source": "/flashcards",
@@ -129,7 +129,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "/api/og-meta?path=/flashcards"
+      "destination": "/api/og-meta?path=
     },
     {
       "source": "/flashcards/:id",
@@ -140,7 +140,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "/api/og-meta?path=/flashcards/:id"
+      "destination": "/api/og-meta?path=
     },
     {
       "source": "/essays",
@@ -151,7 +151,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "/api/og-meta?path=/essays"
+      "destination": "/api/og-meta?path=
     },
     {
       "source": "/essays/:id",
@@ -162,7 +162,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "/api/og-meta?path=/essays/:id"
+      "destination": "/api/og-meta?path=
     },
     {
       "source": "/exams",
@@ -173,7 +173,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "/api/og-meta?path=/exams"
+      "destination": "/api/og-meta?path=
     },
     {
       "source": "/year/:year",
@@ -184,7 +184,7 @@
           "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*"
         }
       ],
-      "destination": "/api/og-meta?path=/year/:year"
+      "destination": "/api/og-meta?path=
     },
     {
       "source": "/(.*)",
