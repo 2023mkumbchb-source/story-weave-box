@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Loader2, Send, BookOpen, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,14 +7,25 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import RichTextEditor from "@/components/RichTextEditor";
+import { Helmet } from "react-helmet-async";
 
 export default function SubmitStory() {
+  const location = useLocation();
   const { toast } = useToast();
   const [title, setTitle] = useState("");
   const [authorName, setAuthorName] = useState("");
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const ogUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${location.pathname}${location.search}`
+      : location.pathname;
+  const metaTitle = "Submit a Story | OmpathStudy Kenya";
+  const description =
+    "Share your medical school experience or health story on OmpathStudy. Stories are reviewed before publishing for Kenyan medical and health students.";
+  const keywords =
+    "OmpathStudy, submit story, medical stories Kenya, health student stories, reflective writing, medical education Kenya";
 
   // Strip HTML tags for length check
   const plainText = content.replace(/<[^>]*>/g, "").trim();
@@ -70,6 +82,18 @@ export default function SubmitStory() {
   if (submitted) {
     return (
       <div className="mx-auto max-w-2xl px-5 py-16 text-center">
+        <Helmet>
+          <title>{metaTitle}</title>
+          <meta name="description" content={description} />
+          <meta name="keywords" content={keywords} />
+          <meta property="og:title" content={metaTitle} />
+          <meta property="og:description" content={description} />
+          <meta property="og:type" content="website" />
+          <meta property="og:url" content={ogUrl} />
+          <meta name="twitter:card" content="summary" />
+          <meta name="twitter:title" content={metaTitle} />
+          <meta name="twitter:description" content={description} />
+        </Helmet>
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
           <CheckCircle className="mx-auto mb-4 h-16 w-16 text-primary" />
           <h1 className="font-serif text-3xl font-bold text-foreground mb-3">Story Submitted!</h1>
@@ -86,6 +110,18 @@ export default function SubmitStory() {
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-10 sm:py-12">
+      <Helmet>
+        <title>{metaTitle}</title>
+        <meta name="description" content={description} />
+        <meta name="keywords" content={keywords} />
+        <meta property="og:title" content={metaTitle} />
+        <meta property="og:description" content={description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={ogUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={metaTitle} />
+        <meta name="twitter:description" content={description} />
+      </Helmet>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="mb-8 text-center">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary">

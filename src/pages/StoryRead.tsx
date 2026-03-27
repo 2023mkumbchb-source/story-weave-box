@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { buildStoryPath, extractStoryIdFromParam, SITE_URL, stripRichText, updateMetaTags } from "@/lib/seo";
 import ShareButtons from "@/components/ShareButtons";
+import { Helmet } from "react-helmet-async";
 
 export default function StoryRead() {
   const { id } = useParams<{ id: string }>();
@@ -12,6 +13,20 @@ export default function StoryRead() {
   const navigate = useNavigate();
   const [story, setStory] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const ogUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${location.pathname}${location.search}`
+      : location.pathname;
+  const title = story?.title
+    ? `${story.title} | Story | OmpathStudy Kenya`
+    : "Story | OmpathStudy Kenya";
+  const description =
+    story?.content
+      ? stripRichText(story.content || "", 160) ||
+        "Read a medical story on OmpathStudy—built for Kenyan medical and health students to learn, reflect, and grow."
+      : "Read a medical story on OmpathStudy—built for Kenyan medical and health students to learn, reflect, and grow.";
+  const keywords =
+    "OmpathStudy, story, medical narrative, reflective practice, medical students Kenya, nursing students Kenya, health education Kenya";
 
   useEffect(() => {
     const storyId = extractStoryIdFromParam(id);
@@ -114,6 +129,18 @@ export default function StoryRead() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto max-w-2xl px-5 py-8 sm:px-6 sm:py-12">
+      <Helmet>
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        <meta name="keywords" content={keywords} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={ogUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+      </Helmet>
       <Link to="/stories" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary">
         <ArrowLeft className="h-4 w-4" /> Back to stories
       </Link>

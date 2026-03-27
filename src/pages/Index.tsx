@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   BookOpen, GraduationCap, ListChecks, Loader2,
   ArrowRight, Trophy, BookMarked, Phone, MessageCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getAllCategories, getCategoryDisplayName, getYearFromCategory, YEAR_CATEGORIES } from "@/lib/store";
+import { Helmet } from "react-helmet-async";
 
 const YEAR_META: Record<string, { color: string; border: string }> = {
   "Year 1": { color: "text-primary", border: "border-primary/30" },
@@ -27,6 +28,17 @@ const NAV_ITEMS = [
 export default function Index() {
   const [categories, setCategories] = useState<{ name: string; articles: number; flashcards: number; mcqs: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const ogUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${location.pathname}${location.search}`
+      : location.pathname;
+
+  const title = "OmpathStudy | Medical Study Notes, MCQs & Flashcards (Kenya)";
+  const description =
+    "OmpathStudy helps medical and health students in Kenya study smarter with structured notes, flashcards, MCQs, exams and stories by year and unit.";
+  const keywords =
+    "OmpathStudy, Ompath, medical students Kenya, nursing students Kenya, clinical notes, MCQs, flashcards, exam preparation, medical education Kenya";
 
   useEffect(() => {
     getAllCategories().then(setCategories).finally(() => setLoading(false));
@@ -40,6 +52,18 @@ export default function Index() {
 
   return (
     <div className="min-h-dvh bg-background">
+      <Helmet>
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        <meta name="keywords" content={keywords} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={ogUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+      </Helmet>
       {/* Hero — TeachMeAnatomy inspired dark teal header */}
       <section className="relative overflow-hidden bg-[hsl(174,62%,22%)] text-white">
         <div className="absolute inset-0 bg-gradient-to-br from-[hsl(174,62%,28%)] via-[hsl(174,55%,20%)] to-[hsl(180,40%,15%)]" />

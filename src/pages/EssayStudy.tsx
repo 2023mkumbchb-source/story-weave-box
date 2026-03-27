@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { ArrowLeft, Loader2, ChevronDown, ChevronUp, FileText, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { getArticleById, getCategoryDisplayName, buildBlogPath } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
+import { Helmet } from "react-helmet-async";
 
 interface Essay {
   id: string;
@@ -18,11 +19,23 @@ interface Essay {
 
 export default function EssayStudy() {
   const { slug } = useParams();
+  const location = useLocation();
   const [essay, setEssay] = useState<Essay | null>(null);
   const [loading, setLoading] = useState(true);
   const [openSaq, setOpenSaq] = useState<Set<number>>(new Set());
   const [openLaq, setOpenLaq] = useState<Set<number>>(new Set());
   const [linkedArticlePath, setLinkedArticlePath] = useState<string | null>(null);
+  const ogUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${location.pathname}${location.search}`
+      : location.pathname;
+  const title = essay?.title
+    ? `${essay.title} | Essay Study | OmpathStudy Kenya`
+    : "Essay Study | OmpathStudy Kenya";
+  const description =
+    "Study SAQs and LAQs on OmpathStudy—built for Kenyan medical and health students. Review model answers and practice structured writing for exams.";
+  const keywords =
+    "OmpathStudy, essay study, SAQ, LAQ, written questions Kenya, medical essays, nursing essays, exam answers, medical education Kenya";
 
   useEffect(() => {
     if (!slug) return;
@@ -106,6 +119,18 @@ export default function EssayStudy() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-20 pt-8 sm:px-6 sm:py-12">
+      <Helmet>
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        <meta name="keywords" content={keywords} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={ogUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+      </Helmet>
       <Button asChild variant="ghost" size="sm" className="-ml-1 mb-4 gap-2 text-muted-foreground">
         <Link to="/essays"><ArrowLeft className="h-4 w-4" /> Back to Essays</Link>
       </Button>

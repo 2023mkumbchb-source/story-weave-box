@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Clock, Loader2, Shield, Trophy, User, GraduationCap, BookOpen, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import ExamMode from "@/components/ExamMode";
+import { Helmet } from "react-helmet-async";
 
 interface ExamSet {
   id: string;
@@ -93,6 +94,7 @@ function sampleExam(): ExamSet {
 export default function ExamStart() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [exam, setExam] = useState<ExamSet | null>(null);
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
@@ -237,22 +239,58 @@ export default function ExamStart() {
 
   if (!exam) return null;
 
+  const ogUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${location.pathname}${location.search}`
+      : location.pathname;
+  const title = `${exam.title} | Start Exam | OmpathStudy Kenya`;
+  const description =
+    "Start a timed MCQ exam on OmpathStudy for Kenyan medical and health students. Register your details and take a proctored unit-based exam.";
+  const keywords =
+    "OmpathStudy, start exam, medical exams Kenya, nursing exams Kenya, timed MCQ, proctored exam, exam rules, medical education Kenya";
+
   if (started) {
     return (
-      <ExamMode
-        questions={exam.questions}
-        title={exam.title}
-        setId={exam.id === "sample-exam" ? undefined : exam.id}
-        timeLimitMinutes={totalMinutes}
-        studentInfo={studentInfo}
-        unitName={unitName}
-        onExit={() => setStarted(false)}
-      />
+      <>
+        <Helmet>
+          <title>{title}</title>
+          <meta name="description" content={description} />
+          <meta name="keywords" content={keywords} />
+          <meta property="og:title" content={title} />
+          <meta property="og:description" content={description} />
+          <meta property="og:type" content="website" />
+          <meta property="og:url" content={ogUrl} />
+          <meta name="twitter:card" content="summary" />
+          <meta name="twitter:title" content={title} />
+          <meta name="twitter:description" content={description} />
+        </Helmet>
+        <ExamMode
+          questions={exam.questions}
+          title={exam.title}
+          setId={exam.id === "sample-exam" ? undefined : exam.id}
+          timeLimitMinutes={totalMinutes}
+          studentInfo={studentInfo}
+          unitName={unitName}
+          onExit={() => setStarted(false)}
+        />
+      </>
     );
   }
 
   return (
     <div className="min-h-screen bg-background px-4 py-8 sm:py-12">
+      <Helmet>
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        <meta name="keywords" content={keywords} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={ogUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+      </Helmet>
       <div className="mx-auto max-w-3xl space-y-6">
         <Button asChild variant="ghost" size="sm" className="gap-2 text-muted-foreground">
           <Link to="/exams"><ArrowLeft className="h-4 w-4" /> Back to Exams</Link>

@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { Loader2, FileText, ChevronRight, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { getCategoryDisplayName, getYearFromCategory } from "@/lib/store";
+import { Helmet } from "react-helmet-async";
 
 interface Essay {
   id: string;
@@ -20,12 +21,24 @@ const INITIAL_VISIBLE = 20;
 const LOAD_MORE_STEP = 20;
 
 export default function Essays() {
-  useEffect(() => { document.title = "Essays & SAQs | OMPATH"; }, []);
+  const location = useLocation();
   const [essays, setEssays] = useState<Essay[]>([]);
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
   const [searchParams] = useSearchParams();
   const selectedYear = searchParams.get("year") || "All";
+  const ogUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${location.pathname}${location.search}`
+      : location.pathname;
+  const title =
+    selectedYear === "All"
+      ? "Essays, SAQs & LAQs | OmpathStudy Kenya"
+      : `${selectedYear} Essays, SAQs & LAQs | OmpathStudy Kenya`;
+  const description =
+    "Practice written medicine with SAQs and LAQs on OmpathStudy for Kenyan medical and health students. Improve structure, recall, and exam technique.";
+  const keywords =
+    "OmpathStudy, essays Kenya, SAQ, LAQ, written questions, medical essays, nursing essays, exam technique, medical education Kenya";
 
   useEffect(() => {
     supabase
@@ -51,6 +64,18 @@ export default function Essays() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        <meta name="keywords" content={keywords} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={ogUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+      </Helmet>
       <section className="border-b border-border bg-gradient-to-br from-accent/5 via-background to-primary/5 px-4 py-10 sm:py-16">
         <div className="mx-auto max-w-3xl text-center">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>

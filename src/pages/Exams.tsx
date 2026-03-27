@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle, Clock, Loader2, Phone, Shield, Sparkles, Trophy, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { getSetting, getCategoryDisplayName, getYearFromCategory } from "@/lib/store";
+import { Helmet } from "react-helmet-async";
 
 interface ExamSet {
   id: string;
@@ -28,7 +29,7 @@ function inferUnit(exam: ExamSet): string {
 }
 
 export default function Exams() {
-  useEffect(() => { document.title = "Exam Center | OMPATH"; }, []);
+  const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const selectedYear = searchParams.get("year") || "All";
@@ -172,9 +173,33 @@ export default function Exams() {
   }, [examSets, selectedYear]);
 
   const allExams = useMemo(() => [sampleExam, ...filteredExamSets], [filteredExamSets]);
+  const ogUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${location.pathname}${location.search}`
+      : location.pathname;
+  const title =
+    selectedYear === "All"
+      ? "Exam Center | OmpathStudy Kenya"
+      : `${selectedYear} Exam Center | OmpathStudy Kenya`;
+  const description =
+    "Take timed unit-based MCQ exams on OmpathStudy for Kenyan medical and health students. Unlock weekly exams via M-Pesa and track your progress.";
+  const keywords =
+    "OmpathStudy, exams Kenya, medical exams, nursing exams, timed MCQ exam, weekly exams, M-Pesa payment, exam preparation, medical education Kenya";
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        <meta name="keywords" content={keywords} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={ogUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+      </Helmet>
 
       {/* ── Hero — only text changed, no logic ── */}
       <section className="relative overflow-hidden border-b border-border bg-gradient-to-br from-primary/10 via-background to-accent/10 px-4 py-12 sm:py-16">

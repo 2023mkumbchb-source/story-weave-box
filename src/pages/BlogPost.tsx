@@ -8,6 +8,7 @@ import ShareButtons from "@/components/ShareButtons";
 import { motion, AnimatePresence } from "framer-motion";
 import { getArticleBySlugOrId, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, type Article } from "@/lib/store";
 import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags, autoIndexUrls } from "@/lib/seo";
+import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { markArticleVisited } from "@/lib/progress-store";
@@ -838,9 +839,32 @@ export default function BlogPost() {
   const unitName = getCategoryDisplayName(article.category);
   const yearName = getYearFromCategory(article.category);
   const hasRelated = related.flashcards.length > 0 || related.mcqs.length > 0;
+  const ogUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${location.pathname}${location.search}`
+      : location.pathname;
+  const metaTitle = article.meta_title || article.title;
+  const metaDesc =
+    article.meta_description ||
+    stripRichText(article.content || "", 160) ||
+    `Study ${article.title} with OmpathStudy—medical notes, key concepts and practice questions for students in Kenya.`;
+  const keywords =
+    `OmpathStudy, study notes Kenya, medical notes, ${yearName || ""}, ${unitName || ""}, clinical revision, exam preparation, medical education Kenya`;
 
   return (
     <>
+      <Helmet>
+        <title>{metaTitle}</title>
+        <meta name="description" content={metaDesc} />
+        <meta name="keywords" content={keywords} />
+        <meta property="og:title" content={metaTitle} />
+        <meta property="og:description" content={metaDesc} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={ogUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={metaTitle} />
+        <meta name="twitter:description" content={metaDesc} />
+      </Helmet>
       <ReadingProgress />
 
       {/* Breadcrumbs */}

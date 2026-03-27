@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, Bolt, AlertTriangle, Building2, Check, X, Sparkles, Eye, Upload, Wrench, Globe, Search, Copy, ExternalLink, BookOpen, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,13 +16,24 @@ import {
 } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { autoIndexUrls, SITE_URL, slugifyText } from "@/lib/seo";
+import { Helmet } from "react-helmet-async";
 
 type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo" | "categories";
 type DirectType = "article" | "mcqs" | "flashcards";
 
 export default function Admin() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const ogUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${location.pathname}${location.search}`
+      : location.pathname;
+  const title = "Admin Dashboard | OmpathStudy Kenya";
+  const description =
+    "Manage OmpathStudy content, categories, settings, and indexing for the Kenyan medical education platform. Restricted admin access.";
+  const keywords =
+    "OmpathStudy, admin dashboard, medical education Kenya, content management, Supabase, SEO, categories";
   const [geminiKey, setGeminiKey] = useState("");
   const [geminiKeysAll, setGeminiKeysAll] = useState<string[]>([]);
   const [articleEditId, setArticleEditId] = useState<string | null>(null);
@@ -416,6 +427,18 @@ export default function Admin() {
 
   return (
     <div className="mx-auto max-w-5xl px-3 sm:px-6 py-4 sm:py-8">
+      <Helmet>
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        <meta name="keywords" content={keywords} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={ogUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+      </Helmet>
       <h1 className="mb-4 sm:mb-6 font-serif text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
 
       {/* Mobile: Dropdown + grid */}

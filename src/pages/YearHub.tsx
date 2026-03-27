@@ -1,11 +1,13 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { ArrowRight, BookMarked, BookOpen, FileText, GraduationCap, ListChecks, Trophy } from "lucide-react";
 import { YEAR_CATEGORIES } from "@/lib/store";
+import { Helmet } from "react-helmet-async";
 
 const YEAR_NUMBERS = [1, 2, 3, 4, 5, 6] as const;
 
 export default function YearHub() {
   const { yearNumber } = useParams();
+  const location = useLocation();
   const parsedYear = Number(yearNumber);
 
   if (!YEAR_NUMBERS.includes(parsedYear as (typeof YEAR_NUMBERS)[number])) {
@@ -19,6 +21,16 @@ export default function YearHub() {
 
   const yearLabel = `Year ${parsedYear}`;
   const units = YEAR_CATEGORIES[yearLabel] || [];
+  const ogUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${location.pathname}${location.search}`
+      : location.pathname;
+
+  const title = `OmpathStudy ${yearLabel} | Study Hub for Kenya Medical Students`;
+  const description =
+    `Explore OmpathStudy ${yearLabel} content for medical and health students in Kenya: notes by unit, flashcards, MCQs, essays, and timed exams.`;
+  const keywords =
+    `OmpathStudy, ${yearLabel}, medical students Kenya, nursing students Kenya, study notes, MCQs, flashcards, essays, exams, medical education Kenya`;
 
   const sections = [
     {
@@ -55,6 +67,18 @@ export default function YearHub() {
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-10 sm:py-12">
+      <Helmet>
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        <meta name="keywords" content={keywords} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={ogUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+      </Helmet>
       <div className="rounded-2xl border border-border bg-card p-6 sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-primary">Study navigation</p>
         <h1 className="mt-1 font-serif text-3xl font-bold text-foreground">{yearLabel}</h1>

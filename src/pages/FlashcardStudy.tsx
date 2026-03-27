@@ -1,15 +1,28 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { getFlashcardSetById, getCategoryDisplayName, type FlashcardSet } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import FlashcardViewer from "@/components/FlashcardViewer";
 import { markFlashcardVisited } from "@/lib/progress-store";
+import { Helmet } from "react-helmet-async";
 
 export default function FlashcardStudy() {
   const { id } = useParams();
+  const location = useLocation();
   const [set, setSet] = useState<FlashcardSet | null>(null);
   const [loading, setLoading] = useState(true);
+  const ogUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${location.pathname}${location.search}`
+      : location.pathname;
+  const title = set?.title
+    ? `${set.title} | Flashcard Study | OmpathStudy Kenya`
+    : "Flashcard Study | OmpathStudy Kenya";
+  const description =
+    "Study a focused flashcard set on OmpathStudy—built for Kenyan medical and health students. Review key facts quickly and retain concepts for exams.";
+  const keywords =
+    "OmpathStudy, flashcard study, medical flashcards Kenya, nursing flashcards Kenya, exam revision, clinical concepts, medical education Kenya";
 
   useEffect(() => {
     if (id) {
@@ -47,6 +60,18 @@ export default function FlashcardStudy() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
+      <Helmet>
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        <meta name="keywords" content={keywords} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={ogUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+      </Helmet>
       <Button asChild variant="ghost" size="sm" className="mb-4 gap-2 text-muted-foreground">
         <Link to="/flashcards">
           <ArrowLeft className="h-4 w-4" /> Back to Flashcards
