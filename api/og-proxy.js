@@ -27,7 +27,7 @@ function buildHTML({ title, description, content, url, image }) {
   <meta property="og:title" content="${safeTitle}"/>
   <meta property="og:description" content="${safeDesc}"/>
   <meta property="og:type" content="article"/>
-  <meta property="og:url" content="${url || "https://medicine.kenyaadverts.co.ke"}"/>
+  <meta property="og:url" content="${url || "https://ompath.azaniispproject.co.ke"}"/>
   ${image ? `<meta property="og:image" content="${image}"/>` : ""}
   <meta name="robots" content="index, follow"/>
 </head>
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
 
   try {
     let record = null;
-    let pageUrl = "https://medicine.kenyaadverts.co.ke";
+    let pageUrl = "https://ompath.azaniispproject.co.ke";
 
     if (slug) {
       // Try matching full slug first, then strip UUID prefix (first segment if it looks like a UUID)
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
         const uuidMatch = slug.match(/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/);
         if (uuidMatch) record = await fetchFromSupabase("articles", "id", uuidMatch[1]);
       }
-      pageUrl = `https://medicine.kenyaadverts.co.ke/blog/${slug}`;
+      pageUrl = `https://ompath.azaniispproject.co.ke/blog/${slug}`;
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.title,
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
     if (mcq) {
       record = await fetchFromSupabase("mcq_sets", "id", mcq);
       if (!record) record = await fetchFromSupabase("mcq_sets", "slug", mcq);
-      pageUrl = `https://medicine.kenyaadverts.co.ke/mcqs/${mcq}`;
+      pageUrl = `https://ompath.azaniispproject.co.ke/mcqs/${mcq}`;
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.title,
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
 
     if (flashcard) {
       record = await fetchFromSupabase("flashcard_sets", "id", flashcard);
-      pageUrl = `https://medicine.kenyaadverts.co.ke/flashcards/${flashcard}`;
+      pageUrl = `https://ompath.azaniispproject.co.ke/flashcards/${flashcard}`;
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.title,
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
 
     if (essay) {
       record = await fetchFromSupabase("essays", "id", essay);
-      pageUrl = `https://medicine.kenyaadverts.co.ke/essays/${essay}`;
+      pageUrl = `https://ompath.azaniispproject.co.ke/essays/${essay}`;
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.title,
@@ -116,7 +116,7 @@ export default async function handler(req, res) {
 
     if (story) {
       record = await fetchFromSupabase("stories", "id", story);
-      pageUrl = `https://medicine.kenyaadverts.co.ke/stories/${story}`;
+      pageUrl = `https://ompath.azaniispproject.co.ke/stories/${story}`;
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.title,
@@ -140,7 +140,7 @@ export default async function handler(req, res) {
       return res.status(200).send(buildHTML({
         title: pageTitles[prerender],
         description: `Study ${prerender} for Kenyan medical students on OMPATH`,
-        url: `https://medicine.kenyaadverts.co.ke/${prerender}`,
+        url: `https://ompath.azaniispproject.co.ke/${prerender}`,
       }));
     }
 
@@ -148,7 +148,7 @@ export default async function handler(req, res) {
     return res.status(200).send(buildHTML({
       title: "OMPATH – Medical Study Platform",
       description: "Medical study platform for Kenyan students",
-      url: "https://medicine.kenyaadverts.co.ke",
+      url: "https://ompath.azaniispproject.co.ke",
     }));
 
   } catch (error) {
