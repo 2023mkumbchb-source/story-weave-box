@@ -4,7 +4,7 @@ export const config = {
   runtime: "edge",
 };
 
-const OG_FALLBACK_IMAGE = "https://ompathnotes.vercel.app/og-default.png";
+const OG_FALLBACK_IMAGE = "https://ompath.azaniispproject.co.ke/og-default.png";
 
 function isCrawler(userAgent: string | null): boolean {
   const ua = (userAgent || "").toLowerCase();

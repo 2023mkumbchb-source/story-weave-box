@@ -10,7 +10,7 @@ import { updateMetaTags } from "@/lib/seo";
 export default function FlashcardStudy() {
   const { id } = useParams();
   const [set, setSet] = useState<FlashcardSet | null>(null);
-...
+
   useEffect(() => {
     if (id) {
       getFlashcardSetById(id)
