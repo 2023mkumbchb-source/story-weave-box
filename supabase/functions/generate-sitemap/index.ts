@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DEFAULT_BASE_URL = "https://ompath.azaniispproject.co.ke";
+const DEFAULT_BASE_URL = "https://ompathstudy.com";
 
 function slugify(value: string): string {
   return (value || "")
