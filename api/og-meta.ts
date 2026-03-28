@@ -408,6 +408,9 @@ export default async function handler(req: Request): Promise<Response> {
         author: { "@type": "Organization", name: "OmpathStudy" },
         publisher: { "@type": "Organization", name: "OmpathStudy" },
       });
+      if (article.content) {
+        bodyExtra = `<div>${htmlEscape(cleanForMetaSnippet(article.content).slice(0, 5000))}</div>`;
+      }
 
     } else if (section === "mcqs" && param) {
       const mcq = await fetchMcqSetBySlugOrId(param);
@@ -555,3 +558,4 @@ export default async function handler(req: Request): Promise<Response> {
     );
   }
 }
+
