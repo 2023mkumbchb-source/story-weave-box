@@ -27,10 +27,12 @@ function isCrawler(userAgent: string | null): boolean {
 }
 
 // General markdown/noise stripper for meta snippets (articles, descriptions)
+// FIX 2: added strip for leading "Summary / Introduction / Overview / Note" labels
 function cleanForMetaSnippet(input: string): string {
   if (!input) return "";
   return input
     .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^(summary|introduction|overview|note)[:\s]*/i, "")
     .replace(/[*_`>|]/g, " ")
     .replace(/^\s*[-•]\s+/gm, "")
     .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
@@ -388,7 +390,8 @@ export default async function handler(req: Request): Promise<Response> {
         to160(rawDesc) ||
         `Study ${article.title} with OmpathStudy — medical notes and practice questions for students in Kenya.`;
 
-      title = cleanForMetaSnippet(rawTitle);
+      // FIX 1: append site branding to article titles
+      title = cleanForMetaSnippet(rawTitle) + " | OmpathStudy Kenya";
       description = cleanDesc;
       ogImage = article.og_image_url || OG_FALLBACK_IMAGE;
       keywords = `OmpathStudy, study notes Kenya, medical notes, ${article.category || ""}, clinical revision, exam prep, medical education Kenya`;
@@ -396,7 +399,7 @@ export default async function handler(req: Request): Promise<Response> {
       schemaJson = JSON.stringify({
         "@context": "https://schema.org",
         "@type": "Article",
-        headline: title,
+        headline: cleanForMetaSnippet(rawTitle),
         description,
         image: ogImage,
         url: absoluteUrl,
@@ -421,8 +424,6 @@ export default async function handler(req: Request): Promise<Response> {
         keywords = `OmpathStudy, MCQs Kenya, ${mcq.category || ""}, medical quizzes, nursing quizzes, exam practice, medical education Kenya`;
         type = "article";
 
-        // Build full question list with answer + explanation for Google to index.
-        // Every question stem, correct answer, and explanation becomes searchable text.
         if (parsed.length > 0) {
           const items = parsed.map((p, i) => {
             const optionsList = p.options.length > 0
@@ -444,7 +445,6 @@ export default async function handler(req: Request): Promise<Response> {
           bodyExtra = `<h2>Questions, Answers &amp; Explanations</h2>\n<ol>\n${items.join("\n")}\n</ol>`;
         }
 
-        // JSON-LD Quiz schema with individual Question items
         const schemaQuestions = parsed.slice(0, 50).map((p) => {
           const item: Record<string, unknown> = {
             "@type": "Question",
@@ -485,7 +485,6 @@ export default async function handler(req: Request): Promise<Response> {
         keywords = `OmpathStudy, flashcards Kenya, ${set.category || ""}, medical revision, nursing revision, exam prep, medical education Kenya`;
         type = "article";
 
-        // Dump all card fronts AND backs so Google indexes both question and answer
         const cardItems = cards.map((c, i) => {
           const front = getCardFront(c);
           const back = getCardBack(c);
