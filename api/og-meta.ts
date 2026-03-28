@@ -94,7 +94,8 @@ async function sbFetch(table: string, params: string) {
 
 async function fetchArticleBySlug(slug: string) {
   const normalized = encodeURIComponent(decodeURIComponent(slug).trim().toLowerCase());
-  const cols = "id,title,content,slug,published,deleted_at,meta_title,meta_description,og_image_url,created_at,updated_at,category";
+  const cols =
+    "id,title,content,slug,published,deleted_at,meta_title,meta_description,og_image_url,created_at,updated_at,category";
   const rows = await sbFetch(
     "articles",
     `select=${cols}&slug=eq.${normalized}&published=eq.true&deleted_at=is.null&limit=1`
@@ -168,6 +169,32 @@ async function fetchStoryByParam(param: string) {
   return rows && rows.length > 0 ? rows[0] : null;
 }
 
+// Extract question stem text from a question object.
+// Handles multiple possible field names: question, stem, text, q
+function getQuestionStem(q: unknown): string {
+  if (!q || typeof q !== "object") return "";
+  const obj = q as Record<string, unknown>;
+  const stem =
+    (typeof obj.question === "string" ? obj.question : "") ||
+    (typeof obj.stem === "string" ? obj.stem : "") ||
+    (typeof obj.text === "string" ? obj.text : "") ||
+    (typeof obj.q === "string" ? obj.q : "");
+  return cleanForMetaSnippet(stem);
+}
+
+// Extract front/question text from a flashcard object.
+// Handles multiple possible field names: front, question, term, q
+function getCardFront(c: unknown): string {
+  if (!c || typeof c !== "object") return "";
+  const obj = c as Record<string, unknown>;
+  const front =
+    (typeof obj.front === "string" ? obj.front : "") ||
+    (typeof obj.question === "string" ? obj.question : "") ||
+    (typeof obj.term === "string" ? obj.term : "") ||
+    (typeof obj.q === "string" ? obj.q : "");
+  return cleanForMetaSnippet(front);
+}
+
 function buildHtml(opts: {
   title: string;
   description: string;
@@ -176,6 +203,7 @@ function buildHtml(opts: {
   keywords?: string;
   type?: string;
   schemaJson?: string;
+  bodyExtra?: string;
 }) {
   const title = htmlEscape(opts.title);
   const desc = htmlEscape(opts.description);
@@ -208,6 +236,7 @@ function buildHtml(opts: {
   <body>
     <h1>${title}</h1>
     <p>${desc}</p>
+    ${opts.bodyExtra || ""}
     <a href="${url}">View on OmpathStudy</a>
   </body>
 </html>`;
@@ -237,6 +266,7 @@ export default async function handler(req: Request): Promise<Response> {
       "OmpathStudy, medical students Kenya, nursing students Kenya, clinical notes, MCQs, flashcards, exam preparation, medical education Kenya";
     let type = "website";
     let schemaJson = "";
+    let bodyExtra = "";
 
     if (section === "blog" && param) {
       const article = await fetchArticleBySlug(param);
@@ -273,7 +303,9 @@ export default async function handler(req: Request): Promise<Response> {
     } else if (section === "mcqs" && param) {
       const mcq = await fetchMcqSetBySlugOrId(param);
       if (mcq) {
-        const qCount = Array.isArray(mcq.questions) ? mcq.questions.length : 0;
+        const questions: unknown[] = Array.isArray(mcq.questions) ? mcq.questions : [];
+        const qCount = questions.length;
+
         title = `${mcq.title} | MCQ Quiz | OmpathStudy Kenya`;
         description = to160(
           `Practice ${qCount > 0 ? qCount + " " : ""}MCQs on ${mcq.title} with OmpathStudy. Built for Kenyan medical and health students to revise key concepts and prepare for exams.`
@@ -281,6 +313,61 @@ export default async function handler(req: Request): Promise<Response> {
         ogImage = OG_FALLBACK_IMAGE;
         keywords = `OmpathStudy, MCQs Kenya, ${mcq.category || ""}, medical quizzes, nursing quizzes, exam practice, medical education Kenya`;
         type = "article";
+
+        // Dump ALL question stems into the HTML body.
+        // This is what Google indexes — students searching any of these questions
+        // will find this page in results.
+        const stems = questions.map((q) => getQuestionStem(q)).filter(Boolean);
+        if (stems.length > 0) {
+          const liItems = stems
+            .map((s, i) => `<li>${i + 1}. ${htmlEscape(s)}</li>`)
+            .join("\n");
+          bodyExtra = `<h2>Questions in this set</h2>\n<ol>\n${liItems}\n</ol>`;
+        }
+
+        // JSON-LD Quiz schema with individual Question items (capped at 50 for size)
+        const schemaQuestions = questions.slice(0, 50).map((q) => {
+          const obj = q as Record<string, unknown>;
+          const stem = getQuestionStem(q);
+          const options: string[] = [];
+          if (Array.isArray(obj.options)) {
+            for (const o of obj.options) {
+              if (typeof o === "string") options.push(o);
+              else if (o && typeof o === "object") {
+                const oo = o as Record<string, unknown>;
+                if (typeof oo.text === "string") options.push(oo.text);
+                else if (typeof oo.label === "string") options.push(oo.label);
+              }
+            }
+          }
+          const correctIdx =
+            typeof obj.correct === "number"
+              ? obj.correct
+              : typeof obj.correctIndex === "number"
+              ? obj.correctIndex
+              : typeof obj.answer === "number"
+              ? obj.answer
+              : -1;
+          const correctText =
+            typeof obj.correctAnswer === "string"
+              ? obj.correctAnswer
+              : correctIdx >= 0 && options[correctIdx]
+              ? options[correctIdx]
+              : undefined;
+
+          const item: Record<string, unknown> = {
+            "@type": "Question",
+            name: stem,
+          };
+          if (correctText || options.length > 0) {
+            item.acceptedAnswer = {
+              "@type": "Answer",
+              text: correctText || options[0] || "",
+            };
+          }
+          return item;
+        });
+
         schemaJson = JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Quiz",
@@ -289,13 +376,16 @@ export default async function handler(req: Request): Promise<Response> {
           url: absoluteUrl,
           datePublished: mcq.created_at,
           provider: { "@type": "Organization", name: "OmpathStudy" },
+          ...(schemaQuestions.length > 0 ? { hasPart: schemaQuestions } : {}),
         });
       }
 
     } else if (section === "flashcards" && param) {
       const set = await fetchFlashcardSetBySlugOrId(param);
       if (set) {
-        const cardCount = Array.isArray(set.cards) ? set.cards.length : 0;
+        const cards: unknown[] = Array.isArray(set.cards) ? set.cards : [];
+        const cardCount = cards.length;
+
         title = `${set.title} | Flashcards | OmpathStudy Kenya`;
         description = to160(
           `Study ${cardCount > 0 ? cardCount + " " : ""}flashcards on ${set.title} with OmpathStudy. Quick, focused revision for Kenyan medical and health students by unit and year.`
@@ -303,6 +393,15 @@ export default async function handler(req: Request): Promise<Response> {
         ogImage = OG_FALLBACK_IMAGE;
         keywords = `OmpathStudy, flashcards Kenya, ${set.category || ""}, medical revision, nursing revision, exam prep, medical education Kenya`;
         type = "article";
+
+        // Dump all card fronts so Google can index the terms/questions.
+        const fronts = cards.map((c) => getCardFront(c)).filter(Boolean);
+        if (fronts.length > 0) {
+          const liItems = fronts
+            .map((f, i) => `<li>${i + 1}. ${htmlEscape(f)}</li>`)
+            .join("\n");
+          bodyExtra = `<h2>Cards in this set</h2>\n<ol>\n${liItems}\n</ol>`;
+        }
       }
 
     } else if (section === "essays" && param) {
@@ -336,7 +435,17 @@ export default async function handler(req: Request): Promise<Response> {
       keywords = `OmpathStudy, Year ${yr} medical, Kenya medical students, clinical notes Year ${yr}`;
     }
 
-    const html = buildHtml({ title, description, url: absoluteUrl, ogImage, keywords, type, schemaJson });
+    const html = buildHtml({
+      title,
+      description,
+      url: absoluteUrl,
+      ogImage,
+      keywords,
+      type,
+      schemaJson,
+      bodyExtra,
+    });
+
     return new Response(html, {
       status: 200,
       headers: {
@@ -347,7 +456,7 @@ export default async function handler(req: Request): Promise<Response> {
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     return new Response(
-      `<html><body><h1>DEBUG ERROR</h1><pre>${errMsg}</pre></body></html>`,
+      `<html><body><h1>DEBUG ERROR</h1><pre>${htmlEscape(errMsg)}</pre></body></html>`,
       { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }
     );
   }
