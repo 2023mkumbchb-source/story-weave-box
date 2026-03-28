@@ -501,6 +501,24 @@ export default async function handler(req: Request): Promise<Response> {
         }
       }
 
+    } else if (section === "exams" && param) {
+      const examId = param.replace(/\/start$/, "");
+      const exam = await fetchMcqSetBySlugOrId(examId);
+      if (exam) {
+        const qCount = Array.isArray(exam.questions) ? exam.questions.length : 0;
+        title = `${exam.title} | Timed Exam | OmpathStudy Kenya`;
+        description = `Take a timed ${qCount}-question MCQ exam on ${exam.title} with OmpathStudy. Built for Kenyan medical and health students.`;
+        keywords = `OmpathStudy, timed exam Kenya, MCQ exam, ${exam.category || ""}, medical exams Kenya, exam preparation`;
+        schemaJson = JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Quiz",
+          name: title,
+          description,
+          url: absoluteUrl,
+          provider: { "@type": "Organization", name: "OmpathStudy" },
+        });
+        bodyExtra = `<p>Timed exam with ${qCount} MCQs. Unit: ${exam.category || "General"}. Proctored and auto-submitted. Available to Kenyan health students on OmpathStudy.</p>`;
+      }
     } else if (section === "essays" && param) {
       const essay = await fetchEssayByIdOrSlug(param);
       if (essay) {
@@ -558,4 +576,5 @@ export default async function handler(req: Request): Promise<Response> {
     );
   }
 }
+
 
