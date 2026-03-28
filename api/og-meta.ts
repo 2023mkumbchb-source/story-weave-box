@@ -94,8 +94,7 @@ async function sbFetch(table: string, params: string) {
 
 async function fetchArticleBySlug(slug: string) {
   const normalized = encodeURIComponent(decodeURIComponent(slug).trim().toLowerCase());
-  const cols =
-    "id,title,content,slug,published,deleted_at,meta_title,meta_description,og_image_url,created_at,updated_at,category";
+  const cols = "id,title,content,slug,published,deleted_at,meta_title,meta_description,og_image_url,created_at,updated_at,category";
   const rows = await sbFetch(
     "articles",
     `select=${cols}&slug=eq.${normalized}&published=eq.true&deleted_at=is.null&limit=1`
@@ -103,36 +102,57 @@ async function fetchArticleBySlug(slug: string) {
   return rows && rows.length > 0 ? rows[0] : null;
 }
 
-async function fetchMcqSetById(id: string) {
-  const cols = "id,title,category,questions,created_at,slug";
-  const rows = await sbFetch(
+async function fetchMcqSetBySlugOrId(param: string) {
+  const cols = "id,title,category,questions,slug,created_at";
+  const decoded = decodeURIComponent(param).trim();
+
+  const bySlug = await sbFetch(
+    "mcq_sets",
+    `select=${cols}&slug=eq.${encodeURIComponent(decoded)}&published=eq.true&deleted_at=is.null&limit=1`
+  );
+  if (bySlug && bySlug.length > 0) return bySlug[0];
+
+  const id = extractUuidFromParam(param);
+  if (!id) return null;
+  const byId = await sbFetch(
     "mcq_sets",
     `select=${cols}&id=eq.${encodeURIComponent(id)}&published=eq.true&deleted_at=is.null&limit=1`
   );
-  return rows && rows.length > 0 ? rows[0] : null;
+  return byId && byId.length > 0 ? byId[0] : null;
 }
 
-async function fetchFlashcardSetById(id: string) {
-  const cols = "id,title,category,cards,created_at,slug";
-  const rows = await sbFetch(
+async function fetchFlashcardSetBySlugOrId(param: string) {
+  const cols = "id,title,category,cards,slug,created_at";
+  const decoded = decodeURIComponent(param).trim();
+
+  const bySlug = await sbFetch(
+    "flashcard_sets",
+    `select=${cols}&slug=eq.${encodeURIComponent(decoded)}&published=eq.true&deleted_at=is.null&limit=1`
+  );
+  if (bySlug && bySlug.length > 0) return bySlug[0];
+
+  const id = extractUuidFromParam(param);
+  if (!id) return null;
+  const byId = await sbFetch(
     "flashcard_sets",
     `select=${cols}&id=eq.${encodeURIComponent(id)}&published=eq.true&deleted_at=is.null&limit=1`
   );
-  return rows && rows.length > 0 ? rows[0] : null;
+  return byId && byId.length > 0 ? byId[0] : null;
 }
 
 async function fetchEssayByIdOrSlug(param: string) {
-  const decoded = encodeURIComponent(decodeURIComponent(param).trim());
-  const cols =
-    "id,slug,title,category,short_answer_questions,long_answer_questions,created_at,cover_image,image";
+  const cols = "id,slug,title,category,created_at";
+  const decoded = decodeURIComponent(param).trim();
+
   const bySlug = await sbFetch(
     "essays",
-    `select=${cols}&slug=eq.${decoded}&published=eq.true&deleted_at=is.null&limit=1`
+    `select=${cols}&slug=eq.${encodeURIComponent(decoded)}&published=eq.true&deleted_at=is.null&limit=1`
   );
   if (bySlug && bySlug.length > 0) return bySlug[0];
+
   const byId = await sbFetch(
     "essays",
-    `select=${cols}&id=eq.${decoded}&published=eq.true&deleted_at=is.null&limit=1`
+    `select=${cols}&id=eq.${encodeURIComponent(decoded)}&published=eq.true&deleted_at=is.null&limit=1`
   );
   return byId && byId.length > 0 ? byId[0] : null;
 }
@@ -222,25 +242,19 @@ export default async function handler(req: Request): Promise<Response> {
       const article = await fetchArticleBySlug(param);
       if (!article) {
         return new Response(
-          `<html><body><h1>DEBUG: article not found</h1><p>slug: "${param}"</p><p>URL: ${process.env.VITE_SUPABASE_URL ? "SET" : "MISSING"}</p><p>KEY: ${process.env.VITE_SUPABASE_PUBLISHABLE_KEY ? "SET" : "MISSING"}</p></body></html>`,
+          `<html><body><h1>DEBUG: article not found</h1><p>slug: "${param}"</p></body></html>`,
           { status: 200, headers: { "content-type": "text/html" } }
         );
       }
       const rawTitle = article.meta_title || article.title;
-      const rawDesc =
-        article.meta_description ||
-        article.summary ||
-        article.excerpt ||
-        article.content ||
-        "";
+      const rawDesc = article.meta_description || article.content || "";
       const cleanDesc =
         to160(rawDesc) ||
         `Study ${article.title} with OmpathStudy — medical notes and practice questions for students in Kenya.`;
 
       title = cleanForMetaSnippet(rawTitle);
       description = cleanDesc;
-      ogImage =
-        article.cover_image || article.image || article.og_image_url || OG_FALLBACK_IMAGE;
+      ogImage = article.og_image_url || OG_FALLBACK_IMAGE;
       keywords = `OmpathStudy, study notes Kenya, medical notes, ${article.category || ""}, clinical revision, exam prep, medical education Kenya`;
       type = "article";
       schemaJson = JSON.stringify({
@@ -255,13 +269,14 @@ export default async function handler(req: Request): Promise<Response> {
         author: { "@type": "Organization", name: "OmpathStudy" },
         publisher: { "@type": "Organization", name: "OmpathStudy" },
       });
+
     } else if (section === "mcqs" && param) {
-      const id = extractUuidFromParam(param) || decodeURIComponent(param);
-      const mcq = await fetchMcqSetById(id);
+      const mcq = await fetchMcqSetBySlugOrId(param);
       if (mcq) {
+        const qCount = Array.isArray(mcq.questions) ? mcq.questions.length : 0;
         title = `${mcq.title} | MCQ Quiz | OmpathStudy Kenya`;
         description = to160(
-          `Practice MCQs on ${mcq.title} with OmpathStudy. Built for Kenyan medical and health students to revise key concepts and prepare for exams.`
+          `Practice ${qCount > 0 ? qCount + " " : ""}MCQs on ${mcq.title} with OmpathStudy. Built for Kenyan medical and health students to revise key concepts and prepare for exams.`
         );
         ogImage = OG_FALLBACK_IMAGE;
         keywords = `OmpathStudy, MCQs Kenya, ${mcq.category || ""}, medical quizzes, nursing quizzes, exam practice, medical education Kenya`;
@@ -276,18 +291,20 @@ export default async function handler(req: Request): Promise<Response> {
           provider: { "@type": "Organization", name: "OmpathStudy" },
         });
       }
+
     } else if (section === "flashcards" && param) {
-      const id = extractUuidFromParam(param) || decodeURIComponent(param);
-      const set = await fetchFlashcardSetById(id);
+      const set = await fetchFlashcardSetBySlugOrId(param);
       if (set) {
+        const cardCount = Array.isArray(set.cards) ? set.cards.length : 0;
         title = `${set.title} | Flashcards | OmpathStudy Kenya`;
         description = to160(
-          `Study flashcards on ${set.title} with OmpathStudy. Quick, focused revision for Kenyan medical and health students by unit and year.`
+          `Study ${cardCount > 0 ? cardCount + " " : ""}flashcards on ${set.title} with OmpathStudy. Quick, focused revision for Kenyan medical and health students by unit and year.`
         );
         ogImage = OG_FALLBACK_IMAGE;
         keywords = `OmpathStudy, flashcards Kenya, ${set.category || ""}, medical revision, nursing revision, exam prep, medical education Kenya`;
         type = "article";
       }
+
     } else if (section === "essays" && param) {
       const essay = await fetchEssayByIdOrSlug(param);
       if (essay) {
@@ -295,10 +312,11 @@ export default async function handler(req: Request): Promise<Response> {
         description = to160(
           `Practice SAQs and LAQs on ${essay.title} with OmpathStudy. Improve structured answering for Kenyan medical and health students.`
         );
-        ogImage = essay.cover_image || essay.image || OG_FALLBACK_IMAGE;
+        ogImage = OG_FALLBACK_IMAGE;
         keywords = `OmpathStudy, essays Kenya, SAQ, LAQ, ${essay.category || ""}, written questions, exam technique, medical education Kenya`;
         type = "article";
       }
+
     } else if (section === "stories" && param) {
       const story = await fetchStoryByParam(param);
       if (story) {
@@ -310,6 +328,7 @@ export default async function handler(req: Request): Promise<Response> {
         keywords = `OmpathStudy, medical stories, reflective practice, ${story.category || ""}, medical students Kenya`;
         type = "article";
       }
+
     } else if (section === "year" && param) {
       const yr = param.replace(/[^0-9]/g, "");
       title = `Year ${yr} Study Materials | OmpathStudy Kenya`;
@@ -317,15 +336,7 @@ export default async function handler(req: Request): Promise<Response> {
       keywords = `OmpathStudy, Year ${yr} medical, Kenya medical students, clinical notes Year ${yr}`;
     }
 
-    const html = buildHtml({
-      title,
-      description,
-      url: absoluteUrl,
-      ogImage,
-      keywords,
-      type,
-      schemaJson,
-    });
+    const html = buildHtml({ title, description, url: absoluteUrl, ogImage, keywords, type, schemaJson });
     return new Response(html, {
       status: 200,
       headers: {
