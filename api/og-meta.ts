@@ -1,12 +1,9 @@
-import { createClient } from "@supabase/supabase-js";
-
 export const config = {
   runtime: "edge",
 };
 
 const OG_FALLBACK_IMAGE = "https://ompath.azaniispproject.co.ke/og-default.png";
 
-// FIX 1: expanded to match everything in vercel.json + WhatsApp, Telegram, Discord, Slack
 function isCrawler(userAgent: string | null): boolean {
   const ua = (userAgent || "").toLowerCase();
   if (!ua) return false;
@@ -29,15 +26,14 @@ function isCrawler(userAgent: string | null): boolean {
   );
 }
 
-// FIX 2: always strip markdown — used on ALL text including meta_description from DB
 function cleanForMetaSnippet(input: string): string {
   if (!input) return "";
   return input
-    .replace(/^#+\s+/gm, "")           // Remove # headings
-    .replace(/[*_`>|]/g, " ")           // Remove markdown symbols
-    .replace(/^\s*[-•]\s+/gm, "")       // Remove bullet points
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ") // Remove markdown images
-    .replace(/\[[^\]]+\]\([^)]+\)/g, "$1") // Remove markdown links
+    .replace(/^#+\s+/gm, "")
+    .replace(/[*_`>|]/g, " ")
+    .replace(/^\s*[-•]\s+/gm, "")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[[^\]]+\]\([^)]+\)/g, "$1")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -70,100 +66,86 @@ function extractUuidFromParam(value?: string | null): string | null {
   return match?.[1] || null;
 }
 
-function getSupabase() {
+function getSupabaseConfig() {
   const url = process.env.VITE_SUPABASE_URL;
-  const key = process.env.VITE_SUPABASE_ANON_KEY;
-  if (!url || !key) throw new Error("Missing Supabase env vars");
-  return createClient(url, key, { auth: { persistSession: false } });
+  const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) {
+    throw new Error(
+      `Missing Supabase env vars. URL: ${url ? "SET" : "MISSING"}, KEY: ${key ? "SET" : "MISSING"}`
+    );
+  }
+  return { url, key };
+}
+
+async function sbFetch(table: string, params: string) {
+  const { url, key } = getSupabaseConfig();
+  const res = await fetch(`${url}/rest/v1/${table}?${params}`, {
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      Accept: "application/json",
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`Supabase error on ${table}: ${res.status} ${await res.text()}`);
+  }
+  return res.json();
 }
 
 async function fetchArticleBySlug(slug: string) {
-  const supabase = getSupabase();
-  const normalized = decodeURIComponent(slug).trim().toLowerCase();
-
-  // Try exact slug match first
-  const { data: exact } = await supabase
-    .from("articles")
-    .select(
-      "id,title,content,slug,published,deleted_at,meta_title,meta_description,summary,excerpt,cover_image,image,og_image_url,created_at,updated_at,category",
-    )
-    .eq("slug", normalized)
-    .eq("published", true)
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (exact) return exact;
-
-  // Fallback: slug ends with the param (handles uuid-prefixed slugs)
-  const { data: fuzzy } = await supabase
-    .from("articles")
-    .select(
-      "id,title,content,slug,published,deleted_at,meta_title,meta_description,summary,excerpt,cover_image,image,og_image_url,created_at,updated_at,category",
-    )
-    .ilike("slug", `%-${normalized}`)
-    .eq("published", true)
-    .is("deleted_at", null)
-    .maybeSingle();
-  return fuzzy ?? null;
+  const normalized = encodeURIComponent(decodeURIComponent(slug).trim().toLowerCase());
+  const cols =
+    "id,title,content,slug,published,deleted_at,meta_title,meta_description,excerpt,cover_image,image,og_image_url,created_at,updated_at,category";
+  const rows = await sbFetch(
+    "articles",
+    `select=${cols}&slug=eq.${normalized}&published=eq.true&deleted_at=is.null&limit=1`
+  );
+  return rows && rows.length > 0 ? rows[0] : null;
 }
 
 async function fetchMcqSetById(id: string) {
-  const supabase = getSupabase();
-  const { data } = await supabase
-    .from("mcq_sets")
-    .select("id,title,category,questions,created_at,cover_image,image")
-    .eq("id", id)
-    .eq("published", true)
-    .is("deleted_at", null)
-    .maybeSingle();
-  return data ?? null;
+  const cols = "id,title,category,questions,created_at,cover_image,image";
+  const rows = await sbFetch(
+    "mcq_sets",
+    `select=${cols}&id=eq.${encodeURIComponent(id)}&published=eq.true&deleted_at=is.null&limit=1`
+  );
+  return rows && rows.length > 0 ? rows[0] : null;
 }
 
 async function fetchFlashcardSetById(id: string) {
-  const supabase = getSupabase();
-  const { data } = await supabase
-    .from("flashcard_sets")
-    .select("id,title,category,cards,created_at,cover_image,image")
-    .eq("id", id)
-    .eq("published", true)
-    .is("deleted_at", null)
-    .maybeSingle();
-  return data ?? null;
+  const cols = "id,title,category,cards,created_at,cover_image,image";
+  const rows = await sbFetch(
+    "flashcard_sets",
+    `select=${cols}&id=eq.${encodeURIComponent(id)}&published=eq.true&deleted_at=is.null&limit=1`
+  );
+  return rows && rows.length > 0 ? rows[0] : null;
 }
 
 async function fetchEssayByIdOrSlug(param: string) {
-  const supabase = getSupabase();
-  const decoded = decodeURIComponent(param).trim();
-  const { data: bySlug } = await supabase
-    .from("essays")
-    .select("id,slug,title,category,short_answer_questions,long_answer_questions,created_at,cover_image,image")
-    .eq("slug", decoded)
-    .eq("published", true)
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (bySlug) return bySlug;
-
-  const { data: byId } = await supabase
-    .from("essays")
-    .select("id,slug,title,category,short_answer_questions,long_answer_questions,created_at,cover_image,image")
-    .eq("id", decoded)
-    .eq("published", true)
-    .is("deleted_at", null)
-    .maybeSingle();
-  return byId ?? null;
+  const decoded = encodeURIComponent(decodeURIComponent(param).trim());
+  const cols =
+    "id,slug,title,category,short_answer_questions,long_answer_questions,created_at,cover_image,image";
+  const bySlug = await sbFetch(
+    "essays",
+    `select=${cols}&slug=eq.${decoded}&published=eq.true&deleted_at=is.null&limit=1`
+  );
+  if (bySlug && bySlug.length > 0) return bySlug[0];
+  const byId = await sbFetch(
+    "essays",
+    `select=${cols}&id=eq.${decoded}&published=eq.true&deleted_at=is.null&limit=1`
+  );
+  return byId && byId.length > 0 ? byId[0] : null;
 }
 
 async function fetchStoryByParam(param: string) {
-  const supabase = getSupabase();
   const storyId = extractUuidFromParam(param);
   if (!storyId) return null;
-  const { data } = await supabase
-    .from("stories")
-    .select("id,title,content,category,cover_image_url,created_at")
-    .eq("id", storyId)
-    .eq("published", true)
-    .is("deleted_at", null)
-    .maybeSingle();
-  return data ?? null;
+  const cols = "id,title,content,category,cover_image_url,created_at";
+  const rows = await sbFetch(
+    "stories",
+    `select=${cols}&id=eq.${encodeURIComponent(storyId)}&published=eq.true&deleted_at=is.null&limit=1`
+  );
+  return rows && rows.length > 0 ? rows[0] : null;
 }
 
 function buildHtml(opts: {
@@ -240,48 +222,46 @@ export default async function handler(req: Request): Promise<Response> {
       const article = await fetchArticleBySlug(param);
       if (!article) {
         return new Response(
-          `<html><body><h1>DEBUG: article not found</h1><p>slug param: "${param}"</p><p>SUPABASE_URL: ${process.env.VITE_SUPABASE_URL ? "SET" : "MISSING"}</p><p>KEY: ${process.env.VITE_SUPABASE_PUBLISHABLE_KEY ? "SET" : "MISSING"}</p></body></html>`,
+          `<html><body><h1>DEBUG: article not found</h1><p>slug: "${param}"</p><p>URL: ${process.env.VITE_SUPABASE_URL ? "SET" : "MISSING"}</p><p>KEY: ${process.env.VITE_SUPABASE_PUBLISHABLE_KEY ? "SET" : "MISSING"}</p></body></html>`,
           { status: 200, headers: { "content-type": "text/html" } }
         );
       }
-      if (article) {
-        const rawTitle = article.meta_title || article.title;
-        // FIX 2: always run to160/cleanForMetaSnippet on meta_description — it may have raw markdown
-        const rawDesc =
-          article.meta_description ||
-          article.summary ||
-          article.excerpt ||
-          article.content ||
-          "";
-        const cleanDesc =
-          to160(rawDesc) ||
-          `Study ${article.title} with OmpathStudy—medical notes and practice questions for students in Kenya.`;
+      const rawTitle = article.meta_title || article.title;
+      const rawDesc =
+        article.meta_description ||
+        article.summary ||
+        article.excerpt ||
+        article.content ||
+        "";
+      const cleanDesc =
+        to160(rawDesc) ||
+        `Study ${article.title} with OmpathStudy — medical notes and practice questions for students in Kenya.`;
 
-        title = cleanForMetaSnippet(rawTitle);
-        description = cleanDesc;
-        ogImage = article.cover_image || article.image || article.og_image_url || OG_FALLBACK_IMAGE;
-        keywords = `OmpathStudy, study notes Kenya, medical notes, ${article.category || ""}, clinical revision, exam prep, medical education Kenya`;
-        type = "article";
-        schemaJson = JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Article",
-          headline: title,
-          description,
-          image: ogImage,
-          url: absoluteUrl,
-          datePublished: article.created_at,
-          dateModified: article.updated_at || article.created_at,
-          author: { "@type": "Organization", name: "OmpathStudy" },
-          publisher: { "@type": "Organization", name: "OmpathStudy" },
-        });
-      }
+      title = cleanForMetaSnippet(rawTitle);
+      description = cleanDesc;
+      ogImage =
+        article.cover_image || article.image || article.og_image_url || OG_FALLBACK_IMAGE;
+      keywords = `OmpathStudy, study notes Kenya, medical notes, ${article.category || ""}, clinical revision, exam prep, medical education Kenya`;
+      type = "article";
+      schemaJson = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: title,
+        description,
+        image: ogImage,
+        url: absoluteUrl,
+        datePublished: article.created_at,
+        dateModified: article.updated_at || article.created_at,
+        author: { "@type": "Organization", name: "OmpathStudy" },
+        publisher: { "@type": "Organization", name: "OmpathStudy" },
+      });
     } else if (section === "mcqs" && param) {
       const id = extractUuidFromParam(param) || decodeURIComponent(param);
       const mcq = await fetchMcqSetById(id);
       if (mcq) {
         title = `${mcq.title} | MCQ Quiz | OmpathStudy Kenya`;
         description = to160(
-          `Practice MCQs on ${mcq.title} with OmpathStudy. Built for Kenyan medical and health students to revise key concepts and prepare for exams.`,
+          `Practice MCQs on ${mcq.title} with OmpathStudy. Built for Kenyan medical and health students to revise key concepts and prepare for exams.`
         );
         ogImage = mcq.cover_image || mcq.image || OG_FALLBACK_IMAGE;
         keywords = `OmpathStudy, MCQs Kenya, ${mcq.category || ""}, medical quizzes, nursing quizzes, exam practice, medical education Kenya`;
@@ -302,7 +282,7 @@ export default async function handler(req: Request): Promise<Response> {
       if (set) {
         title = `${set.title} | Flashcards | OmpathStudy Kenya`;
         description = to160(
-          `Study flashcards on ${set.title} with OmpathStudy. Quick, focused revision for Kenyan medical and health students by unit and year.`,
+          `Study flashcards on ${set.title} with OmpathStudy. Quick, focused revision for Kenyan medical and health students by unit and year.`
         );
         ogImage = set.cover_image || set.image || OG_FALLBACK_IMAGE;
         keywords = `OmpathStudy, flashcards Kenya, ${set.category || ""}, medical revision, nursing revision, exam prep, medical education Kenya`;
@@ -313,7 +293,7 @@ export default async function handler(req: Request): Promise<Response> {
       if (essay) {
         title = `${essay.title} | Essays | OmpathStudy Kenya`;
         description = to160(
-          `Practice SAQs and LAQs on ${essay.title} with OmpathStudy. Improve structured answering for Kenyan medical and health students.`,
+          `Practice SAQs and LAQs on ${essay.title} with OmpathStudy. Improve structured answering for Kenyan medical and health students.`
         );
         ogImage = essay.cover_image || essay.image || OG_FALLBACK_IMAGE;
         keywords = `OmpathStudy, essays Kenya, SAQ, LAQ, ${essay.category || ""}, written questions, exam technique, medical education Kenya`;
@@ -325,7 +305,7 @@ export default async function handler(req: Request): Promise<Response> {
         title = `${story.title} | Story | OmpathStudy Kenya`;
         description =
           to160(story.content || "") ||
-          "Read a medical story on OmpathStudy—built for Kenyan medical and health students to learn, reflect, and grow.";
+          "Read a medical story on OmpathStudy — built for Kenyan medical and health students to learn, reflect, and grow.";
         ogImage = story.cover_image_url || OG_FALLBACK_IMAGE;
         keywords = `OmpathStudy, medical stories, reflective practice, ${story.category || ""}, medical students Kenya`;
         type = "article";
@@ -337,7 +317,15 @@ export default async function handler(req: Request): Promise<Response> {
       keywords = `OmpathStudy, Year ${yr} medical, Kenya medical students, clinical notes Year ${yr}`;
     }
 
-    const html = buildHtml({ title, description, url: absoluteUrl, ogImage, keywords, type, schemaJson });
+    const html = buildHtml({
+      title,
+      description,
+      url: absoluteUrl,
+      ogImage,
+      keywords,
+      type,
+      schemaJson,
+    });
     return new Response(html, {
       status: 200,
       headers: {
@@ -347,14 +335,8 @@ export default async function handler(req: Request): Promise<Response> {
     });
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
-    console.error("[og-meta] error:", errMsg);
     return new Response(
-      `<html><body>
-        <h1>DEBUG ERROR</h1>
-        <pre>${errMsg}</pre>
-        <p>VITE_SUPABASE_URL: ${process.env.VITE_SUPABASE_URL ? "SET" : "MISSING"}</p>
-        <p>VITE_SUPABASE_PUBLISHABLE_KEY: ${process.env.VITE_SUPABASE_PUBLISHABLE_KEY ? "SET" : "MISSING"}</p>
-      </body></html>`,
+      `<html><body><h1>DEBUG ERROR</h1><pre>${errMsg}</pre></body></html>`,
       { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }
     );
   }
