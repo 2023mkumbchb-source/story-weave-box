@@ -26,17 +26,45 @@ function isCrawler(userAgent: string | null): boolean {
   );
 }
 
+// General markdown/noise stripper for meta snippets (articles, descriptions)
 function cleanForMetaSnippet(input: string): string {
   if (!input) return "";
   return input
-    // Strip markdown headings like "## Question 1 About..." or "# Title"
-    .replace(/^#{1,6}\s*(Question\s*\d+[:\s\-]*)?\s*/gim, "")
-    // Strip trailing " - (" pattern common in true/false questions
-    .replace(/\s*-\s*\(.*$/, "")
+    .replace(/^#{1,6}\s+/gm, "")
     .replace(/[*_`>|]/g, " ")
     .replace(/^\s*[-•]\s+/gm, "")
     .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
     .replace(/\[[^\]]+\]\([^)]+\)/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Aggressive cleaner specifically for MCQ question stems.
+// Your questions look like: "## Question 1 About some GIT hormones (true or false): - ("
+// This strips everything before and including the question number label,
+// and the trailing " - (" artifact.
+function cleanQuestionStem(raw: string): string {
+  if (!raw) return "";
+  let s = raw
+    // Remove markdown headings
+    .replace(/^#{1,6}\s*/gm, "")
+    // Remove "Question N" prefix (with optional colon/dash/space after)
+    .replace(/^Question\s+\d+[\s:\-]*/i, "")
+    // Remove trailing " - (" or "- (" artifacts (leftover from true/false formatting)
+    .replace(/\s*-\s*\(\s*$/, "")
+    // Remove remaining markdown
+    .replace(/[*_`>|]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return s;
+}
+
+// Clean an answer option — strip leading letter labels like "A. " or "(A) " and trailing " - ("
+function cleanOption(raw: string): string {
+  if (!raw) return "";
+  return raw
+    .replace(/^[A-E][.)]\s*/i, "")
+    .replace(/\s*-\s*\(\s*$/, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -172,21 +200,70 @@ async function fetchStoryByParam(param: string) {
   return rows && rows.length > 0 ? rows[0] : null;
 }
 
-// Extract question stem from a question object.
-// Handles field names: question, stem, text, q
-function getQuestionStem(q: unknown): string {
-  if (!q || typeof q !== "object") return "";
+interface ParsedQuestion {
+  stem: string;
+  options: string[];
+  correctText: string;
+  explanation: string;
+}
+
+function parseQuestion(q: unknown): ParsedQuestion | null {
+  if (!q || typeof q !== "object") return null;
   const obj = q as Record<string, unknown>;
-  const raw =
+
+  // --- stem ---
+  const rawStem =
     (typeof obj.question === "string" ? obj.question : "") ||
     (typeof obj.stem === "string" ? obj.stem : "") ||
     (typeof obj.text === "string" ? obj.text : "") ||
     (typeof obj.q === "string" ? obj.q : "");
-  return cleanForMetaSnippet(raw);
+  const stem = cleanQuestionStem(rawStem);
+  if (!stem) return null;
+
+  // --- options ---
+  const options: string[] = [];
+  if (Array.isArray(obj.options)) {
+    for (const o of obj.options) {
+      if (typeof o === "string") options.push(cleanOption(o));
+      else if (o && typeof o === "object") {
+        const oo = o as Record<string, unknown>;
+        const txt =
+          (typeof oo.text === "string" ? oo.text : "") ||
+          (typeof oo.label === "string" ? oo.label : "");
+        if (txt) options.push(cleanOption(txt));
+      }
+    }
+  }
+
+  // --- correct answer ---
+  const correctIdx =
+    typeof obj.correct_answer === "number"
+      ? obj.correct_answer
+      : typeof obj.correct === "number"
+      ? obj.correct
+      : typeof obj.correctIndex === "number"
+      ? obj.correctIndex
+      : typeof obj.answer === "number"
+      ? obj.answer
+      : -1;
+
+  const correctText =
+    typeof obj.correctAnswer === "string"
+      ? cleanOption(obj.correctAnswer)
+      : correctIdx >= 0 && options[correctIdx]
+      ? options[correctIdx]
+      : options[0] || "";
+
+  // --- explanation ---
+  const explanation =
+    typeof obj.explanation === "string"
+      ? cleanForMetaSnippet(obj.explanation)
+      : "";
+
+  return { stem, options, correctText, explanation };
 }
 
 // Extract front/question text from a flashcard object.
-// Handles field names: front, question, term, q
 function getCardFront(c: unknown): string {
   if (!c || typeof c !== "object") return "";
   const obj = c as Record<string, unknown>;
@@ -195,6 +272,17 @@ function getCardFront(c: unknown): string {
     (typeof obj.question === "string" ? obj.question : "") ||
     (typeof obj.term === "string" ? obj.term : "") ||
     (typeof obj.q === "string" ? obj.q : "");
+  return cleanForMetaSnippet(raw);
+}
+
+function getCardBack(c: unknown): string {
+  if (!c || typeof c !== "object") return "";
+  const obj = c as Record<string, unknown>;
+  const raw =
+    (typeof obj.back === "string" ? obj.back : "") ||
+    (typeof obj.answer === "string" ? obj.answer : "") ||
+    (typeof obj.definition === "string" ? obj.definition : "") ||
+    (typeof obj.a === "string" ? obj.a : "");
   return cleanForMetaSnippet(raw);
 }
 
@@ -306,8 +394,9 @@ export default async function handler(req: Request): Promise<Response> {
     } else if (section === "mcqs" && param) {
       const mcq = await fetchMcqSetBySlugOrId(param);
       if (mcq) {
-        const questions: unknown[] = Array.isArray(mcq.questions) ? mcq.questions : [];
-        const qCount = questions.length;
+        const rawQuestions: unknown[] = Array.isArray(mcq.questions) ? mcq.questions : [];
+        const parsed = rawQuestions.map(parseQuestion).filter((p): p is ParsedQuestion => p !== null);
+        const qCount = rawQuestions.length;
 
         title = `${mcq.title} | MCQ Quiz | OmpathStudy Kenya`;
         description = to160(
@@ -317,61 +406,39 @@ export default async function handler(req: Request): Promise<Response> {
         keywords = `OmpathStudy, MCQs Kenya, ${mcq.category || ""}, medical quizzes, nursing quizzes, exam practice, medical education Kenya`;
         type = "article";
 
-        // Dump ALL question stems into the HTML body so Google indexes them.
-        // Students searching any of these exact questions will find this page.
-        const stems = questions.map((q) => getQuestionStem(q)).filter(Boolean);
-        if (stems.length > 0) {
-          const liItems = stems
-            .map((s, i) => `    <li>${i + 1}. ${htmlEscape(s)}</li>`)
-            .join("\n");
-          bodyExtra = `<h2>Questions in this set</h2>\n<ol>\n${liItems}\n</ol>`;
+        // Build full question list with answer + explanation for Google to index.
+        // Every question stem, correct answer, and explanation becomes searchable text.
+        if (parsed.length > 0) {
+          const items = parsed.map((p, i) => {
+            const optionsList = p.options.length > 0
+              ? `<ul>${p.options.map(o => `<li>${htmlEscape(o)}</li>`).join("")}</ul>`
+              : "";
+            const answerLine = p.correctText
+              ? `<p><strong>Answer:</strong> ${htmlEscape(p.correctText)}</p>`
+              : "";
+            const explanationLine = p.explanation
+              ? `<p><strong>Explanation:</strong> ${htmlEscape(p.explanation)}</p>`
+              : "";
+            return `<li>
+  <p><strong>Q${i + 1}.</strong> ${htmlEscape(p.stem)}</p>
+  ${optionsList}
+  ${answerLine}
+  ${explanationLine}
+</li>`;
+          });
+          bodyExtra = `<h2>Questions, Answers &amp; Explanations</h2>\n<ol>\n${items.join("\n")}\n</ol>`;
         }
 
-        // JSON-LD Quiz schema with individual Question items (capped at 50 for payload size)
-        const schemaQuestions = questions.slice(0, 50).map((q) => {
-          const obj = q as Record<string, unknown>;
-          const stem = getQuestionStem(q);
-
-          // Parse options — handles string array or object array
-          const options: string[] = [];
-          if (Array.isArray(obj.options)) {
-            for (const o of obj.options) {
-              if (typeof o === "string") options.push(o);
-              else if (o && typeof o === "object") {
-                const oo = o as Record<string, unknown>;
-                if (typeof oo.text === "string") options.push(oo.text);
-                else if (typeof oo.label === "string") options.push(oo.label);
-              }
-            }
-          }
-
-          // Resolve correct answer — handles correct_answer, correct, correctIndex, answer
-          const correctIdx =
-            typeof obj.correct_answer === "number"
-              ? obj.correct_answer
-              : typeof obj.correct === "number"
-              ? obj.correct
-              : typeof obj.correctIndex === "number"
-              ? obj.correctIndex
-              : typeof obj.answer === "number"
-              ? obj.answer
-              : -1;
-
-          const correctText =
-            typeof obj.correctAnswer === "string"
-              ? obj.correctAnswer
-              : correctIdx >= 0 && options[correctIdx]
-              ? options[correctIdx]
-              : undefined;
-
+        // JSON-LD Quiz schema with individual Question items
+        const schemaQuestions = parsed.slice(0, 50).map((p) => {
           const item: Record<string, unknown> = {
             "@type": "Question",
-            name: stem,
+            name: p.stem,
           };
-          if (correctText || options.length > 0) {
+          if (p.correctText) {
             item.acceptedAnswer = {
               "@type": "Answer",
-              text: correctText || options[0] || "",
+              text: p.correctText + (p.explanation ? " — " + p.explanation : ""),
             };
           }
           return item;
@@ -403,13 +470,17 @@ export default async function handler(req: Request): Promise<Response> {
         keywords = `OmpathStudy, flashcards Kenya, ${set.category || ""}, medical revision, nursing revision, exam prep, medical education Kenya`;
         type = "article";
 
-        // Dump all card fronts so Google indexes the terms/questions
-        const fronts = cards.map((c) => getCardFront(c)).filter(Boolean);
-        if (fronts.length > 0) {
-          const liItems = fronts
-            .map((f, i) => `    <li>${i + 1}. ${htmlEscape(f)}</li>`)
-            .join("\n");
-          bodyExtra = `<h2>Cards in this set</h2>\n<ol>\n${liItems}\n</ol>`;
+        // Dump all card fronts AND backs so Google indexes both question and answer
+        const cardItems = cards.map((c, i) => {
+          const front = getCardFront(c);
+          const back = getCardBack(c);
+          if (!front) return "";
+          const backLine = back ? `<p><strong>Answer:</strong> ${htmlEscape(back)}</p>` : "";
+          return `<li><p><strong>Q${i + 1}.</strong> ${htmlEscape(front)}</p>${backLine}</li>`;
+        }).filter(Boolean);
+
+        if (cardItems.length > 0) {
+          bodyExtra = `<h2>Flashcards</h2>\n<ol>\n${cardItems.join("\n")}\n</ol>`;
         }
       }
 
