@@ -80,16 +80,30 @@ function getSupabase() {
 async function fetchArticleBySlug(slug: string) {
   const supabase = getSupabase();
   const normalized = decodeURIComponent(slug).trim().toLowerCase();
-  const { data } = await supabase
+
+  // Try exact slug match first
+  const { data: exact } = await supabase
     .from("articles")
     .select(
       "id,title,content,slug,published,deleted_at,meta_title,meta_description,summary,excerpt,cover_image,image,og_image_url,created_at,updated_at,category",
     )
-    .or(`slug.eq.${normalized},slug.ilike.%-${normalized}`)
+    .eq("slug", normalized)
     .eq("published", true)
     .is("deleted_at", null)
     .maybeSingle();
-  return data ?? null;
+  if (exact) return exact;
+
+  // Fallback: slug ends with the param (handles uuid-prefixed slugs)
+  const { data: fuzzy } = await supabase
+    .from("articles")
+    .select(
+      "id,title,content,slug,published,deleted_at,meta_title,meta_description,summary,excerpt,cover_image,image,og_image_url,created_at,updated_at,category",
+    )
+    .ilike("slug", `%-${normalized}`)
+    .eq("published", true)
+    .is("deleted_at", null)
+    .maybeSingle();
+  return fuzzy ?? null;
 }
 
 async function fetchMcqSetById(id: string) {
