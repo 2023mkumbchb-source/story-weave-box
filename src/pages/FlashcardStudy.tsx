@@ -9,6 +9,7 @@ import { updateMetaTags } from "@/lib/seo";
 
 export default function FlashcardStudy() {
   const { id } = useParams();
+  const [loading, setLoading] = useState(true);
   const [set, setSet] = useState<FlashcardSet | null>(null);
 
   useEffect(() => {
@@ -69,3 +70,4 @@ export default function FlashcardStudy() {
     </div>
   );
 }
+
