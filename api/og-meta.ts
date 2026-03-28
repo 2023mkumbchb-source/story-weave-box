@@ -95,7 +95,7 @@ async function sbFetch(table: string, params: string) {
 async function fetchArticleBySlug(slug: string) {
   const normalized = encodeURIComponent(decodeURIComponent(slug).trim().toLowerCase());
   const cols =
-    "id,title,content,slug,published,deleted_at,meta_title,meta_description,excerpt,cover_image,image,og_image_url,created_at,updated_at,category";
+    "id,title,content,slug,published,deleted_at,meta_title,meta_description,og_image_url,created_at,updated_at,category";
   const rows = await sbFetch(
     "articles",
     `select=${cols}&slug=eq.${normalized}&published=eq.true&deleted_at=is.null&limit=1`
