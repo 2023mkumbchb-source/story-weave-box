@@ -104,7 +104,7 @@ async function fetchArticleBySlug(slug: string) {
 }
 
 async function fetchMcqSetById(id: string) {
-  const cols = "id,title,category,questions,created_at,cover_image,image";
+  const cols = "id,title,category,questions,created_at,slug";
   const rows = await sbFetch(
     "mcq_sets",
     `select=${cols}&id=eq.${encodeURIComponent(id)}&published=eq.true&deleted_at=is.null&limit=1`
@@ -113,7 +113,7 @@ async function fetchMcqSetById(id: string) {
 }
 
 async function fetchFlashcardSetById(id: string) {
-  const cols = "id,title,category,cards,created_at,cover_image,image";
+  const cols = "id,title,category,cards,created_at,slug";
   const rows = await sbFetch(
     "flashcard_sets",
     `select=${cols}&id=eq.${encodeURIComponent(id)}&published=eq.true&deleted_at=is.null&limit=1`
@@ -263,7 +263,7 @@ export default async function handler(req: Request): Promise<Response> {
         description = to160(
           `Practice MCQs on ${mcq.title} with OmpathStudy. Built for Kenyan medical and health students to revise key concepts and prepare for exams.`
         );
-        ogImage = mcq.cover_image || mcq.image || OG_FALLBACK_IMAGE;
+        ogImage = OG_FALLBACK_IMAGE;
         keywords = `OmpathStudy, MCQs Kenya, ${mcq.category || ""}, medical quizzes, nursing quizzes, exam practice, medical education Kenya`;
         type = "article";
         schemaJson = JSON.stringify({
@@ -284,7 +284,7 @@ export default async function handler(req: Request): Promise<Response> {
         description = to160(
           `Study flashcards on ${set.title} with OmpathStudy. Quick, focused revision for Kenyan medical and health students by unit and year.`
         );
-        ogImage = set.cover_image || set.image || OG_FALLBACK_IMAGE;
+        ogImage = OG_FALLBACK_IMAGE;
         keywords = `OmpathStudy, flashcards Kenya, ${set.category || ""}, medical revision, nursing revision, exam prep, medical education Kenya`;
         type = "article";
       }
