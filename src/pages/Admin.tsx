@@ -3005,7 +3005,7 @@ function SeoIndexingTab() {
   const [loadingBatches, setLoadingBatches] = useState(false);
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [copiedBatch, setCopiedBatch] = useState<number | null>(null);
-  const [siteUrlInput, setSiteUrlInput] = useState("https://ompath.azaniispproject.co.ke");
+  const [siteUrlInput, setSiteUrlInput] = useState("https://ompathstudy.com");
   const [googleApiKey, setGoogleApiKey] = useState("");
   const [contentTypeFilter, setContentTypeFilter] = useState<string>("all");
   const [loadingConfig, setLoadingConfig] = useState(false);
@@ -3014,7 +3014,7 @@ function SeoIndexingTab() {
   const sitemapUrl = `${siteUrlInput.replace(/\/+$/, "")}/sitemap-dynamic.xml`;
 
   const syncSiteUrlConfig = async (showToast = false) => {
-    const normalized = siteUrlInput.trim() || "https://ompath.azaniispproject.co.ke";
+    const normalized = siteUrlInput.trim() || "https://ompathstudy.com";
     const { data, error } = await supabase.functions.invoke("google-indexing", {
       body: { action: "set_config", site_url: normalized },
     });

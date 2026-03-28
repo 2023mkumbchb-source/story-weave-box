@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 const SUPABASE_URL = "https://zxlbypclstqitcsfkgvj.supabase.co";
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "";
-const SITE_URL = "https://ompath.azaniispproject.co.ke";
+const SITE_URL = "https://ompathstudy.com";
 
 // Detect crawlers/bots
 function isBot(ua: string): boolean {

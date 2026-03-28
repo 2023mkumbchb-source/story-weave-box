@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"];
-const DEFAULT_SITE_URL = "https://ompath.azaniispproject.co.ke";
+const DEFAULT_SITE_URL = "https://ompathstudy.com";
 
 function normalizeBaseUrl(url: string | null | undefined): string {
   const trimmed = String(url || "").trim();

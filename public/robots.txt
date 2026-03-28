@@ -36,5 +36,5 @@ Allow: /
 User-agent: Googlebot
 Allow: /
 
-Sitemap: https://ompath.azaniispproject.co.ke/sitemap.xml
-Sitemap: https://ompath.azaniispproject.co.ke/sitemap-dynamic.xml
+Sitemap: https://ompathstudy.com/sitemap.xml
+Sitemap: https://ompathstudy.com/sitemap-dynamic.xml
