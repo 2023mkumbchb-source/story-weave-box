@@ -72,7 +72,7 @@ function extractUuidFromParam(value?: string | null): string | null {
 
 function getSupabase() {
   const url = process.env.VITE_SUPABASE_URL;
-  const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const key = process.env.VITE_SUPABASE_ANON_KEY;
   if (!url || !key) throw new Error("Missing Supabase env vars");
   return createClient(url, key, { auth: { persistSession: false } });
 }
@@ -238,6 +238,12 @@ export default async function handler(req: Request): Promise<Response> {
 
     if (section === "blog" && param) {
       const article = await fetchArticleBySlug(param);
+      if (!article) {
+        return new Response(
+          `<html><body><h1>DEBUG: article not found</h1><p>slug param: "${param}"</p><p>SUPABASE_URL: ${process.env.VITE_SUPABASE_URL ? "SET" : "MISSING"}</p><p>KEY: ${process.env.VITE_SUPABASE_PUBLISHABLE_KEY ? "SET" : "MISSING"}</p></body></html>`,
+          { status: 200, headers: { "content-type": "text/html" } }
+        );
+      }
       if (article) {
         const rawTitle = article.meta_title || article.title;
         // FIX 2: always run to160/cleanForMetaSnippet on meta_description — it may have raw markdown
@@ -340,15 +346,16 @@ export default async function handler(req: Request): Promise<Response> {
       },
     });
   } catch (err) {
-    console.error("[og-meta] error:", err);
-    const fallbackUrl = new URL(originalPath, url.origin).toString();
-    const html = buildHtml({
-      title: "OmpathStudy | Kenyan Medical Education Platform",
-      description:
-        "OmpathStudy helps medical and health students in Kenya study smarter with notes, flashcards, MCQs, essays and exams by year and unit.",
-      url: fallbackUrl,
-      ogImage: OG_FALLBACK_IMAGE,
-    });
-    return new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[og-meta] error:", errMsg);
+    return new Response(
+      `<html><body>
+        <h1>DEBUG ERROR</h1>
+        <pre>${errMsg}</pre>
+        <p>VITE_SUPABASE_URL: ${process.env.VITE_SUPABASE_URL ? "SET" : "MISSING"}</p>
+        <p>VITE_SUPABASE_PUBLISHABLE_KEY: ${process.env.VITE_SUPABASE_PUBLISHABLE_KEY ? "SET" : "MISSING"}</p>
+      </body></html>`,
+      { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }
+    );
   }
 }
