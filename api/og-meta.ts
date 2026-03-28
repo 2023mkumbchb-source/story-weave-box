@@ -59,12 +59,15 @@ function cleanQuestionStem(raw: string): string {
   return s;
 }
 
-// Clean an answer option — strip leading letter labels like "A. " or "(A) " and trailing " - ("
+// Clean an answer option — strip leading letter labels like "A. " or "(A) ",
+// trailing " - (" artifacts, and other noise
 function cleanOption(raw: string): string {
   if (!raw) return "";
   return raw
-    .replace(/^[A-E][.)]\s*/i, "")
-    .replace(/\s*-\s*\(\s*$/, "")
+    .replace(/^[A-E][.)]\s*/i, "")       // strip "A. " or "B) " prefix
+    .replace(/\s*-\s*\(\s*$/, "")         // strip trailing " - ("
+    .replace(/\s*\(\s*$/, "")             // strip trailing lone "("
+    .replace(/\s*-\s*$/, "")              // strip trailing lone " -"
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -221,17 +224,29 @@ function parseQuestion(q: unknown): ParsedQuestion | null {
   if (!stem) return null;
 
   // --- options ---
+  // Get raw explanation first so we can filter it out if it leaked into the options array
+  const rawExplanation =
+    typeof obj.explanation === "string" ? obj.explanation.trim() : "";
+  const explanationPrefix = rawExplanation.slice(0, 30).toLowerCase();
+
   const options: string[] = [];
   if (Array.isArray(obj.options)) {
     for (const o of obj.options) {
-      if (typeof o === "string") options.push(cleanOption(o));
+      let raw = "";
+      if (typeof o === "string") raw = o;
       else if (o && typeof o === "object") {
         const oo = o as Record<string, unknown>;
-        const txt =
+        raw =
           (typeof oo.text === "string" ? oo.text : "") ||
           (typeof oo.label === "string" ? oo.label : "");
-        if (txt) options.push(cleanOption(txt));
       }
+      if (!raw) continue;
+      // Skip if this option is actually the explanation text leaking into the options array
+      if (explanationPrefix && raw.trim().toLowerCase().startsWith(explanationPrefix)) continue;
+      const cleaned = cleanOption(raw);
+      // Skip empty or noise-only items (length < 3)
+      if (!cleaned || cleaned.length < 3) continue;
+      options.push(cleaned);
     }
   }
 
