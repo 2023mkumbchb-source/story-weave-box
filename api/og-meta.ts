@@ -29,7 +29,10 @@ function isCrawler(userAgent: string | null): boolean {
 function cleanForMetaSnippet(input: string): string {
   if (!input) return "";
   return input
-    .replace(/^#+\s+/gm, "")
+    // Strip markdown headings like "## Question 1 About..." or "# Title"
+    .replace(/^#{1,6}\s*(Question\s*\d+[:\s\-]*)?\s*/gim, "")
+    // Strip trailing " - (" pattern common in true/false questions
+    .replace(/\s*-\s*\(.*$/, "")
     .replace(/[*_`>|]/g, " ")
     .replace(/^\s*[-•]\s+/gm, "")
     .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
@@ -169,30 +172,30 @@ async function fetchStoryByParam(param: string) {
   return rows && rows.length > 0 ? rows[0] : null;
 }
 
-// Extract question stem text from a question object.
-// Handles multiple possible field names: question, stem, text, q
+// Extract question stem from a question object.
+// Handles field names: question, stem, text, q
 function getQuestionStem(q: unknown): string {
   if (!q || typeof q !== "object") return "";
   const obj = q as Record<string, unknown>;
-  const stem =
+  const raw =
     (typeof obj.question === "string" ? obj.question : "") ||
     (typeof obj.stem === "string" ? obj.stem : "") ||
     (typeof obj.text === "string" ? obj.text : "") ||
     (typeof obj.q === "string" ? obj.q : "");
-  return cleanForMetaSnippet(stem);
+  return cleanForMetaSnippet(raw);
 }
 
 // Extract front/question text from a flashcard object.
-// Handles multiple possible field names: front, question, term, q
+// Handles field names: front, question, term, q
 function getCardFront(c: unknown): string {
   if (!c || typeof c !== "object") return "";
   const obj = c as Record<string, unknown>;
-  const front =
+  const raw =
     (typeof obj.front === "string" ? obj.front : "") ||
     (typeof obj.question === "string" ? obj.question : "") ||
     (typeof obj.term === "string" ? obj.term : "") ||
     (typeof obj.q === "string" ? obj.q : "");
-  return cleanForMetaSnippet(front);
+  return cleanForMetaSnippet(raw);
 }
 
 function buildHtml(opts: {
@@ -314,21 +317,22 @@ export default async function handler(req: Request): Promise<Response> {
         keywords = `OmpathStudy, MCQs Kenya, ${mcq.category || ""}, medical quizzes, nursing quizzes, exam practice, medical education Kenya`;
         type = "article";
 
-        // Dump ALL question stems into the HTML body.
-        // This is what Google indexes — students searching any of these questions
-        // will find this page in results.
+        // Dump ALL question stems into the HTML body so Google indexes them.
+        // Students searching any of these exact questions will find this page.
         const stems = questions.map((q) => getQuestionStem(q)).filter(Boolean);
         if (stems.length > 0) {
           const liItems = stems
-            .map((s, i) => `<li>${i + 1}. ${htmlEscape(s)}</li>`)
+            .map((s, i) => `    <li>${i + 1}. ${htmlEscape(s)}</li>`)
             .join("\n");
           bodyExtra = `<h2>Questions in this set</h2>\n<ol>\n${liItems}\n</ol>`;
         }
 
-        // JSON-LD Quiz schema with individual Question items (capped at 50 for size)
+        // JSON-LD Quiz schema with individual Question items (capped at 50 for payload size)
         const schemaQuestions = questions.slice(0, 50).map((q) => {
           const obj = q as Record<string, unknown>;
           const stem = getQuestionStem(q);
+
+          // Parse options — handles string array or object array
           const options: string[] = [];
           if (Array.isArray(obj.options)) {
             for (const o of obj.options) {
@@ -340,14 +344,19 @@ export default async function handler(req: Request): Promise<Response> {
               }
             }
           }
+
+          // Resolve correct answer — handles correct_answer, correct, correctIndex, answer
           const correctIdx =
-            typeof obj.correct === "number"
+            typeof obj.correct_answer === "number"
+              ? obj.correct_answer
+              : typeof obj.correct === "number"
               ? obj.correct
               : typeof obj.correctIndex === "number"
               ? obj.correctIndex
               : typeof obj.answer === "number"
               ? obj.answer
               : -1;
+
           const correctText =
             typeof obj.correctAnswer === "string"
               ? obj.correctAnswer
@@ -394,11 +403,11 @@ export default async function handler(req: Request): Promise<Response> {
         keywords = `OmpathStudy, flashcards Kenya, ${set.category || ""}, medical revision, nursing revision, exam prep, medical education Kenya`;
         type = "article";
 
-        // Dump all card fronts so Google can index the terms/questions.
+        // Dump all card fronts so Google indexes the terms/questions
         const fronts = cards.map((c) => getCardFront(c)).filter(Boolean);
         if (fronts.length > 0) {
           const liItems = fronts
-            .map((f, i) => `<li>${i + 1}. ${htmlEscape(f)}</li>`)
+            .map((f, i) => `    <li>${i + 1}. ${htmlEscape(f)}</li>`)
             .join("\n");
           bodyExtra = `<h2>Cards in this set</h2>\n<ol>\n${liItems}\n</ol>`;
         }
