@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export const SITE_URL = "https://ompathstudy.com";
+export const SITE_URL = "https://www.ompathstudy.com"; // ✅ fixed: added www
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -78,13 +78,17 @@ interface MetaConfig {
 export function updateMetaTags({ title, description, image, url, type = "website" }: MetaConfig) {
   document.title = title;
 
+  // ✅ Always use www canonical — never fall back to window.location.href
+  const canonicalUrl = url || `${SITE_URL}${window.location.pathname}`;
+
   const tags = [
     { name: "description", content: description },
     { property: "og:title", content: title },
     { property: "og:description", content: description },
     { property: "og:image", content: image || `${SITE_URL}/og-default.png` },
-    { property: "og:url", content: url || window.location.href },
+    { property: "og:url", content: canonicalUrl }, // ✅ always www
     { property: "og:type", content: type },
+    { name: "twitter:card", content: "summary_large_image" }, // ✅ added missing twitter:card
     { name: "twitter:title", content: title },
     { name: "twitter:description", content: description },
     { name: "twitter:image", content: image || `${SITE_URL}/og-default.png` },
@@ -103,12 +107,12 @@ export function updateMetaTags({ title, description, image, url, type = "website
     element.setAttribute("content", tag.content);
   });
 
-  // Update canonical
+  // ✅ Canonical always uses www
   let canonical = document.querySelector('link[rel="canonical"]');
   if (!canonical) {
     canonical = document.createElement("link");
     canonical.setAttribute("rel", "canonical");
     document.head.appendChild(canonical);
   }
-  canonical.setAttribute("href", url || window.location.href);
+  canonical.setAttribute("href", canonicalUrl);
 }
