@@ -50,7 +50,6 @@ function ReadingProgress() {
 
   const rounded = Math.max(0, Math.min(100, Math.round(pct)));
 
-  // Red → Orange → Yellow → Green
   const getColor = (p: number) => {
     if (p < 25) return { bg: "bg-red-500", bar: "from-red-500 to-red-400" };
     if (p < 50) return { bg: "bg-orange-500", bar: "from-red-500 via-orange-500 to-orange-400" };
@@ -64,7 +63,6 @@ function ReadingProgress() {
       <div className="fixed left-0 right-0 top-0 z-50 h-[3px]">
         <div className={`h-full bg-gradient-to-r ${colors.bar} transition-all duration-150`} style={{ width: `${pct}%` }} />
       </div>
-
       <button
         type="button"
         onClick={() => setExpanded((prev) => !prev)}
@@ -235,14 +233,12 @@ function extractToc(content: string): TocItem[] {
 
   for (const line of lines) {
     const t = line.trim();
-    // ## headings
     if (/^#{1,2}\s/.test(t)) {
       const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").replace(/^\d+\.\s*/, "").trim();
       if (META_HEADING.test(heading)) continue;
       secNum++;
       items.push({ id: `section-${secNum}`, text: heading, level: 2 });
     }
-    // QUESTION pattern
     const qMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)/i);
     if (qMatch) {
       secNum++;
@@ -317,7 +313,6 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
       return;
     }
 
-    // Markdown image
     const imageMatch = t.match(/^!\[(.*?)\]\((.*?)\)$/);
     if (imageMatch) {
       flushList();
@@ -334,7 +329,6 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
       return;
     }
 
-    // QUESTION pattern
     const questionMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)[:\s-]*(.*)/i);
     if (questionMatch) {
       flushList(); flushPractice(); inPractice = false; underSubheading = false;
@@ -357,7 +351,6 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
       return;
     }
 
-    // Sub-question pattern
     const subQMatch = t.match(/^(\(?[a-z]\)|[ivx]+\)|\([ivx]+\))\s*(.+)/i);
     if (subQMatch) {
       flushList(); underSubheading = false;
@@ -371,7 +364,6 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
       return;
     }
 
-    // ## headings
     if (/^#{1,2}\s/.test(t)) {
       flushList(); underSubheading = false;
       const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").replace(/^\d+\.\s*/, "").replace(/^[IVXLC]+\.\s+/, "").trim();
@@ -386,7 +378,6 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
       return;
     }
 
-    // ### subheadings
     if (/^#{3,6}\s/.test(t)) {
       flushList(); underSubheading = true;
       const txt = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").trim();
@@ -394,7 +385,6 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
       return;
     }
 
-    // Practice Q&A
     const qa = t.match(/^(\d+)\.\s(.+?)\s*→\s*(.+)$/);
     if (qa) {
       flushList(); underSubheading = false;
@@ -415,10 +405,8 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
     }
     if (inPractice && t.startsWith("→")) return;
 
-    // Explicit bullet
     if (t.startsWith("- ")) { pushBullet(t.slice(2), `li-${i}`); return; }
 
-    // Numbered list
     if (/^\d+\.\s/.test(t) && !t.includes("→") && !inPractice) {
       if (!listBuf || listBuf.type !== "ol") { flushList(); listBuf = { type: "ol", items: [] }; }
       const num = t.match(/^(\d+)/)?.[1] ?? "";
@@ -431,7 +419,6 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
       return;
     }
 
-    // Bold label → subheading
     const boldLabelMatch = t.match(/^\*\*([^*]+)\*\*:?$/);
     if (boldLabelMatch) {
       flushList();
@@ -440,7 +427,6 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
       return;
     }
 
-    // Sub-labels ending with ":"
     const isSubLabel = /^[A-Za-z*\s()–-]{2,60}:$/.test(t);
     if (isSubLabel) {
       flushList();
@@ -449,7 +435,6 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
       return;
     }
 
-    // Auto-bullet under subheading
     if (underSubheading) {
       if (t.startsWith("⚠️") || t.startsWith("⚠")) {
         flushList();
@@ -467,7 +452,6 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
 
     flushList(); underSubheading = false;
 
-    // Warning callout
     if (t.startsWith("⚠️") || t.startsWith("⚠")) {
       els.push(
         <div key={`wp-${i}`} className="my-3 flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2.5">
@@ -478,7 +462,6 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
       return;
     }
 
-    // Paragraph
     els.push(<p key={`p-${i}`} className="mb-5 text-base leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
   });
 
@@ -517,8 +500,8 @@ export default function BlogPost() {
   const { toast } = useToast();
   const { isAdmin, user } = useAuth();
 
-
   const [article, setArticle] = useState<Article | null>(null);
+  const [notFound, setNotFound] = useState(false); // ✅ track not-found separately
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; mcqs: any[] }>({ articles: [], flashcards: [], mcqs: [] });
@@ -629,12 +612,10 @@ export default function BlogPost() {
   const runGenerateCoverImage = async () => {
     if (!article) return;
     setActionLoading("image");
-
     try {
       const { data, error } = await supabase.functions.invoke("content-upgrade", {
         body: { action: "generate_image", id: article.id },
       });
-
       if (error) throw new Error(error.message);
       const imageDataUrl = data?.image_data_url as string | undefined;
       if (!imageDataUrl) throw new Error("No image returned");
@@ -661,11 +642,7 @@ export default function BlogPost() {
     if (!article) return;
     setActionLoading("titles");
     try {
-      const normalizedTitle = article.title
-        .replace(/^#+\s*/, "")
-        .replace(/\s+/g, " ")
-        .trim();
-
+      const normalizedTitle = article.title.replace(/^#+\s*/, "").replace(/\s+/g, " ").trim();
       const normalizedContent = article.content
         .split("\n")
         .map((line) => {
@@ -715,7 +692,6 @@ export default function BlogPost() {
     }
   };
 
-  /* Direct migrate: auto-route essay content, else try MCQ parse → fallback to raw */
   const runDirectMigrate = async () => {
     if (!article) return;
     setActionLoading("fix");
@@ -748,12 +724,31 @@ export default function BlogPost() {
     }
   };
 
+  // ✅ FIXED: noindex on not-found, no debug info exposed
   useEffect(() => {
     if (!slug) { setLoading(false); return; }
     getArticleBySlugOrId(slug)
       .then((a) => {
+        if (!a) {
+          setNotFound(true);
+          document.title = "Article Not Found | OMPATH";
+          let noindex = document.querySelector('meta[name="robots"]');
+          if (!noindex) {
+            noindex = document.createElement("meta");
+            noindex.setAttribute("name", "robots");
+            document.head.appendChild(noindex);
+          }
+          noindex.setAttribute("content", "noindex, nofollow");
+          const canonical = document.querySelector('link[rel="canonical"]');
+          if (canonical) canonical.remove();
+          return;
+        }
+
+        // Remove noindex if article found
+        const noindex = document.querySelector('meta[name="robots"]');
+        if (noindex) noindex.remove();
+
         setArticle(a);
-        if (!a) return;
         const canonicalPath = buildBlogPath(a);
         if (location.pathname !== canonicalPath) navigate(canonicalPath, { replace: true });
         markArticleVisited({ id: a.id, title: a.title, category: a.category, visitedAt: Date.now() });
@@ -762,7 +757,6 @@ export default function BlogPost() {
       .finally(() => setLoading(false));
   }, [slug, navigate, location.pathname]);
 
-  // Intersection observer for active TOC section
   const toc = useMemo(() => article ? extractToc(article.content) : [], [article]);
 
   useEffect(() => {
@@ -782,7 +776,6 @@ export default function BlogPost() {
     return () => observer.disconnect();
   }, [toc, loading]);
 
-  // Dynamic OG meta tags for sharing
   useEffect(() => {
     if (!article) return;
     const metaTitle = article.meta_title?.includes("OMPATH") ? article.meta_title : `${article.title} | OMPATH`;
@@ -796,11 +789,16 @@ export default function BlogPost() {
       description: metaDesc,
       image: ogImage,
       url: canonicalUrl,
-      type: "article"
+      type: "article",
     });
 
     let ldScript = document.querySelector("script[data-article-ld]") as HTMLScriptElement | null;
-    if (!ldScript) { ldScript = document.createElement("script"); ldScript.type = "application/ld+json"; ldScript.setAttribute("data-article-ld", "true"); document.head.appendChild(ldScript); }
+    if (!ldScript) {
+      ldScript = document.createElement("script");
+      ldScript.type = "application/ld+json";
+      ldScript.setAttribute("data-article-ld", "true");
+      document.head.appendChild(ldScript);
+    }
     ldScript.textContent = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "Article",
@@ -825,11 +823,17 @@ export default function BlogPost() {
     return <div className="flex min-h-[65vh] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
 
-  if (!article) {
+  // ✅ FIXED: clean not-found page, no debug info, noindex already set above
+  if (notFound || !article) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-        <h1 className="mb-4 text-2xl font-bold text-foreground">Article not found</h1>
-        <Button asChild variant="outline"><Link to="/blog"><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link></Button>
+        <h1 className="mb-2 text-2xl font-bold text-foreground">Article Not Found</h1>
+        <p className="mb-6 text-sm text-muted-foreground">
+          This article may have been removed or the link may be incorrect.
+        </p>
+        <Button asChild variant="outline">
+          <Link to="/blog"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Study Notes</Link>
+        </Button>
       </div>
     );
   }
@@ -872,7 +876,6 @@ export default function BlogPost() {
           <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-5 py-3">
             <span className="mr-1 text-xs font-bold uppercase tracking-wider text-primary">Admin</span>
 
-            {/* Direct Migrate — no AI, prominent */}
             <Button size="sm" className="h-8 gap-1.5 text-xs bg-primary hover:bg-primary/90" disabled={!!actionLoading} onClick={runDirectMigrate}>
               {actionLoading === "fix" ? <Loader2 className="h-3 w-3 animate-spin" /> : <GitMerge className="h-3 w-3" />}
               Migrate to MCQs
@@ -936,17 +939,15 @@ export default function BlogPost() {
         </div>
       )}
 
-      {/* Main layout: sidebar TOC + article */}
+      {/* Main layout */}
       <div className="mx-auto max-w-6xl px-5 py-8">
         <div className={toc.length > 0 ? "lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10" : "max-w-3xl mx-auto"}>
-          {/* Left sidebar: TOC — only show when real headings exist */}
           {toc.length > 0 && (
             <aside className="hidden lg:block">
               <SidebarToc items={toc} activeId={activeSection} />
             </aside>
           )}
 
-          {/* Article body */}
           <article id="section-top" className="min-w-0">
             <header className="mb-10">
               <h1 className="mb-3 font-serif text-4xl font-bold leading-tight text-foreground sm:text-5xl">
@@ -971,11 +972,9 @@ export default function BlogPost() {
             </header>
 
             <div className="prose-custom">
-
               <ArticleContent content={article.content} />
             </div>
 
-            {/* Share after content */}
             <div className="mt-10 pt-6 border-t border-border">
               <ShareButtons
                 url={`${SITE_URL}${buildBlogPath(article)}`}
@@ -985,7 +984,6 @@ export default function BlogPost() {
               />
             </div>
 
-            {/* Related content */}
             {hasRelated && (
               <div className="mt-12 rounded-lg border border-border p-5">
                 <div className="flex items-center gap-2 mb-4">
@@ -1025,7 +1023,6 @@ export default function BlogPost() {
               </div>
             )}
           </article>
-
         </div>
       </div>
     </>
