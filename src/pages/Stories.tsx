@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Loader2, BookOpen, Search, X, PenLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { buildStoryPath, stripRichText, updateMetaTags } from "@/lib/seo";
+import { buildStoryPath, stripRichText, updateMetaTags, SITE_URL } from "@/lib/seo";
 
 interface Story {
   id: string;
@@ -20,6 +20,8 @@ export default function Stories() {
     updateMetaTags({
       title: "Medical Stories | OMPATH",
       description: "Medical stories, narratives and experiences from Kenyan medical students and professionals.",
+      url: `${SITE_URL}/stories`,
+      type: "website",
     });
   }, []);
 
