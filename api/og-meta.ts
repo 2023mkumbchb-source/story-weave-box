@@ -2,7 +2,7 @@ export const config = {
   runtime: "edge",
 };
 
-const OG_FALLBACK_IMAGE = "https://ompathstudy.com/og-default.png";
+const OG_FALLBACK_IMAGE = "https://www.ompathstudy.com/og-default.png";
 
 function isCrawler(userAgent: string | null): boolean {
   const ua = (userAgent || "").toLowerCase();
@@ -26,8 +26,6 @@ function isCrawler(userAgent: string | null): boolean {
   );
 }
 
-// General markdown/noise stripper for meta snippets (articles, descriptions)
-// FIX 2: added strip for leading "Summary / Introduction / Overview / Note" labels
 function cleanForMetaSnippet(input: string): string {
   if (!input) return "";
   return input
@@ -41,35 +39,24 @@ function cleanForMetaSnippet(input: string): string {
     .trim();
 }
 
-// Aggressive cleaner specifically for MCQ question stems.
-// Your questions look like: "## Question 1 About some GIT hormones (true or false): - ("
-// This strips everything before and including the question number label,
-// and the trailing " - (" artifact.
 function cleanQuestionStem(raw: string): string {
   if (!raw) return "";
-  let s = raw
-    // Remove markdown headings
+  return raw
     .replace(/^#{1,6}\s*/gm, "")
-    // Remove "Question N" prefix (with optional colon/dash/space after)
     .replace(/^Question\s+\d+[\s:\-]*/i, "")
-    // Remove trailing " - (" or "- (" artifacts (leftover from true/false formatting)
     .replace(/\s*-\s*\(\s*$/, "")
-    // Remove remaining markdown
     .replace(/[*_`>|]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return s;
 }
 
-// Clean an answer option — strip leading letter labels like "A. " or "(A) ",
-// trailing " - (" artifacts, and other noise
 function cleanOption(raw: string): string {
   if (!raw) return "";
   return raw
-    .replace(/^[A-E][.)]\s*/i, "")       // strip "A. " or "B) " prefix
-    .replace(/\s*-\s*\(\s*$/, "")         // strip trailing " - ("
-    .replace(/\s*\(\s*$/, "")             // strip trailing lone "("
-    .replace(/\s*-\s*$/, "")              // strip trailing lone " -"
+    .replace(/^[A-E][.)]\s*/i, "")
+    .replace(/\s*-\s*\(\s*$/, "")
+    .replace(/\s*\(\s*$/, "")
+    .replace(/\s*-\s*$/, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -216,7 +203,6 @@ function parseQuestion(q: unknown): ParsedQuestion | null {
   if (!q || typeof q !== "object") return null;
   const obj = q as Record<string, unknown>;
 
-  // --- stem ---
   const rawStem =
     (typeof obj.question === "string" ? obj.question : "") ||
     (typeof obj.stem === "string" ? obj.stem : "") ||
@@ -225,8 +211,6 @@ function parseQuestion(q: unknown): ParsedQuestion | null {
   const stem = cleanQuestionStem(rawStem);
   if (!stem) return null;
 
-  // --- options ---
-  // Get raw explanation first so we can filter it out if it leaked into the options array
   const rawExplanation =
     typeof obj.explanation === "string" ? obj.explanation.trim() : "";
   const explanationPrefix = rawExplanation.slice(0, 30).toLowerCase();
@@ -243,16 +227,13 @@ function parseQuestion(q: unknown): ParsedQuestion | null {
           (typeof oo.label === "string" ? oo.label : "");
       }
       if (!raw) continue;
-      // Skip if this option is actually the explanation text leaking into the options array
       if (explanationPrefix && raw.trim().toLowerCase().startsWith(explanationPrefix)) continue;
       const cleaned = cleanOption(raw);
-      // Skip empty or noise-only items (length < 3)
       if (!cleaned || cleaned.length < 3) continue;
       options.push(cleaned);
     }
   }
 
-  // --- correct answer ---
   const correctIdx =
     typeof obj.correct_answer === "number"
       ? obj.correct_answer
@@ -271,7 +252,6 @@ function parseQuestion(q: unknown): ParsedQuestion | null {
       ? options[correctIdx]
       : options[0] || "";
 
-  // --- explanation ---
   const explanation =
     typeof obj.explanation === "string"
       ? cleanForMetaSnippet(obj.explanation)
@@ -280,7 +260,6 @@ function parseQuestion(q: unknown): ParsedQuestion | null {
   return { stem, options, correctText, explanation };
 }
 
-// Extract front/question text from a flashcard object.
 function getCardFront(c: unknown): string {
   if (!c || typeof c !== "object") return "";
   const obj = c as Record<string, unknown>;
@@ -360,8 +339,8 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   try {
-    const origin = url.origin;
-    const absoluteUrl = new URL(originalPath, origin).toString();
+    const origin = "https://www.ompathstudy.com";
+    const absoluteUrl = `${origin}${originalPath.split("?")[0]}`;
     const parts = originalPath.split("?")[0].split("/").filter(Boolean);
     const section = parts[0] || "";
     const param = parts[1] || "";
@@ -380,8 +359,8 @@ export default async function handler(req: Request): Promise<Response> {
       const article = await fetchArticleBySlug(param);
       if (!article) {
         return new Response(
-          `<html><body><h1>DEBUG: article not found</h1><p>slug: "${param}"</p></body></html>`,
-          { status: 200, headers: { "content-type": "text/html" } }
+          `<html><body><h1>Page not found</h1><p>This article does not exist.</p></body></html>`,
+          { status: 404, headers: { "content-type": "text/html" } }
         );
       }
       const rawTitle = article.meta_title || article.title;
@@ -390,7 +369,6 @@ export default async function handler(req: Request): Promise<Response> {
         to160(rawDesc) ||
         `Study ${article.title} with OmpathStudy — medical notes and practice questions for students in Kenya.`;
 
-      // FIX 1: append site branding to article titles
       title = cleanForMetaSnippet(rawTitle) + " | OmpathStudy Kenya";
       description = cleanDesc;
       ogImage = article.og_image_url || OG_FALLBACK_IMAGE;
@@ -414,91 +392,99 @@ export default async function handler(req: Request): Promise<Response> {
 
     } else if (section === "mcqs" && param) {
       const mcq = await fetchMcqSetBySlugOrId(param);
-      if (mcq) {
-        const rawQuestions: unknown[] = Array.isArray(mcq.questions) ? mcq.questions : [];
-        const parsed = rawQuestions.map(parseQuestion).filter((p): p is ParsedQuestion => p !== null);
-        const qCount = rawQuestions.length;
-
-        title = `${mcq.title} | MCQ Quiz | OmpathStudy Kenya`;
-        description = to160(
-          `Practice ${qCount > 0 ? qCount + " " : ""}MCQs on ${mcq.title} with OmpathStudy. Built for Kenyan medical and health students to revise key concepts and prepare for exams.`
+      if (!mcq) {
+        return new Response(
+          `<html><body><h1>Page not found</h1><p>This MCQ set does not exist.</p></body></html>`,
+          { status: 404, headers: { "content-type": "text/html" } }
         );
-        ogImage = OG_FALLBACK_IMAGE;
-        keywords = `OmpathStudy, MCQs Kenya, ${mcq.category || ""}, medical quizzes, nursing quizzes, exam practice, medical education Kenya`;
-        type = "article";
-
-        if (parsed.length > 0) {
-          const items = parsed.map((p, i) => {
-            const optionsList = p.options.length > 0
-              ? `<ul>${p.options.map(o => `<li>${htmlEscape(o)}</li>`).join("")}</ul>`
-              : "";
-            const answerLine = p.correctText
-              ? `<p><strong>Answer:</strong> ${htmlEscape(p.correctText)}</p>`
-              : "";
-            const explanationLine = p.explanation
-              ? `<p><strong>Explanation:</strong> ${htmlEscape(p.explanation)}</p>`
-              : "";
-            return `<li>
-  <p><strong>Q${i + 1}.</strong> ${htmlEscape(p.stem)}</p>
-  ${optionsList}
-  ${answerLine}
-  ${explanationLine}
-</li>`;
-          });
-          bodyExtra = `<h2>Questions, Answers &amp; Explanations</h2>\n<ol>\n${items.join("\n")}\n</ol>`;
-        }
-
-        const schemaQuestions = parsed.slice(0, 50).map((p) => {
-          const item: Record<string, unknown> = {
-            "@type": "Question",
-            name: p.stem,
-          };
-          if (p.correctText) {
-            item.acceptedAnswer = {
-              "@type": "Answer",
-              text: p.correctText + (p.explanation ? " — " + p.explanation : ""),
-            };
-          }
-          return item;
-        });
-
-        schemaJson = JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Quiz",
-          name: title,
-          description,
-          url: absoluteUrl,
-          datePublished: mcq.created_at,
-          provider: { "@type": "Organization", name: "OmpathStudy" },
-          ...(schemaQuestions.length > 0 ? { hasPart: schemaQuestions } : {}),
-        });
       }
+      const rawQuestions: unknown[] = Array.isArray(mcq.questions) ? mcq.questions : [];
+      const parsed = rawQuestions.map(parseQuestion).filter((p): p is ParsedQuestion => p !== null);
+      const qCount = rawQuestions.length;
+
+      title = `${mcq.title} | MCQ Quiz | OmpathStudy Kenya`;
+      description = to160(
+        `Practice ${qCount > 0 ? qCount + " " : ""}MCQs on ${mcq.title} with OmpathStudy. Built for Kenyan medical and health students to revise key concepts and prepare for exams.`
+      );
+      ogImage = OG_FALLBACK_IMAGE;
+      keywords = `OmpathStudy, MCQs Kenya, ${mcq.category || ""}, medical quizzes, nursing quizzes, exam practice, medical education Kenya`;
+      type = "article";
+
+      if (parsed.length > 0) {
+        const items = parsed.map((p, i) => {
+          const optionsList = p.options.length > 0
+            ? `<ul>${p.options.map(o => `<li>${htmlEscape(o)}</li>`).join("")}</ul>`
+            : "";
+          const answerLine = p.correctText
+            ? `<p><strong>Answer:</strong> ${htmlEscape(p.correctText)}</p>`
+            : "";
+          const explanationLine = p.explanation
+            ? `<p><strong>Explanation:</strong> ${htmlEscape(p.explanation)}</p>`
+            : "";
+          return `<li>
+<p><strong>Q${i + 1}.</strong> ${htmlEscape(p.stem)}</p>
+${optionsList}
+${answerLine}
+${explanationLine}
+</li>`;
+        });
+        bodyExtra = `<h2>Questions, Answers &amp; Explanations</h2>\n<ol>\n${items.join("\n")}\n</ol>`;
+      }
+
+      const schemaQuestions = parsed.slice(0, 50).map((p) => {
+        const item: Record<string, unknown> = {
+          "@type": "Question",
+          name: p.stem,
+        };
+        if (p.correctText) {
+          item.acceptedAnswer = {
+            "@type": "Answer",
+            text: p.correctText + (p.explanation ? " — " + p.explanation : ""),
+          };
+        }
+        return item;
+      });
+
+      schemaJson = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Quiz",
+        name: title,
+        description,
+        url: absoluteUrl,
+        datePublished: mcq.created_at,
+        provider: { "@type": "Organization", name: "OmpathStudy" },
+        ...(schemaQuestions.length > 0 ? { hasPart: schemaQuestions } : {}),
+      });
 
     } else if (section === "flashcards" && param) {
       const set = await fetchFlashcardSetBySlugOrId(param);
-      if (set) {
-        const cards: unknown[] = Array.isArray(set.cards) ? set.cards : [];
-        const cardCount = cards.length;
-
-        title = `${set.title} | Flashcards | OmpathStudy Kenya`;
-        description = to160(
-          `Study ${cardCount > 0 ? cardCount + " " : ""}flashcards on ${set.title} with OmpathStudy. Quick, focused revision for Kenyan medical and health students by unit and year.`
+      if (!set) {
+        return new Response(
+          `<html><body><h1>Page not found</h1><p>This flashcard set does not exist.</p></body></html>`,
+          { status: 404, headers: { "content-type": "text/html" } }
         );
-        ogImage = OG_FALLBACK_IMAGE;
-        keywords = `OmpathStudy, flashcards Kenya, ${set.category || ""}, medical revision, nursing revision, exam prep, medical education Kenya`;
-        type = "article";
+      }
+      const cards: unknown[] = Array.isArray(set.cards) ? set.cards : [];
+      const cardCount = cards.length;
 
-        const cardItems = cards.map((c, i) => {
-          const front = getCardFront(c);
-          const back = getCardBack(c);
-          if (!front) return "";
-          const backLine = back ? `<p><strong>Answer:</strong> ${htmlEscape(back)}</p>` : "";
-          return `<li><p><strong>Q${i + 1}.</strong> ${htmlEscape(front)}</p>${backLine}</li>`;
-        }).filter(Boolean);
+      title = `${set.title} | Flashcards | OmpathStudy Kenya`;
+      description = to160(
+        `Study ${cardCount > 0 ? cardCount + " " : ""}flashcards on ${set.title} with OmpathStudy. Quick, focused revision for Kenyan medical and health students by unit and year.`
+      );
+      ogImage = OG_FALLBACK_IMAGE;
+      keywords = `OmpathStudy, flashcards Kenya, ${set.category || ""}, medical revision, nursing revision, exam prep, medical education Kenya`;
+      type = "article";
 
-        if (cardItems.length > 0) {
-          bodyExtra = `<h2>Flashcards</h2>\n<ol>\n${cardItems.join("\n")}\n</ol>`;
-        }
+      const cardItems = cards.map((c, i) => {
+        const front = getCardFront(c);
+        const back = getCardBack(c);
+        if (!front) return "";
+        const backLine = back ? `<p><strong>Answer:</strong> ${htmlEscape(back)}</p>` : "";
+        return `<li><p><strong>Q${i + 1}.</strong> ${htmlEscape(front)}</p>${backLine}</li>`;
+      }).filter(Boolean);
+
+      if (cardItems.length > 0) {
+        bodyExtra = `<h2>Flashcards</h2>\n<ol>\n${cardItems.join("\n")}\n</ol>`;
       }
 
     } else if (section === "exams" && param) {
@@ -517,31 +503,40 @@ export default async function handler(req: Request): Promise<Response> {
           url: absoluteUrl,
           provider: { "@type": "Organization", name: "OmpathStudy" },
         });
-        bodyExtra = `<p>Timed exam with ${qCount} MCQs. Unit: ${exam.category || "General"}. Proctored and auto-submitted. Available to Kenyan health students on OmpathStudy.</p>`;
+        bodyExtra = `<p>Timed exam with ${qCount} MCQs. Unit: ${exam.category || "General"}. Available to Kenyan health students on OmpathStudy.</p>`;
       }
+
     } else if (section === "essays" && param) {
       const essay = await fetchEssayByIdOrSlug(param);
-      if (essay) {
-        title = `${essay.title} | Essays | OmpathStudy Kenya`;
-        description = to160(
-          `Practice SAQs and LAQs on ${essay.title} with OmpathStudy. Improve structured answering for Kenyan medical and health students.`
+      if (!essay) {
+        return new Response(
+          `<html><body><h1>Page not found</h1><p>This essay does not exist.</p></body></html>`,
+          { status: 404, headers: { "content-type": "text/html" } }
         );
-        ogImage = OG_FALLBACK_IMAGE;
-        keywords = `OmpathStudy, essays Kenya, SAQ, LAQ, ${essay.category || ""}, written questions, exam technique, medical education Kenya`;
-        type = "article";
       }
+      title = `${essay.title} | Essays | OmpathStudy Kenya`;
+      description = to160(
+        `Practice SAQs and LAQs on ${essay.title} with OmpathStudy. Improve structured answering for Kenyan medical and health students.`
+      );
+      ogImage = OG_FALLBACK_IMAGE;
+      keywords = `OmpathStudy, essays Kenya, SAQ, LAQ, ${essay.category || ""}, written questions, exam technique, medical education Kenya`;
+      type = "article";
 
     } else if (section === "stories" && param) {
       const story = await fetchStoryByParam(param);
-      if (story) {
-        title = `${story.title} | Story | OmpathStudy Kenya`;
-        description =
-          to160(story.content || "") ||
-          "Read a medical story on OmpathStudy — built for Kenyan medical and health students to learn, reflect, and grow.";
-        ogImage = story.cover_image_url || OG_FALLBACK_IMAGE;
-        keywords = `OmpathStudy, medical stories, reflective practice, ${story.category || ""}, medical students Kenya`;
-        type = "article";
+      if (!story) {
+        return new Response(
+          `<html><body><h1>Page not found</h1><p>This story does not exist.</p></body></html>`,
+          { status: 404, headers: { "content-type": "text/html" } }
+        );
       }
+      title = `${story.title} | Story | OmpathStudy Kenya`;
+      description =
+        to160(story.content || "") ||
+        "Read a medical story on OmpathStudy — built for Kenyan medical and health students to learn, reflect, and grow.";
+      ogImage = story.cover_image_url || OG_FALLBACK_IMAGE;
+      keywords = `OmpathStudy, medical stories, reflective practice, ${story.category || ""}, medical students Kenya`;
+      type = "article";
 
     } else if (section === "year" && param) {
       const yr = param.replace(/[^0-9]/g, "");
@@ -571,10 +566,8 @@ export default async function handler(req: Request): Promise<Response> {
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     return new Response(
-      `<html><body><h1>DEBUG ERROR</h1><pre>${htmlEscape(errMsg)}</pre></body></html>`,
-      { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }
+      `<html><body><h1>Error</h1><pre>${htmlEscape(errMsg)}</pre></body></html>`,
+      { status: 500, headers: { "content-type": "text/html; charset=utf-8" } }
     );
   }
 }
-
-
