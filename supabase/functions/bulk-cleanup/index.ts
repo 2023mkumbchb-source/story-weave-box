@@ -446,7 +446,7 @@ Allowed categories:\n${allowedCategories}`,
 }
 
 async function fetchArticleBatch(
-  sb: ReturnType<typeof createClient>,
+  sb: any,
   batchSize: number,
   cursor: string | null,
   yearFilter: string | null,
