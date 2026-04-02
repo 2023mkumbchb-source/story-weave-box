@@ -641,26 +641,26 @@ export async function getCategories(): Promise<{ name: string; count: number }[]
 }
 
 export async function getArticleCategories(): Promise<ArticleCategory[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("article_categories")
     .select("*")
     .order("name", { ascending: true });
   if (error) throw error;
-  return (data || []) as ArticleCategory[];
+  return (data || []) as unknown as ArticleCategory[];
 }
 
 export async function saveArticleCategory(name: string): Promise<ArticleCategory> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("article_categories")
     .insert({ name: name.trim() })
     .select()
     .single();
   if (error) throw error;
-  return data as ArticleCategory;
+  return data as unknown as ArticleCategory;
 }
 
 export async function deleteArticleCategory(id: string) {
-  const { error } = await supabase.from("article_categories").delete().eq("id", id);
+  const { error } = await (supabase as any).from("article_categories").delete().eq("id", id);
   if (error) throw error;
 }
 
