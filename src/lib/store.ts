@@ -6,7 +6,7 @@ export interface Article {
   title: string;
   content: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   published: boolean;
   original_notes: string;
   category: string;
