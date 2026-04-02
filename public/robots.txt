@@ -36,5 +36,5 @@ Allow: /
 User-agent: Googlebot
 Allow: /
 
-Sitemap: https://ompathstudy.com/sitemap.xml
-Sitemap: https://ompathstudy.com/sitemap-dynamic.xml
+Sitemap: https://www.ompathstudy.com/sitemap.xml
+Sitemap: https://www.ompathstudy.com/sitemap-dynamic.xml
