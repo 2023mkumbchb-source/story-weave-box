@@ -46,9 +46,9 @@ function normalizeBaseUrl(url: string | null | undefined): string {
   return withProtocol.replace(/\/+$/, "");
 }
 
-async function resolveSiteUrl(sb: ReturnType<typeof createClient>): Promise<string> {
+async function resolveSiteUrl(sb: any): Promise<string> {
   const { data } = await sb.from("app_settings").select("value").eq("key", "site_url").maybeSingle();
-  return normalizeBaseUrl(data?.value);
+  return normalizeBaseUrl((data as any)?.value);
 }
 
 function escapeHtml(str: string): string {

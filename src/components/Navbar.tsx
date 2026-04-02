@@ -19,7 +19,6 @@ const YEAR_SECTIONS = [
   { label: "Blog", path: "blog", icon: BookOpen },
   { label: "Flashcards", path: "flashcards", icon: GraduationCap },
   { label: "MCQs", path: "mcqs", icon: ListChecks },
-  { label: "Essays", path: "essays", icon: FileText },
   { label: "Exams", path: "exams", icon: Trophy },
 ];
 

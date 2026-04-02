@@ -35,6 +35,24 @@ export type Database = {
         }
         Relationships: []
       }
+      article_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       articles: {
         Row: {
           category: string
@@ -96,6 +114,7 @@ export type Database = {
           long_answer_questions: Json
           published: boolean
           short_answer_questions: Json
+          slug: string | null
           title: string
           updated_at: string
         }
@@ -108,6 +127,7 @@ export type Database = {
           long_answer_questions?: Json
           published?: boolean
           short_answer_questions?: Json
+          slug?: string | null
           title: string
           updated_at?: string
         }
@@ -120,6 +140,7 @@ export type Database = {
           long_answer_questions?: Json
           published?: boolean
           short_answer_questions?: Json
+          slug?: string | null
           title?: string
           updated_at?: string
         }
@@ -197,6 +218,7 @@ export type Database = {
           is_raw: boolean | null
           original_notes: string
           published: boolean
+          slug: string | null
           title: string
           updated_at: string
         }
@@ -209,6 +231,7 @@ export type Database = {
           is_raw?: boolean | null
           original_notes?: string
           published?: boolean
+          slug?: string | null
           title: string
           updated_at?: string
         }
@@ -221,6 +244,7 @@ export type Database = {
           is_raw?: boolean | null
           original_notes?: string
           published?: boolean
+          slug?: string | null
           title?: string
           updated_at?: string
         }
@@ -237,6 +261,7 @@ export type Database = {
           original_notes: string
           published: boolean
           questions: Json
+          slug: string | null
           title: string
           updated_at: string
         }
@@ -250,6 +275,7 @@ export type Database = {
           original_notes?: string
           published?: boolean
           questions?: Json
+          slug?: string | null
           title: string
           updated_at?: string
         }
@@ -263,6 +289,7 @@ export type Database = {
           original_notes?: string
           published?: boolean
           questions?: Json
+          slug?: string | null
           title?: string
           updated_at?: string
         }
@@ -373,6 +400,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           published: boolean
+          slug: string | null
           title: string
         }
         Insert: {
@@ -383,6 +411,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           published?: boolean
+          slug?: string | null
           title: string
         }
         Update: {
@@ -393,6 +422,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           published?: boolean
+          slug?: string | null
           title?: string
         }
         Relationships: []

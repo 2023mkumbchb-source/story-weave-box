@@ -446,7 +446,7 @@ Allowed categories:\n${allowedCategories}`,
 }
 
 async function fetchArticleBatch(
-  sb: ReturnType<typeof createClient>,
+  sb: any,
   batchSize: number,
   cursor: string | null,
   yearFilter: string | null,
@@ -484,7 +484,7 @@ type ProcessNonAiResult = {
 };
 
 async function processNonAiArticle(
-  sb: ReturnType<typeof createClient>,
+  sb: any,
   article: ArticleLite,
 ): Promise<ProcessNonAiResult> {
   const rawContent = article.content || "";

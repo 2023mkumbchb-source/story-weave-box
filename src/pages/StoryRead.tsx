@@ -52,9 +52,9 @@ export default function StoryRead() {
 
           const url = `${SITE_URL}${canonicalPath}`;
           const fallbackDesc = stripRichText(data.content || "", 160);
-          const metaTitle = data.meta_title || `${data.title} | OMPATH Stories`;
-          const metaDesc = data.meta_description || fallbackDesc;
-          const image = data.og_image_url || data.cover_image_url || `${SITE_URL}/og-default.png`;
+          const metaTitle = (data as any).meta_title || `${data.title} | OMPATH Stories`;
+          const metaDesc = (data as any).meta_description || fallbackDesc;
+          const image = (data as any).og_image_url || data.cover_image_url || `${SITE_URL}/og-default.png`;
 
           updateMetaTags({
             title: metaTitle,

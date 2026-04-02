@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DEFAULT_BASE_URL = "https://ompathstudy.com";
+const DEFAULT_BASE_URL = "https://www.ompathstudy.com";
 
 function slugify(value: string): string {
   return (value || "")
@@ -26,6 +26,23 @@ function normalizeBaseUrl(url: string | null | undefined): string {
   return withProtocol.replace(/\/+$/, "");
 }
 
+function escapeXml(str: string): string {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function extractFirstImage(content: string | null): string | null {
+  if (!content) return null;
+  const md = content.match(/!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/i);
+  if (md) return md[1];
+  const html = content.match(/<img[^>]+src=["'](https?:\/\/[^\s"']+)["'][^>]*>/i);
+  return html ? html[1] : null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -38,70 +55,80 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const { data: siteUrlSetting } = await supabase.from("app_settings").select("value").eq("key", "site_url").maybeSingle();
-    const baseUrl = normalizeBaseUrl(siteUrlSetting?.value);
+    const baseUrl = normalizeBaseUrl((siteUrlSetting as any)?.value);
 
-    const [{ data: articles }, { data: mcqs }, { data: flashcards }, { data: essays }, { data: stories }] = await Promise.all([
-      supabase.from("articles").select("id, title, slug, created_at, updated_at, category").eq("published", true).is("deleted_at", null),
+    const [{ data: articles }, { data: mcqs }, { data: flashcards }, { data: stories }] = await Promise.all([
+      supabase.from("articles").select("id, title, slug, content, created_at, updated_at, category, og_image_url").eq("published", true).is("deleted_at", null),
       supabase.from("mcq_sets").select("id, title, slug, created_at, updated_at, category").eq("published", true).is("deleted_at", null),
       supabase.from("flashcard_sets").select("id, title, slug, created_at, updated_at, category").eq("published", true).is("deleted_at", null),
-      supabase.from("essays").select("id, title, slug, created_at, updated_at, category").eq("published", true).is("deleted_at", null),
-      supabase.from("stories").select("id, title, slug, created_at, updated_at, category").eq("published", true).is("deleted_at", null),
+      supabase.from("stories").select("id, title, slug, created_at, category, cover_image_url, content").eq("published", true).is("deleted_at", null),
     ]);
 
     const years = new Set<number>();
-    [...(articles || []), ...(mcqs || []), ...(flashcards || []), ...(essays || [])].forEach((item) => {
+    [...(articles || []), ...(mcqs || []), ...(flashcards || [])].forEach((item: any) => {
       const m = (item.category || "").match(/^Year (\d)/);
       if (m) years.add(parseInt(m[1]));
     });
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url><loc>${baseUrl}/</loc><priority>1.0</priority><changefreq>daily</changefreq></url>
   <url><loc>${baseUrl}/blog</loc><priority>0.9</priority><changefreq>daily</changefreq></url>
   <url><loc>${baseUrl}/stories</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
   <url><loc>${baseUrl}/flashcards</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
   <url><loc>${baseUrl}/mcqs</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
   <url><loc>${baseUrl}/exams</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
-  <url><loc>${baseUrl}/essays</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
 `;
 
     for (const y of Array.from(years).sort()) {
       xml += `  <url><loc>${baseUrl}/year/${y}</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>\n`;
     }
 
-    // Articles — use {id}-{slug} format
-    for (const a of articles || []) {
+    // Articles
+    for (const a of (articles || []) as any[]) {
       const articleSlug = a.slug || slugify(a.title) || "article";
       const lastmod = (a.updated_at || a.created_at) ? new Date(a.updated_at || a.created_at).toISOString().split("T")[0] : "";
-      xml += `  <url><loc>${baseUrl}/blog/${a.id}-${articleSlug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<priority>0.7</priority><changefreq>weekly</changefreq></url>\n`;
+      const imageUrl = a.og_image_url || extractFirstImage(a.content);
+      xml += `  <url>\n    <loc>${baseUrl}/blog/${articleSlug}</loc>\n`;
+      if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
+      if (imageUrl) {
+        xml += `    <image:image>\n      <image:loc>${escapeXml(imageUrl)}</image:loc>\n      <image:title>${escapeXml(a.title)}</image:title>\n    </image:image>\n`;
+      }
+      xml += `  </url>\n`;
     }
 
-    // Stories — use {id}-{slug} format
-    for (const s of stories || []) {
+    // Stories
+    for (const s of (stories || []) as any[]) {
       const storySlug = s.slug || slugify(s.title) || "story";
-      const lastmod = (s.updated_at || s.created_at) ? new Date(s.updated_at || s.created_at).toISOString().split("T")[0] : "";
-      xml += `  <url><loc>${baseUrl}/stories/${s.id}-${storySlug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<priority>0.7</priority><changefreq>weekly</changefreq></url>\n`;
+      const lastmod = s.created_at ? new Date(s.created_at).toISOString().split("T")[0] : "";
+      const imageUrl = s.cover_image_url || extractFirstImage(s.content);
+      xml += `  <url>\n    <loc>${baseUrl}/stories/${s.id}-${storySlug}</loc>\n`;
+      if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
+      if (imageUrl) {
+        xml += `    <image:image>\n      <image:loc>${escapeXml(imageUrl)}</image:loc>\n      <image:title>${escapeXml(s.title)}</image:title>\n    </image:image>\n`;
+      }
+      xml += `  </url>\n`;
     }
 
-    // MCQs — use slug if available, fallback to slugified title
-    for (const m of mcqs || []) {
+    // MCQs
+    for (const m of (mcqs || []) as any[]) {
       const mcqSlug = m.slug || slugify(m.title) || m.id;
       const lastmod = (m.updated_at || m.created_at) ? new Date(m.updated_at || m.created_at).toISOString().split("T")[0] : "";
-      xml += `  <url><loc>${baseUrl}/mcqs/${mcqSlug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<priority>0.6</priority><changefreq>weekly</changefreq></url>\n`;
+      xml += `  <url>\n    <loc>${baseUrl}/mcqs/${mcqSlug}</loc>\n`;
+      if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += `    <priority>0.6</priority>\n    <changefreq>weekly</changefreq>\n  </url>\n`;
     }
 
-    // Flashcards — use slug if available, fallback to slugified title
-    for (const f of flashcards || []) {
+    // Flashcards
+    for (const f of (flashcards || []) as any[]) {
       const flashcardSlug = f.slug || slugify(f.title) || f.id;
       const lastmod = (f.updated_at || f.created_at) ? new Date(f.updated_at || f.created_at).toISOString().split("T")[0] : "";
-      xml += `  <url><loc>${baseUrl}/flashcards/${flashcardSlug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<priority>0.6</priority><changefreq>weekly</changefreq></url>\n`;
-    }
-
-    // Essays — use slug (we just added these to the DB)
-    for (const e of essays || []) {
-      const essaySlug = e.slug || slugify(e.title) || e.id;
-      const lastmod = (e.updated_at || e.created_at) ? new Date(e.updated_at || e.created_at).toISOString().split("T")[0] : "";
-      xml += `  <url><loc>${baseUrl}/essays/${essaySlug}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<priority>0.6</priority><changefreq>weekly</changefreq></url>\n`;
+      xml += `  <url>\n    <loc>${baseUrl}/flashcards/${flashcardSlug}</loc>\n`;
+      if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += `    <priority>0.6</priority>\n    <changefreq>weekly</changefreq>\n  </url>\n`;
     }
 
     xml += `</urlset>`;

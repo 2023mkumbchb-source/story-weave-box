@@ -521,6 +521,7 @@ Rules:
     }
 
 
+    let systemPrompt = "";
     if (type === "article") {
       systemPrompt = `You are a medical education expert. Convert notes into an exam-focused study article in markdown.
 

@@ -6,7 +6,7 @@ export interface Article {
   title: string;
   content: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   published: boolean;
   original_notes: string;
   category: string;
@@ -28,7 +28,7 @@ export interface FlashcardSet {
   title: string;
   cards: { question: string; answer: string }[];
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   published: boolean;
   original_notes: string;
   category: string;
@@ -44,7 +44,7 @@ export interface McqSet {
   title: string;
   questions: { question: string; options: string[]; correct_answer: number; explanation?: string }[];
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   published: boolean;
   original_notes: string;
   category: string;
@@ -54,6 +54,7 @@ export interface McqSet {
   meta_description?: string;
   og_image_url?: string;
   slug?: string;
+  description?: string;
 }
 
 export interface Story {
@@ -640,26 +641,26 @@ export async function getCategories(): Promise<{ name: string; count: number }[]
 }
 
 export async function getArticleCategories(): Promise<ArticleCategory[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("article_categories")
     .select("*")
     .order("name", { ascending: true });
   if (error) throw error;
-  return (data || []) as ArticleCategory[];
+  return (data || []) as unknown as ArticleCategory[];
 }
 
 export async function saveArticleCategory(name: string): Promise<ArticleCategory> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("article_categories")
     .insert({ name: name.trim() })
     .select()
     .single();
   if (error) throw error;
-  return data as ArticleCategory;
+  return data as unknown as ArticleCategory;
 }
 
 export async function deleteArticleCategory(id: string) {
-  const { error } = await supabase.from("article_categories").delete().eq("id", id);
+  const { error } = await (supabase as any).from("article_categories").delete().eq("id", id);
   if (error) throw error;
 }
 
