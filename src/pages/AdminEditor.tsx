@@ -496,10 +496,10 @@ export default function AdminEditor() {
               <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Google Preview</p>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400 leading-tight truncate">
+                  <p className="text-sm font-medium text-primary leading-tight truncate">
                     {editMetaTitle || editTitle || "Page Title"}
                   </p>
-                  <p className="text-xs text-green-700 dark:text-green-500 truncate">
+                  <p className="text-xs text-accent-foreground/70 truncate">
                     {SITE_URL}/blog/{editSlug || slugifyText(editTitle) || "..."}
                   </p>
                   <p className="text-xs text-muted-foreground leading-snug line-clamp-2">
