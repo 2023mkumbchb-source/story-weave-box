@@ -32,10 +32,10 @@ function slugFromTitle(title: string): string {
     .replace(/^-|-$/g, "");
 }
 
-async function resolveBaseUrl(sb: ReturnType<typeof createClient>, bodySiteUrl?: unknown): Promise<string> {
+async function resolveBaseUrl(sb: any, bodySiteUrl?: unknown): Promise<string> {
   if (typeof bodySiteUrl === "string" && bodySiteUrl.trim()) return normalizeBaseUrl(bodySiteUrl);
   const { data } = await sb.from("app_settings").select("value").eq("key", "site_url").maybeSingle();
-  return normalizeBaseUrl(data?.value);
+  return normalizeBaseUrl((data as any)?.value);
 }
 
 function buildArticleUrl(base: string, a: { id: string; title: string; slug?: string | null }) {

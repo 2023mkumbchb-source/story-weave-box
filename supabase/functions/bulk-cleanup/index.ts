@@ -484,7 +484,7 @@ type ProcessNonAiResult = {
 };
 
 async function processNonAiArticle(
-  sb: ReturnType<typeof createClient>,
+  sb: any,
   article: ArticleLite,
 ): Promise<ProcessNonAiResult> {
   const rawContent = article.content || "";
