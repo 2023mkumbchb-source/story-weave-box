@@ -79,6 +79,9 @@ function htmlEscape(s: string): string {
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+const UUID_PREFIX_REGEX =
+  /^([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})-(.+)$/i;
+
 function extractUuidFromParam(value?: string | null): string | null {
   const v = String(value || "").trim();
   if (!v) return null;
@@ -116,14 +119,48 @@ async function sbFetch(table: string, params: string) {
 }
 
 async function fetchArticleBySlug(slug: string) {
-  const normalized = encodeURIComponent(decodeURIComponent(slug).trim().toLowerCase());
+  const decoded = decodeURIComponent(slug).trim().toLowerCase();
   const cols =
     "id,title,content,slug,published,deleted_at,meta_title,meta_description,og_image_url,created_at,updated_at,category";
-  const rows = await sbFetch(
+
+  // 1. Try exact slug match
+  const bySlug = await sbFetch(
     "articles",
-    `select=${cols}&slug=eq.${normalized}&published=eq.true&deleted_at=is.null&limit=1`
+    `select=${cols}&slug=eq.${encodeURIComponent(decoded)}&published=eq.true&deleted_at=is.null&limit=1`
   );
-  return rows && rows.length > 0 ? rows[0] : null;
+  if (bySlug && bySlug.length > 0) return bySlug[0];
+
+  // 2. Check if param is UUID-prefixed: {uuid}-{slug}
+  const uuidPrefixMatch = decoded.match(UUID_PREFIX_REGEX);
+  if (uuidPrefixMatch) {
+    const uuid = uuidPrefixMatch[1];
+    const strippedSlug = uuidPrefixMatch[2];
+
+    // 2a. Try by ID (most reliable)
+    const byId = await sbFetch(
+      "articles",
+      `select=${cols}&id=eq.${encodeURIComponent(uuid)}&published=eq.true&deleted_at=is.null&limit=1`
+    );
+    if (byId && byId.length > 0) return byId[0];
+
+    // 2b. Try stripped slug
+    const byStripped = await sbFetch(
+      "articles",
+      `select=${cols}&slug=eq.${encodeURIComponent(strippedSlug)}&published=eq.true&deleted_at=is.null&limit=1`
+    );
+    if (byStripped && byStripped.length > 0) return byStripped[0];
+  }
+
+  // 3. Try pure UUID
+  if (UUID_REGEX.test(decoded)) {
+    const byId = await sbFetch(
+      "articles",
+      `select=${cols}&id=eq.${encodeURIComponent(decoded)}&published=eq.true&deleted_at=is.null&limit=1`
+    );
+    if (byId && byId.length > 0) return byId[0];
+  }
+
+  return null;
 }
 
 async function fetchMcqSetBySlugOrId(param: string) {
