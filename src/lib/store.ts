@@ -44,7 +44,7 @@ export interface McqSet {
   title: string;
   questions: { question: string; options: string[]; correct_answer: number; explanation?: string }[];
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   published: boolean;
   original_notes: string;
   category: string;
@@ -54,6 +54,7 @@ export interface McqSet {
   meta_description?: string;
   og_image_url?: string;
   slug?: string;
+  description?: string;
 }
 
 export interface Story {
