@@ -159,7 +159,24 @@ function parseAndNormalizeMcqs(raw: string, expectedCount: number) {
     }
   }
 
-  return unique.slice(0, expectedCount);
+  // Redistribute answers to avoid consecutive same answers
+  const result = unique.slice(0, expectedCount);
+  for (let i = 1; i < result.length; i++) {
+    let consecutive = 1;
+    for (let j = i - 1; j >= 0 && result[j].correct_answer === result[i].correct_answer; j--) consecutive++;
+    if (consecutive >= 3) {
+      // Shuffle the correct answer by rotating options
+      const q = result[i];
+      const newCorrect = (q.correct_answer + 1 + Math.floor(Math.random() * 3)) % 4;
+      const opts = [...q.options];
+      const temp = opts[q.correct_answer];
+      opts[q.correct_answer] = opts[newCorrect];
+      opts[newCorrect] = temp;
+      result[i] = { ...q, options: opts, correct_answer: newCorrect };
+    }
+  }
+
+  return result;
 }
 
 function parseEssayOutput(raw: string) {

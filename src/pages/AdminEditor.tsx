@@ -157,12 +157,13 @@ export default function AdminEditor() {
     if (!currentArticleSummary || isAddMode) { setFullArticle(null); return; }
     let cancelled = false;
     setLoadingContent(true);
-    supabase.from("articles").select("*").eq("id", currentArticleSummary.id).single()
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data } = await supabase.from("articles").select("*").eq("id", currentArticleSummary.id).single();
         if (!cancelled && data) setFullArticle(data as Article);
-        setLoadingContent(false);
-      })
-      .catch(() => { if (!cancelled) setLoadingContent(false); });
+      } catch {}
+      if (!cancelled) setLoadingContent(false);
+    })();
     return () => { cancelled = true; };
   }, [currentArticleSummary?.id, isAddMode]);
 
