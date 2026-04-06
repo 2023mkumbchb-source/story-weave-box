@@ -132,6 +132,18 @@ serve(async (req) => {
       xml += `    <priority>0.6</priority>\n    <changefreq>weekly</changefreq>\n  </url>\n`;
     }
 
+    // Exams (unique exam sets)
+    const seenExamIds = new Set<string>();
+    for (const e of (exams || []) as any[]) {
+      if (seenExamIds.has(e.id)) continue;
+      seenExamIds.add(e.id);
+      const lastmod = (e.updated_at || e.created_at) ? new Date(e.updated_at || e.created_at).toISOString().split("T")[0] : "";
+      xml += `  <url>\n    <loc>${baseUrl}/exams</loc>\n`;
+      if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += `    <priority>0.6</priority>\n    <changefreq>weekly</changefreq>\n  </url>\n`;
+      break; // Only one exams page
+    }
+
     xml += `</urlset>`;
 
     return new Response(xml, {
