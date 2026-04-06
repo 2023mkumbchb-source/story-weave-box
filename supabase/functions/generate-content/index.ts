@@ -521,6 +521,27 @@ Rules:
     }
 
 
+    if (type === "generate-seo-meta") {
+      const messages = [
+        {
+          role: "system",
+          content: `You are a medical SEO expert. Given article info, generate optimized metadata.
+Return ONLY valid JSON: {"meta_title":"...","meta_description":"...","slug":"..."}
+- meta_title: max 60 chars, include key medical terms, compelling
+- meta_description: max 155 chars, informative and click-worthy
+- slug: lowercase, hyphens only, 3-6 words, no UUIDs`,
+        },
+        { role: "user", content: safeNotes.slice(0, 5000) },
+      ];
+      const text = await callAI(messages, geminiKey, allKeys);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("Failed to parse SEO meta");
+      const parsed = JSON.parse(jsonMatch[0]);
+      return new Response(JSON.stringify(parsed), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     let systemPrompt = "";
     if (type === "article") {
       systemPrompt = `You are a medical education expert. Convert notes into an exam-focused study article in markdown.
@@ -536,6 +557,8 @@ STRICT FORMAT:
 - No code fences`;
     } else if (type === "mcqs") {
       systemPrompt = `You are a senior medical exam writer. Create EXACTLY ${cardCount} clinically-oriented MCQs.
+
+CRITICAL RULE: The correct answers MUST be well-distributed across A, B, C, D. No more than 2 consecutive questions should have the same correct answer. Aim for roughly equal distribution.
 
 Return ONLY valid JSON array with schema:
 {"question":"...","options":["A","B","C","D"],"correct_answer":0,"explanation":"..."}`;
