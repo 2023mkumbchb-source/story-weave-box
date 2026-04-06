@@ -57,11 +57,12 @@ serve(async (req) => {
     const { data: siteUrlSetting } = await supabase.from("app_settings").select("value").eq("key", "site_url").maybeSingle();
     const baseUrl = normalizeBaseUrl((siteUrlSetting as any)?.value);
 
-    const [{ data: articles }, { data: mcqs }, { data: flashcards }, { data: stories }] = await Promise.all([
+    const [{ data: articles }, { data: mcqs }, { data: flashcards }, { data: stories }, { data: exams }] = await Promise.all([
       supabase.from("articles").select("id, title, slug, content, created_at, updated_at, category, og_image_url").eq("published", true).is("deleted_at", null),
       supabase.from("mcq_sets").select("id, title, slug, created_at, updated_at, category").eq("published", true).is("deleted_at", null),
       supabase.from("flashcard_sets").select("id, title, slug, created_at, updated_at, category").eq("published", true).is("deleted_at", null),
       supabase.from("stories").select("id, title, slug, created_at, category, cover_image_url, content").eq("published", true).is("deleted_at", null),
+      supabase.from("mcq_sets").select("id, title, created_at, updated_at, category").eq("published", true).is("deleted_at", null).ilike("title", "%exam%"),
     ]);
 
     const years = new Set<number>();
@@ -129,6 +130,18 @@ serve(async (req) => {
       xml += `  <url>\n    <loc>${baseUrl}/flashcards/${flashcardSlug}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += `    <priority>0.6</priority>\n    <changefreq>weekly</changefreq>\n  </url>\n`;
+    }
+
+    // Exams (unique exam sets)
+    const seenExamIds = new Set<string>();
+    for (const e of (exams || []) as any[]) {
+      if (seenExamIds.has(e.id)) continue;
+      seenExamIds.add(e.id);
+      const lastmod = (e.updated_at || e.created_at) ? new Date(e.updated_at || e.created_at).toISOString().split("T")[0] : "";
+      xml += `  <url>\n    <loc>${baseUrl}/exams</loc>\n`;
+      if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += `    <priority>0.6</priority>\n    <changefreq>weekly</changefreq>\n  </url>\n`;
+      break; // Only one exams page
     }
 
     xml += `</urlset>`;
