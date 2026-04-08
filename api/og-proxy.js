@@ -122,7 +122,7 @@ export default async function handler(req, res) {
     if (story) {
       record = await fetchFromSupabase("stories", "id", story);
       if (!record) record = await fetchFromSupabase("stories", "slug", story);
-      pageUrl = `https://ompathstudy.com/stories/${story}`;
+      pageUrl = `https://www.ompathstudy.com/stories/${story}`;
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.meta_title || record.title,
