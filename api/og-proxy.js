@@ -47,7 +47,7 @@ export default async function handler(req, res) {
 
   try {
     let record = null;
-    let pageUrl = "https://ompathstudy.com";
+    let pageUrl = "https://www.ompathstudy.com";
 
     if (slug) {
       // Try matching full slug first, then strip UUID prefix (first segment if it looks like a UUID)
