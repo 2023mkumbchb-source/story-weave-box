@@ -62,7 +62,7 @@ export default async function handler(req, res) {
         const uuidMatch = slug.match(/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/);
         if (uuidMatch) record = await fetchFromSupabase("articles", "id", uuidMatch[1]);
       }
-      pageUrl = `https://ompathstudy.com/blog/${slug}`;
+      pageUrl = `https://www.ompathstudy.com/blog/${slug}`;
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.meta_title || record.title,
