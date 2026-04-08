@@ -3764,3 +3764,149 @@ function ImportTab() {
   );
 }
 
+// ===== META MANAGER TAB =====
+function MetaManagerTab() {
+  const { toast } = useToast();
+  const [contentType, setContentType] = useState<"articles" | "mcq_sets" | "flashcard_sets" | "essays">("articles");
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState<string | null>(null);
+  const [batchRunning, setBatchRunning] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
+  const [filterYear, setFilterYear] = useState("all");
+
+  const loadItems = async () => {
+    setLoading(true);
+    const { data } = await supabase.from(contentType).select("id, title, category, meta_title, meta_description, slug, og_image_url, published, created_at").is("deleted_at", null).eq("published", true).order("created_at", { ascending: false }).limit(500);
+    setItems(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { loadItems(); }, [contentType]);
+
+  const filtered = filterYear === "all" ? items : items.filter(i => (i.category || "").startsWith(filterYear));
+
+  const needsMeta = (item: any) => !item.meta_title || !item.meta_description || !item.slug;
+
+  const updateSingleMeta = async (item: any) => {
+    setProcessing(item.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-content", {
+        body: {
+          notes: `Title: ${item.title}\nCategory: ${item.category || "General"}\nType: ${contentType}`,
+          type: "generate-seo-meta",
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      const updates: any = {};
+      if (data?.meta_title) updates.meta_title = data.meta_title;
+      if (data?.meta_description) updates.meta_description = data.meta_description;
+      if (data?.slug) updates.slug = data.slug;
+      
+      await supabase.from(contentType).update(updates).eq("id", item.id);
+      toast({ title: "Meta updated!" });
+      await loadItems();
+    } catch (err: any) {
+      toast({ title: "Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  const handleBatchUpdate = async () => {
+    const toUpdate = filtered.filter(needsMeta);
+    if (!toUpdate.length) { toast({ title: "All items already have meta data" }); return; }
+    setBatchRunning(true);
+    let errors = 0;
+    for (let i = 0; i < toUpdate.length; i++) {
+      setBatchProgress({ current: i + 1, total: toUpdate.length });
+      try {
+        const item = toUpdate[i];
+        const { data, error } = await supabase.functions.invoke("generate-content", {
+          body: { notes: `Title: ${item.title}\nCategory: ${item.category || "General"}\nType: ${contentType}`, type: "generate-seo-meta" },
+        });
+        if (error || data?.error) { errors++; continue; }
+        const updates: any = {};
+        if (data?.meta_title) updates.meta_title = data.meta_title;
+        if (data?.meta_description) updates.meta_description = data.meta_description;
+        if (data?.slug) updates.slug = data.slug;
+        await supabase.from(contentType).update(updates).eq("id", item.id);
+      } catch { errors++; }
+    }
+    setBatchRunning(false);
+    setBatchProgress(null);
+    toast({ title: errors === 0 ? `Updated ${toUpdate.length} items!` : `Done — ${errors} failed` });
+    await loadItems();
+  };
+
+  const missingCount = filtered.filter(needsMeta).length;
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h3 className="font-serif text-lg font-bold text-foreground mb-3">Meta Title & Description Manager</h3>
+        <p className="text-sm text-muted-foreground mb-4">Bulk update meta titles, descriptions, and slugs for all your content using AI.</p>
+        
+        <div className="flex flex-wrap gap-2 mb-4">
+          {(["articles", "mcq_sets", "flashcard_sets", "essays"] as const).map(t => (
+            <button key={t} onClick={() => setContentType(t)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${contentType === t ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
+              {t === "articles" ? "Articles" : t === "mcq_sets" ? "MCQs" : t === "flashcard_sets" ? "Flashcards" : "Essays"}
+            </button>
+          ))}
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className="rounded-md border border-input bg-background px-2 py-1 text-xs">
+            <option value="all">All Years</option>
+            {[1,2,3,4,5,6].map(y => <option key={y} value={`Year ${y}`}>Year {y}</option>)}
+          </select>
+          <span className="text-xs text-muted-foreground">{filtered.length} items · {missingCount} missing meta</span>
+          {missingCount > 0 && (
+            <Button size="sm" onClick={handleBatchUpdate} disabled={batchRunning} className="gap-1 text-xs ml-auto">
+              {batchRunning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+              {batchRunning ? `Updating ${batchProgress?.current}/${batchProgress?.total}...` : `AI Update ${missingCount} Missing`}
+            </Button>
+          )}
+        </div>
+
+        {batchRunning && batchProgress && (
+          <div className="mb-4">
+            <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
+              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(item => (
+            <div key={item.id} className="rounded-lg border border-border bg-card p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
+                  <p className="text-[10px] text-muted-foreground">{item.category}</p>
+                  <div className="mt-1 space-y-0.5">
+                    <p className="text-[10px] text-primary truncate">{item.meta_title || "❌ No meta title"}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{item.meta_description || "❌ No meta description"}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">slug: {item.slug || "❌ No slug"}</p>
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => updateSingleMeta(item)} disabled={processing === item.id} className="shrink-0 gap-1 text-[10px] h-7">
+                  {processing === item.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                  AI Meta
+                </Button>
+              </div>
+            </div>
+          ))}
+          {filtered.length === 0 && <p className="text-center text-muted-foreground py-8">No published items found.</p>}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -155,7 +155,7 @@ export default async function handler(req, res) {
     return res.status(200).send(buildHTML({
       title: "OMPATH – Medical Study Platform",
       description: "Medical study platform for Kenyan students",
-      url: "https://ompathstudy.com",
+      url: "https://www.ompathstudy.com",
     }));
 
   } catch (error) {
