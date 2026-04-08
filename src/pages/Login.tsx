@@ -28,6 +28,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     if (password === ADMIN_PASSWORD) {
+      localStorage.setItem("learninghub_auth", "true");
       sessionStorage.setItem("learninghub_auth", "true");
       toast({ title: "Logged in!" });
       navigate("/admin");

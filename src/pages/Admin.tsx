@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, Bolt, AlertTriangle, Building2, Check, X, Sparkles, Eye, Upload, Wrench, Globe, Search, Copy, ExternalLink, BookOpen, ChevronDown } from "lucide-react";
+import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, Bolt, AlertTriangle, Building2, Check, X, Sparkles, Eye, Upload, Wrench, Globe, Search, Copy, ExternalLink, BookOpen, ChevronDown, Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { autoIndexUrls, SITE_URL, slugifyText } from "@/lib/seo";
 import { Helmet } from "react-helmet-async";
 
-type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo" | "categories";
+type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo" | "categories" | "editor" | "meta-manager";
 type DirectType = "article" | "mcqs" | "flashcards";
 
 export default function Admin() {
@@ -39,8 +39,11 @@ export default function Admin() {
   const [articleEditId, setArticleEditId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (sessionStorage.getItem("learninghub_auth") !== "true") {
+    if (localStorage.getItem("learninghub_auth") !== "true" && sessionStorage.getItem("learninghub_auth") !== "true") {
       navigate("/login");
+    } else {
+      localStorage.setItem("learninghub_auth", "true");
+      sessionStorage.setItem("learninghub_auth", "true");
     }
     Promise.all([getSetting("gemini_api_key"), getSetting("gemini_api_keys")]).then(([key, multiRaw]) => {
       setGeminiKey(key || "");
@@ -51,7 +54,15 @@ export default function Admin() {
     });
   }, [navigate]);
 
-  const [tab, setTab] = useState<Tab>("create");
+  // Persist tab in URL hash for refresh resilience
+  const hashTab = location.hash.replace("#", "") as Tab;
+  const [tab, setTab] = useState<Tab>(hashTab && ["create","articles","flashcards","mcqs","stories","raw","exams","recycle","settings","institutions","upgrade","import","cleanup","seo","categories","editor","meta-manager"].includes(hashTab) ? hashTab : "create");
+  
+  const setTabAndHash = (t: Tab) => {
+    setTab(t);
+    window.history.replaceState(null, "", `#${t}`);
+  };
+
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingType, setLoadingType] = useState<string | null>(null);
@@ -400,12 +411,14 @@ export default function Admin() {
 
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: "create", label: "Create", icon: FileText },
+    { id: "editor", label: "Editor", icon: Edit3 },
     { id: "articles", label: "Articles", icon: FileText },
     { id: "categories", label: "Categories", icon: Layers },
     { id: "flashcards", label: "Flashcards", icon: Layers },
     { id: "mcqs", label: "MCQs", icon: ListChecks },
     { id: "stories", label: "Stories", icon: BookOpen },
     { id: "exams", label: "Exam Results", icon: ListChecks },
+    { id: "meta-manager", label: "Meta Manager", icon: Globe },
     { id: "raw", label: "Raw", icon: AlertTriangle },
     { id: "upgrade", label: "AI Upgrade", icon: Sparkles },
     { id: "cleanup", label: "Bulk Cleanup", icon: Wrench },
@@ -419,8 +432,8 @@ export default function Admin() {
   const activeTab = tabs.find(t => t.id === tab);
 
   const tabGroups = [
-    { label: "Content", items: tabs.filter(t => ["create","articles","categories","flashcards","mcqs","stories","exams"].includes(t.id)) },
-    { label: "Tools", items: tabs.filter(t => ["upgrade","cleanup","seo"].includes(t.id)) },
+    { label: "Content", items: tabs.filter(t => ["create","editor","articles","categories","flashcards","mcqs","stories","exams"].includes(t.id)) },
+    { label: "Tools", items: tabs.filter(t => ["meta-manager","upgrade","cleanup","seo"].includes(t.id)) },
     { label: "Data", items: tabs.filter(t => ["raw","import","recycle"].includes(t.id)) },
     { label: "System", items: tabs.filter(t => ["institutions","settings"].includes(t.id)) },
   ];
@@ -462,7 +475,7 @@ export default function Admin() {
               <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{group.label}</p>
               <div className="grid grid-cols-3 gap-1.5">
                 {group.items.map(t => (
-                  <button key={t.id} onClick={() => { setTab(t.id); document.getElementById("admin-nav-panel")?.classList.add("hidden"); }}
+                  <button key={t.id} onClick={() => { if (t.id === "editor") { navigate("/admin/editor"); return; } setTabAndHash(t.id); document.getElementById("admin-nav-panel")?.classList.add("hidden"); }}
                     className={`flex flex-col items-center gap-1 rounded-lg px-2 py-2.5 text-[11px] font-medium transition-colors ${tab === t.id ? "bg-primary/10 text-primary ring-1 ring-primary/30" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                     <t.icon className="h-4 w-4" />
                     <span className="text-center leading-tight">{t.label}</span>
@@ -477,7 +490,7 @@ export default function Admin() {
       {/* Desktop: Horizontal tabs */}
       <div className="mb-8 hidden sm:flex gap-1 rounded-xl border border-border bg-secondary/50 p-1 overflow-x-auto">
         {tabs.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)}
+          <button key={t.id} onClick={() => { if (t.id === "editor") { navigate("/admin/editor"); return; } setTabAndHash(t.id); }}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${tab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             <t.icon className="h-4 w-4" />{t.label}
           </button>
@@ -734,11 +747,12 @@ export default function Admin() {
       {tab === "mcqs" && <McqsList />}
       {tab === "stories" && <StoriesTab />}
       {tab === "exams" && <ExamResultsTab />}
+      {tab === "meta-manager" && <MetaManagerTab />}
       {tab === "raw" && <RawContentTab geminiKey={geminiKey} />}
       {tab === "recycle" && <RecycleBinTab />}
       {tab === "institutions" && <InstitutionsTab />}
       {tab === "upgrade" && <ContentUpgradeTab />}
-      {tab === "cleanup" && <BulkCleanupTab onEditArticle={(id) => { setArticleEditId(id); setTab("articles"); }} />}
+      {tab === "cleanup" && <BulkCleanupTab onEditArticle={(id) => { setArticleEditId(id); setTabAndHash("articles"); }} />}
       {tab === "seo" && <SeoIndexingTab />}
       {tab === "import" && <ImportTab />}
       {tab === "settings" && <SettingsPanel setGeminiKey={setGeminiKey} />}
@@ -3750,3 +3764,149 @@ function ImportTab() {
   );
 }
 
+// ===== META MANAGER TAB =====
+function MetaManagerTab() {
+  const { toast } = useToast();
+  const [contentType, setContentType] = useState<"articles" | "mcq_sets" | "flashcard_sets" | "essays">("articles");
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState<string | null>(null);
+  const [batchRunning, setBatchRunning] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
+  const [filterYear, setFilterYear] = useState("all");
+
+  const loadItems = async () => {
+    setLoading(true);
+    const { data } = await supabase.from(contentType).select("id, title, category, meta_title, meta_description, slug, og_image_url, published, created_at").is("deleted_at", null).eq("published", true).order("created_at", { ascending: false }).limit(500);
+    setItems(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { loadItems(); }, [contentType]);
+
+  const filtered = filterYear === "all" ? items : items.filter(i => (i.category || "").startsWith(filterYear));
+
+  const needsMeta = (item: any) => !item.meta_title || !item.meta_description || !item.slug;
+
+  const updateSingleMeta = async (item: any) => {
+    setProcessing(item.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-content", {
+        body: {
+          notes: `Title: ${item.title}\nCategory: ${item.category || "General"}\nType: ${contentType}`,
+          type: "generate-seo-meta",
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      const updates: any = {};
+      if (data?.meta_title) updates.meta_title = data.meta_title;
+      if (data?.meta_description) updates.meta_description = data.meta_description;
+      if (data?.slug) updates.slug = data.slug;
+      
+      await supabase.from(contentType).update(updates).eq("id", item.id);
+      toast({ title: "Meta updated!" });
+      await loadItems();
+    } catch (err: any) {
+      toast({ title: "Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  const handleBatchUpdate = async () => {
+    const toUpdate = filtered.filter(needsMeta);
+    if (!toUpdate.length) { toast({ title: "All items already have meta data" }); return; }
+    setBatchRunning(true);
+    let errors = 0;
+    for (let i = 0; i < toUpdate.length; i++) {
+      setBatchProgress({ current: i + 1, total: toUpdate.length });
+      try {
+        const item = toUpdate[i];
+        const { data, error } = await supabase.functions.invoke("generate-content", {
+          body: { notes: `Title: ${item.title}\nCategory: ${item.category || "General"}\nType: ${contentType}`, type: "generate-seo-meta" },
+        });
+        if (error || data?.error) { errors++; continue; }
+        const updates: any = {};
+        if (data?.meta_title) updates.meta_title = data.meta_title;
+        if (data?.meta_description) updates.meta_description = data.meta_description;
+        if (data?.slug) updates.slug = data.slug;
+        await supabase.from(contentType).update(updates).eq("id", item.id);
+      } catch { errors++; }
+    }
+    setBatchRunning(false);
+    setBatchProgress(null);
+    toast({ title: errors === 0 ? `Updated ${toUpdate.length} items!` : `Done — ${errors} failed` });
+    await loadItems();
+  };
+
+  const missingCount = filtered.filter(needsMeta).length;
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h3 className="font-serif text-lg font-bold text-foreground mb-3">Meta Title & Description Manager</h3>
+        <p className="text-sm text-muted-foreground mb-4">Bulk update meta titles, descriptions, and slugs for all your content using AI.</p>
+        
+        <div className="flex flex-wrap gap-2 mb-4">
+          {(["articles", "mcq_sets", "flashcard_sets", "essays"] as const).map(t => (
+            <button key={t} onClick={() => setContentType(t)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${contentType === t ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
+              {t === "articles" ? "Articles" : t === "mcq_sets" ? "MCQs" : t === "flashcard_sets" ? "Flashcards" : "Essays"}
+            </button>
+          ))}
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className="rounded-md border border-input bg-background px-2 py-1 text-xs">
+            <option value="all">All Years</option>
+            {[1,2,3,4,5,6].map(y => <option key={y} value={`Year ${y}`}>Year {y}</option>)}
+          </select>
+          <span className="text-xs text-muted-foreground">{filtered.length} items · {missingCount} missing meta</span>
+          {missingCount > 0 && (
+            <Button size="sm" onClick={handleBatchUpdate} disabled={batchRunning} className="gap-1 text-xs ml-auto">
+              {batchRunning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+              {batchRunning ? `Updating ${batchProgress?.current}/${batchProgress?.total}...` : `AI Update ${missingCount} Missing`}
+            </Button>
+          )}
+        </div>
+
+        {batchRunning && batchProgress && (
+          <div className="mb-4">
+            <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
+              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(item => (
+            <div key={item.id} className="rounded-lg border border-border bg-card p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
+                  <p className="text-[10px] text-muted-foreground">{item.category}</p>
+                  <div className="mt-1 space-y-0.5">
+                    <p className="text-[10px] text-primary truncate">{item.meta_title || "❌ No meta title"}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{item.meta_description || "❌ No meta description"}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">slug: {item.slug || "❌ No slug"}</p>
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => updateSingleMeta(item)} disabled={processing === item.id} className="shrink-0 gap-1 text-[10px] h-7">
+                  {processing === item.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                  AI Meta
+                </Button>
+              </div>
+            </div>
+          ))}
+          {filtered.length === 0 && <p className="text-center text-muted-foreground py-8">No published items found.</p>}
+        </div>
+      )}
+    </div>
+  );
+}
