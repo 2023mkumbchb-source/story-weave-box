@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 export default function ScrollToTop() {
   const { pathname, search, hash, key } = useLocation();
   const previousLocationKeyRef = useRef<string | null>(null);
+  const isFirstLoad = useRef(true);
 
   // Prevent browser/native scroll restoration from forcing old positions (mobile-safe).
   useEffect(() => {
@@ -12,6 +13,16 @@ export default function ScrollToTop() {
     return () => {
       window.history.scrollRestoration = previous;
     };
+  }, []);
+
+  // On first load from external (e.g. Google), push home as base so back goes to site home
+  useEffect(() => {
+    if (isFirstLoad.current && pathname !== "/" && window.history.length <= 2) {
+      // Add home page as an underlying history entry so back goes to site, not Google
+      window.history.replaceState({ fromExternal: true }, "", "/");
+      window.history.pushState(null, "", pathname + search + hash);
+    }
+    isFirstLoad.current = false;
   }, []);
 
   useLayoutEffect(() => {
