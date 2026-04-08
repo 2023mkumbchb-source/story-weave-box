@@ -747,11 +747,12 @@ export default function Admin() {
       {tab === "mcqs" && <McqsList />}
       {tab === "stories" && <StoriesTab />}
       {tab === "exams" && <ExamResultsTab />}
+      {tab === "meta-manager" && <MetaManagerTab />}
       {tab === "raw" && <RawContentTab geminiKey={geminiKey} />}
       {tab === "recycle" && <RecycleBinTab />}
       {tab === "institutions" && <InstitutionsTab />}
       {tab === "upgrade" && <ContentUpgradeTab />}
-      {tab === "cleanup" && <BulkCleanupTab onEditArticle={(id) => { setArticleEditId(id); setTab("articles"); }} />}
+      {tab === "cleanup" && <BulkCleanupTab onEditArticle={(id) => { setArticleEditId(id); setTabAndHash("articles"); }} />}
       {tab === "seo" && <SeoIndexingTab />}
       {tab === "import" && <ImportTab />}
       {tab === "settings" && <SettingsPanel setGeminiKey={setGeminiKey} />}
