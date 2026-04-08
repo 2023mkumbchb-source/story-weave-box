@@ -77,7 +77,7 @@ export default async function handler(req, res) {
     if (mcq) {
       record = await fetchFromSupabase("mcq_sets", "id", mcq);
       if (!record) record = await fetchFromSupabase("mcq_sets", "slug", mcq);
-      pageUrl = `https://ompathstudy.com/mcqs/${mcq}`;
+      pageUrl = `https://www.ompathstudy.com/mcqs/${mcq}`;
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.meta_title || record.title,
