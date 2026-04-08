@@ -411,12 +411,14 @@ export default function Admin() {
 
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: "create", label: "Create", icon: FileText },
+    { id: "editor", label: "Editor", icon: Edit3 },
     { id: "articles", label: "Articles", icon: FileText },
     { id: "categories", label: "Categories", icon: Layers },
     { id: "flashcards", label: "Flashcards", icon: Layers },
     { id: "mcqs", label: "MCQs", icon: ListChecks },
     { id: "stories", label: "Stories", icon: BookOpen },
     { id: "exams", label: "Exam Results", icon: ListChecks },
+    { id: "meta-manager", label: "Meta Manager", icon: Globe },
     { id: "raw", label: "Raw", icon: AlertTriangle },
     { id: "upgrade", label: "AI Upgrade", icon: Sparkles },
     { id: "cleanup", label: "Bulk Cleanup", icon: Wrench },
@@ -430,8 +432,8 @@ export default function Admin() {
   const activeTab = tabs.find(t => t.id === tab);
 
   const tabGroups = [
-    { label: "Content", items: tabs.filter(t => ["create","articles","categories","flashcards","mcqs","stories","exams"].includes(t.id)) },
-    { label: "Tools", items: tabs.filter(t => ["upgrade","cleanup","seo"].includes(t.id)) },
+    { label: "Content", items: tabs.filter(t => ["create","editor","articles","categories","flashcards","mcqs","stories","exams"].includes(t.id)) },
+    { label: "Tools", items: tabs.filter(t => ["meta-manager","upgrade","cleanup","seo"].includes(t.id)) },
     { label: "Data", items: tabs.filter(t => ["raw","import","recycle"].includes(t.id)) },
     { label: "System", items: tabs.filter(t => ["institutions","settings"].includes(t.id)) },
   ];
