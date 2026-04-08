@@ -147,7 +147,7 @@ export default async function handler(req, res) {
       return res.status(200).send(buildHTML({
         title: pageTitles[prerender],
         description: `Study ${prerender} for Kenyan medical students on OMPATH`,
-        url: `https://ompathstudy.com/${prerender}`,
+        url: `https://www.ompathstudy.com/${prerender}`,
       }));
     }
 
