@@ -92,7 +92,7 @@ export default async function handler(req, res) {
     if (flashcard) {
       record = await fetchFromSupabase("flashcard_sets", "id", flashcard);
       if (!record) record = await fetchFromSupabase("flashcard_sets", "slug", flashcard);
-      pageUrl = `https://ompathstudy.com/flashcards/${flashcard}`;
+      pageUrl = `https://www.ompathstudy.com/flashcards/${flashcard}`;
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.meta_title || record.title,
