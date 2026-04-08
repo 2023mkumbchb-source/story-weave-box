@@ -107,7 +107,7 @@ export default async function handler(req, res) {
     if (essay) {
       record = await fetchFromSupabase("essays", "id", essay);
       if (!record) record = await fetchFromSupabase("essays", "slug", essay);
-      pageUrl = `https://ompathstudy.com/essays/${essay}`;
+      pageUrl = `https://www.ompathstudy.com/essays/${essay}`;
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.meta_title || record.title,
