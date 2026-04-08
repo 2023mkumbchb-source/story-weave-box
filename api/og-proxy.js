@@ -27,7 +27,7 @@ function buildHTML({ title, description, content, url, image }) {
   <meta property="og:title" content="${safeTitle}"/>
   <meta property="og:description" content="${safeDesc}"/>
   <meta property="og:type" content="article"/>
-  <meta property="og:url" content="${url || "https://ompathstudy.com"}"/>
+  <meta property="og:url" content="${url || "https://www.ompathstudy.com"}"/>
   ${image ? `<meta property="og:image" content="${image}"/>` : ""}
   <meta name="robots" content="index, follow"/>
 </head>
