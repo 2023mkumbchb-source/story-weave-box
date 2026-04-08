@@ -54,7 +54,15 @@ export default function Admin() {
     });
   }, [navigate]);
 
-  const [tab, setTab] = useState<Tab>("create");
+  // Persist tab in URL hash for refresh resilience
+  const hashTab = location.hash.replace("#", "") as Tab;
+  const [tab, setTab] = useState<Tab>(hashTab && ["create","articles","flashcards","mcqs","stories","raw","exams","recycle","settings","institutions","upgrade","import","cleanup","seo","categories","editor","meta-manager"].includes(hashTab) ? hashTab : "create");
+  
+  const setTabAndHash = (t: Tab) => {
+    setTab(t);
+    window.history.replaceState(null, "", `#${t}`);
+  };
+
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingType, setLoadingType] = useState<string | null>(null);
