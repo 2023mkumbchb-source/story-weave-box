@@ -39,8 +39,11 @@ export default function Admin() {
   const [articleEditId, setArticleEditId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (sessionStorage.getItem("learninghub_auth") !== "true") {
+    if (localStorage.getItem("learninghub_auth") !== "true" && sessionStorage.getItem("learninghub_auth") !== "true") {
       navigate("/login");
+    } else {
+      localStorage.setItem("learninghub_auth", "true");
+      sessionStorage.setItem("learninghub_auth", "true");
     }
     Promise.all([getSetting("gemini_api_key"), getSetting("gemini_api_keys")]).then(([key, multiRaw]) => {
       setGeminiKey(key || "");

@@ -90,7 +90,7 @@ export default function AdminEditor() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (sessionStorage.getItem("learninghub_auth") !== "true") navigate("/login");
+    if (localStorage.getItem("learninghub_auth") !== "true" && sessionStorage.getItem("learninghub_auth") !== "true") navigate("/login");
   }, [navigate]);
 
   const [allArticles, setAllArticles] = useState<Article[]>([]);
