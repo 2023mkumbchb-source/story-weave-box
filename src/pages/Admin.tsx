@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { autoIndexUrls, SITE_URL, slugifyText } from "@/lib/seo";
 import { Helmet } from "react-helmet-async";
 
-type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo" | "categories";
+type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo" | "categories" | "editor" | "meta-manager";
 type DirectType = "article" | "mcqs" | "flashcards";
 
 export default function Admin() {
