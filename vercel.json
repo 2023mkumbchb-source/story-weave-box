@@ -71,9 +71,39 @@
       "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?flashcard=:id"
     },
     {
+      "source": "/essays/:id",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*" }],
+      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?essay=:id"
+    },
+    {
       "source": "/exams",
       "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*" }],
       "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=exams"
+    },
+    {
+      "source": "/blog",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*" }],
+      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=blog"
+    },
+    {
+      "source": "/mcqs",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*" }],
+      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=mcqs"
+    },
+    {
+      "source": "/flashcards",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*" }],
+      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=flashcards"
+    },
+    {
+      "source": "/essays",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*" }],
+      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=essays"
+    },
+    {
+      "source": "/stories",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot).*" }],
+      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=stories"
     },
     {
       "source": "/year/:year",
