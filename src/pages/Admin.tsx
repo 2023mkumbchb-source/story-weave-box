@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { autoIndexUrls, SITE_URL, slugifyText } from "@/lib/seo";
 import { Helmet } from "react-helmet-async";
 
-type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo" | "categories" | "editor" | "meta-manager";
+type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo" | "categories" | "editor" | "meta-manager";
 type DirectType = "article" | "mcqs" | "flashcards";
 
 export default function Admin() {
@@ -423,7 +423,6 @@ export default function Admin() {
     { id: "upgrade", label: "AI Upgrade", icon: Sparkles },
     { id: "cleanup", label: "Bulk Cleanup", icon: Wrench },
     { id: "seo", label: "SEO & Indexing", icon: Globe },
-    { id: "recycle", label: "Recycle Bin", icon: Trash2 },
     { id: "institutions", label: "Institutions", icon: Building2 },
     { id: "import", label: "Import", icon: Upload },
     { id: "settings", label: "Settings", icon: Settings },
@@ -434,7 +433,7 @@ export default function Admin() {
   const tabGroups = [
     { label: "Content", items: tabs.filter(t => ["create","editor","articles","categories","flashcards","mcqs","stories","exams"].includes(t.id)) },
     { label: "Tools", items: tabs.filter(t => ["meta-manager","upgrade","cleanup","seo"].includes(t.id)) },
-    { label: "Data", items: tabs.filter(t => ["raw","import","recycle"].includes(t.id)) },
+    { label: "Data", items: tabs.filter(t => ["raw","import"].includes(t.id)) },
     { label: "System", items: tabs.filter(t => ["institutions","settings"].includes(t.id)) },
   ];
 
@@ -749,7 +748,7 @@ export default function Admin() {
       {tab === "exams" && <ExamResultsTab />}
       {tab === "meta-manager" && <MetaManagerTab />}
       {tab === "raw" && <RawContentTab geminiKey={geminiKey} />}
-      {tab === "recycle" && <RecycleBinTab />}
+      
       {tab === "institutions" && <InstitutionsTab />}
       {tab === "upgrade" && <ContentUpgradeTab />}
       {tab === "cleanup" && <BulkCleanupTab onEditArticle={(id) => { setArticleEditId(id); setTabAndHash("articles"); }} />}
@@ -1583,6 +1582,9 @@ function McqsList() {
   const [editing, setEditing] = useState<McqSet | null>(null);
   const [passwordSetId, setPasswordSetId] = useState<string | null>(null);
   const [passwordValue, setPasswordValue] = useState("");
+  const [fixingId, setFixingId] = useState<string | null>(null);
+  const [batchFixing, setBatchFixing] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
   const { toast } = useToast();
   const refresh = () => { getMcqSets().then((s) => setSets(s.filter((m: any) => m.is_raw !== true))).finally(() => setLoading(false)); };
   useEffect(() => { refresh(); }, []);
@@ -1593,6 +1595,41 @@ function McqsList() {
   const handleRemovePassword = async (s: McqSet) => { await saveMcqSet({ ...s, access_password: "" }); refresh(); toast({ title: "Password removed" }); };
   const updateQuestion = (i: number, field: string, value: any) => { if (!editing) return; const questions = [...editing.questions]; questions[i] = { ...questions[i], [field]: value }; setEditing({ ...editing, questions }); };
   const updateOption = (qi: number, oi: number, value: string) => { if (!editing) return; const questions = [...editing.questions]; const options = [...questions[qi].options]; options[oi] = value; questions[qi] = { ...questions[qi], options }; setEditing({ ...editing, questions }); };
+
+  // AI Fix single MCQ set
+  const handleAiFix = async (setId: string) => {
+    setFixingId(setId);
+    try {
+      const { data, error } = await supabase.functions.invoke("mcq-quality-fix", {
+        body: { set_id: setId },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      toast({ title: `Fixed: ${data.issues?.length || 0} issues, ${data.removed || 0} removed` });
+      refresh();
+    } catch (err: any) {
+      toast({ title: "Fix failed", description: err.message, variant: "destructive" });
+    } finally {
+      setFixingId(null);
+    }
+  };
+
+  // Batch fix all MCQ sets
+  const handleBatchFix = async () => {
+    setBatchFixing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("mcq-quality-fix", { body: {} });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      toast({ title: `Batch fix: ${data.sets_fixed} sets fixed, ${data.questions_removed} questions removed out of ${data.scanned} scanned` });
+      refresh();
+    } catch (err: any) {
+      toast({ title: "Batch fix failed", description: err.message, variant: "destructive" });
+    } finally {
+      setBatchFixing(false);
+    }
+  };
+
   if (loading) return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
   if (sets.length === 0) return <p className="text-muted-foreground">No MCQ sets yet.</p>;
   if (editing) {
@@ -1648,6 +1685,15 @@ function McqsList() {
   }
   return (
     <div className="space-y-3">
+      {/* Batch fix button */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button size="sm" onClick={handleBatchFix} disabled={batchFixing} className="gap-1.5">
+          {batchFixing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+          {batchFixing ? "Fixing all MCQs..." : "Fix All MCQs (duplicates, garbage)"}
+        </Button>
+        <span className="text-xs text-muted-foreground">{sets.length} sets</span>
+      </div>
+
       {sets.map((s) => (
         <div key={s.id} className="rounded-xl border border-border bg-card p-3 sm:p-4">
           <div className="min-w-0">
@@ -1665,6 +1711,10 @@ function McqsList() {
             </p>
           </div>
           <div className="flex gap-1 mt-2 pt-2 border-t border-border/50 flex-wrap">
+            <Button size="sm" variant="ghost" onClick={() => handleAiFix(s.id)} disabled={fixingId === s.id} className="h-8 gap-1">
+              {fixingId === s.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+              <span className="text-xs">Fix</span>
+            </Button>
             <Button size="sm" variant="ghost" onClick={() => { setPasswordSetId(passwordSetId === s.id ? null : s.id); setPasswordValue(s.access_password || ""); }} className="h-8"><Key className="h-3.5 w-3.5" /></Button>
             <Button size="sm" variant="ghost" onClick={() => setEditing(s)} className="h-8"><Pencil className="h-3.5 w-3.5 mr-1" /><span className="text-xs">Edit</span></Button>
             <Button size="sm" variant="ghost" onClick={() => togglePublish(s)} className="h-8 text-xs">{s.published ? "Unpublish" : "Publish"}</Button>
