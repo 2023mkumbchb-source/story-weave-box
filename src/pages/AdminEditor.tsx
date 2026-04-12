@@ -458,7 +458,19 @@ export default function AdminEditor() {
         </div>
 
         <div className="mx-auto max-w-5xl px-2 py-3 space-y-3">
-          {/* Year & Filter */}
+          {/* Mode selector */}
+          <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
+            {(["articles", "mcqs", "stories"] as const).map((m) => (
+              <button key={m} onClick={() => { setEditorMode(m); setCurrentIndex(0); setIsAddMode(false); }}
+                className={cn("rounded-md px-3 py-1 text-[11px] font-semibold transition-all whitespace-nowrap capitalize",
+                  editorMode === m ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+                {m === "mcqs" ? "MCQs" : m}
+              </button>
+            ))}
+          </div>
+
+          {/* Year & Filter (hidden for stories) */}
+          {editorMode !== "stories" && (
           <div className="flex flex-wrap items-center gap-1.5">
             <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5 overflow-x-auto">
               {YEARS.map((yr) => (
@@ -479,6 +491,7 @@ export default function AdminEditor() {
               <Input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentIndex(0); }}
                 placeholder="Search..." className="pl-6 h-7 text-[11px]" />
             </div>
+            {editorMode === "articles" && (
             <div className="flex gap-1 ml-auto">
               <Button variant="outline" size="sm" onClick={() => startAdd("direct")} className="gap-1 text-[11px] h-7 px-2">
                 <Plus className="h-3 w-3" /> Direct
@@ -487,18 +500,20 @@ export default function AdminEditor() {
                 <Sparkles className="h-3 w-3" /> AI
               </Button>
             </div>
+            )}
           </div>
+          )}
 
-          {/* Article pills - horizontal scroll */}
-          {!isAddMode && filteredArticles.length > 0 && (
+          {/* Item pills - horizontal scroll */}
+          {!isAddMode && currentItems.length > 0 && (
             <div className="flex gap-1 overflow-x-auto pb-1 -mx-2 px-2" style={{ scrollbarWidth: "thin" }}>
-              {filteredArticles.slice(0, 50).map((a, i) => (
+              {currentItems.slice(0, 50).map((a: any, i: number) => (
                 <button key={a.id} onClick={() => setCurrentIndex(i)}
                   className={cn("shrink-0 rounded-md px-2 py-0.5 text-[10px] transition-colors border max-w-[150px] truncate",
                     i === currentIndex ? "border-primary bg-primary/10 text-primary font-medium" : "border-border text-muted-foreground hover:text-foreground hover:bg-muted")}
                   title={a.title}>{a.title}</button>
               ))}
-              {filteredArticles.length > 50 && <span className="text-[10px] text-muted-foreground self-center">+{filteredArticles.length - 50} more</span>}
+              {currentItems.length > 50 && <span className="text-[10px] text-muted-foreground self-center">+{currentItems.length - 50} more</span>}
             </div>
           )}
 
