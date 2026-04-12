@@ -275,7 +275,7 @@ export default function AdminEditor() {
         await saveArticle(payload);
         toast({ title: "Article created!" });
         setIsAddMode(false);
-        await loadArticles();
+        await loadContent();
       } else if (fullArticle) {
         payload.id = fullArticle.id;
         await saveArticle(payload);
