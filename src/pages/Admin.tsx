@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { autoIndexUrls, SITE_URL, slugifyText } from "@/lib/seo";
 import { Helmet } from "react-helmet-async";
 
-type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "recycle" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo" | "categories" | "editor" | "meta-manager";
+type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo" | "categories" | "editor" | "meta-manager";
 type DirectType = "article" | "mcqs" | "flashcards";
 
 export default function Admin() {
@@ -423,7 +423,6 @@ export default function Admin() {
     { id: "upgrade", label: "AI Upgrade", icon: Sparkles },
     { id: "cleanup", label: "Bulk Cleanup", icon: Wrench },
     { id: "seo", label: "SEO & Indexing", icon: Globe },
-    { id: "recycle", label: "Recycle Bin", icon: Trash2 },
     { id: "institutions", label: "Institutions", icon: Building2 },
     { id: "import", label: "Import", icon: Upload },
     { id: "settings", label: "Settings", icon: Settings },
@@ -434,7 +433,7 @@ export default function Admin() {
   const tabGroups = [
     { label: "Content", items: tabs.filter(t => ["create","editor","articles","categories","flashcards","mcqs","stories","exams"].includes(t.id)) },
     { label: "Tools", items: tabs.filter(t => ["meta-manager","upgrade","cleanup","seo"].includes(t.id)) },
-    { label: "Data", items: tabs.filter(t => ["raw","import","recycle"].includes(t.id)) },
+    { label: "Data", items: tabs.filter(t => ["raw","import"].includes(t.id)) },
     { label: "System", items: tabs.filter(t => ["institutions","settings"].includes(t.id)) },
   ];
 
