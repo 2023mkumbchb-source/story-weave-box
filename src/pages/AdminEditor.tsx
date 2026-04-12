@@ -426,15 +426,15 @@ export default function AdminEditor() {
             </Button>
 
             <div className="flex items-center gap-1">
-              {!isAddMode && filteredArticles.length > 0 && (
+              {!isAddMode && currentItems.length > 0 && (
                 <>
                   <Button variant="outline" size="icon" onClick={goPrev} disabled={currentIndex === 0} className="h-7 w-7">
                     <ChevronLeft className="h-3.5 w-3.5" />
                   </Button>
                   <span className="text-[11px] text-muted-foreground min-w-[50px] text-center">
-                    {currentIndex + 1}/{filteredArticles.length}
+                    {currentIndex + 1}/{currentItems.length}
                   </span>
-                  <Button variant="outline" size="icon" onClick={goNext} disabled={currentIndex >= filteredArticles.length - 1} className="h-7 w-7">
+                  <Button variant="outline" size="icon" onClick={goNext} disabled={currentIndex >= currentItems.length - 1} className="h-7 w-7">
                     <ChevronRight className="h-3.5 w-3.5" />
                   </Button>
                 </>
