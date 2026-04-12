@@ -627,8 +627,8 @@ export default function AdminEditor() {
             </div>
           )}
 
-          {/* Editor */}
-          {((fullArticle && !loadingContent) || isAddMode) && (
+          {/* Article Editor */}
+          {editorMode === "articles" && ((fullArticle && !loadingContent) || isAddMode) && (
             <div className="space-y-2">
               {/* Title & Category */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
