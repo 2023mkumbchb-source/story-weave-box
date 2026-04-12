@@ -108,6 +108,14 @@ export default function AdminEditor() {
   const [geminiLoading, setGeminiLoading] = useState(false);
   const [aiMetaLoading, setAiMetaLoading] = useState(false);
   const [customCategories, setCustomCategories] = useState<ArticleCategory[]>([]);
+  const [editorMode, setEditorMode] = useState<EditorMode>("articles");
+
+  // MCQ editing state
+  const [allMcqSets, setAllMcqSets] = useState<McqSet[]>([]);
+  const [mcqFixingId, setMcqFixingId] = useState<string | null>(null);
+
+  // Story editing state
+  const [allStories, setAllStories] = useState<any[]>([]);
 
   const [editTitle, setEditTitle] = useState("");
   const [editMetaTitle, setEditMetaTitle] = useState("");
