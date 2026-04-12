@@ -175,7 +175,29 @@ export default function AdminEditor() {
     return list.sort((a, b) => (b.updated_at || b.created_at).localeCompare(a.updated_at || a.created_at));
   }, [allArticles, selectedYear, selectedUnit, searchQuery]);
 
-  const currentArticleSummary = filteredArticles[currentIndex] || null;
+  const filteredMcqs = useMemo(() => {
+    let list = allMcqSets.filter((m) => (m.category || "").startsWith(`Year ${selectedYear}:`));
+    if (selectedUnit) list = list.filter((m) => m.category === selectedUnit);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((m) => m.title.toLowerCase().includes(q) || m.category.toLowerCase().includes(q));
+    }
+    return list;
+  }, [allMcqSets, selectedYear, selectedUnit, searchQuery]);
+
+  const filteredStories = useMemo(() => {
+    let list = allStories;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((s) => s.title.toLowerCase().includes(q));
+    }
+    return list;
+  }, [allStories, searchQuery]);
+
+  const currentItems = editorMode === "articles" ? filteredArticles : editorMode === "mcqs" ? filteredMcqs : filteredStories;
+  const currentArticleSummary = editorMode === "articles" ? (filteredArticles[currentIndex] || null) : null;
+  const currentMcqSummary = editorMode === "mcqs" ? (filteredMcqs[currentIndex] || null) : null;
+  const currentStorySummary = editorMode === "stories" ? (filteredStories[currentIndex] || null) : null;
 
   // Load full article content only when needed
   const [fullArticle, setFullArticle] = useState<Article | null>(null);
