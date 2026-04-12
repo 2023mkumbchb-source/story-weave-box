@@ -33,6 +33,7 @@ export default function NotFound() {
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
+        <meta name="robots" content="noindex, nofollow" />
       </Helmet>
       <div className="text-center max-w-md">
         <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 text-primary">
