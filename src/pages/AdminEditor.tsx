@@ -125,27 +125,45 @@ export default function AdminEditor() {
   const [editOgImage, setEditOgImage] = useState("");
   const [editPublished, setEditPublished] = useState(false);
 
-  // Load articles - only fetch summaries, not full content
-  const loadArticles = useCallback(async () => {
+  // Load content based on mode
+  const loadContent = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("articles")
-        .select("id, title, category, created_at, updated_at, published, slug, meta_title, meta_description, og_image_url, is_raw")
-        .is("deleted_at", null)
-        .order("updated_at", { ascending: false });
-      if (error) throw error;
-      setAllArticles((data || []) as Article[]);
       const cats = await getArticleCategories();
       setCustomCategories(cats);
+      if (editorMode === "articles") {
+        const { data, error } = await supabase
+          .from("articles")
+          .select("id, title, category, created_at, updated_at, published, slug, meta_title, meta_description, og_image_url, is_raw")
+          .is("deleted_at", null)
+          .order("updated_at", { ascending: false });
+        if (error) throw error;
+        setAllArticles((data || []) as Article[]);
+      } else if (editorMode === "mcqs") {
+        const { data, error } = await supabase
+          .from("mcq_sets")
+          .select("id, title, category, created_at, updated_at, published, slug, questions")
+          .is("deleted_at", null)
+          .order("updated_at", { ascending: false });
+        if (error) throw error;
+        setAllMcqSets((data || []) as McqSet[]);
+      } else if (editorMode === "stories") {
+        const { data, error } = await supabase
+          .from("stories")
+          .select("id, title, category, created_at, published, slug, content")
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false });
+        if (error) throw error;
+        setAllStories(data || []);
+      }
     } catch (err: any) {
       toast({ title: "Failed to load", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, editorMode]);
 
-  useEffect(() => { loadArticles(); }, [loadArticles]);
+  useEffect(() => { loadContent(); setCurrentIndex(0); }, [loadContent]);
 
   const filteredArticles = useMemo(() => {
     let list = allArticles.filter((a) => (a.category || "").startsWith(`Year ${selectedYear}:`));
