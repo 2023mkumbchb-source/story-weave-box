@@ -443,10 +443,12 @@ export default function AdminEditor() {
 
             <div className="flex items-center gap-1">
               {isAddMode && <Button variant="ghost" size="sm" onClick={() => setIsAddMode(false)} className="text-xs">Cancel</Button>}
+              {editorMode === "articles" && (
               <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1 text-xs h-7 px-2">
                 {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Save
               </Button>
-              {fullArticle && !isAddMode && (
+              )}
+              {fullArticle && !isAddMode && editorMode === "articles" && (
                 <a href={previewUrl} target="_blank" rel="noopener noreferrer">
                   <Button variant="outline" size="sm" className="gap-1 text-xs h-7 px-2">
                     <Eye className="h-3 w-3" /> View
