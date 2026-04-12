@@ -7,22 +7,24 @@ import Image from "@tiptap/extension-image";
 import {
   Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Quote,
   Heading2, Heading3, Undo, Redo, Save, ChevronLeft, ChevronRight,
-  Plus, Search, ImagePlus, Eye, Loader2, ArrowLeft, Sparkles,
+  Plus, Search, ImagePlus, Eye, Loader2, ArrowLeft, Sparkles, Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
-  saveArticle, UNIT_CATEGORIES, YEAR_CATEGORIES,
+  saveArticle, saveMcqSet, UNIT_CATEGORIES, YEAR_CATEGORIES,
   getCategoryDisplayName, buildBlogPath,
-  getArticleCategories,
+  getArticleCategories, getMcqSets, type McqSet,
   type Article, type ArticleCategory,
 } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { slugifyText, SITE_URL, extractFirstImageFromContent, stripRichText } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import { Helmet } from "react-helmet-async";
+
+type EditorMode = "articles" | "mcqs" | "stories";
 
 const TiptapImage = Image.configure({ inline: false, allowBase64: true });
 
