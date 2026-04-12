@@ -529,13 +529,93 @@ export default function AdminEditor() {
             </div>
           )}
 
-          {/* No articles */}
-          {!isAddMode && filteredArticles.length === 0 && (
+          {/* No items */}
+          {!isAddMode && currentItems.length === 0 && (
             <div className="rounded-lg border border-dashed border-border p-6 text-center">
-              <p className="text-muted-foreground text-sm">No articles for Year {selectedYear}{selectedUnit ? ` — ${getCategoryDisplayName(selectedUnit)}` : ""}.</p>
+              <p className="text-muted-foreground text-sm">
+                {editorMode === "stories" ? "No stories found." : `No ${editorMode} for Year ${selectedYear}${selectedUnit ? ` — ${getCategoryDisplayName(selectedUnit)}` : ""}.`}
+              </p>
+              {editorMode === "articles" && (
               <div className="mt-2 flex gap-2 justify-center">
                 <Button size="sm" onClick={() => startAdd("direct")}>Add Direct</Button>
                 <Button size="sm" variant="outline" onClick={() => startAdd("gemini")}>Add via AI</Button>
+              </div>
+              )}
+            </div>
+          )}
+
+          {/* MCQ Editor Mode */}
+          {editorMode === "mcqs" && currentMcqSummary && !isAddMode && (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-border bg-card p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="font-serif text-base font-bold text-foreground">{currentMcqSummary.title}</h3>
+                    <p className="text-xs text-muted-foreground">{currentMcqSummary.category} · {(currentMcqSummary.questions as any[]).length} questions</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="outline" onClick={async () => {
+                      setMcqFixingId(currentMcqSummary.id);
+                      try {
+                        const { data, error } = await supabase.functions.invoke("mcq-quality-fix", { body: { set_id: currentMcqSummary.id } });
+                        if (error) throw new Error(error.message);
+                        toast({ title: `Fixed ${data?.issues?.length || 0} issues` });
+                        await loadContent();
+                      } catch (err: any) {
+                        toast({ title: "Fix failed", description: err.message, variant: "destructive" });
+                      } finally {
+                        setMcqFixingId(null);
+                      }
+                    }} disabled={mcqFixingId === currentMcqSummary.id} className="gap-1 text-xs h-7">
+                      {mcqFixingId === currentMcqSummary.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />} Fix Quality
+                    </Button>
+                  </div>
+                </div>
+                <div className="max-h-[60vh] overflow-y-auto space-y-2">
+                  {(currentMcqSummary.questions as any[]).map((q: any, i: number) => (
+                    <div key={i} className="rounded-lg border border-border p-2 space-y-1">
+                      <p className="text-xs font-medium text-foreground">{i + 1}. {q.question}</p>
+                      <div className="grid grid-cols-1 gap-0.5">
+                        {q.options.map((opt: string, j: number) => (
+                          <p key={j} className={cn("text-[11px] px-2 py-0.5 rounded", j === q.correct_answer ? "bg-green-500/10 text-green-700 dark:text-green-400 font-medium" : "text-muted-foreground")}>
+                            {String.fromCharCode(65 + j)}. {opt}
+                          </p>
+                        ))}
+                      </div>
+                      {q.explanation && <p className="text-[10px] text-muted-foreground italic">{q.explanation}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Bottom nav */}
+              <div className="flex items-center justify-between pt-1 border-t border-border">
+                <Button variant="outline" size="sm" onClick={() => currentIndex > 0 && setCurrentIndex(currentIndex - 1)} disabled={currentIndex === 0} className="gap-1 text-xs h-7">
+                  <ChevronLeft className="h-3.5 w-3.5" /> Prev
+                </Button>
+                <span className="text-[11px] text-muted-foreground">{currentIndex + 1}/{currentItems.length}</span>
+                <Button variant="outline" size="sm" onClick={() => currentIndex < currentItems.length - 1 && setCurrentIndex(currentIndex + 1)} disabled={currentIndex >= currentItems.length - 1} className="gap-1 text-xs h-7">
+                  Next <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Story Editor Mode */}
+          {editorMode === "stories" && currentStorySummary && !isAddMode && (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-border bg-card p-4">
+                <h3 className="font-serif text-base font-bold text-foreground mb-1">{currentStorySummary.title}</h3>
+                <p className="text-xs text-muted-foreground mb-3">{currentStorySummary.category} · {currentStorySummary.published ? "Published" : "Draft"}</p>
+                <div className="prose prose-sm dark:prose-invert max-w-none max-h-[60vh] overflow-y-auto text-sm" dangerouslySetInnerHTML={{ __html: currentStorySummary.content || "" }} />
+              </div>
+              <div className="flex items-center justify-between pt-1 border-t border-border">
+                <Button variant="outline" size="sm" onClick={() => currentIndex > 0 && setCurrentIndex(currentIndex - 1)} disabled={currentIndex === 0} className="gap-1 text-xs h-7">
+                  <ChevronLeft className="h-3.5 w-3.5" /> Prev
+                </Button>
+                <span className="text-[11px] text-muted-foreground">{currentIndex + 1}/{currentItems.length}</span>
+                <Button variant="outline" size="sm" onClick={() => currentIndex < currentItems.length - 1 && setCurrentIndex(currentIndex + 1)} disabled={currentIndex >= currentItems.length - 1} className="gap-1 text-xs h-7">
+                  Next <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
               </div>
             </div>
           )}
