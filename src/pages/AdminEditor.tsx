@@ -8,6 +8,7 @@ import {
   Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Quote,
   Heading2, Heading3, Undo, Redo, Save, ChevronLeft, ChevronRight,
   Plus, Search, ImagePlus, Eye, Loader2, ArrowLeft, Sparkles, Zap,
+  Trash2, FolderPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,8 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import {
   saveArticle, saveMcqSet, UNIT_CATEGORIES, YEAR_CATEGORIES,
   getCategoryDisplayName, buildBlogPath,
-  getArticleCategories, getMcqSets, type McqSet,
-  type Article, type ArticleCategory,
+  getArticleCategories, saveArticleCategory,
+  type McqSet, type Article, type ArticleCategory,
 } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { slugifyText, SITE_URL, extractFirstImageFromContent, stripRichText } from "@/lib/seo";
@@ -109,10 +110,13 @@ export default function AdminEditor() {
   const [aiMetaLoading, setAiMetaLoading] = useState(false);
   const [customCategories, setCustomCategories] = useState<ArticleCategory[]>([]);
   const [editorMode, setEditorMode] = useState<EditorMode>("articles");
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [showAddCategory, setShowAddCategory] = useState(false);
 
   // MCQ editing state
   const [allMcqSets, setAllMcqSets] = useState<McqSet[]>([]);
   const [mcqFixingId, setMcqFixingId] = useState<string | null>(null);
+  const [mcqAiUpdating, setMcqAiUpdating] = useState<string | null>(null);
 
   // Story editing state
   const [allStories, setAllStories] = useState<any[]>([]);
@@ -136,7 +140,8 @@ export default function AdminEditor() {
           .from("articles")
           .select("id, title, category, created_at, updated_at, published, slug, meta_title, meta_description, og_image_url, is_raw")
           .is("deleted_at", null)
-          .order("updated_at", { ascending: false });
+          .order("updated_at", { ascending: false })
+          .limit(500);
         if (error) throw error;
         setAllArticles((data || []) as Article[]);
       } else if (editorMode === "mcqs") {
@@ -144,7 +149,8 @@ export default function AdminEditor() {
           .from("mcq_sets")
           .select("id, title, category, created_at, updated_at, published, slug, questions")
           .is("deleted_at", null)
-          .order("updated_at", { ascending: false });
+          .order("updated_at", { ascending: false })
+          .limit(500);
         if (error) throw error;
         setAllMcqSets((data || []) as McqSet[]);
       } else if (editorMode === "stories") {
@@ -152,7 +158,8 @@ export default function AdminEditor() {
           .from("stories")
           .select("id, title, category, created_at, published, slug, content")
           .is("deleted_at", null)
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .limit(200);
         if (error) throw error;
         setAllStories(data || []);
       }
@@ -222,11 +229,10 @@ export default function AdminEditor() {
     return (YEAR_CATEGORIES[yearKey] || []).map((u) => `${yearKey}: ${u}`);
   }, [selectedYear]);
 
-  // All category options
   const allCategoryOptions = useMemo(() => {
     const standard = UNIT_CATEGORIES;
     const custom = customCategories.map(c => c.name);
-    return [...new Set([...standard, ...custom])];
+    return [...new Set([...standard, ...custom])].sort();
   }, [customCategories]);
 
   const editor = useEditor({
@@ -238,7 +244,7 @@ export default function AdminEditor() {
     content: "",
     editorProps: {
       attributes: {
-        class: "prose prose-sm dark:prose-invert max-w-none min-h-[250px] px-3 py-2 focus:outline-none text-foreground",
+        class: "prose prose-sm dark:prose-invert max-w-none min-h-[200px] px-3 py-2 focus:outline-none text-foreground",
       },
       handlePaste: (view, event) => {
         const items = event.clipboardData?.items;
@@ -262,7 +268,7 @@ export default function AdminEditor() {
     },
   });
 
-  // Load article into editor when full content loaded
+  // Load article into editor
   useEffect(() => {
     if (!fullArticle || !editor || isAddMode) return;
     const html = mdToHtml(fullArticle.content || "");
@@ -275,6 +281,22 @@ export default function AdminEditor() {
     setEditOgImage(fullArticle.og_image_url || "");
     setEditPublished(fullArticle.published);
   }, [fullArticle, editor, isAddMode]);
+
+  // Add new category
+  const handleAddCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name) return;
+    try {
+      await saveArticleCategory({ name } as any);
+      setCustomCategories(prev => [...prev, { id: "", name, created_at: "" }]);
+      setEditCategory(name);
+      setNewCategoryName("");
+      setShowAddCategory(false);
+      toast({ title: "Category added!" });
+    } catch (err: any) {
+      toast({ title: "Failed", description: err.message, variant: "destructive" });
+    }
+  };
 
   const handleSave = async () => {
     if (!editor) return;
@@ -302,7 +324,6 @@ export default function AdminEditor() {
         payload.id = fullArticle.id;
         await saveArticle(payload);
         toast({ title: "Saved!" });
-        // Update summary list without full reload
         setAllArticles(prev => prev.map(a => a.id === fullArticle.id ? { ...a, title: editTitle, category: editCategory, meta_title: editMetaTitle, meta_description: editMetaDesc, slug: editSlug, og_image_url: editOgImage, published: editPublished } : a));
       }
     } catch (err: any) {
@@ -312,7 +333,55 @@ export default function AdminEditor() {
     }
   };
 
-  const goNext = () => { if (currentIndex < filteredArticles.length - 1) setCurrentIndex(currentIndex + 1); };
+  // Save story
+  const handleSaveStory = async () => {
+    if (!editor || !currentStorySummary) return;
+    setSaving(true);
+    try {
+      const htmlContent = editor.getHTML();
+      const mdContent = htmlToMd(htmlContent);
+      await supabase.from("stories").update({
+        title: editTitle,
+        content: mdContent,
+        category: editCategory || "Uncategorized",
+        published: editPublished,
+      } as any).eq("id", currentStorySummary.id);
+      toast({ title: "Story saved!" });
+      setAllStories(prev => prev.map(s => s.id === currentStorySummary.id ? { ...s, title: editTitle, content: mdContent, category: editCategory, published: editPublished } : s));
+    } catch (err: any) {
+      toast({ title: "Save failed", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // MCQ AI Update - regenerate/improve all questions in a set
+  const handleMcqAiUpdate = async (setId: string) => {
+    setMcqAiUpdating(setId);
+    try {
+      const set = allMcqSets.find(m => m.id === setId);
+      if (!set) throw new Error("Set not found");
+      const questions = set.questions as any[];
+      const topicText = `Title: ${set.title}\nCategory: ${set.category}\nQuestions:\n${questions.slice(0, 10).map((q: any) => q.question).join("\n")}`;
+      
+      const { data, error } = await supabase.functions.invoke("generate-content", {
+        body: { notes: topicText, type: "mcqs", count: Math.max(questions.length, 15) },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      if (!Array.isArray(data) || data.length === 0) throw new Error("No MCQs generated");
+      
+      await supabase.from("mcq_sets").update({ questions: data as any, updated_at: new Date().toISOString() } as any).eq("id", setId);
+      toast({ title: `Updated ${data.length} MCQs with AI!` });
+      await loadContent();
+    } catch (err: any) {
+      toast({ title: "AI update failed", description: err.message, variant: "destructive" });
+    } finally {
+      setMcqAiUpdating(null);
+    }
+  };
+
+  const goNext = () => { if (currentIndex < currentItems.length - 1) setCurrentIndex(currentIndex + 1); };
   const goPrev = () => { if (currentIndex > 0) setCurrentIndex(currentIndex - 1); };
 
   const startAdd = (method: "direct" | "gemini") => {
@@ -328,17 +397,32 @@ export default function AdminEditor() {
     if (!geminiNotes.trim()) return;
     setGeminiLoading(true);
     try {
+      const contentType = editorMode === "mcqs" ? "mcqs" : editorMode === "stories" ? "article" : "article";
       const { data, error } = await supabase.functions.invoke("generate-content", {
-        body: { notes: geminiNotes, type: "article" },
+        body: { notes: geminiNotes, type: contentType },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      setEditTitle(data.title || "Untitled");
-      setEditMetaTitle(data.title || "");
-      setEditSlug(slugifyText(data.title || ""));
-      setEditMetaDesc(stripRichText(data.content || "", 160));
-      if (editor) editor.commands.setContent(mdToHtml(data.content || ""));
-      toast({ title: "Generated!" });
+      
+      if (editorMode === "mcqs" && Array.isArray(data)) {
+        const cat = editCategory || `Year ${selectedYear}: General`;
+        await saveMcqSet({
+          title: editTitle || `MCQ: ${cat.split(":").pop()?.trim() || "General"}`,
+          questions: data, published: true, category: cat,
+          original_notes: geminiNotes, access_password: "",
+          created_at: new Date().toISOString(),
+        } as any);
+        toast({ title: `Created ${data.length} MCQs!` });
+        setIsAddMode(false);
+        await loadContent();
+      } else {
+        setEditTitle(data.title || "Untitled");
+        setEditMetaTitle(data.title || "");
+        setEditSlug(slugifyText(data.title || ""));
+        setEditMetaDesc(stripRichText(data.content || "", 160));
+        if (editor) editor.commands.setContent(mdToHtml(data.content || ""));
+        toast({ title: "Generated!" });
+      }
     } catch (err: any) {
       toast({ title: "Generation failed", description: err.message, variant: "destructive" });
     } finally {
@@ -346,7 +430,6 @@ export default function AdminEditor() {
     }
   };
 
-  // AI: Generate meta title, meta description, and slug using Gemini
   const handleAiMeta = async () => {
     if (!editor) return;
     setAiMetaLoading(true);
@@ -371,7 +454,6 @@ export default function AdminEditor() {
     }
   };
 
-  // AI: Improve content formatting
   const handleAiFormat = async () => {
     if (!editor) return;
     setGeminiLoading(true);
@@ -392,15 +474,17 @@ export default function AdminEditor() {
     }
   };
 
+  // Load story into editor
+  useEffect(() => {
+    if (editorMode !== "stories" || !currentStorySummary || !editor) return;
+    editor.commands.setContent(mdToHtml(currentStorySummary.content || ""));
+    setEditTitle(currentStorySummary.title || "");
+    setEditCategory(currentStorySummary.category || "");
+    setEditPublished(currentStorySummary.published);
+  }, [currentStorySummary?.id, editor, editorMode]);
+
   const previewUrl = fullArticle ? `${SITE_URL}${buildBlogPath(fullArticle)}` : "";
   const iconSize = "h-4 w-4";
-
-  // Auto-update log display
-  const [updateLog, setUpdateLog] = useState<any>(null);
-  useEffect(() => {
-    supabase.from("app_settings").select("value").eq("key", "auto_update_log").maybeSingle()
-      .then(({ data }) => { if (data?.value) try { setUpdateLog(JSON.parse(data.value)); } catch {} });
-  }, []);
 
   if (loading) {
     return (
@@ -413,7 +497,7 @@ export default function AdminEditor() {
   return (
     <>
       <Helmet>
-        <title>Article Editor | OmpathStudy Admin</title>
+        <title>Editor | OmpathStudy Admin</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
@@ -443,10 +527,10 @@ export default function AdminEditor() {
 
             <div className="flex items-center gap-1">
               {isAddMode && <Button variant="ghost" size="sm" onClick={() => setIsAddMode(false)} className="text-xs">Cancel</Button>}
-              {editorMode === "articles" && (
-              <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1 text-xs h-7 px-2">
-                {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Save
-              </Button>
+              {(editorMode === "articles" || editorMode === "stories") && (
+                <Button size="sm" onClick={editorMode === "stories" ? handleSaveStory : handleSave} disabled={saving} className="gap-1 text-xs h-7 px-2">
+                  {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Save
+                </Button>
               )}
               {fullArticle && !isAddMode && editorMode === "articles" && (
                 <a href={previewUrl} target="_blank" rel="noopener noreferrer">
@@ -464,69 +548,116 @@ export default function AdminEditor() {
           <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
             {(["articles", "mcqs", "stories"] as const).map((m) => (
               <button key={m} onClick={() => { setEditorMode(m); setCurrentIndex(0); setIsAddMode(false); }}
-                className={cn("rounded-md px-3 py-1 text-[11px] font-semibold transition-all whitespace-nowrap capitalize",
+                className={cn("flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap capitalize",
                   editorMode === m ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
                 {m === "mcqs" ? "MCQs" : m}
               </button>
             ))}
           </div>
 
-          {/* Year & Filter (hidden for stories) */}
+          {/* Year & Filter */}
           {editorMode !== "stories" && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5 overflow-x-auto">
-              {YEARS.map((yr) => (
-                <button key={yr} onClick={() => { setSelectedYear(yr); setSelectedUnit(""); setCurrentIndex(0); setIsAddMode(false); }}
-                  className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all whitespace-nowrap",
-                    selectedYear === yr ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
-                  Y{yr}
-                </button>
-              ))}
+            <div className="space-y-2">
+              <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5 overflow-x-auto">
+                {YEARS.map((yr) => (
+                  <button key={yr} onClick={() => { setSelectedYear(yr); setSelectedUnit(""); setCurrentIndex(0); setIsAddMode(false); }}
+                    className={cn("flex-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all whitespace-nowrap",
+                      selectedYear === yr ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+                    Y{yr}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <select value={selectedUnit} onChange={(e) => { setSelectedUnit(e.target.value); setCurrentIndex(0); }}
+                  className="flex-1 min-w-0 rounded-md border border-input bg-background px-2 py-1.5 text-xs">
+                  <option value="">All units ({editorMode === "articles" ? filteredArticles.length : filteredMcqs.length})</option>
+                  {yearUnits.map((u) => <option key={u} value={u}>{getCategoryDisplayName(u)}</option>)}
+                </select>
+                <div className="relative flex-1 min-w-[120px]">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                  <Input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentIndex(0); }}
+                    placeholder="Search..." className="pl-7 h-8 text-xs" />
+                </div>
+              </div>
+              <div className="flex gap-1.5 flex-wrap">
+                <Button variant="outline" size="sm" onClick={() => startAdd("direct")} className="gap-1 text-xs h-7 px-2">
+                  <Plus className="h-3 w-3" /> Add {editorMode === "mcqs" ? "MCQs" : "Article"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => startAdd("gemini")} className="gap-1 text-xs h-7 px-2">
+                  <Sparkles className="h-3 w-3" /> Generate with AI
+                </Button>
+                {editorMode === "mcqs" && (
+                  <Button variant="outline" size="sm" onClick={async () => {
+                    setMcqFixingId("all");
+                    try {
+                      const { data, error } = await supabase.functions.invoke("mcq-quality-fix", { body: {} });
+                      if (error) throw new Error(error.message);
+                      toast({ title: `Fixed ${data?.sets_fixed || 0} sets, removed ${data?.questions_removed || 0} bad questions` });
+                      await loadContent();
+                    } catch (err: any) {
+                      toast({ title: "Fix failed", description: err.message, variant: "destructive" });
+                    } finally { setMcqFixingId(null); }
+                  }} disabled={!!mcqFixingId} className="gap-1 text-xs h-7 px-2">
+                    {mcqFixingId === "all" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />} Fix All MCQs
+                  </Button>
+                )}
+              </div>
             </div>
-            <select value={selectedUnit} onChange={(e) => { setSelectedUnit(e.target.value); setCurrentIndex(0); }}
-              className="rounded-md border border-input bg-background px-1.5 py-1 text-[11px] max-w-[140px]">
-              <option value="">All units</option>
-              {yearUnits.map((u) => <option key={u} value={u}>{getCategoryDisplayName(u)}</option>)}
-            </select>
-            <div className="relative flex-1 min-w-[100px] max-w-[200px]">
-              <Search className="absolute left-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-              <Input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentIndex(0); }}
-                placeholder="Search..." className="pl-6 h-7 text-[11px]" />
-            </div>
-            {editorMode === "articles" && (
-            <div className="flex gap-1 ml-auto">
-              <Button variant="outline" size="sm" onClick={() => startAdd("direct")} className="gap-1 text-[11px] h-7 px-2">
-                <Plus className="h-3 w-3" /> Direct
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => startAdd("gemini")} className="gap-1 text-[11px] h-7 px-2">
-                <Sparkles className="h-3 w-3" /> AI
-              </Button>
-            </div>
-            )}
-          </div>
           )}
 
-          {/* Item pills - horizontal scroll */}
+          {/* Stories search */}
+          {editorMode === "stories" && (
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                <Input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentIndex(0); }}
+                  placeholder="Search stories..." className="pl-7 h-8 text-xs" />
+              </div>
+            </div>
+          )}
+
+          {/* Item pills */}
           {!isAddMode && currentItems.length > 0 && (
             <div className="flex gap-1 overflow-x-auto pb-1 -mx-2 px-2" style={{ scrollbarWidth: "thin" }}>
               {currentItems.slice(0, 50).map((a: any, i: number) => (
                 <button key={a.id} onClick={() => setCurrentIndex(i)}
-                  className={cn("shrink-0 rounded-md px-2 py-0.5 text-[10px] transition-colors border max-w-[150px] truncate",
+                  className={cn("shrink-0 rounded-md px-2 py-1 text-[10px] transition-colors border max-w-[150px] truncate",
                     i === currentIndex ? "border-primary bg-primary/10 text-primary font-medium" : "border-border text-muted-foreground hover:text-foreground hover:bg-muted")}
                   title={a.title}>{a.title}</button>
               ))}
-              {currentItems.length > 50 && <span className="text-[10px] text-muted-foreground self-center">+{currentItems.length - 50} more</span>}
+              {currentItems.length > 50 && <span className="text-[10px] text-muted-foreground self-center shrink-0">+{currentItems.length - 50} more</span>}
             </div>
           )}
 
-          {/* Gemini input for add mode */}
+          {/* AI Generate input for add mode */}
           {isAddMode && addMethod === "gemini" && (
             <div className="space-y-2">
+              <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
+                placeholder={editorMode === "mcqs" ? "MCQ set title (optional)" : "Title (optional)"}
+                className="text-sm h-8" />
+              {/* Category selector */}
+              <div className="flex gap-1.5">
+                <select value={editCategory} onChange={(e) => setEditCategory(e.target.value)}
+                  className="flex-1 rounded-md border border-input bg-background px-2 py-1.5 text-xs">
+                  <option value="">Auto-detect category</option>
+                  {allCategoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <Button variant="outline" size="sm" onClick={() => setShowAddCategory(!showAddCategory)} className="h-8 px-2">
+                  <FolderPlus className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              {showAddCategory && (
+                <div className="flex gap-1.5">
+                  <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="e.g. Year 3: Hematopathology" className="text-xs h-7 flex-1" />
+                  <Button size="sm" onClick={handleAddCategory} className="h-7 text-xs">Add</Button>
+                </div>
+              )}
               <Textarea value={geminiNotes} onChange={(e) => setGeminiNotes(e.target.value)}
-                placeholder="Paste your raw notes here..." className="min-h-[100px] text-sm" />
-              <Button onClick={handleGeminiGenerate} disabled={geminiLoading} size="sm" className="gap-1">
+                placeholder="Paste your raw notes here..." className="min-h-[120px] text-sm" />
+              <Button onClick={handleGeminiGenerate} disabled={geminiLoading} size="sm" className="gap-1 w-full">
                 {geminiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                Generate with AI
+                Generate {editorMode === "mcqs" ? "MCQs" : "Article"} with AI
               </Button>
             </div>
           )}
@@ -537,67 +668,58 @@ export default function AdminEditor() {
               <p className="text-muted-foreground text-sm">
                 {editorMode === "stories" ? "No stories found." : `No ${editorMode} for Year ${selectedYear}${selectedUnit ? ` — ${getCategoryDisplayName(selectedUnit)}` : ""}.`}
               </p>
-              {editorMode === "articles" && (
-              <div className="mt-2 flex gap-2 justify-center">
+              <div className="mt-2 flex gap-2 justify-center flex-wrap">
                 <Button size="sm" onClick={() => startAdd("direct")}>Add Direct</Button>
-                <Button size="sm" variant="outline" onClick={() => startAdd("gemini")}>Add via AI</Button>
+                <Button size="sm" variant="outline" onClick={() => startAdd("gemini")}>Generate with AI</Button>
               </div>
-              )}
             </div>
           )}
 
           {/* MCQ Editor Mode */}
           {editorMode === "mcqs" && currentMcqSummary && !isAddMode && (
             <div className="space-y-3">
-              <div className="rounded-xl border border-border bg-card p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="font-serif text-base font-bold text-foreground">{currentMcqSummary.title}</h3>
-                    <p className="text-xs text-muted-foreground">{currentMcqSummary.category} · {(currentMcqSummary.questions as any[]).length} questions</p>
+              <div className="rounded-xl border border-border bg-card p-3">
+                <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-serif text-sm font-bold text-foreground truncate">{currentMcqSummary.title}</h3>
+                    <p className="text-[10px] text-muted-foreground">{currentMcqSummary.category} · {(currentMcqSummary.questions as any[]).length} Qs</p>
                   </div>
-                  <div className="flex gap-1">
-                    <Button size="sm" variant="outline" onClick={async () => {
+                  <div className="flex gap-1 flex-wrap shrink-0">
+                    <Button size="sm" variant="outline" onClick={() => {
                       setMcqFixingId(currentMcqSummary.id);
-                      try {
-                        const { data, error } = await supabase.functions.invoke("mcq-quality-fix", { body: { set_id: currentMcqSummary.id } });
-                        if (error) throw new Error(error.message);
-                        toast({ title: `Fixed ${data?.issues?.length || 0} issues` });
-                        await loadContent();
-                      } catch (err: any) {
-                        toast({ title: "Fix failed", description: err.message, variant: "destructive" });
-                      } finally {
-                        setMcqFixingId(null);
-                      }
-                    }} disabled={mcqFixingId === currentMcqSummary.id} className="gap-1 text-xs h-7">
-                      {mcqFixingId === currentMcqSummary.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />} Fix Quality
+                      supabase.functions.invoke("mcq-quality-fix", { body: { set_id: currentMcqSummary.id } })
+                        .then(({ data, error }) => {
+                          if (error) throw new Error(error.message);
+                          toast({ title: `Fixed ${data?.issues?.length || 0} issues` });
+                          loadContent();
+                        })
+                        .catch((err: any) => toast({ title: "Fix failed", description: err.message, variant: "destructive" }))
+                        .finally(() => setMcqFixingId(null));
+                    }} disabled={mcqFixingId === currentMcqSummary.id} className="gap-1 text-[10px] h-7 px-2">
+                      {mcqFixingId === currentMcqSummary.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />} Fix
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleMcqAiUpdate(currentMcqSummary.id)}
+                      disabled={mcqAiUpdating === currentMcqSummary.id} className="gap-1 text-[10px] h-7 px-2">
+                      {mcqAiUpdating === currentMcqSummary.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} AI Update
                     </Button>
                   </div>
                 </div>
-                <div className="max-h-[60vh] overflow-y-auto space-y-2">
+                <div className="max-h-[55vh] overflow-y-auto space-y-2">
                   {(currentMcqSummary.questions as any[]).map((q: any, i: number) => (
                     <div key={i} className="rounded-lg border border-border p-2 space-y-1">
                       <p className="text-xs font-medium text-foreground">{i + 1}. {q.question}</p>
                       <div className="grid grid-cols-1 gap-0.5">
-                        {q.options.map((opt: string, j: number) => (
-                          <p key={j} className={cn("text-[11px] px-2 py-0.5 rounded", j === q.correct_answer ? "bg-green-500/10 text-green-700 dark:text-green-400 font-medium" : "text-muted-foreground")}>
+                        {q.options?.map((opt: string, j: number) => (
+                          <p key={j} className={cn("text-[11px] px-2 py-0.5 rounded",
+                            j === q.correct_answer ? "bg-green-500/10 text-green-700 dark:text-green-400 font-medium" : "text-muted-foreground")}>
                             {String.fromCharCode(65 + j)}. {opt}
                           </p>
                         ))}
                       </div>
-                      {q.explanation && <p className="text-[10px] text-muted-foreground italic">{q.explanation}</p>}
+                      {q.explanation && <p className="text-[10px] text-muted-foreground italic mt-1">{q.explanation}</p>}
                     </div>
                   ))}
                 </div>
-              </div>
-              {/* Bottom nav */}
-              <div className="flex items-center justify-between pt-1 border-t border-border">
-                <Button variant="outline" size="sm" onClick={() => currentIndex > 0 && setCurrentIndex(currentIndex - 1)} disabled={currentIndex === 0} className="gap-1 text-xs h-7">
-                  <ChevronLeft className="h-3.5 w-3.5" /> Prev
-                </Button>
-                <span className="text-[11px] text-muted-foreground">{currentIndex + 1}/{currentItems.length}</span>
-                <Button variant="outline" size="sm" onClick={() => currentIndex < currentItems.length - 1 && setCurrentIndex(currentIndex + 1)} disabled={currentIndex >= currentItems.length - 1} className="gap-1 text-xs h-7">
-                  Next <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
               </div>
             </div>
           )}
@@ -605,49 +727,71 @@ export default function AdminEditor() {
           {/* Story Editor Mode */}
           {editorMode === "stories" && currentStorySummary && !isAddMode && (
             <div className="space-y-3">
-              <div className="rounded-xl border border-border bg-card p-4">
-                <h3 className="font-serif text-base font-bold text-foreground mb-1">{currentStorySummary.title}</h3>
-                <p className="text-xs text-muted-foreground mb-3">{currentStorySummary.category} · {currentStorySummary.published ? "Published" : "Draft"}</p>
-                <div className="prose prose-sm dark:prose-invert max-w-none max-h-[60vh] overflow-y-auto text-sm" dangerouslySetInnerHTML={{ __html: currentStorySummary.content || "" }} />
+              <div className="space-y-2">
+                <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="text-sm h-8" placeholder="Story title" />
+                <div className="flex gap-2">
+                  <select value={editCategory} onChange={(e) => setEditCategory(e.target.value)}
+                    className="flex-1 rounded-md border border-input bg-background px-2 py-1.5 text-xs">
+                    <option value="">Category</option>
+                    <option value="Medical">Medical</option>
+                    <option value="Personal">Personal</option>
+                    <option value="Creative">Creative</option>
+                    <option value="Uncategorized">Uncategorized</option>
+                  </select>
+                  <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                    <input type="checkbox" checked={editPublished} onChange={(e) => setEditPublished(e.target.checked)} className="rounded" />
+                    <span>Published</span>
+                  </label>
+                </div>
               </div>
-              <div className="flex items-center justify-between pt-1 border-t border-border">
-                <Button variant="outline" size="sm" onClick={() => currentIndex > 0 && setCurrentIndex(currentIndex - 1)} disabled={currentIndex === 0} className="gap-1 text-xs h-7">
-                  <ChevronLeft className="h-3.5 w-3.5" /> Prev
-                </Button>
-                <span className="text-[11px] text-muted-foreground">{currentIndex + 1}/{currentItems.length}</span>
-                <Button variant="outline" size="sm" onClick={() => currentIndex < currentItems.length - 1 && setCurrentIndex(currentIndex + 1)} disabled={currentIndex >= currentItems.length - 1} className="gap-1 text-xs h-7">
-                  Next <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
-              </div>
+              {editor && (
+                <div className="rounded-xl border border-border bg-background overflow-hidden">
+                  <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-muted/30 px-1.5 py-1">
+                    <ToolbarBtn onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold"><Bold className={iconSize} /></ToolbarBtn>
+                    <ToolbarBtn onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic"><Italic className={iconSize} /></ToolbarBtn>
+                    <ToolbarBtn onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive("heading", { level: 2 })} title="H2"><Heading2 className={iconSize} /></ToolbarBtn>
+                    <ToolbarBtn onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullets"><List className={iconSize} /></ToolbarBtn>
+                    <ToolbarBtn onClick={() => editor.chain().focus().undo().run()} title="Undo"><Undo className={iconSize} /></ToolbarBtn>
+                    <ToolbarBtn onClick={() => editor.chain().focus().redo().run()} title="Redo"><Redo className={iconSize} /></ToolbarBtn>
+                  </div>
+                  <EditorContent editor={editor} />
+                </div>
+              )}
             </div>
           )}
 
           {/* Loading content */}
-          {loadingContent && !isAddMode && (
+          {loadingContent && !isAddMode && editorMode === "articles" && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           )}
 
-          {/* Article Editor */}
+          {/* Article Editor / Direct Add */}
           {editorMode === "articles" && ((fullArticle && !loadingContent) || isAddMode) && (
             <div className="space-y-2">
               {/* Title & Category */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[10px] font-medium text-muted-foreground mb-0.5 block">Title</label>
-                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="text-sm h-8" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-medium text-muted-foreground mb-0.5 block">Category</label>
-                  <select value={editCategory} onChange={(e) => setEditCategory(e.target.value)}
-                    className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs h-8">
-                    <option value="">Select category</option>
-                    {allCategoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
-                    <option value="Uncategorized">Uncategorized</option>
-                  </select>
-                </div>
+              <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="text-sm h-8" placeholder="Article title" />
+              
+              <div className="flex gap-1.5">
+                <select value={editCategory} onChange={(e) => setEditCategory(e.target.value)}
+                  className="flex-1 min-w-0 rounded-md border border-input bg-background px-2 py-1.5 text-xs">
+                  <option value="">Select category</option>
+                  {allCategoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                  <option value="Uncategorized">Uncategorized</option>
+                </select>
+                <Button variant="outline" size="sm" onClick={() => setShowAddCategory(!showAddCategory)} className="h-8 px-2 shrink-0">
+                  <FolderPlus className="h-3.5 w-3.5" />
+                </Button>
               </div>
+              
+              {showAddCategory && (
+                <div className="flex gap-1.5">
+                  <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="e.g. Year 3: Hematopathology" className="text-xs h-7 flex-1" />
+                  <Button size="sm" onClick={handleAddCategory} className="h-7 text-xs">Add</Button>
+                </div>
+              )}
 
               {/* Google Preview + AI Button */}
               <div className="rounded-lg border border-border bg-muted/30 p-2 space-y-1">
@@ -664,7 +808,7 @@ export default function AdminEditor() {
               </div>
 
               {/* Meta fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2">
                 <div>
                   <label className="text-[10px] font-medium text-muted-foreground mb-0.5 block">
                     Meta Title <span className="text-muted-foreground/60">{(editMetaTitle || editTitle).length}/60</span>
@@ -679,29 +823,22 @@ export default function AdminEditor() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] font-medium text-muted-foreground mb-0.5 block">URL Slug</label>
+                  <label className="text-[10px] font-medium text-muted-foreground mb-0.5 block">Slug</label>
                   <Input value={editSlug} onChange={(e) => setEditSlug(e.target.value)} placeholder={slugifyText(editTitle)} className="text-xs h-7" />
                 </div>
                 <div>
-                  <label className="text-[10px] font-medium text-muted-foreground mb-0.5 block">OG Image URL</label>
+                  <label className="text-[10px] font-medium text-muted-foreground mb-0.5 block">OG Image</label>
                   <Input value={editOgImage} onChange={(e) => setEditOgImage(e.target.value)} placeholder="https://..." className="text-xs h-7" />
                 </div>
               </div>
 
-              {/* Publish + OG Image */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-                  <input type="checkbox" checked={editPublished} onChange={(e) => setEditPublished(e.target.checked)} className="rounded" />
-                  <span className="font-medium">Published</span>
-                </label>
-                {editOgImage && (
-                  <div className="rounded border border-border overflow-hidden w-20 h-12">
-                    <img src={editOgImage} alt="OG" className="w-full h-full object-cover" />
-                  </div>
-                )}
-              </div>
+              {/* Publish toggle */}
+              <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                <input type="checkbox" checked={editPublished} onChange={(e) => setEditPublished(e.target.checked)} className="rounded" />
+                <span className="font-medium">Published</span>
+              </label>
 
               {/* WYSIWYG Toolbar + Editor */}
               {editor && (
@@ -730,7 +867,7 @@ export default function AdminEditor() {
                 </div>
               )}
 
-              {/* Bottom nav */}
+              {/* Bottom save */}
               <div className="flex items-center justify-between pt-1 border-t border-border">
                 <Button variant="outline" size="sm" onClick={goPrev} disabled={currentIndex === 0 || isAddMode} className="gap-1 text-xs h-7">
                   <ChevronLeft className="h-3.5 w-3.5" /> Prev
@@ -745,12 +882,16 @@ export default function AdminEditor() {
             </div>
           )}
 
-          {/* Auto-update log */}
-          {updateLog && (
-            <div className="mt-4 rounded-lg border border-border bg-muted/30 p-3">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">Auto-Update Log</p>
-              <p className="text-xs text-muted-foreground">Last run: {new Date(updateLog.timestamp).toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">Batch: {updateLog.batch_size} articles, {updateLog.results?.filter((r: any) => r.status === "updated").length || 0} updated</p>
+          {/* Bottom nav for MCQs and Stories */}
+          {(editorMode === "mcqs" || editorMode === "stories") && currentItems.length > 0 && !isAddMode && (
+            <div className="flex items-center justify-between pt-1 border-t border-border">
+              <Button variant="outline" size="sm" onClick={goPrev} disabled={currentIndex === 0} className="gap-1 text-xs h-7">
+                <ChevronLeft className="h-3.5 w-3.5" /> Prev
+              </Button>
+              <span className="text-[11px] text-muted-foreground">{currentIndex + 1}/{currentItems.length}</span>
+              <Button variant="outline" size="sm" onClick={goNext} disabled={currentIndex >= currentItems.length - 1} className="gap-1 text-xs h-7">
+                Next <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
             </div>
           )}
         </div>
