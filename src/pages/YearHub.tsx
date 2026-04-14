@@ -26,11 +26,11 @@ export default function YearHub() {
       ? `${window.location.origin}${location.pathname}${location.search}`
       : location.pathname;
 
-  const title = `OmpathStudy ${yearLabel} | Study Hub for Kenya Medical Students`;
+  const title = `${yearLabel} Study Materials | OmpathStudy Kenya`;
   const description =
-    `Explore OmpathStudy ${yearLabel} content for medical and health students in Kenya: notes by unit, flashcards, MCQs, essays, and timed exams.`;
+    `Browse ${yearLabel} medical study notes, flashcards, MCQs, and exams on OmpathStudy for Kenyan health students.`;
   const keywords =
-    `OmpathStudy, ${yearLabel}, medical students Kenya, nursing students Kenya, study notes, MCQs, flashcards, essays, exams, medical education Kenya`;
+    `OmpathStudy, ${yearLabel}, medical students Kenya, nursing students Kenya, study notes, MCQs, flashcards, exams, medical education Kenya`;
 
   const sections = [
     {
@@ -50,12 +50,6 @@ export default function YearHub() {
       description: "Practice quizzes for this year",
       to: `/mcqs?year=${encodeURIComponent(yearLabel)}`,
       icon: ListChecks,
-    },
-    {
-      title: "Essays",
-      description: "SAQs & LAQs for this year",
-      to: `/essays?year=${encodeURIComponent(yearLabel)}`,
-      icon: FileText,
     },
     {
       title: "Exams",
