@@ -8,7 +8,7 @@ import {
   Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Quote,
   Heading2, Heading3, Undo, Redo, Save, ChevronLeft, ChevronRight,
   Plus, Search, ImagePlus, Eye, Loader2, ArrowLeft, Sparkles, Zap,
-  Trash2, FolderPlus,
+  Trash2, FolderPlus, WifiOff, Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { slugifyText, SITE_URL, extractFirstImageFromContent, stripRichText } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import { Helmet } from "react-helmet-async";
+import { saveDraft, getDrafts, syncDrafts, deleteDraft, type OfflineDraft } from "@/lib/offline-drafts";
 
 type EditorMode = "articles" | "mcqs" | "stories";
 
