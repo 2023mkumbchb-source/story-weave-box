@@ -113,6 +113,74 @@ export default function AdminEditor() {
   const [editorMode, setEditorMode] = useState<EditorMode>("articles");
   const [newCategoryName, setNewCategoryName] = useState("");
   const [showAddCategory, setShowAddCategory] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [offlineDrafts, setOfflineDrafts] = useState<OfflineDraft[]>([]);
+  const [syncing, setSyncing] = useState(false);
+
+  // Track online status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
+  }, []);
+
+  // Load offline drafts
+  useEffect(() => { getDrafts().then(setOfflineDrafts).catch(() => {}); }, []);
+
+  // Auto-sync when back online
+  useEffect(() => {
+    if (!isOnline) return;
+    const doSync = async () => {
+      const unsynced = offlineDrafts.filter(d => !d.synced);
+      if (!unsynced.length) return;
+      setSyncing(true);
+      try {
+        const result = await syncDrafts(async (draft) => {
+          if (draft.type === "article") {
+            await saveArticle(draft.payload as any);
+          } else if (draft.type === "mcqs") {
+            await saveMcqSet(draft.payload as any);
+          }
+        });
+        if (result.synced > 0) {
+          toast({ title: `Synced ${result.synced} offline drafts!` });
+          const updated = await getDrafts();
+          setOfflineDrafts(updated);
+          await loadContent();
+        }
+      } catch {} finally { setSyncing(false); }
+    };
+    doSync();
+  }, [isOnline]);
+
+  const handleSaveOffline = async () => {
+    if (!editor) return;
+    const content = htmlToMd(editor.getHTML());
+    const draft: OfflineDraft = {
+      id: crypto.randomUUID(),
+      type: "article",
+      title: editTitle || "Untitled Draft",
+      content,
+      category: editCategory || `Year ${selectedYear}: General`,
+      created_at: new Date().toISOString(),
+      synced: false,
+      payload: {
+        title: editTitle || "Untitled Draft",
+        content,
+        published: false,
+        original_notes: content,
+        category: editCategory || `Year ${selectedYear}: General`,
+        meta_title: editMetaTitle,
+        meta_description: editMetaDesc,
+        slug: editSlug || slugifyText(editTitle || ""),
+      },
+    };
+    await saveDraft(draft);
+    setOfflineDrafts(prev => [...prev, draft]);
+    toast({ title: "Saved offline! Will sync when back online." });
+  };
 
   // MCQ editing state
   const [allMcqSets, setAllMcqSets] = useState<McqSet[]>([]);
