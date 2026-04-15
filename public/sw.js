@@ -1,6 +1,7 @@
-// OmpathStudy Service Worker - Offline caching
-const CACHE_NAME = "ompath-v2";
-const STATIC_ASSETS = ["/", "/index.html", "/manifest.json", "/favicon.png"];
+// OmpathStudy Service Worker - Enhanced Offline Support
+const CACHE_NAME = "ompath-v3";
+const STATIC_ASSETS = ["/", "/index.html", "/manifest.json"];
+const API_CACHE = "ompath-api-v1";
 
 // Install: cache shell
 self.addEventListener("install", (event) => {
@@ -14,26 +15,39 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      Promise.all(keys.filter((k) => k !== CACHE_NAME && k !== API_CACHE).map((k) => caches.delete(k)))
     )
   );
   self.clients.claim();
 });
 
-// Fetch: network-first for API, cache-first for assets
+// Fetch handler
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   
-  // Skip non-GET requests
   if (event.request.method !== "GET") return;
-  
-  // Skip oauth routes
   if (url.pathname.startsWith("/~oauth")) return;
   
-  // Skip supabase API calls - always network
+  // Cache Supabase API responses for offline reading
+  if (url.hostname.includes("supabase") && url.pathname.includes("/rest/")) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(API_CACHE).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+  
+  // Skip other supabase calls (auth, functions)
   if (url.hostname.includes("supabase")) return;
   
-  // For navigation requests (HTML pages), use network-first
+  // Navigation: network-first with offline fallback
   if (event.request.mode === "navigate") {
     event.respondWith(
       fetch(event.request)
@@ -47,7 +61,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   
-  // For static assets (js, css, images), cache-first
+  // Static assets: cache-first
   if (url.pathname.startsWith("/assets/") || /\.(js|css|png|jpg|jpeg|svg|ico|woff2?)$/.test(url.pathname)) {
     event.respondWith(
       caches.match(event.request).then((cached) => {
@@ -62,7 +76,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   
-  // For API data, network-first with cache fallback
+  // Everything else: network-first
   event.respondWith(
     fetch(event.request)
       .then((response) => {
