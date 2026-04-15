@@ -595,8 +595,23 @@ export default function AdminEditor() {
             </div>
 
             <div className="flex items-center gap-1">
+              {!isOnline && (
+                <span className="flex items-center gap-1 rounded-full bg-destructive/10 text-destructive px-2 py-0.5 text-[10px] font-medium">
+                  <WifiOff className="h-3 w-3" /> Offline
+                </span>
+              )}
+              {syncing && (
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Syncing...
+                </span>
+              )}
               {isAddMode && <Button variant="ghost" size="sm" onClick={() => setIsAddMode(false)} className="text-xs">Cancel</Button>}
-              {(editorMode === "articles" || editorMode === "stories") && (
+              {!isOnline && (editorMode === "articles") && (
+                <Button size="sm" onClick={handleSaveOffline} className="gap-1 text-xs h-7 px-2">
+                  <WifiOff className="h-3 w-3" /> Save Offline
+                </Button>
+              )}
+              {isOnline && (editorMode === "articles" || editorMode === "stories") && (
                 <Button size="sm" onClick={editorMode === "stories" ? handleSaveStory : handleSave} disabled={saving} className="gap-1 text-xs h-7 px-2">
                   {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Save
                 </Button>
