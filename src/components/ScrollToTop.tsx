@@ -74,7 +74,8 @@ export default function ScrollToTop() {
     }
 
     // Check if we have a saved position for this page (back/forward navigation)
-    const isPopState = window.navigation?.currentEntry?.navigationType === "traverse" || false;
+    const navEntry = (window as any).navigation?.currentEntry;
+    const isPopState = navEntry?.navigationType === "traverse" || false;
     const savedPos = getScrollPosition(pathname + search);
     
     if (isPopState && savedPos > 0) {
