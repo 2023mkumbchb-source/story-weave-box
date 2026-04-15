@@ -8,7 +8,7 @@ import {
   Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Quote,
   Heading2, Heading3, Undo, Redo, Save, ChevronLeft, ChevronRight,
   Plus, Search, ImagePlus, Eye, Loader2, ArrowLeft, Sparkles, Zap,
-  Trash2, FolderPlus,
+  Trash2, FolderPlus, WifiOff, Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { slugifyText, SITE_URL, extractFirstImageFromContent, stripRichText } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import { Helmet } from "react-helmet-async";
+import { saveDraft, getDrafts, syncDrafts, deleteDraft, type OfflineDraft } from "@/lib/offline-drafts";
 
 type EditorMode = "articles" | "mcqs" | "stories";
 
@@ -112,6 +113,74 @@ export default function AdminEditor() {
   const [editorMode, setEditorMode] = useState<EditorMode>("articles");
   const [newCategoryName, setNewCategoryName] = useState("");
   const [showAddCategory, setShowAddCategory] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [offlineDrafts, setOfflineDrafts] = useState<OfflineDraft[]>([]);
+  const [syncing, setSyncing] = useState(false);
+
+  // Track online status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
+  }, []);
+
+  // Load offline drafts
+  useEffect(() => { getDrafts().then(setOfflineDrafts).catch(() => {}); }, []);
+
+  // Auto-sync when back online
+  useEffect(() => {
+    if (!isOnline) return;
+    const doSync = async () => {
+      const unsynced = offlineDrafts.filter(d => !d.synced);
+      if (!unsynced.length) return;
+      setSyncing(true);
+      try {
+        const result = await syncDrafts(async (draft) => {
+          if (draft.type === "article") {
+            await saveArticle(draft.payload as any);
+          } else if (draft.type === "mcqs") {
+            await saveMcqSet(draft.payload as any);
+          }
+        });
+        if (result.synced > 0) {
+          toast({ title: `Synced ${result.synced} offline drafts!` });
+          const updated = await getDrafts();
+          setOfflineDrafts(updated);
+          await loadContent();
+        }
+      } catch {} finally { setSyncing(false); }
+    };
+    doSync();
+  }, [isOnline]);
+
+  const handleSaveOffline = async () => {
+    if (!editor) return;
+    const content = htmlToMd(editor.getHTML());
+    const draft: OfflineDraft = {
+      id: crypto.randomUUID(),
+      type: "article",
+      title: editTitle || "Untitled Draft",
+      content,
+      category: editCategory || `Year ${selectedYear}: General`,
+      created_at: new Date().toISOString(),
+      synced: false,
+      payload: {
+        title: editTitle || "Untitled Draft",
+        content,
+        published: false,
+        original_notes: content,
+        category: editCategory || `Year ${selectedYear}: General`,
+        meta_title: editMetaTitle,
+        meta_description: editMetaDesc,
+        slug: editSlug || slugifyText(editTitle || ""),
+      },
+    };
+    await saveDraft(draft);
+    setOfflineDrafts(prev => [...prev, draft]);
+    toast({ title: "Saved offline! Will sync when back online." });
+  };
 
   // MCQ editing state
   const [allMcqSets, setAllMcqSets] = useState<McqSet[]>([]);
@@ -526,8 +595,23 @@ export default function AdminEditor() {
             </div>
 
             <div className="flex items-center gap-1">
+              {!isOnline && (
+                <span className="flex items-center gap-1 rounded-full bg-destructive/10 text-destructive px-2 py-0.5 text-[10px] font-medium">
+                  <WifiOff className="h-3 w-3" /> Offline
+                </span>
+              )}
+              {syncing && (
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Syncing...
+                </span>
+              )}
               {isAddMode && <Button variant="ghost" size="sm" onClick={() => setIsAddMode(false)} className="text-xs">Cancel</Button>}
-              {(editorMode === "articles" || editorMode === "stories") && (
+              {!isOnline && (editorMode === "articles") && (
+                <Button size="sm" onClick={handleSaveOffline} className="gap-1 text-xs h-7 px-2">
+                  <WifiOff className="h-3 w-3" /> Save Offline
+                </Button>
+              )}
+              {isOnline && (editorMode === "articles" || editorMode === "stories") && (
                 <Button size="sm" onClick={editorMode === "stories" ? handleSaveStory : handleSave} disabled={saving} className="gap-1 text-xs h-7 px-2">
                   {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Save
                 </Button>

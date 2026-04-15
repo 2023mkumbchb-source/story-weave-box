@@ -538,6 +538,45 @@ Rules:
     }
 
 
+    if (type === "categorize-timetable") {
+      const messages = [
+        {
+          role: "system",
+          content: `You are a medical curriculum organizer. Parse the given timetable/unit list into structured categories.
+
+Output ONLY valid JSON: {"categories":["Year 1: Anatomy","Year 1: Physiology",...]}
+
+Rules:
+- Format each as "Year X: Unit Name"
+- Detect year from context (Year 1, Year 2, 1st year, etc.)
+- If no year is specified, use "Year 1" as default
+- Include semester info as part of the unit if relevant (e.g. "Year 2: Physiology Sem 1")
+- Clean up abbreviations and formatting
+- Remove duplicates
+- Sort by year then alphabetically`,
+        },
+        { role: "user", content: safeNotes.slice(0, 10000) },
+      ];
+      try {
+        const text = await callAI(messages, geminiKey, allKeys);
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(parsed.categories)) {
+            return new Response(JSON.stringify(parsed), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+      } catch {}
+      // Fallback: simple line parsing
+      const lines = safeNotes.split("\n").map(l => l.trim()).filter(Boolean);
+      const categories = lines.map(l => l.replace(/^[-•*\d.)\]]+\s*/, "").trim()).filter(c => c.length > 2);
+      return new Response(JSON.stringify({ categories }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (type === "generate-seo-meta") {
       const messages = [
         {

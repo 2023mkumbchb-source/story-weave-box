@@ -27,6 +27,7 @@ const SubmitStory = lazy(() => import("./pages/SubmitStory"));
 const Login = lazy(() => import("./pages/Login"));
 const Admin = lazy(() => import("./pages/Admin"));
 const YearHub = lazy(() => import("./pages/YearHub"));
+const CategoryManager = lazy(() => import("./pages/CategoryManager"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ const App = () => (
                 <Route path="/exams" element={<Exams />} />
                 <Route path="/exams/:id/start" element={<ExamStart />} />
                 <Route path="/admin/editor" element={<AdminEditor />} />
+                <Route path="/admin/categories" element={<CategoryManager />} />
                 <Route path="/stories" element={<Stories />} />
                 <Route path="/stories/:id" element={<StoryRead />} />
                 <Route path="/submit-story" element={<SubmitStory />} />
