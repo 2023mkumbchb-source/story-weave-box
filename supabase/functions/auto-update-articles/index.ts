@@ -144,6 +144,69 @@ Return ONLY valid JSON:
           results.push({ id: article.id, title: article.title, status: "no_changes" });
         }
 
+        // Auto-generate essay (SAQs + LAQ) if none exists yet for this article
+        try {
+          const { data: existingEssay } = await supabase
+            .from("essays")
+            .select("id")
+            .eq("article_id", article.id)
+            .is("deleted_at", null)
+            .maybeSingle();
+
+          if (!existingEssay) {
+            const essayPrompt = `You are a medical examiner. Create exam-style written questions from this article.
+
+Return ONLY valid JSON (no markdown, no commentary):
+{"saqs":[{"question":"...","model_answer":"...","marks":5}],"laqs":[{"question":"...","model_answer":"...","marks":20}]}
+
+REQUIREMENTS:
+- EXACTLY 5 SAQs (5 marks each) — clinically structured, concise model answers
+- EXACTLY 1 LAQ (20 marks) — comprehensive, well-structured model answer
+- Questions must come from the article content below
+
+Article Title: ${article.title}
+Category: ${article.category}
+Content:
+${safeContent.slice(0, 12000)}`;
+
+            const essayText = await callGemini(essayPrompt, apiKey);
+            const essayMatch = essayText.match(/\{[\s\S]*\}/);
+            if (essayMatch) {
+              const parsedEssay = JSON.parse(essayMatch[0]);
+              const saqs = Array.isArray(parsedEssay?.saqs)
+                ? parsedEssay.saqs.filter((q: any) => q?.question && (q?.model_answer || q?.answer))
+                    .map((q: any) => ({
+                      question: compactWhitespace(String(q.question)),
+                      model_answer: compactWhitespace(String(q.model_answer || q.answer)),
+                      marks: Number(q.marks) || 5,
+                    }))
+                : [];
+              const laqs = Array.isArray(parsedEssay?.laqs)
+                ? parsedEssay.laqs.filter((q: any) => q?.question && (q?.model_answer || q?.answer))
+                    .map((q: any) => ({
+                      question: compactWhitespace(String(q.question)),
+                      model_answer: compactWhitespace(String(q.model_answer || q.answer)),
+                      marks: Number(q.marks) || 20,
+                    }))
+                : [];
+
+              if (saqs.length > 0 || laqs.length > 0) {
+                await supabase.from("essays").insert({
+                  article_id: article.id,
+                  title: `${article.title} — Practice Questions`,
+                  category: article.category,
+                  short_answer_questions: saqs,
+                  long_answer_questions: laqs,
+                  published: true,
+                });
+                (results[results.length - 1] as any).essay_added = true;
+              }
+            }
+          }
+        } catch (essayErr) {
+          console.error("Essay generation failed for", article.id, essayErr);
+        }
+
         // Small delay between API calls
         await new Promise(r => setTimeout(r, 1500));
       } catch (err) {
@@ -175,6 +238,7 @@ Return ONLY valid JSON:
       message: `Processed ${articles.length} articles`,
       updated: results.filter(r => r.status === "updated").length,
       results,
+      essays_generated: (results as any[]).filter((r: any) => r.essay_added).length,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
