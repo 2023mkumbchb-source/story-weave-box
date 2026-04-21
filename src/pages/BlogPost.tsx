@@ -842,6 +842,9 @@ export default function BlogPost() {
   const unitName = getCategoryDisplayName(article.category);
   const yearName = getYearFromCategory(article.category);
   const hasRelated = related.flashcards.length > 0 || related.mcqs.length > 0;
+  const articleEssay = related.essays?.[0];
+  const essaySaqs: any[] = Array.isArray(articleEssay?.short_answer_questions) ? articleEssay.short_answer_questions : [];
+  const essayLaqs: any[] = Array.isArray(articleEssay?.long_answer_questions) ? articleEssay.long_answer_questions : [];
 
   return (
     <>
