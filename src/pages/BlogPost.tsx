@@ -987,6 +987,45 @@ export default function BlogPost() {
               />
             </div>
 
+            {(essaySaqs.length > 0 || essayLaqs.length > 0) && (
+              <section className="mt-12 rounded-xl border border-border bg-card p-5 sm:p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <HelpCircle className="h-4 w-4 text-primary" />
+                  <h2 className="font-serif text-xl font-bold text-foreground">Practice Essay Questions</h2>
+                </div>
+                {essaySaqs.length > 0 && (
+                  <div className="mb-6">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Short Answer Questions</p>
+                    <div className="space-y-2">
+                      {essaySaqs.map((q: any, i: number) => (
+                        <PracticeQuestion
+                          key={`saq-${i}`}
+                          number={`${i + 1}`}
+                          question={q.question || ""}
+                          answer={q.model_answer || q.answer || ""}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {essayLaqs.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Long Answer Questions</p>
+                    <div className="space-y-2">
+                      {essayLaqs.map((q: any, i: number) => (
+                        <PracticeQuestion
+                          key={`laq-${i}`}
+                          number={`${i + 1}`}
+                          question={q.question || ""}
+                          answer={q.model_answer || q.answer || ""}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
+
             {hasRelated && (
               <div className="mt-12 rounded-lg border border-border p-5">
                 <div className="flex items-center gap-2 mb-4">
