@@ -19,6 +19,8 @@ const YEAR_META: Record<string, { color: string; border: string }> = {
   "Year 6": { color: "text-primary", border: "border-primary/30" },
 };
 
+const HERO_TINT = "bg-primary/15";
+
 const NAV_ITEMS = [
   { to: "/blog", label: "Articles", icon: BookOpen },
   { to: "/flashcards", label: "Flashcards", icon: GraduationCap },
@@ -101,12 +103,13 @@ export default function Index() {
   return (
     <div className="min-h-dvh bg-background">
       {/* Hero */}
-      <section className="relative overflow-hidden bg-[hsl(174,62%,22%)] text-white">
-        <div className="absolute inset-0 bg-gradient-to-br from-[hsl(174,62%,28%)] via-[hsl(174,55%,20%)] to-[hsl(180,40%,15%)]" />
+      <section className="relative overflow-hidden bg-primary text-primary-foreground">
+        <div className={`absolute inset-0 ${HERO_TINT}`} />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-primary to-accent/60" />
         <div className="relative mx-auto max-w-5xl px-5 py-14 sm:py-20">
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <h1 className="font-serif text-3xl sm:text-5xl font-bold mb-3 leading-tight">
-              OM<span className="text-[hsl(174,80%,65%)]">PATH</span>
+            <h1 className="font-serif text-3xl sm:text-5xl font-bold mb-3 leading-tight break-words">
+              OM<span className="text-primary-foreground/80">PATH</span>
             </h1>
             <p className="text-white/70 text-base sm:text-lg max-w-xl leading-relaxed mb-8">
               Comprehensive medical study notes, flashcards, MCQs, and exam preparation — organized by unit.
@@ -114,8 +117,8 @@ export default function Index() {
             <div className="flex flex-wrap gap-2">
               {NAV_ITEMS.map(item => (
                 <Link key={item.to} to={item.to}
-                  className="group flex items-center gap-2 rounded-lg border border-white/15 bg-white/10 backdrop-blur-sm px-4 py-2.5 text-sm font-medium text-white hover:bg-white/20 transition-all">
-                  <item.icon className="h-4 w-4 text-[hsl(174,80%,65%)]" />
+                  className="group flex items-center gap-2 rounded-lg border border-primary-foreground/15 bg-primary-foreground/10 backdrop-blur-sm px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary-foreground/20 transition-all">
+                  <item.icon className="h-4 w-4 text-primary-foreground/80" />
                   {item.label}
                 </Link>
               ))}
