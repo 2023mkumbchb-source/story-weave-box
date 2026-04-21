@@ -156,17 +156,26 @@ export default function AdminEditor() {
   }, [isOnline]);
 
   const handleSaveOffline = async () => {
-    if (!editor) return;
-    const content = htmlToMd(editor.getHTML());
+    if (!editor && editorMode === "articles") return;
+    const content = editor ? htmlToMd(editor.getHTML()) : "";
+    const mcqPayload = currentMcqSummary ? {
+      id: currentMcqSummary.id,
+      title: currentMcqSummary.title,
+      questions: currentMcqSummary.questions,
+      published: currentMcqSummary.published,
+      original_notes: currentMcqSummary.original_notes || "",
+      category: currentMcqSummary.category || `Year ${selectedYear}: General`,
+      access_password: currentMcqSummary.access_password || "",
+    } : null;
     const draft: OfflineDraft = {
       id: crypto.randomUUID(),
-      type: "article",
-      title: editTitle || "Untitled Draft",
+      type: editorMode === "mcqs" ? "mcqs" : "article",
+      title: editorMode === "mcqs" ? (currentMcqSummary?.title || "Untitled MCQ Draft") : (editTitle || "Untitled Draft"),
       content,
-      category: editCategory || `Year ${selectedYear}: General`,
+      category: editCategory || currentMcqSummary?.category || `Year ${selectedYear}: General`,
       created_at: new Date().toISOString(),
       synced: false,
-      payload: {
+      payload: editorMode === "mcqs" && mcqPayload ? mcqPayload : {
         title: editTitle || "Untitled Draft",
         content,
         published: false,
@@ -179,7 +188,7 @@ export default function AdminEditor() {
     };
     await saveDraft(draft);
     setOfflineDrafts(prev => [...prev, draft]);
-    toast({ title: "Saved offline! Will sync when back online." });
+    toast({ title: `${editorMode === "mcqs" ? "MCQ set" : "Draft"} saved offline! Will sync when back online.` });
   };
 
   // MCQ editing state
@@ -455,7 +464,7 @@ export default function AdminEditor() {
 
   const startAdd = (method: "direct" | "gemini") => {
     setIsAddMode(true);
-    setAddMethod(method);
+    setAddMethod(editorMode === "mcqs" ? "gemini" : method);
     setEditTitle(""); setEditMetaTitle(""); setEditMetaDesc(""); setEditSlug("");
     setEditCategory(selectedUnit || `Year ${selectedYear}: General`);
     setEditOgImage(""); setEditPublished(false); setGeminiNotes("");
@@ -606,7 +615,7 @@ export default function AdminEditor() {
                 </span>
               )}
               {isAddMode && <Button variant="ghost" size="sm" onClick={() => setIsAddMode(false)} className="text-xs">Cancel</Button>}
-              {!isOnline && (editorMode === "articles") && (
+              {!isOnline && (editorMode === "articles" || editorMode === "mcqs") && (
                 <Button size="sm" onClick={handleSaveOffline} className="gap-1 text-xs h-7 px-2">
                   <WifiOff className="h-3 w-3" /> Save Offline
                 </Button>
@@ -629,7 +638,7 @@ export default function AdminEditor() {
 
         <div className="mx-auto max-w-5xl px-2 py-3 space-y-3">
           {/* Mode selector */}
-          <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
+          <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5 overflow-x-auto">
             {(["articles", "mcqs", "stories"] as const).map((m) => (
               <button key={m} onClick={() => { setEditorMode(m); setCurrentIndex(0); setIsAddMode(false); }}
                 className={cn("flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap capitalize",
