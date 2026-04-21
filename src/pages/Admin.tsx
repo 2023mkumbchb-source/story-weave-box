@@ -1803,7 +1803,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
       const { data, error } = await supabase.functions.invoke('generate-exam');
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
-      toast({ title: `Exam generated! ${data.mcq_count} MCQs` });
+      toast({ title: `Exam generation complete`, description: `${data?.unit_count || 0} unit exam(s) created.` });
     } catch (err: any) {
       toast({ title: "Exam generation failed", description: err.message, variant: "destructive" });
     } finally { setGeneratingExam(false); }

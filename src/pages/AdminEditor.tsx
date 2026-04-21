@@ -673,8 +673,8 @@ export default function AdminEditor() {
                 </div>
               </div>
               <div className="flex gap-1.5 flex-wrap">
-                <Button variant="outline" size="sm" onClick={() => startAdd("direct")} className="gap-1 text-xs h-7 px-2">
-                  <Plus className="h-3 w-3" /> Add {editorMode === "mcqs" ? "MCQs" : "Article"}
+                <Button variant="outline" size="sm" onClick={() => startAdd(editorMode === "mcqs" ? "gemini" : "direct")} className="gap-1 text-xs h-7 px-2">
+                  <Plus className="h-3 w-3" /> Add {editorMode === "mcqs" ? "MCQ Set" : "Article"}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => startAdd("gemini")} className="gap-1 text-xs h-7 px-2">
                   <Sparkles className="h-3 w-3" /> Generate with AI
@@ -725,7 +725,7 @@ export default function AdminEditor() {
           {/* AI Generate input for add mode */}
           {isAddMode && addMethod === "gemini" && (
             <div className="space-y-2">
-              <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
+                <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
                 placeholder={editorMode === "mcqs" ? "MCQ set title (optional)" : "Title (optional)"}
                 className="text-sm h-8" />
               {/* Category selector */}
@@ -747,7 +747,7 @@ export default function AdminEditor() {
                 </div>
               )}
               <Textarea value={geminiNotes} onChange={(e) => setGeminiNotes(e.target.value)}
-                placeholder="Paste your raw notes here..." className="min-h-[120px] text-sm" />
+                placeholder={editorMode === "mcqs" ? "Paste notes or raw MCQs here..." : "Paste your raw notes here..."} className="min-h-[120px] text-sm" />
               <Button onClick={handleGeminiGenerate} disabled={geminiLoading} size="sm" className="gap-1 w-full">
                 {geminiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                 Generate {editorMode === "mcqs" ? "MCQs" : "Article"} with AI
