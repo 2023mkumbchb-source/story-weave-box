@@ -18,6 +18,13 @@ function getScrollPosition(key: string): number {
   } catch { return 0; }
 }
 
+function isHistoryTraversal(): boolean {
+  const navEntry = (window as any).navigation?.currentEntry;
+  if (navEntry?.navigationType === "traverse") return true;
+  const perfEntries = window.performance?.getEntriesByType?.("navigation") as PerformanceNavigationTiming[] | undefined;
+  return perfEntries?.[0]?.type === "back_forward";
+}
+
 export default function ScrollToTop() {
   const { pathname, search, hash, key } = useLocation();
   const previousLocationKeyRef = useRef<string | null>(null);
@@ -74,8 +81,7 @@ export default function ScrollToTop() {
     }
 
     // Check if we have a saved position for this page (back/forward navigation)
-    const navEntry = (window as any).navigation?.currentEntry;
-    const isPopState = navEntry?.navigationType === "traverse" || false;
+    const isPopState = isHistoryTraversal();
     const savedPos = getScrollPosition(pathname + search);
     
     if (isPopState && savedPos > 0) {

@@ -16,37 +16,6 @@ function normalizeUnitName(category: string): string {
   return raw;
 }
 
-async function callLovableAI(prompt: string): Promise<string> {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!apiKey) throw new Error("LOVABLE_API_KEY not set");
-
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        { role: "system", content: "You are a senior medical exam writer. Return ONLY valid JSON, no markdown or code blocks." },
-        { role: "user", content: prompt },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    console.error("Lovable AI error:", response.status, text);
-    if (response.status === 429) throw new Error("LOVABLE_RATE_LIMIT");
-    if (response.status === 402) throw new Error("LOVABLE_CREDITS");
-    throw new Error(`LOVABLE_FAIL:${response.status}`);
-  }
-
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || "";
-}
-
 async function callGeminiFallback(prompt: string): Promise<string> {
   const geminiKey = Deno.env.get("GEMINI_API_KEY");
   if (!geminiKey) throw new Error("No GEMINI_API_KEY fallback available");
@@ -76,12 +45,7 @@ async function callGeminiFallback(prompt: string): Promise<string> {
 }
 
 async function generateWithFallback(prompt: string): Promise<string> {
-  try {
-    return await callLovableAI(prompt);
-  } catch (e: any) {
-    console.warn("Lovable AI failed, falling back to Gemini:", e.message);
-    return await callGeminiFallback(prompt);
-  }
+  return await callGeminiFallback(prompt);
 }
 
 function parseMcqs(raw: string) {
@@ -176,12 +140,12 @@ serve(async (req) => {
       const weakForUnit = weakTopics.filter((q) => q.toLowerCase().includes(unit.toLowerCase())).slice(0, 20);
       const weakBlock = weakForUnit.length ? `\nPrioritize weak topics:\n${weakForUnit.join("\n")}` : "";
 
-      const mcqPrompt = `Create around 60 MCQs (minimum 45, maximum 75) for a ${unit} weekly medical exam.\n\nContent context:\n${context}${weakBlock}\n\nReturn ONLY valid JSON array with schema: {"question":"...","options":["A","B","C","D"],"correct_answer":0,"explanation":"..."}`;
+      const mcqPrompt = `Create exactly 35 high-quality MCQs for a ${unit} weekly medical exam.\n\nContent context:\n${context}${weakBlock}\n\nReturn ONLY valid JSON array with schema: {"question":"...","options":["A","B","C","D"],"correct_answer":0,"explanation":"..."}`;
       const mcqText = await generateWithFallback(mcqPrompt);
       const examMcqs = parseMcqs(mcqText);
       if (examMcqs.length === 0) continue;
 
-      const essayPrompt = `Create written exam section for ${unit}. Return ONLY valid JSON:\n{"saqs":[{"question":"...","model_answer":"...","marks":5}],"laqs":[{"question":"...","model_answer":"...","marks":20}]}\n\nRules:\n- exactly 6 SAQs with 5 marks each (total 30)\n- exactly 1 LAQ with 20 marks`;
+      const essayPrompt = `Create written exam section for ${unit}. Return ONLY valid JSON:\n{"saqs":[{"question":"...","model_answer":"...","marks":5}],"laqs":[{"question":"...","model_answer":"...","marks":20}]}\n\nRules:\n- exactly 4 SAQs with 5 marks each\n- exactly 1 LAQ with 20 marks`;
       const essayText = await generateWithFallback(essayPrompt);
       const { saqs, laqs } = parseEssays(essayText);
 

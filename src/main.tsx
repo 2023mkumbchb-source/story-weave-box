@@ -3,8 +3,8 @@ import App from "./App.tsx";
 import "./index.css";
 import { HelmetProvider } from "react-helmet-async";
 
-// Register service worker for offline caching (production only)
-if ("serviceWorker" in navigator && !window.location.hostname.includes("lovable")) {
+// Register service worker for offline caching
+if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js").catch(() => {});
   });
