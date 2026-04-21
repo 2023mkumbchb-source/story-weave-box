@@ -585,15 +585,24 @@ export async function deleteMcqSet(id: string) {
 
 // Related content by category
 export async function getRelatedContent(category: string, excludeArticleId?: string) {
-  const [{ data: articles }, { data: flashcards }, { data: mcqs }] = await Promise.all([
+  const [{ data: articles }, { data: flashcards }, { data: mcqs }, { data: essays }] = await Promise.all([
     supabase.from("articles").select("id, title, category").eq("published", true).eq("category", category),
     supabase.from("flashcard_sets").select("id, title, category, cards").eq("published", true).eq("category", category),
     supabase.from("mcq_sets").select("id, title, category, questions").eq("published", true).eq("category", category),
+    excludeArticleId
+      ? supabase
+          .from("essays")
+          .select("id, title, short_answer_questions, long_answer_questions")
+          .eq("published", true)
+          .is("deleted_at", null)
+          .eq("article_id", excludeArticleId)
+      : Promise.resolve({ data: [] as any[] }),
   ]);
   return {
     articles: (articles || []).filter((a: any) => a.id !== excludeArticleId),
     flashcards: flashcards || [],
     mcqs: mcqs || [],
+    essays: essays || [],
   };
 }
 

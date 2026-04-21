@@ -504,7 +504,7 @@ export default function BlogPost() {
   const [notFound, setNotFound] = useState(false); // ✅ track not-found separately
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; mcqs: any[] }>({ articles: [], flashcards: [], mcqs: [] });
+  const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; mcqs: any[]; essays: any[] }>({ articles: [], flashcards: [], mcqs: [], essays: [] });
   const [activeSection, setActiveSection] = useState("");
 
   const handleBack = () => {
