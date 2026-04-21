@@ -504,7 +504,7 @@ export default function BlogPost() {
   const [notFound, setNotFound] = useState(false); // ✅ track not-found separately
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; mcqs: any[] }>({ articles: [], flashcards: [], mcqs: [] });
+  const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; mcqs: any[]; essays: any[] }>({ articles: [], flashcards: [], mcqs: [], essays: [] });
   const [activeSection, setActiveSection] = useState("");
 
   const handleBack = () => {
@@ -842,6 +842,9 @@ export default function BlogPost() {
   const unitName = getCategoryDisplayName(article.category);
   const yearName = getYearFromCategory(article.category);
   const hasRelated = related.flashcards.length > 0 || related.mcqs.length > 0;
+  const articleEssay = related.essays?.[0];
+  const essaySaqs: any[] = Array.isArray(articleEssay?.short_answer_questions) ? articleEssay.short_answer_questions : [];
+  const essayLaqs: any[] = Array.isArray(articleEssay?.long_answer_questions) ? articleEssay.long_answer_questions : [];
 
   return (
     <>
@@ -983,6 +986,45 @@ export default function BlogPost() {
                 variant="full"
               />
             </div>
+
+            {(essaySaqs.length > 0 || essayLaqs.length > 0) && (
+              <section className="mt-12 rounded-xl border border-border bg-card p-5 sm:p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <HelpCircle className="h-4 w-4 text-primary" />
+                  <h2 className="font-serif text-xl font-bold text-foreground">Practice Essay Questions</h2>
+                </div>
+                {essaySaqs.length > 0 && (
+                  <div className="mb-6">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Short Answer Questions</p>
+                    <div className="space-y-2">
+                      {essaySaqs.map((q: any, i: number) => (
+                        <PracticeQuestion
+                          key={`saq-${i}`}
+                          number={`${i + 1}`}
+                          question={q.question || ""}
+                          answer={q.model_answer || q.answer || ""}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {essayLaqs.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Long Answer Questions</p>
+                    <div className="space-y-2">
+                      {essayLaqs.map((q: any, i: number) => (
+                        <PracticeQuestion
+                          key={`laq-${i}`}
+                          number={`${i + 1}`}
+                          question={q.question || ""}
+                          answer={q.model_answer || q.answer || ""}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
 
             {hasRelated && (
               <div className="mt-12 rounded-lg border border-border p-5">
