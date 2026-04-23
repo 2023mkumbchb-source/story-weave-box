@@ -176,12 +176,13 @@ export const UNIT_CATEGORIES = Object.entries(YEAR_CATEGORIES).flatMap(([year, u
 
 export function getYearFromCategory(category: string): string | null {
   if (!category) return null;
-  const match = category.match(/^(Year \d)/);
-  return match ? match[1] : null;
+  // Match "Year N" anywhere so "Weekly Exam: Year 1: Anatomy" still maps to "Year 1"
+  const match = category.match(/Year\s+(\d)/);
+  return match ? `Year ${match[1]}` : null;
 }
 
 export function getYearNumber(category: string): number {
-  const match = category.match(/^Year (\d)/);
+  const match = category.match(/Year\s+(\d)/);
   return match ? parseInt(match[1]) : 0;
 }
 
@@ -217,6 +218,33 @@ export function buildBlogPath(article: Pick<Article, "id" | "title"> & { slug?: 
   const slug = article.slug || slugifyTitle(article.title) || "article";
   const cleanSlug = slug.replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i, "");
   return `/blog/${cleanSlug}`;
+}
+
+/** Build a statement-style URL: /mcqs/<id>-<title-slug> */
+export function buildMcqPath(set: { id: string; title: string }): string {
+  const slug = slugifyTitle(set.title) || "quiz";
+  return `/mcqs/${set.id}-${slug}`;
+}
+
+/** Build a statement-style URL: /flashcards/<id>-<title-slug> */
+export function buildFlashcardPath(set: { id: string; title: string }): string {
+  const slug = slugifyTitle(set.title) || "flashcards";
+  return `/flashcards/${set.id}-${slug}`;
+}
+
+/** Build a statement-style URL: /exams/<id>-<title-slug>/start */
+export function buildExamPath(exam: { id: string; title: string }): string {
+  const slug = slugifyTitle(exam.title) || "exam";
+  return `/exams/${exam.id}-${slug}/start`;
+}
+
+/** Extract a UUID from a slug param like "<uuid>-<title>" or just "<uuid>". */
+export function extractIdFromParam(value: string | undefined | null): string | null {
+  if (!value) return null;
+  const v = String(value).trim();
+  if (UUID_REGEX.test(v)) return v;
+  const match = v.match(/^([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})(?:-|$)/i);
+  return match?.[1] || null;
 }
 
 function toArticlePreview(row: any): Article {

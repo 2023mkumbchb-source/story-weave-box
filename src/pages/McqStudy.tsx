@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Loader2, Lock, Unlock, ListChecks, Phone, CheckCircle } from "lucide-react";
-import { getMcqSetById, getCategoryDisplayName, getSetting, type McqSet } from "@/lib/store";
+import { getMcqSetById, getCategoryDisplayName, getSetting, extractIdFromParam, buildMcqPath, type McqSet } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import McqViewer from "@/components/McqViewer";
@@ -21,8 +21,10 @@ function persistUnlockedMcqs(set: Set<string>) {
 }
 
 export default function McqStudy() {
-  const { id } = useParams();
+  const { id: param } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const id = extractIdFromParam(param);
   const [set, setSet] = useState<McqSet | null>(null);
   const [loading, setLoading] = useState(true);
   const [passwordUnlocked, setPasswordUnlocked] = useState(false);
@@ -55,6 +57,8 @@ export default function McqStudy() {
       setSet(s);
       if (s) {
         markMcqVisited(s.id);
+        const canonical = buildMcqPath(s);
+        if (location.pathname !== canonical) navigate(canonical, { replace: true });
         updateMetaTags({
           title: `${s.title} – MCQs | OMPATH`,
           description: s.description ? stripRichText(s.description, 155) : `Practice ${s.title} MCQs on OMPATH. Interactive medical study quiz with answers and explanations.`,

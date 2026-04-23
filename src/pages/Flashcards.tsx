@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { GraduationCap, Calendar, Layers, ChevronDown, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
-import { getPublishedFlashcardSets, getCategoryDisplayName, getYearFromCategory, type FlashcardSet } from "@/lib/store";
+import { getPublishedFlashcardSets, getCategoryDisplayName, getYearFromCategory, buildFlashcardPath, type FlashcardSet } from "@/lib/store";
 import { getVisitedFlashcardIds } from "@/lib/progress-store";
 import { updateMetaTags } from "@/lib/seo";
 import CategoryTabs from "@/components/CategoryTabs";
@@ -100,7 +100,7 @@ export default function Flashcards() {
             {filtered.slice(0, visibleCount).map((s, i) => (
               <motion.div key={s.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.05 }}>
                 <Link
-                  to={`/flashcards/${s.id}`}
+                  to={buildFlashcardPath(s)}
                   className="group relative block h-full rounded-xl border border-border bg-card p-5 sm:p-6 transition-shadow hover:[box-shadow:var(--shadow-card-hover)]"
                   style={{ boxShadow: "var(--shadow-card)" }}
                 >

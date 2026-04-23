@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import ExamMode from "@/components/ExamMode";
 import { Helmet } from "react-helmet-async";
+import { extractIdFromParam } from "@/lib/store";
 
 interface ExamSet {
   id: string;
@@ -95,6 +96,7 @@ export default function ExamStart() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const examId = extractIdFromParam(id) || (id === "sample-exam" ? "sample-exam" : null);
   const [exam, setExam] = useState<ExamSet | null>(null);
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
@@ -124,16 +126,16 @@ export default function ExamStart() {
   // Load exam
   useEffect(() => {
     const run = async () => {
-      if (!id) { navigate("/exams"); return; }
+      if (!examId) { navigate("/exams"); return; }
       const unlockedRaw = localStorage.getItem(UNLOCKED_KEY);
       const unlocked = new Set<string>(unlockedRaw ? JSON.parse(unlockedRaw) : []);
-      const isSample = id === "sample-exam";
-      if (!isSample && !unlocked.has(id)) { navigate("/exams"); return; }
+      const isSample = examId === "sample-exam";
+      if (!isSample && !unlocked.has(examId)) { navigate("/exams"); return; }
       if (isSample) { setExam(sampleExam()); setLoading(false); return; }
       const { data } = await supabase
         .from("mcq_sets")
         .select("id, title, category, questions")
-        .eq("id", id)
+        .eq("id", examId)
         .eq("published", true)
         .maybeSingle();
       if (!data) { navigate("/exams"); return; }
@@ -141,7 +143,7 @@ export default function ExamStart() {
       setLoading(false);
     };
     run();
-  }, [id, navigate]);
+  }, [examId, navigate]);
 
   // Load approved custom institutions from DB
   useEffect(() => {

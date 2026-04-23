@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { getFlashcardSetById, getCategoryDisplayName, type FlashcardSet } from "@/lib/store";
+import { getFlashcardSetById, getCategoryDisplayName, extractIdFromParam, buildFlashcardPath, type FlashcardSet } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import FlashcardViewer from "@/components/FlashcardViewer";
 import { markFlashcardVisited } from "@/lib/progress-store";
 import { updateMetaTags } from "@/lib/seo";
 
 export default function FlashcardStudy() {
-  const { id } = useParams();
+  const { id: param } = useParams();
+  const id = extractIdFromParam(param);
+  const location = useLocation();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [set, setSet] = useState<FlashcardSet | null>(null);
 
@@ -19,6 +22,8 @@ export default function FlashcardStudy() {
           setSet(s);
           if (s) {
             markFlashcardVisited(s.id);
+            const canonical = buildFlashcardPath(s);
+            if (location.pathname !== canonical) navigate(canonical, { replace: true });
             updateMetaTags({
               title: `${s.title} – Flashcards | OMPATH`,
               description: `Study ${s.title} flashcards on OMPATH. Interactive medical study cards for health students in Kenya.`,
