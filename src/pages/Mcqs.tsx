@@ -173,7 +173,7 @@ export default function Mcqs() {
               {searchResults!.map(({ set, matchingQuestions, titleMatch }, i) => (
                 <motion.div key={set.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                   className="overflow-hidden rounded-xl border border-border bg-card">
-                  <Link to={`/mcqs/${set.id}`} className="group flex items-start gap-3 px-5 py-4 transition-colors hover:bg-muted/30">
+                  <Link to={buildMcqPath(set)} className="group flex items-start gap-3 px-5 py-4 transition-colors hover:bg-muted/30">
                     <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/20 text-accent">
                       <ListChecks className="h-4 w-4" />
                     </div>
@@ -198,7 +198,7 @@ export default function Mcqs() {
                   {matchingQuestions.length > 0 && (
                     <div className="divide-y divide-border border-t border-border">
                       {matchingQuestions.slice(0, 3).map((qn, qi) => (
-                        <Link key={qi} to={`/mcqs/${set.id}`} className="flex flex-col gap-1 px-5 py-3 transition-colors hover:bg-muted/20">
+                        <Link key={qi} to={buildMcqPath(set)} className="flex flex-col gap-1 px-5 py-3 transition-colors hover:bg-muted/20">
                           <p className="text-sm leading-snug text-foreground"><Highlight text={qn.question} query={query} /></p>
                           {qn.correct && (
                             <p className="text-xs font-medium text-primary/80">✓ <Highlight text={qn.correct} query={query} /></p>
@@ -206,7 +206,7 @@ export default function Mcqs() {
                         </Link>
                       ))}
                       {matchingQuestions.length > 3 && (
-                        <Link to={`/mcqs/${set.id}`} className="block px-5 py-2.5 text-xs text-muted-foreground transition-colors hover:text-primary">
+                        <Link to={buildMcqPath(set)} className="block px-5 py-2.5 text-xs text-muted-foreground transition-colors hover:text-primary">
                           +{matchingQuestions.length - 3} more matching questions — open quiz to see all
                         </Link>
                       )}
@@ -239,7 +239,7 @@ export default function Mcqs() {
                   return (
                     <motion.div key={s.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.05 }}>
                       <Link
-                        to={`/mcqs/${s.id}`}
+                        to={buildMcqPath(s)}
                         className="group relative flex h-full flex-col rounded-xl border border-border bg-card p-5 sm:p-6 transition-shadow hover:[box-shadow:var(--shadow-card-hover)]"
                         style={{ boxShadow: "var(--shadow-card)" }}
                       >
