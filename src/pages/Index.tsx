@@ -90,8 +90,8 @@ export default function Index() {
   function getItemLink(item: RecentItem) {
     switch (item.type) {
       case "article": return buildBlogPath(item);
-      case "mcq": return `/mcqs/${item.id}`;
-      case "flashcard": return `/flashcards/${item.id}`;
+      case "mcq": return buildMcqPath(item);
+      case "flashcard": return buildFlashcardPath(item);
       case "story": return `/stories/${item.id}`;
     }
   }
