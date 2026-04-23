@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ListChecks, Calendar, Layers, Loader2, Search, X, RotateCcw, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
-import { getPublishedMcqSets, getCategoryDisplayName, getYearFromCategory, type McqSet } from "@/lib/store";
+import { getPublishedMcqSets, getCategoryDisplayName, getYearFromCategory, buildMcqPath, type McqSet } from "@/lib/store";
 import { getVisitedMcqIds } from "@/lib/progress-store";
 import { updateMetaTags } from "@/lib/seo";
 import CategoryTabs from "@/components/CategoryTabs";
