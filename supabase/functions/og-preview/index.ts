@@ -220,15 +220,31 @@ serve(async (req) => {
       }
       if (!mcq) return notFoundResponse(siteUrl, `/mcqs/${mcqParam}`, isCrawler);
       const qCount = Array.isArray(mcq.questions) ? mcq.questions.length : 0;
-      title = `${mcq.title} | MCQ Quiz | OmpathStudy Kenya`;
-      description = `Practice ${qCount} MCQs on ${mcq.title} with OmpathStudy. Built for Kenyan medical and health students to revise key concepts and prepare for exams.`;
+      const cat = mcq.category || "Medical";
+      const firstQ = Array.isArray(mcq.questions) && mcq.questions[0]
+        ? stripRichText(mcq.questions[0].question || mcq.questions[0].text || "", 90)
+        : "";
+      title = `${mcq.title} – ${qCount} MCQs with Answers | ${cat} | OmpathStudy`;
+      description = firstQ
+        ? `${qCount} ${cat} MCQs on ${mcq.title}. Sample: ${firstQ}`.slice(0, 160)
+        : `${qCount} ${cat} MCQs covering ${mcq.title}. Detailed answers and explanations for medical revision.`.slice(0, 160);
       publishedAt = mcq.created_at;
       type = "website";
-      // Clean body text - just question text, no raw HTML
+      // Rich, unique body: question + options + correct answer + explanation
       if (Array.isArray(mcq.questions)) {
-        bodyText = mcq.questions.slice(0, 20).map((q: any, i: number) => 
-          `<p><strong>Q${i+1}:</strong> ${esc(stripRichText(q.question || q.text || "", 200))}</p>`
-        ).join("\n");
+        bodyText = `<p>This MCQ set contains ${qCount} questions on <strong>${esc(mcq.title)}</strong> in the ${esc(cat)} unit. Each question includes the correct answer and a detailed explanation for active recall and exam preparation.</p>` +
+          mcq.questions.slice(0, 25).map((q: any, i: number) => {
+            const qText = esc(stripRichText(q.question || q.text || "", 300));
+            const opts = Array.isArray(q.options)
+              ? q.options.map((o: string, idx: number) => `<li>${String.fromCharCode(65 + idx)}. ${esc(stripRichText(o, 150))}</li>`).join("")
+              : "";
+            const correctIdx = typeof q.correct_answer === "number" ? q.correct_answer : (typeof q.answer === "number" ? q.answer : -1);
+            const correctText = correctIdx >= 0 && Array.isArray(q.options) && q.options[correctIdx]
+              ? `<p><em>Correct answer: ${String.fromCharCode(65 + correctIdx)} – ${esc(stripRichText(q.options[correctIdx], 150))}</em></p>`
+              : "";
+            const expl = q.explanation ? `<p>${esc(stripRichText(q.explanation, 400))}</p>` : "";
+            return `<section><h3>Q${i + 1}: ${qText}</h3>${opts ? `<ol type="A">${opts}</ol>` : ""}${correctText}${expl}</section>`;
+          }).join("\n");
       }
       canonicalPath = `/mcqs/${mcq.id}`;
     }
@@ -246,14 +262,23 @@ serve(async (req) => {
       }
       if (!fc) return notFoundResponse(siteUrl, `/flashcards/${flashcardParam}`, isCrawler);
       const cardCount = Array.isArray(fc.cards) ? fc.cards.length : 0;
-      title = `${fc.title} | Flashcards | OmpathStudy Kenya`;
-      description = `Study ${cardCount} flashcards on ${fc.title}. Review ${fc.category || "medical"} concepts on OmpathStudy.`;
+      const fcCat = fc.category || "Medical";
+      const firstCard = Array.isArray(fc.cards) && fc.cards[0]
+        ? stripRichText(fc.cards[0].question || "", 80)
+        : "";
+      title = `${fc.title} – ${cardCount} Flashcards | ${fcCat} | OmpathStudy`;
+      description = firstCard
+        ? `${cardCount} ${fcCat} flashcards on ${fc.title}. Sample: ${firstCard}`.slice(0, 160)
+        : `${cardCount} ${fcCat} flashcards covering ${fc.title}. Active-recall study cards with answers.`.slice(0, 160);
       publishedAt = fc.created_at;
       type = "website";
       if (Array.isArray(fc.cards)) {
-        bodyText = fc.cards.slice(0, 15).map((c: any) => 
-          `<p><strong>Q:</strong> ${esc(stripRichText(c.question || "", 150))}</p>`
-        ).join("\n");
+        bodyText = `<p>${cardCount} active-recall flashcards on <strong>${esc(fc.title)}</strong> in the ${esc(fcCat)} unit. Each card includes the question and full answer for spaced-repetition study.</p>` +
+          fc.cards.slice(0, 25).map((c: any, i: number) => {
+            const qText = esc(stripRichText(c.question || "", 250));
+            const aText = esc(stripRichText(c.answer || c.back || "", 400));
+            return `<section><h3>Card ${i + 1}: ${qText}</h3>${aText ? `<p>${aText}</p>` : ""}</section>`;
+          }).join("\n");
       }
       canonicalPath = `/flashcards/${fc.id}`;
     }
@@ -284,11 +309,13 @@ serve(async (req) => {
       if (!article) return notFoundResponse(siteUrl, `/blog/${slugParam}`, isCrawler);
 
       const articleSlug = article.slug || slugify(article.title) || "article";
-      title = article.meta_title || `${article.title} | OmpathStudy Kenya`;
-      description = article.meta_description || stripRichText(article.content || "", 155) || `Study ${article.title} on OmpathStudy.`;
+      const cat = article.category || "Medical";
+      const cleanSnippet = stripRichText(article.content || "", 155);
+      title = article.meta_title || `${article.title} – ${cat} Notes | OmpathStudy`;
+      description = article.meta_description
+        || (cleanSnippet ? cleanSnippet.slice(0, 160) : `${article.title} study notes for medical students. ${cat} unit revision on OmpathStudy.`).slice(0, 160);
       image = article.og_image_url || extractFirstImage(article.content || "") || "";
-      // Clean body: strip all markdown/HTML, just plain text paragraphs
-      bodyText = buildBodyText(stripRichText(article.content || "", 6000));
+      bodyText = buildBodyText(stripRichText(article.content || "", 8000));
       publishedAt = article.created_at;
       canonicalPath = `/blog/${article.id}-${articleSlug}`;
     }
