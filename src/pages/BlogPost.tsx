@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import ShareButtons from "@/components/ShareButtons";
 import { motion, AnimatePresence } from "framer-motion";
-import { getArticleBySlugOrId, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, type Article } from "@/lib/store";
+import { getArticleBySlugOrId, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, type Article } from "@/lib/store";
 import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags, autoIndexUrls } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -1052,7 +1052,7 @@ export default function BlogPost() {
                       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">MCQ Quizzes</p>
                       <div className="space-y-1.5">
                         {related.mcqs.map((m: any) => (
-                          <Link key={m.id} to={`/mcqs/${m.id}`} className="flex items-center gap-3 rounded-lg border border-border p-3 hover:border-primary/40 hover:bg-muted/30 transition-colors">
+                          <Link key={m.id} to={buildMcqPath(m)} className="flex items-center gap-3 rounded-lg border border-border p-3 hover:border-primary/40 hover:bg-muted/30 transition-colors">
                             <ListChecks className="h-4 w-4 text-primary shrink-0" />
                             <span className="truncate text-sm font-medium text-foreground">{m.title}</span>
                             <span className="ml-auto text-xs text-muted-foreground">{(m.questions as any[])?.length || 0} Qs</span>

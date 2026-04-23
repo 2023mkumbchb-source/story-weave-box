@@ -5,7 +5,7 @@ import { ArrowRight, CheckCircle, Clock, Loader2, Phone, Shield, Sparkles, Troph
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { getSetting, getCategoryDisplayName, getYearFromCategory } from "@/lib/store";
+import { getSetting, getCategoryDisplayName, getYearFromCategory, buildExamPath } from "@/lib/store";
 import { updateMetaTags } from "@/lib/seo";
 
 interface ExamSet {
@@ -256,7 +256,7 @@ export default function Exams() {
 
                 {/* ── All payment/unlock logic is IDENTICAL to original ── */}
                 {unlocked ? (
-                  <Button onClick={() => navigate(`/exams/${exam.id}/start`)} className="w-full gap-2">
+                  <Button onClick={() => navigate(isSample ? `/exams/${exam.id}/start` : buildExamPath(exam))} className="w-full gap-2">
                     <Shield className="h-4 w-4" /> Start Exam <ArrowRight className="h-4 w-4" />
                   </Button>
                 ) : (
@@ -276,7 +276,7 @@ export default function Exams() {
                       <div className="rounded-xl border border-primary/30 bg-primary/10 p-4 text-center">
                         <CheckCircle className="mx-auto h-5 w-5 text-primary" />
                         <p className="mt-2 text-sm font-medium text-foreground">Payment confirmed.</p>
-                        <Button onClick={() => navigate(`/exams/${exam.id}/start`)} className="mt-2 gap-2">
+                        <Button onClick={() => navigate(isSample ? `/exams/${exam.id}/start` : buildExamPath(exam))} className="mt-2 gap-2">
                           <Sparkles className="h-4 w-4" /> Continue to Start Page
                         </Button>
                       </div>

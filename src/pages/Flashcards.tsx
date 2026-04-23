@@ -100,7 +100,7 @@ export default function Flashcards() {
             {filtered.slice(0, visibleCount).map((s, i) => (
               <motion.div key={s.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.05 }}>
                 <Link
-                  to={`/flashcards/${s.id}`}
+                  to={buildFlashcardPath(s)}
                   className="group relative block h-full rounded-xl border border-border bg-card p-5 sm:p-6 transition-shadow hover:[box-shadow:var(--shadow-card-hover)]"
                   style={{ boxShadow: "var(--shadow-card)" }}
                 >
