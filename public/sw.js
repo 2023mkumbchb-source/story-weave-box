@@ -1,6 +1,6 @@
-// OmpathStudy Service Worker - v4 Enhanced Offline
-const CACHE_NAME = "ompath-v4";
-const API_CACHE = "ompath-api-v2";
+// OmpathStudy Service Worker - v5 Enhanced Offline
+const CACHE_NAME = "ompath-v5";
+const API_CACHE = "ompath-api-v3";
 const STATIC_ASSETS = ["/", "/index.html", "/manifest.json"];
 
 // Install: cache shell
@@ -32,18 +32,20 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   if (url.pathname.startsWith("/~oauth")) return;
 
-  // Cache Supabase REST API responses for offline reading
+  // Cache Supabase REST API responses for offline reading (stale-while-revalidate)
   if (url.hostname.includes("supabase") && url.pathname.includes("/rest/")) {
     event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(API_CACHE).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(() => caches.match(event.request).then((r) => r || new Response("[]", { headers: { "Content-Type": "application/json" } })))
+      caches.open(API_CACHE).then(async (cache) => {
+        const cached = await cache.match(event.request);
+        const networkPromise = fetch(event.request)
+          .then((response) => {
+            if (response.ok) cache.put(event.request, response.clone());
+            return response;
+          })
+          .catch(() => null);
+        // Serve cached immediately if available; revalidate in background
+        return cached || (await networkPromise) || new Response("[]", { headers: { "Content-Type": "application/json" } });
+      })
     );
     return;
   }
