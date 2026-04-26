@@ -96,8 +96,12 @@ export default function ExamStart() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const examId = extractIdFromParam(id) || (id === "sample-exam" ? "sample-exam" : null);
+  // Param can be a slug, "<uuid>-<slug>", or raw UUID. We resolve later.
+  const rawParam = id ? decodeURIComponent(id) : null;
+  const directId = extractIdFromParam(rawParam || undefined);
+  const isSampleParam = rawParam === "sample-exam";
   const [exam, setExam] = useState<ExamSet | null>(null);
+  const [examId, setExamId] = useState<string | null>(directId || (isSampleParam ? "sample-exam" : null));
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -126,24 +130,39 @@ export default function ExamStart() {
   // Load exam
   useEffect(() => {
     const run = async () => {
-      if (!examId) { navigate("/exams"); return; }
+      if (!rawParam) { navigate("/exams"); return; }
+      // Resolve by id first, then by slug
+      let resolvedId = directId;
+      let data: any = null;
+      if (isSampleParam) { setExam(sampleExam()); setExamId("sample-exam"); setLoading(false); return; }
+      if (resolvedId) {
+        const r = await supabase
+          .from("mcq_sets")
+          .select("id, title, category, questions")
+          .eq("id", resolvedId)
+          .eq("published", true)
+          .maybeSingle();
+        data = r.data;
+      } else {
+        const r = await supabase
+          .from("mcq_sets")
+          .select("id, title, category, questions")
+          .eq("slug", rawParam)
+          .eq("published", true)
+          .maybeSingle();
+        data = r.data;
+        resolvedId = data?.id || null;
+      }
       const unlockedRaw = localStorage.getItem(UNLOCKED_KEY);
       const unlocked = new Set<string>(unlockedRaw ? JSON.parse(unlockedRaw) : []);
-      const isSample = examId === "sample-exam";
-      if (!isSample && !unlocked.has(examId)) { navigate("/exams"); return; }
-      if (isSample) { setExam(sampleExam()); setLoading(false); return; }
-      const { data } = await supabase
-        .from("mcq_sets")
-        .select("id, title, category, questions")
-        .eq("id", examId)
-        .eq("published", true)
-        .maybeSingle();
+      if (!resolvedId || !unlocked.has(resolvedId)) { navigate("/exams"); return; }
       if (!data) { navigate("/exams"); return; }
+      setExamId(resolvedId);
       setExam(data as unknown as ExamSet);
       setLoading(false);
     };
     run();
-  }, [examId, navigate]);
+  }, [rawParam, directId, isSampleParam, navigate]);
 
   // Load approved custom institutions from DB
   useEffect(() => {

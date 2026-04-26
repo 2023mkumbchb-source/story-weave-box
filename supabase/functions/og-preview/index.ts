@@ -246,7 +246,7 @@ serve(async (req) => {
             return `<section><h3>Q${i + 1}: ${qText}</h3>${opts ? `<ol type="A">${opts}</ol>` : ""}${correctText}${expl}</section>`;
           }).join("\n");
       }
-      canonicalPath = `/mcqs/${mcq.id}`;
+      canonicalPath = `/mcqs/${mcq.slug || mcq.id}`;
     }
     // ── Single Flashcard ──
     else if (flashcardParam) {
@@ -280,7 +280,7 @@ serve(async (req) => {
             return `<section><h3>Card ${i + 1}: ${qText}</h3>${aText ? `<p>${aText}</p>` : ""}</section>`;
           }).join("\n");
       }
-      canonicalPath = `/flashcards/${fc.id}`;
+      canonicalPath = `/flashcards/${fc.slug || fc.id}`;
     }
     // ── Single Essay (redirect to blog) ──
     else if (essayParam) {
