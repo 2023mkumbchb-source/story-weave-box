@@ -508,6 +508,21 @@ export async function getFlashcardSetById(id: string): Promise<FlashcardSet | nu
   return data as unknown as FlashcardSet | null;
 }
 
+/** Resolve a flashcard set by UUID, legacy "<uuid>-<slug>", or slug. */
+export async function getFlashcardSetBySlugOrId(param: string): Promise<FlashcardSet | null> {
+  const v = decodeURIComponent(String(param || "")).trim();
+  if (!v) return null;
+  const id = extractIdFromParam(v);
+  if (id) return getFlashcardSetById(id);
+  const { data } = await supabase
+    .from("flashcard_sets")
+    .select("*")
+    .eq("slug", v)
+    .is("deleted_at", null)
+    .maybeSingle();
+  return (data as unknown as FlashcardSet | null) || null;
+}
+
 export async function saveFlashcardSet(set: Omit<FlashcardSet, "id"> & { id?: string }): Promise<FlashcardSet> {
   const payload = {
     title: set.title,
