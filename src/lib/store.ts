@@ -590,6 +590,21 @@ export async function getMcqSetById(id: string): Promise<McqSet | null> {
   return data as unknown as McqSet | null;
 }
 
+/** Resolve an MCQ set by UUID, legacy "<uuid>-<slug>", or slug. */
+export async function getMcqSetBySlugOrId(param: string): Promise<McqSet | null> {
+  const v = decodeURIComponent(String(param || "")).trim();
+  if (!v) return null;
+  const id = extractIdFromParam(v);
+  if (id) return getMcqSetById(id);
+  const { data } = await supabase
+    .from("mcq_sets")
+    .select("*")
+    .eq("slug", v)
+    .is("deleted_at", null)
+    .maybeSingle();
+  return (data as unknown as McqSet | null) || null;
+}
+
 export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Promise<McqSet> {
   const payload = {
     title: set.title,
