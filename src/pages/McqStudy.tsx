@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Loader2, Lock, Unlock, ListChecks, Phone, CheckCircle } from "lucide-react";
-import { getMcqSetById, getCategoryDisplayName, getSetting, extractIdFromParam, buildMcqPath, type McqSet } from "@/lib/store";
+import { getMcqSetBySlugOrId, getCategoryDisplayName, getSetting, buildMcqPath, type McqSet } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import McqViewer from "@/components/McqViewer";
@@ -24,7 +24,6 @@ export default function McqStudy() {
   const { id: param } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const id = extractIdFromParam(param);
   const [set, setSet] = useState<McqSet | null>(null);
   const [loading, setLoading] = useState(true);
   const [passwordUnlocked, setPasswordUnlocked] = useState(false);
@@ -46,11 +45,11 @@ export default function McqStudy() {
   };
 
   useEffect(() => {
-    if (!id) return;
+    if (!param) return;
     const unlocked = loadUnlockedMcqs();
 
     Promise.all([
-      getMcqSetById(id),
+      getMcqSetBySlugOrId(param),
       getSetting("mcq_free_limit"),
       getSetting("mcq_price"),
     ]).then(([s, limitStr, priceStr]) => {
@@ -69,7 +68,7 @@ export default function McqStudy() {
       if (priceStr && !isNaN(Number(priceStr))) setMcqPrice(Number(priceStr));
       if (s && unlocked.has(s.id)) setIsPaid(true);
     }).finally(() => setLoading(false));
-  }, [id]);
+  }, [param]);
 
   // Payment polling
   const pollPayment = (txnId: string) => {

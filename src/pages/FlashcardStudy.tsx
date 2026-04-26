@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { getFlashcardSetById, getCategoryDisplayName, extractIdFromParam, buildFlashcardPath, type FlashcardSet } from "@/lib/store";
+import { getFlashcardSetBySlugOrId, getCategoryDisplayName, buildFlashcardPath, type FlashcardSet } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import FlashcardViewer from "@/components/FlashcardViewer";
 import { markFlashcardVisited } from "@/lib/progress-store";
@@ -9,15 +9,14 @@ import { updateMetaTags } from "@/lib/seo";
 
 export default function FlashcardStudy() {
   const { id: param } = useParams();
-  const id = extractIdFromParam(param);
   const location = useLocation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [set, setSet] = useState<FlashcardSet | null>(null);
 
   useEffect(() => {
-    if (id) {
-      getFlashcardSetById(id)
+    if (param) {
+      getFlashcardSetBySlugOrId(param)
         .then((s) => {
           setSet(s);
           if (s) {
@@ -32,7 +31,7 @@ export default function FlashcardStudy() {
         })
         .finally(() => setLoading(false));
     }
-  }, [id]);
+  }, [param]);
 
   if (loading) {
     return (
