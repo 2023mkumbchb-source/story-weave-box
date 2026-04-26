@@ -220,25 +220,25 @@ export function buildBlogPath(article: Pick<Article, "id" | "title"> & { slug?: 
   return `/blog/${cleanSlug}`;
 }
 
-/** Build a statement-style URL: /mcqs/<id>-<title-slug> */
-export function buildMcqPath(set: { id: string; title: string }): string {
-  const slug = slugifyTitle(set.title) || "quiz";
-  return `/mcqs/${set.id}-${slug}`;
+/** Build a statement-style URL: /mcqs/<title-slug> */
+export function buildMcqPath(set: { id: string; title: string; slug?: string | null }): string {
+  const slug = (set.slug && set.slug.trim()) || `${slugifyTitle(set.title) || "quiz"}-${set.id.slice(0, 6)}`;
+  return `/mcqs/${slug}`;
 }
 
-/** Build a statement-style URL: /flashcards/<id>-<title-slug> */
-export function buildFlashcardPath(set: { id: string; title: string }): string {
-  const slug = slugifyTitle(set.title) || "flashcards";
-  return `/flashcards/${set.id}-${slug}`;
+/** Build a statement-style URL: /flashcards/<title-slug> */
+export function buildFlashcardPath(set: { id: string; title: string; slug?: string | null }): string {
+  const slug = (set.slug && set.slug.trim()) || `${slugifyTitle(set.title) || "flashcards"}-${set.id.slice(0, 6)}`;
+  return `/flashcards/${slug}`;
 }
 
-/** Build a statement-style URL: /exams/<id>-<title-slug>/start */
-export function buildExamPath(exam: { id: string; title: string }): string {
-  const slug = slugifyTitle(exam.title) || "exam";
-  return `/exams/${exam.id}-${slug}/start`;
+/** Build a statement-style URL: /exams/<title-slug>/start */
+export function buildExamPath(exam: { id: string; title: string; slug?: string | null }): string {
+  const slug = (exam.slug && exam.slug.trim()) || `${slugifyTitle(exam.title) || "exam"}-${exam.id.slice(0, 6)}`;
+  return `/exams/${slug}/start`;
 }
 
-/** Extract a UUID from a slug param like "<uuid>-<title>" or just "<uuid>". */
+/** Extract a UUID from a legacy param like "<uuid>-<title>" or just "<uuid>". Returns null otherwise. */
 export function extractIdFromParam(value: string | undefined | null): string | null {
   if (!value) return null;
   const v = String(value).trim();
