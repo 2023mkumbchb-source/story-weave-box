@@ -531,6 +531,7 @@ export async function saveFlashcardSet(set: Omit<FlashcardSet, "id"> & { id?: st
     original_notes: set.original_notes,
     category: set.category,
     is_raw: set.is_raw ?? false,
+    slug: (set.slug && set.slug.trim()) || slugifyTitle(set.title) || null,
   };
 
   if (set.id) {
@@ -614,6 +615,7 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
     category: set.category,
     access_password: set.access_password || "",
     is_raw: set.is_raw ?? false,
+    slug: (set.slug && set.slug.trim()) || slugifyTitle(set.title) || null,
   };
 
   if (set.id) {
