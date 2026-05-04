@@ -52,8 +52,8 @@ export default function Index() {
 
   useEffect(() => {
     updateMetaTags({
-      title: "OMPATH – Free Medical Study Platform for Kenyan Students",
-      description: "Comprehensive medical study notes, flashcards, MCQs, and exam preparation for Kenyan medical students. Organized by year and unit.",
+      title: "Medical Study Notes, MCQs & Past Papers – Kenya, UoN, MKU, KU, JKUAT",
+      description: "Free medical study notes, flashcards, MCQs and timed exams for University of Nairobi (UoN), Kenyatta University, Mount Kenya University (MKU), JKUAT, Moi, Egerton & other African medical schools. Pathology, pharmacology, anatomy, microbiology and more.",
     });
 
     // Load categories

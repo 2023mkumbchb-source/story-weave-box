@@ -778,9 +778,16 @@ export default function BlogPost() {
 
   useEffect(() => {
     if (!article) return;
-    const metaTitle = article.meta_title?.includes("OMPATH") ? article.meta_title : `${article.title} | OMPATH`;
-    const fallbackDesc = stripRichText(article.content || "", 155);
-    const metaDesc = article.meta_description ? stripRichText(article.meta_description, 155) : fallbackDesc;
+    const cat = article.category ? article.category.replace(/^Year\s*\d+:\s*/i, "").trim() : "";
+    const baseTitle = article.meta_title?.trim() || article.title;
+    const metaTitle = baseTitle.length > 70
+      ? baseTitle.slice(0, 70)
+      : `${baseTitle}${cat ? ` – ${cat} Notes & MCQs` : ""} | Kenya Medical Students`;
+    const fallbackDesc = stripRichText(article.content || "", 155)
+      || `${article.title} study notes for medical students at UoN, MKU, KU, JKUAT, Moi and other Kenyan & African universities. ${cat ? cat + " revision." : ""}`.trim();
+    const metaDesc = article.meta_description?.trim()
+      ? stripRichText(article.meta_description, 155)
+      : fallbackDesc.slice(0, 160);
     const ogImage = article.og_image_url || extractFirstImageFromContent(article.content || "") || `${SITE_URL}/og-default.png`;
     const canonicalUrl = `${SITE_URL}${buildBlogPath(article)}`;
 
@@ -807,8 +814,8 @@ export default function BlogPost() {
       "image": ogImage,
       "url": canonicalUrl,
       "datePublished": article.created_at,
-      "author": { "@type": "Organization", "name": "OMPATH" },
-      "publisher": { "@type": "Organization", "name": "OMPATH" },
+      "author": { "@type": "Organization", "name": "Ompath Study" },
+      "publisher": { "@type": "Organization", "name": "Ompath Study" },
     });
 
     autoIndexUrls([canonicalUrl]);
