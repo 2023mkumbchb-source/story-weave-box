@@ -57,12 +57,11 @@ serve(async (req) => {
     const { data: siteUrlSetting } = await supabase.from("app_settings").select("value").eq("key", "site_url").maybeSingle();
     const baseUrl = normalizeBaseUrl((siteUrlSetting as any)?.value);
 
-    const [{ data: articles }, { data: mcqs }, { data: flashcards }, { data: stories }, { data: exams }] = await Promise.all([
-      supabase.from("articles").select("id, title, slug, content, created_at, updated_at, category, og_image_url").eq("published", true).is("deleted_at", null),
-      supabase.from("mcq_sets").select("id, title, slug, created_at, updated_at, category").eq("published", true).is("deleted_at", null),
-      supabase.from("flashcard_sets").select("id, title, slug, created_at, updated_at, category").eq("published", true).is("deleted_at", null),
-      supabase.from("stories").select("id, title, slug, created_at, category, cover_image_url, content").eq("published", true).is("deleted_at", null),
-      supabase.from("mcq_sets").select("id, title, created_at, updated_at, category").eq("published", true).is("deleted_at", null).ilike("title", "%exam%"),
+    const [{ data: articles }, { data: mcqs }, { data: flashcards }, { data: stories }] = await Promise.all([
+      supabase.from("articles").select("id, title, slug, content, created_at, updated_at, category, og_image_url").eq("published", true).is("deleted_at", null).limit(5000),
+      supabase.from("mcq_sets").select("id, title, slug, og_image_url, created_at, updated_at, category").eq("published", true).is("deleted_at", null).limit(5000),
+      supabase.from("flashcard_sets").select("id, title, slug, og_image_url, created_at, updated_at, category").eq("published", true).is("deleted_at", null).limit(5000),
+      supabase.from("stories").select("id, title, slug, created_at, category, cover_image_url, content").eq("published", true).is("deleted_at", null).limit(5000),
     ]);
 
     const years = new Set<number>();
@@ -120,7 +119,11 @@ serve(async (req) => {
       const lastmod = (m.updated_at || m.created_at) ? new Date(m.updated_at || m.created_at).toISOString().split("T")[0] : "";
       xml += `  <url>\n    <loc>${baseUrl}/mcqs/${mcqSlug}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
-      xml += `    <priority>0.6</priority>\n    <changefreq>weekly</changefreq>\n  </url>\n`;
+      xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
+      if (m.og_image_url) {
+        xml += `    <image:image>\n      <image:loc>${escapeXml(m.og_image_url)}</image:loc>\n      <image:title>${escapeXml(m.title)}</image:title>\n    </image:image>\n`;
+      }
+      xml += `  </url>\n`;
     }
 
     // Flashcards
@@ -129,19 +132,11 @@ serve(async (req) => {
       const lastmod = (f.updated_at || f.created_at) ? new Date(f.updated_at || f.created_at).toISOString().split("T")[0] : "";
       xml += `  <url>\n    <loc>${baseUrl}/flashcards/${flashcardSlug}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
-      xml += `    <priority>0.6</priority>\n    <changefreq>weekly</changefreq>\n  </url>\n`;
-    }
-
-    // Exams (unique exam sets)
-    const seenExamIds = new Set<string>();
-    for (const e of (exams || []) as any[]) {
-      if (seenExamIds.has(e.id)) continue;
-      seenExamIds.add(e.id);
-      const lastmod = (e.updated_at || e.created_at) ? new Date(e.updated_at || e.created_at).toISOString().split("T")[0] : "";
-      xml += `  <url>\n    <loc>${baseUrl}/exams</loc>\n`;
-      if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
-      xml += `    <priority>0.6</priority>\n    <changefreq>weekly</changefreq>\n  </url>\n`;
-      break; // Only one exams page
+      xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
+      if (f.og_image_url) {
+        xml += `    <image:image>\n      <image:loc>${escapeXml(f.og_image_url)}</image:loc>\n      <image:title>${escapeXml(f.title)}</image:title>\n    </image:image>\n`;
+      }
+      xml += `  </url>\n`;
     }
 
     xml += `</urlset>`;
