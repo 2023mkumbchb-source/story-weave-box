@@ -102,23 +102,23 @@ export default function Index() {
 
   return (
     <div className="min-h-dvh bg-background">
-      {/* Hero */}
+      {/* Hero — compact so Continue Reading is visible above the fold */}
       <section className="relative overflow-hidden bg-primary text-primary-foreground">
         <div className={`absolute inset-0 ${HERO_TINT}`} />
         <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-primary to-accent/60" />
-        <div className="relative mx-auto max-w-5xl px-5 py-14 sm:py-20">
+        <div className="relative mx-auto max-w-5xl px-5 py-6 sm:py-12">
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <h1 className="font-serif text-3xl sm:text-5xl font-bold mb-3 leading-tight break-words">
-              OM<span className="text-primary-foreground/80">PATH</span>
+            <h1 className="font-serif text-2xl sm:text-4xl font-bold mb-2 leading-tight break-words">
+              Medical Notes, MCQs & Past Papers — Kenya & East Africa
             </h1>
-            <p className="text-white/70 text-base sm:text-lg max-w-xl leading-relaxed mb-8">
-              Comprehensive medical study notes, flashcards, MCQs, and exam preparation — organized by unit.
+            <p className="text-white/80 text-sm sm:text-base max-w-xl leading-snug mb-4">
+              Free study notes, flashcards, MCQs and timed exams for medical students at UoN, KU, MKU, JKUAT, Moi, Egerton and other Kenyan & East African universities — organized by year and unit.
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {NAV_ITEMS.map(item => (
                 <Link key={item.to} to={item.to}
-                  className="group flex items-center gap-2 rounded-lg border border-primary-foreground/15 bg-primary-foreground/10 backdrop-blur-sm px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary-foreground/20 transition-all">
-                  <item.icon className="h-4 w-4 text-primary-foreground/80" />
+                  className="group flex items-center gap-1.5 rounded-lg border border-primary-foreground/15 bg-primary-foreground/10 backdrop-blur-sm px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-primary-foreground hover:bg-primary-foreground/20 transition-all">
+                  <item.icon className="h-3.5 w-3.5 text-primary-foreground/80" />
                   {item.label}
                 </Link>
               ))}
