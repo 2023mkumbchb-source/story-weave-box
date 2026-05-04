@@ -121,6 +121,13 @@ function extractKeywords(text: string): string[] {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 export default function McqViewer({ questions, title, setId, category, hideAnswers = false, freeLimit = 0, mcqPrice = 10, isPaid = false, paymentStatus = "idle", phoneInput = "", onPhoneChange, onPay, onRetryPay }: Props) {
+  // Display mode — 'scroll' is default (exam-style continuous list), 'flip' is the legacy swipe flow
+  const [viewMode, setViewMode] = useState<"scroll" | "flip">(() => {
+    try { return (localStorage.getItem("mcq_view_mode") as "scroll" | "flip") || "scroll"; }
+    catch { return "scroll"; }
+  });
+  useEffect(() => { try { localStorage.setItem("mcq_view_mode", viewMode); } catch {} }, [viewMode]);
+
   // Restore order + current from localStorage if available
   const [order, setOrder] = useState<number[]>(() => {
     if (setId) {
@@ -470,6 +477,28 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
     );
   }
 
+  // ── SCROLL MODE (default) — exam-style continuous list with translucent paywall ──
+  if (viewMode === "scroll") {
+    return (
+      <ScrollMcqList
+        questions={questions}
+        order={order}
+        title={title}
+        freeLimit={freeLimit}
+        mcqPrice={mcqPrice}
+        isPaid={isPaid}
+        hideAnswers={hideAnswers}
+        paymentStatus={paymentStatus}
+        phoneInput={phoneInput}
+        onPhoneChange={onPhoneChange}
+        onPay={onPay}
+        onRetryPay={onRetryPay}
+        onSwitchToFlip={() => setViewMode("flip")}
+        onShuffle={shuffle}
+      />
+    );
+  }
+
   // ── PAYWALL CHECK ──────────────────────────────────────────────────────────
   const isPaywalled = freeLimit > 0 && !isPaid && current >= freeLimit;
 
@@ -581,6 +610,11 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
   return (
     <div className="mx-auto max-w-2xl px-2">
       <h2 className="mb-2 text-center font-serif text-xl sm:text-2xl font-bold text-foreground">{title}</h2>
+      <div className="mb-3 flex justify-center">
+        <button onClick={() => setViewMode("scroll")} className="text-xs text-primary hover:underline">
+          ← Switch to scroll mode (default)
+        </button>
+      </div>
       <div className="mb-6 flex items-center justify-center gap-3 text-xs sm:text-sm text-muted-foreground">
         <span>Question {current + 1} of {order.length}</span>
         <span>·</span>
@@ -901,5 +935,221 @@ function InlineArticle({ article, onDone }: { article: any; onDone: () => void }
         </Link>
       )}
     </motion.div>
+  );
+}
+
+// ── ScrollMcqList ─────────────────────────────────────────────────────────────
+// Default exam-style mode: vertical list. Tapping right answer reveals explanation,
+// next question scrolls into view. After freeLimit questions, content blurs behind a
+// translucent payment gate (still scrollable so users can preview).
+interface ScrollProps {
+  questions: McqQuestion[];
+  order: number[];
+  title: string;
+  freeLimit: number;
+  mcqPrice: number;
+  isPaid: boolean;
+  hideAnswers: boolean;
+  paymentStatus: "idle" | "pending" | "completed" | "failed";
+  phoneInput: string;
+  onPhoneChange?: (v: string) => void;
+  onPay?: () => void;
+  onRetryPay?: () => void;
+  onSwitchToFlip: () => void;
+  onShuffle: () => void;
+}
+
+function ScrollMcqList(props: ScrollProps) {
+  const { questions, order, title, freeLimit, mcqPrice, isPaid, hideAnswers, paymentStatus, phoneInput, onPhoneChange, onPay, onRetryPay, onSwitchToFlip, onShuffle } = props;
+  const [picks, setPicks] = useState<Record<number, number[]>>({}); // qIdx -> wrong picks
+  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+  const refs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  const handlePick = (qPos: number, optionIdx: number) => {
+    if (revealed[qPos]) return;
+    const q = questions[order[qPos]];
+    if (!q) return;
+    if (hideAnswers) {
+      setPicks((p) => ({ ...p, [qPos]: [...(p[qPos] || []), optionIdx] }));
+      return;
+    }
+    if (optionIdx === q.correct_answer) {
+      setRevealed((r) => ({ ...r, [qPos]: true }));
+      // Smooth scroll to next question
+      setTimeout(() => {
+        const next = refs.current[qPos + 1];
+        if (next) next.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 350);
+    } else {
+      setPicks((p) => ({ ...p, [qPos]: [...(p[qPos] || []), optionIdx] }));
+    }
+  };
+
+  const correctCount = Object.values(revealed).filter(Boolean).length;
+  const limit = freeLimit > 0 && !isPaid ? Math.min(freeLimit, order.length) : order.length;
+
+  return (
+    <div className="mx-auto max-w-2xl px-2">
+      <h2 className="mb-2 text-center font-serif text-xl sm:text-2xl font-bold text-foreground">{title}</h2>
+      <div className="mb-4 flex flex-wrap items-center justify-center gap-3 text-xs sm:text-sm text-muted-foreground">
+        <span>{order.length} questions</span>
+        <span>·</span>
+        <span>{correctCount} correct</span>
+        <span>·</span>
+        <button onClick={onShuffle} className="text-primary hover:underline inline-flex items-center gap-1">
+          <Shuffle className="h-3 w-3" /> Shuffle
+        </button>
+        <span>·</span>
+        <button onClick={onSwitchToFlip} className="text-muted-foreground hover:text-foreground hover:underline">
+          Flip mode
+        </button>
+      </div>
+
+      <div className="space-y-5">
+        {order.slice(0, limit).map((qIdx, qPos) => {
+          const q = questions[qIdx];
+          if (!q) return null;
+          const isRevealed = !!revealed[qPos];
+          const wrongPicks = picks[qPos] || [];
+          return (
+            <div key={qPos} ref={(el) => (refs.current[qPos] = el)}
+              className="rounded-2xl border border-border bg-card p-4 sm:p-5 scroll-mt-20"
+              style={{ boxShadow: "var(--shadow-card)" }}>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">Question {qPos + 1}</p>
+              <p className="mb-4 text-base sm:text-lg font-medium text-foreground leading-relaxed break-words">
+                {cleanQuestionText(q.question)}
+              </p>
+              <div className="space-y-2">
+                {q.options.map((opt, i) => {
+                  const isCorrect = !hideAnswers && isRevealed && i === q.correct_answer;
+                  const isWrong = wrongPicks.includes(i);
+                  return (
+                    <button key={i} onClick={() => handlePick(qPos, i)}
+                      disabled={isRevealed}
+                      className={`w-full rounded-xl border p-3 text-left text-sm sm:text-base font-medium transition-colors flex items-start gap-3 ${
+                        isCorrect ? "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400"
+                        : isWrong ? "border-destructive/50 bg-destructive/10 text-destructive line-through opacity-60"
+                        : "border-border bg-card hover:border-primary/50 hover:bg-primary/5 cursor-pointer"
+                      }`}>
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
+                        {String.fromCharCode(65 + i)}
+                      </span>
+                      <span className="flex-1 break-words">{opt}</span>
+                      {isCorrect && <Check className="h-5 w-5 text-green-500 shrink-0" />}
+                      {isWrong && <X className="h-5 w-5 text-destructive shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+              {!isRevealed && wrongPicks.length > 0 && (
+                <p className="mt-3 text-center text-sm text-destructive font-medium">Wrong — try again</p>
+              )}
+              {isRevealed && q.explanation && (
+                <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4 flex gap-3">
+                  <Lightbulb className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <p className="text-sm text-foreground leading-relaxed">{q.explanation}</p>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── PAYWALL: translucent preview of locked questions ── */}
+      {freeLimit > 0 && !isPaid && order.length > freeLimit && (
+        <div className="relative mt-8">
+          {/* Blurred preview content */}
+          <div className="pointer-events-none select-none space-y-5" style={{ filter: "blur(7px)", opacity: 0.55 }} aria-hidden="true">
+            {order.slice(freeLimit, freeLimit + 5).map((qIdx, i) => {
+              const q = questions[qIdx];
+              if (!q) return null;
+              return (
+                <div key={i} className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">Question {freeLimit + i + 1}</p>
+                  <p className="mb-3 text-base font-medium text-foreground leading-relaxed">{cleanQuestionText(q.question)}</p>
+                  <div className="space-y-2">
+                    {q.options.map((opt, j) => (
+                      <div key={j} className="rounded-xl border border-border bg-card p-3 text-sm font-medium flex items-start gap-3">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
+                          {String.fromCharCode(65 + j)}
+                        </span>
+                        <span className="flex-1">{opt}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Floating payment card — sticky so it follows as user scrolls the blur */}
+          <div className="absolute inset-x-0 top-4 flex justify-center px-3 z-20">
+            <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
+              className="w-full max-w-md rounded-3xl border border-primary/30 bg-background/95 backdrop-blur-xl p-6 shadow-2xl">
+              <div className="flex flex-col items-center text-center">
+                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-lg">
+                  <LockIcon className="h-6 w-6" />
+                </div>
+                <h3 className="mb-1 font-serif text-xl font-bold text-foreground">Unlock the full set</h3>
+                <p className="mb-1 text-sm text-muted-foreground">
+                  You've previewed <strong className="text-foreground">{freeLimit}</strong> questions.
+                </p>
+                <p className="mb-5 text-sm text-muted-foreground">
+                  Pay <strong className="text-foreground">KES {mcqPrice}</strong> via M-Pesa to unlock all <strong className="text-foreground">{order.length}</strong>.
+                </p>
+
+                {paymentStatus === "pending" ? (
+                  <div className="w-full rounded-2xl border border-primary/30 bg-primary/10 p-4">
+                    <Loader2Icon className="mx-auto h-5 w-5 animate-spin text-primary" />
+                    <p className="mt-2 text-sm font-medium text-foreground">Check your phone</p>
+                    <p className="text-xs text-muted-foreground">Enter your M-Pesa PIN to complete.</p>
+                  </div>
+                ) : paymentStatus === "failed" ? (
+                  <div className="w-full rounded-2xl border border-destructive/30 bg-destructive/10 p-4">
+                    <p className="text-sm font-medium text-foreground">Payment failed</p>
+                    <Button size="sm" variant="outline" className="mt-2" onClick={onRetryPay}>Try again</Button>
+                  </div>
+                ) : paymentStatus === "completed" ? (
+                  <div className="w-full rounded-2xl border border-primary/30 bg-primary/10 p-4">
+                    <CheckCircle className="mx-auto h-5 w-5 text-primary" />
+                    <p className="mt-2 text-sm font-medium text-foreground">Unlocked! Reload to view.</p>
+                  </div>
+                ) : (
+                  <div className="w-full space-y-3">
+                    <Input
+                      type="tel"
+                      placeholder="Safaricom number e.g. 0712 345 678"
+                      value={phoneInput}
+                      onChange={(e) => onPhoneChange?.(e.target.value)}
+                      className="text-center h-11"
+                    />
+                    <Button onClick={onPay} disabled={!phoneInput.trim()} size="lg"
+                      className="w-full gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 shadow-lg">
+                      <Phone className="h-4 w-4" /> Pay KES {mcqPrice} via M-Pesa
+                    </Button>
+                    <p className="text-[11px] text-muted-foreground">One-time unlock — saved on this device.</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+
+          {/* SEO: full questions in DOM for crawlers */}
+          <div className="sr-only" aria-hidden="false">
+            {order.slice(freeLimit).map((qIdx, i) => {
+              const sq = questions[qIdx];
+              if (!sq) return null;
+              return (
+                <div key={i}>
+                  <p>Q{freeLimit + i + 1}: {sq.question}</p>
+                  {sq.options.map((opt, j) => <span key={j}>{String.fromCharCode(65 + j)}. {opt}</span>)}
+                  {sq.explanation && <p>Explanation: {sq.explanation}</p>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
