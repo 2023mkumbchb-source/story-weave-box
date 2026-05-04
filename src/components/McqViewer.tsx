@@ -121,6 +121,13 @@ function extractKeywords(text: string): string[] {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 export default function McqViewer({ questions, title, setId, category, hideAnswers = false, freeLimit = 0, mcqPrice = 10, isPaid = false, paymentStatus = "idle", phoneInput = "", onPhoneChange, onPay, onRetryPay }: Props) {
+  // Display mode — 'scroll' is default (exam-style continuous list), 'flip' is the legacy swipe flow
+  const [viewMode, setViewMode] = useState<"scroll" | "flip">(() => {
+    try { return (localStorage.getItem("mcq_view_mode") as "scroll" | "flip") || "scroll"; }
+    catch { return "scroll"; }
+  });
+  useEffect(() => { try { localStorage.setItem("mcq_view_mode", viewMode); } catch {} }, [viewMode]);
+
   // Restore order + current from localStorage if available
   const [order, setOrder] = useState<number[]>(() => {
     if (setId) {
@@ -470,6 +477,28 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
     );
   }
 
+  // ── SCROLL MODE (default) — exam-style continuous list with translucent paywall ──
+  if (viewMode === "scroll") {
+    return (
+      <ScrollMcqList
+        questions={questions}
+        order={order}
+        title={title}
+        freeLimit={freeLimit}
+        mcqPrice={mcqPrice}
+        isPaid={isPaid}
+        hideAnswers={hideAnswers}
+        paymentStatus={paymentStatus}
+        phoneInput={phoneInput}
+        onPhoneChange={onPhoneChange}
+        onPay={onPay}
+        onRetryPay={onRetryPay}
+        onSwitchToFlip={() => setViewMode("flip")}
+        onShuffle={shuffle}
+      />
+    );
+  }
+
   // ── PAYWALL CHECK ──────────────────────────────────────────────────────────
   const isPaywalled = freeLimit > 0 && !isPaid && current >= freeLimit;
 
@@ -581,6 +610,11 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
   return (
     <div className="mx-auto max-w-2xl px-2">
       <h2 className="mb-2 text-center font-serif text-xl sm:text-2xl font-bold text-foreground">{title}</h2>
+      <div className="mb-3 flex justify-center">
+        <button onClick={() => setViewMode("scroll")} className="text-xs text-primary hover:underline">
+          ← Switch to scroll mode (default)
+        </button>
+      </div>
       <div className="mb-6 flex items-center justify-center gap-3 text-xs sm:text-sm text-muted-foreground">
         <span>Question {current + 1} of {order.length}</span>
         <span>·</span>
