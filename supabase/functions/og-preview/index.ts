@@ -157,8 +157,8 @@ serve(async (req) => {
 
     // ── Year Hubs ──
     if (yearParam) {
-      title = `Year ${yearParam} Study Materials | OmpathStudy Kenya`;
-      description = `Browse Year ${yearParam} medical study notes, flashcards, MCQs, and exams on OmpathStudy for Kenyan health students.`;
+      title = `Year ${yearParam} Medical Notes, MCQs & Exams – Kenya, UoN, MKU, KU, JKUAT`;
+      description = `Year ${yearParam} medical study notes, flashcards, MCQs and timed exams for University of Nairobi (UoN), Mount Kenya University (MKU), Kenyatta University, JKUAT, Moi and other Kenyan & East African medical schools.`;
       canonicalPath = `/year/${yearParam}`;
       type = "website";
       const { data: arts } = await supabase.from("articles").select("title").ilike("category", `Year ${yearParam}%`).limit(10);
@@ -170,11 +170,11 @@ serve(async (req) => {
     else if (prerenderParam) {
       type = "website";
       const configs: Record<string, { title: string; desc: string; path: string; table?: string }> = {
-        blog: { title: "Medical Study Notes & Articles | OmpathStudy Kenya", desc: "Browse medical study notes covering Pathology, Pharmacology, Anatomy and more for Kenyan MBChB students.", path: "/blog", table: "articles" },
-        mcqs: { title: "Medical MCQ Practice Quizzes | OmpathStudy Kenya", desc: "Practice interactive medical MCQs with answers and explanations for Kenyan medical students.", path: "/mcqs", table: "mcq_sets" },
-        flashcards: { title: "Medical Study Flashcards | OmpathStudy Kenya", desc: "Active recall medical flashcards for Pathology, Pharmacology and Physiology revision.", path: "/flashcards", table: "flashcard_sets" },
-        stories: { title: "Medical School Stories | OmpathStudy Kenya", desc: "Personal stories and experiences from medical students and doctors in Kenya.", path: "/stories", table: "stories" },
-        exams: { title: "Timed Medical Exams | OmpathStudy Kenya", desc: "Timed medical examinations for students at Kenyan medical schools.", path: "/exams" },
+        blog: { title: "Medical Study Notes – Pathology, Pharmacology, Anatomy | Kenya, UoN, MKU, KU", desc: "Free medical study notes for University of Nairobi, Mount Kenya University, Kenyatta University, JKUAT, Moi and other Kenyan & African medical schools. Pathology, pharmacology, anatomy, microbiology and more.", path: "/blog", table: "articles" },
+        mcqs: { title: "Medical MCQs with Answers & Explanations – Kenya, UoN, MKU, KU, JKUAT", desc: "Practice MBChB MCQs with detailed answers and explanations. Chemical pathology, hematopathology, immunopathology, pharmacology, microbiology MCQs for Kenyan & East African medical students.", path: "/mcqs", table: "mcq_sets" },
+        flashcards: { title: "Medical Flashcards – Pathology, Pharmacology, Anatomy | Kenya MBChB", desc: "Active-recall medical flashcards for University of Nairobi, MKU, Kenyatta University and other Kenyan medical schools. Quick revision by year and unit.", path: "/flashcards", table: "flashcard_sets" },
+        stories: { title: "Medical School Stories & Experiences – Kenya & East Africa", desc: "Real medical school stories and reflections from MBChB and clinical students at Kenyan and East African universities.", path: "/stories", table: "stories" },
+        exams: { title: "Timed Medical Exams & Past Papers – Kenya MBChB | UoN, MKU, KU", desc: "Timed past-paper-style medical exams for MBChB students at University of Nairobi, MKU, Kenyatta University, JKUAT, Moi and other Kenyan & East African medical schools.", path: "/exams" },
       };
       // Redirect essay requests to blog
       if (prerenderParam === "essays") {
@@ -199,7 +199,7 @@ serve(async (req) => {
       if (!storyId) return notFoundResponse(siteUrl, `/stories/${storyParam}`, isCrawler);
       const { data: story } = await supabase.from("stories").select("title, content, cover_image_url, id, created_at").eq("id", storyId).eq("published", true).is("deleted_at", null).maybeSingle();
       if (!story) return notFoundResponse(siteUrl, `/stories/${storyParam}`, isCrawler);
-      title = `${story.title} | OmpathStudy Kenya`;
+      title = `${story.title} – Medical School Story | Kenya MBChB`;
       description = stripRichText(story.content || "", 155) || `Read ${story.title} on OmpathStudy.`;
       image = story.cover_image_url || extractFirstImage(story.content || "") || "";
       bodyText = buildBodyText(stripRichText(story.content || "", 3000));
@@ -224,10 +224,11 @@ serve(async (req) => {
       const firstQ = Array.isArray(mcq.questions) && mcq.questions[0]
         ? stripRichText(mcq.questions[0].question || mcq.questions[0].text || "", 90)
         : "";
-      title = `${mcq.title} – ${qCount} MCQs with Answers | ${cat} | OmpathStudy`;
-      description = firstQ
-        ? `${qCount} ${cat} MCQs on ${mcq.title}. Sample: ${firstQ}`.slice(0, 160)
-        : `${qCount} ${cat} MCQs covering ${mcq.title}. Detailed answers and explanations for medical revision.`.slice(0, 160);
+      title = `${mcq.title} – ${qCount} ${cat} MCQs with Answers | Kenya MBChB, UoN, MKU`.slice(0, 95);
+      description = (firstQ
+        ? `${qCount} ${cat} MCQs on ${mcq.title} for medical students at UoN, MKU, KU, JKUAT and other Kenyan universities. Sample: ${firstQ}`
+        : `${qCount} ${cat} MCQs on ${mcq.title} with answers and explanations for MBChB students at University of Nairobi, Mount Kenya University, Kenyatta University and other Kenyan & African medical schools.`
+      ).slice(0, 160);
       publishedAt = mcq.created_at;
       type = "website";
       // Rich, unique body: question + options + correct answer + explanation
@@ -266,10 +267,11 @@ serve(async (req) => {
       const firstCard = Array.isArray(fc.cards) && fc.cards[0]
         ? stripRichText(fc.cards[0].question || "", 80)
         : "";
-      title = `${fc.title} – ${cardCount} Flashcards | ${fcCat} | OmpathStudy`;
-      description = firstCard
-        ? `${cardCount} ${fcCat} flashcards on ${fc.title}. Sample: ${firstCard}`.slice(0, 160)
-        : `${cardCount} ${fcCat} flashcards covering ${fc.title}. Active-recall study cards with answers.`.slice(0, 160);
+      title = `${fc.title} – ${cardCount} ${fcCat} Flashcards | Kenya MBChB, UoN, MKU`.slice(0, 95);
+      description = (firstCard
+        ? `${cardCount} ${fcCat} flashcards on ${fc.title} for medical students at UoN, MKU, KU, JKUAT and other Kenyan universities. Sample: ${firstCard}`
+        : `${cardCount} ${fcCat} active-recall flashcards on ${fc.title} for MBChB students at Kenyan and East African medical schools.`
+      ).slice(0, 160);
       publishedAt = fc.created_at;
       type = "website";
       if (Array.isArray(fc.cards)) {
@@ -309,11 +311,15 @@ serve(async (req) => {
       if (!article) return notFoundResponse(siteUrl, `/blog/${slugParam}`, isCrawler);
 
       const articleSlug = article.slug || slugify(article.title) || "article";
-      const cat = article.category || "Medical";
+      const cat = (article.category || "").replace(/^Year\s*\d+:\s*/i, "").trim() || "Medical";
       const cleanSnippet = stripRichText(article.content || "", 155);
-      title = article.meta_title || `${article.title} – ${cat} Notes | OmpathStudy`;
-      description = article.meta_description
-        || (cleanSnippet ? cleanSnippet.slice(0, 160) : `${article.title} study notes for medical students. ${cat} unit revision on OmpathStudy.`).slice(0, 160);
+      title = (article.meta_title?.trim()
+        || `${article.title} – ${cat} Notes & MCQs | Kenya MBChB, UoN, MKU, KU`).slice(0, 95);
+      description = (article.meta_description?.trim()
+        || (cleanSnippet
+          ? cleanSnippet
+          : `${article.title} study notes and MCQs for medical students at University of Nairobi (UoN), Mount Kenya University (MKU), Kenyatta University, JKUAT, Moi and other Kenyan & African medical schools. ${cat} unit revision.`)
+      ).slice(0, 160);
       image = article.og_image_url || extractFirstImage(article.content || "") || "";
       bodyText = buildBodyText(stripRichText(article.content || "", 8000));
       publishedAt = article.created_at;
@@ -321,8 +327,8 @@ serve(async (req) => {
     }
     // ── Root fallback ──
     else {
-      title = "OMPATH – Free Medical Study Platform for Kenyan Students";
-      description = "Comprehensive medical study notes, flashcards, MCQs, and exam preparation for Kenyan medical students. Organized by year and unit.";
+      title = "Medical Study Notes, MCQs & Past Papers – Kenya, UoN, MKU, KU, JKUAT";
+      description = "Free medical study notes, flashcards, MCQs and timed exams for University of Nairobi (UoN), Mount Kenya University (MKU), Kenyatta University, JKUAT, Moi and other Kenyan & East African medical schools. Pathology, pharmacology, anatomy, microbiology and more.";
       canonicalPath = "/";
       type = "website";
     }
