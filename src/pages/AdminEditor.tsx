@@ -538,6 +538,24 @@ export default function AdminEditor() {
     if (!geminiNotes.trim()) return;
     setGeminiLoading(true);
     try {
+      // Try client-side parsing first for MCQs (fast, free, handles 5+ options)
+      if (editorMode === "mcqs") {
+        const parsed = parseMcqsFromText(geminiNotes);
+        if (parsed.length >= 2) {
+          const cat = editCategory || `Year ${selectedYear}: General`;
+          const title = editTitle || extractTitleFromNotes(geminiNotes) || `MCQ: ${cat.split(":").pop()?.trim() || "General"}`;
+          await saveMcqSet({
+            title, questions: parsed, published: true, category: cat,
+            original_notes: geminiNotes, access_password: "",
+            created_at: new Date().toISOString(),
+          } as any);
+          toast({ title: `Parsed ${parsed.length} MCQs directly (no AI needed)!` });
+          setIsAddMode(false);
+          await loadContent();
+          setGeminiLoading(false);
+          return;
+        }
+      }
       const contentType = editorMode === "mcqs" ? "mcqs" : editorMode === "stories" ? "article" : "article";
       const { data, error } = await supabase.functions.invoke("generate-content", {
         body: { notes: geminiNotes, type: contentType },
@@ -547,8 +565,9 @@ export default function AdminEditor() {
       
       if (editorMode === "mcqs" && Array.isArray(data)) {
         const cat = editCategory || `Year ${selectedYear}: General`;
+        const title = editTitle || extractTitleFromNotes(geminiNotes) || `MCQ: ${cat.split(":").pop()?.trim() || "General"}`;
         await saveMcqSet({
-          title: editTitle || `MCQ: ${cat.split(":").pop()?.trim() || "General"}`,
+          title,
           questions: data, published: true, category: cat,
           original_notes: geminiNotes, access_password: "",
           created_at: new Date().toISOString(),
@@ -557,9 +576,10 @@ export default function AdminEditor() {
         setIsAddMode(false);
         await loadContent();
       } else {
-        setEditTitle(data.title || "Untitled");
-        setEditMetaTitle(data.title || "");
-        setEditSlug(slugifyText(data.title || ""));
+        const finalTitle = data.title || extractTitleFromNotes(geminiNotes) || "Untitled";
+        setEditTitle(finalTitle);
+        setEditMetaTitle(finalTitle);
+        setEditSlug(slugifyText(finalTitle));
         setEditMetaDesc(stripRichText(data.content || "", 160));
         if (editor) editor.commands.setContent(mdToHtml(data.content || ""));
         toast({ title: "Generated!" });
