@@ -29,7 +29,7 @@ const NAV_ITEMS = [
   { to: "/stories", label: "Stories", icon: BookMarked },
 ];
 
-type RecentItem = { id: string; title: string; type: "article" | "mcq" | "flashcard" | "story"; category: string; created_at: string };
+type RecentItem = { id: string; title: string; type: "article" | "mcq" | "flashcard" | "story"; category: string; created_at: string; slug?: string | null };
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
