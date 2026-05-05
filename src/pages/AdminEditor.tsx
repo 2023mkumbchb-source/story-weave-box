@@ -53,6 +53,69 @@ function mdToHtml(md: string): string {
   }).join("\n");
 }
 
+/** Extract a clean title from raw notes — first H1/H2 or first plain meaningful line. */
+function extractTitleFromNotes(notes: string): string {
+  if (!notes) return "";
+  const lines = notes.split(/\r?\n/);
+  for (const ln of lines) {
+    const t = ln.trim();
+    if (!t) continue;
+    if (/^[-=_*]{3,}$/.test(t)) continue;
+    const h = t.match(/^#{1,3}\s+(.+?)\s*#*$/);
+    if (h) return h[1].replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, "").replace(/\*\*/g, "").trim();
+    if (t.length > 3 && t.length < 140) return t.replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, "").replace(/\*\*/g, "").trim();
+    break;
+  }
+  return "";
+}
+
+/** Parse manually-formatted MCQs (markdown). Supports A–F options and ✅ Answer markers. */
+function parseMcqsFromText(raw: string): { question: string; options: string[]; correct_answer: number; explanation: string }[] {
+  if (!raw) return [];
+  const blocks = raw.split(/\n(?=\s*(?:#{1,4}\s*)?(?:MCQ|Question|Q)\s*\d+)/i);
+  const out: any[] = [];
+  for (const block of blocks) {
+    const text = block.trim();
+    if (!text) continue;
+    const optRe = /^\s*[-*]?\s*([A-F])[.):\-]\s+(.+)$/gm;
+    const optMatches: { letter: string; text: string; index: number }[] = [];
+    let m;
+    while ((m = optRe.exec(text)) !== null) {
+      optMatches.push({ letter: m[1].toUpperCase(), text: m[2].trim(), index: m.index });
+    }
+    if (optMatches.length < 2) continue;
+    let qPart = text.slice(0, optMatches[0].index).trim();
+    qPart = qPart
+      .replace(/^#{1,4}\s*(?:MCQ|Question|Q)\s*\d+\s*[:.\-]?\s*$/gim, "")
+      .replace(/^#{1,4}\s+/gm, "")
+      .replace(/\*\*/g, "")
+      .replace(/^---+\s*$/gm, "")
+      .trim();
+    if (!qPart) continue;
+    const lastOpt = optMatches[optMatches.length - 1];
+    const afterOpts = text.slice(lastOpt.index + lastOpt.text.length);
+    const ansMatch = afterOpts.match(/(?:✅\s*)?\*?\*?\s*(?:Correct\s*)?Answer\s*:?\s*\*?\*?\s*([A-F])\b/i);
+    let correctIdx = 0;
+    let explanation = "";
+    if (ansMatch) {
+      const letter = ansMatch[1].toUpperCase();
+      const idx = optMatches.findIndex(o => o.letter === letter);
+      if (idx >= 0) correctIdx = idx;
+      const aIdx = afterOpts.indexOf(ansMatch[0]) + ansMatch[0].length;
+      explanation = afterOpts.slice(aIdx).replace(/^[\s—\-:*]*/, "").trim();
+      explanation = explanation.split(/\n---|\n#{1,4}\s+(?:MCQ|Question|Q)\s*\d/i)[0].trim();
+      explanation = explanation.replace(/\*\*/g, "").trim();
+    }
+    out.push({
+      question: qPart,
+      options: optMatches.map(o => o.text.replace(/\*\*/g, "").trim()),
+      correct_answer: correctIdx,
+      explanation: explanation.slice(0, 2000),
+    });
+  }
+  return out;
+}
+
 function htmlToMd(html: string): string {
   if (!html) return "";
   return html
