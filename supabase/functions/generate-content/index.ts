@@ -138,10 +138,10 @@ function parseAndNormalizeMcqs(raw: string, expectedCount: number) {
 
   const cleaned = parsed
     .map((item: any) => {
-      if (!item?.question || !Array.isArray(item?.options) || item.options.length < 4) return null;
+      if (!item?.question || !Array.isArray(item?.options) || item.options.length < 2) return null;
       const question = compactWhitespace(String(item.question));
-      const options = item.options.slice(0, 4).map((o: any) => compactWhitespace(String(o)));
-      const correct_answer = Number.isInteger(item.correct_answer) ? Math.min(Math.max(item.correct_answer, 0), 3) : 0;
+      const options = item.options.slice(0, 6).map((o: any) => compactWhitespace(String(o)));
+      const correct_answer = Number.isInteger(item.correct_answer) ? Math.min(Math.max(item.correct_answer, 0), options.length - 1) : 0;
       const explanation = item.explanation ? compactWhitespace(String(item.explanation)) : "";
       if (!question) return null;
       return { question, options, correct_answer, explanation };

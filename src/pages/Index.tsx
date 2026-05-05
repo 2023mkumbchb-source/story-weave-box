@@ -29,7 +29,7 @@ const NAV_ITEMS = [
   { to: "/stories", label: "Stories", icon: BookMarked },
 ];
 
-type RecentItem = { id: string; title: string; type: "article" | "mcq" | "flashcard" | "story"; category: string; created_at: string };
+type RecentItem = { id: string; title: string; type: "article" | "mcq" | "flashcard" | "story"; category: string; created_at: string; slug?: string | null };
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -64,10 +64,10 @@ export default function Index() {
 
     // Load recently uploaded content (articles, mcqs, flashcards, stories)
     Promise.all([
-      supabase.from("articles").select("id, title, category, created_at").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(8),
-      supabase.from("mcq_sets").select("id, title, category, created_at").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(8),
-      supabase.from("flashcard_sets").select("id, title, category, created_at").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(5),
-      supabase.from("stories").select("id, title, category, created_at").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(5),
+      supabase.from("articles").select("id, title, category, created_at, slug").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(8),
+      supabase.from("mcq_sets").select("id, title, category, created_at, slug").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(8),
+      supabase.from("flashcard_sets").select("id, title, category, created_at, slug").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(5),
+      supabase.from("stories").select("id, title, category, created_at, slug").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(5),
     ]).then(([arts, mcqs, fcs, stories]) => {
       const items: RecentItem[] = [
         ...(arts.data || []).map(a => ({ ...a, type: "article" as const })),
