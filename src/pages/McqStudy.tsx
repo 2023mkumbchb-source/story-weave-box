@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Loader2, Lock, Unlock, ListChecks, Phone, CheckCircle } from "lucide-react";
+import { ArrowLeft, Loader2, Lock, Unlock, ListChecks, Phone, CheckCircle, GraduationCap, Calendar, Clock, Users } from "lucide-react";
 import { getMcqSetBySlugOrId, getCategoryDisplayName, getSetting, buildMcqPath, type McqSet } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -152,6 +152,10 @@ export default function McqStudy() {
   const hideAnswers = !!(set.access_password && set.access_password !== "" && !passwordUnlocked);
   const needsPayForExam = mcqFreeLimit > 0 && !isPaid && set.questions.length > mcqFreeLimit;
 
+  const qCount = set.questions.length;
+  const estMinutes = Math.max(5, Math.round(qCount * 1.2));
+  const examDate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+
   // Exam mode — if paid or no paywall needed
   if (examMode) {
     return (
@@ -196,6 +200,44 @@ export default function McqStudy() {
           </span>
         </div>
       )}
+
+      {/* Exam-style cover card */}
+      <div className="mb-6 rounded-2xl border-2 border-primary/30 bg-card overflow-hidden shadow-sm">
+        <div className="bg-primary/10 px-5 py-3 text-center border-b-2 border-primary/20">
+          <div className="flex items-center justify-center gap-2 text-primary">
+            <GraduationCap className="h-4 w-4" />
+            <p className="text-xs font-bold uppercase tracking-wider">Mount Kenya University</p>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-0.5">School of Medicine — Continuous Assessment</p>
+        </div>
+        <div className="px-5 py-4 text-center">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Unit</p>
+          <p className="text-sm font-semibold text-foreground mb-3">{unitName}</p>
+          <h1 className="font-serif text-xl sm:text-2xl font-bold text-foreground leading-tight">
+            {set.title}
+          </h1>
+        </div>
+        <div className="grid grid-cols-3 border-t border-border bg-muted/30 text-center">
+          <div className="px-2 py-2.5 border-r border-border">
+            <ListChecks className="h-3.5 w-3.5 mx-auto mb-0.5 text-primary" />
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Questions</p>
+            <p className="text-sm font-bold text-foreground">{qCount}</p>
+          </div>
+          <div className="px-2 py-2.5 border-r border-border">
+            <Clock className="h-3.5 w-3.5 mx-auto mb-0.5 text-primary" />
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Duration</p>
+            <p className="text-sm font-bold text-foreground">~{estMinutes} min</p>
+          </div>
+          <div className="px-2 py-2.5">
+            <Calendar className="h-3.5 w-3.5 mx-auto mb-0.5 text-primary" />
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Date</p>
+            <p className="text-sm font-bold text-foreground">{examDate}</p>
+          </div>
+        </div>
+        <div className="px-5 py-2.5 border-t border-border bg-card text-[11px] text-muted-foreground">
+          <p><span className="font-semibold text-foreground">Instructions:</span> Answer all questions. Each question has only one correct answer. Tap an option to reveal the explanation.</p>
+        </div>
+      </div>
 
       {/* Exam mode paywall notice */}
       {needsPayForExam && (
