@@ -91,9 +91,9 @@ export default function Navbar() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5 sm:px-6">
           <Link to="/" className="flex items-center gap-2 text-lg font-bold text-white">
             <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-white/10 p-1">
-              <img src={ompathLogo} alt="OMPATH logo" className="h-full w-full object-contain" loading="lazy" />
+              <img src={ompathLogo} alt="Ompath Study logo" className="h-full w-full object-contain" loading="lazy" />
             </div>
-            <span className="font-serif">OMPATH</span>
+            <span className="font-serif">Ompath Study</span>
           </Link>
 
           {/* Desktop nav */}
@@ -142,9 +142,9 @@ export default function Navbar() {
                 {/* Sidebar header */}
                 <div className="flex items-center gap-2 border-b border-white/10 px-4 py-4">
                   <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-white/10 p-1">
-                    <img src={ompathLogo} alt="OMPATH logo" className="h-full w-full object-contain" />
+                    <img src={ompathLogo} alt="Ompath Study logo" className="h-full w-full object-contain" />
                   </div>
-                  <span className="font-serif text-lg font-bold">OMPATH</span>
+                  <span className="font-serif text-lg font-bold">Ompath Study</span>
                 </div>
 
                 {/* Sidebar content */}

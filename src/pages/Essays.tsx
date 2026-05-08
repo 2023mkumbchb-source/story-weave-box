@@ -23,7 +23,7 @@ const LOAD_MORE_STEP = 20;
 export default function Essays() {
   useEffect(() => {
     updateMetaTags({
-      title: "Medical Essays | OMPATH",
+      title: "Medical Essays",
       description: "Structured medical short answer questions (SAQs) and long answer questions (LAQs) for Kenyan health students.",
     });
   }, []);

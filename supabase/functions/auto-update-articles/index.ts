@@ -65,8 +65,10 @@ serve(async (req) => {
     let apiKeys: string[] = [];
     try { apiKeys = JSON.parse((keysSetting as any)?.value || "[]").filter(Boolean); } catch {}
     if (!apiKeys.length && (keySetting as any)?.value) apiKeys = [(keySetting as any).value];
-    const envKey = Deno.env.get("GEMINI_API_KEY");
-    if (envKey) apiKeys.push(envKey);
+    for (const name of ["GEMINI_API_KEY", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3", "GEMINI_API_KEY_4", "GEMINI_API_KEY_5"]) {
+      const v = Deno.env.get(name);
+      if (v && !apiKeys.includes(v)) apiKeys.push(v);
+    }
     if (!apiKeys.length) throw new Error("No Gemini API key configured");
 
     // Get last updated cursor from app_settings

@@ -46,8 +46,8 @@ export default function EssayStudy() {
               setEssay(e);
               if (e) {
                 updateMetaTags({
-                  title: `${e.title} – Essay | OMPATH`,
-                  description: `Practice structured medical answers for ${e.title} on OMPATH.`,
+                  title: `${e.title} – Essay`,
+                  description: `Practice structured medical answers for ${e.title} here.`,
                 });
               }
               setLoading(false);
@@ -57,8 +57,8 @@ export default function EssayStudy() {
         setEssay(e);
         if (e) {
           updateMetaTags({
-            title: `${e.title} – Essay | OMPATH`,
-            description: `Practice structured medical answers for ${e.title} on OMPATH.`,
+            title: `${e.title} – Essay`,
+            description: `Practice structured medical answers for ${e.title} here.`,
           });
         }
         setLoading(false);

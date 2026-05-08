@@ -13,7 +13,7 @@ const LOAD_MORE_STEP = 12;
 export default function Flashcards() {
   useEffect(() => {
     updateMetaTags({
-      title: "Flashcard Sets | OMPATH",
+      title: "Flashcard Sets",
       description: "Interactive medical flashcards generated from Kenyan medical notes. Study smarter with unit-based flashcard sets.",
     });
   }, []);

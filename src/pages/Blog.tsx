@@ -39,7 +39,7 @@ function timeAgo(ms: number): string {
 export default function Blog() {
   useEffect(() => {
     updateMetaTags({
-      title: "Medical Study Notes | OMPATH",
+      title: "Medical Study Notes",
       description: "Comprehensive medical study notes and articles for Kenyan health students. Organized by unit and year.",
     });
   }, []);

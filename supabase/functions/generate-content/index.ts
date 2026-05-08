@@ -215,8 +215,11 @@ async function callAI(messages: any[], geminiKey?: string, allKeys?: string[]): 
   } else if (geminiKey?.trim()) {
     keyList.push(geminiKey.trim());
   }
-  const envKey = Deno.env.get("GEMINI_API_KEY");
-  if (envKey) keyList.push(envKey);
+  // Pull primary + numbered fallback keys from env: GEMINI_API_KEY, GEMINI_API_KEY_2..5
+  for (const name of ["GEMINI_API_KEY", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3", "GEMINI_API_KEY_4", "GEMINI_API_KEY_5"]) {
+    const v = Deno.env.get(name);
+    if (v && !keyList.includes(v)) keyList.push(v);
+  }
 
   if (keyList.length === 0) throw new Error("No Gemini API key configured. Please save your Gemini API key in Settings.");
 

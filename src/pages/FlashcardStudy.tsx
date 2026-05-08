@@ -24,8 +24,8 @@ export default function FlashcardStudy() {
             const canonical = buildFlashcardPath(s);
             if (location.pathname !== canonical) navigate(canonical, { replace: true });
             updateMetaTags({
-              title: `${s.title} – Flashcards | OMPATH`,
-              description: `Study ${s.title} flashcards on OMPATH. Interactive medical study cards for health students in Kenya.`,
+              title: `${s.title} – Flashcards`,
+              description: `Study ${s.title} flashcards here. Interactive medical study cards for health students in Kenya.`,
             });
           }
         })

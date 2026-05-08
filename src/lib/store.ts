@@ -204,7 +204,7 @@ function extractArticleIdFromParam(value: string): string | null {
 }
 
 export function slugifyTitle(title: string): string {
-  return (title || "")
+  return String(title ?? "")
     .toLowerCase()
     .trim()
     .replace(/&/g, " and ")
@@ -222,19 +222,22 @@ export function buildBlogPath(article: Pick<Article, "id" | "title"> & { slug?: 
 
 /** Build a statement-style URL: /mcqs/<title-slug> */
 export function buildMcqPath(set: { id: string; title: string; slug?: string | null }): string {
-  const slug = (set.slug && set.slug.trim()) || `${slugifyTitle(set.title) || "quiz"}-${set.id.slice(0, 6)}`;
+  const rawSlug = typeof set.slug === "string" ? set.slug.trim() : "";
+  const slug = rawSlug || `${slugifyTitle(set.title) || "quiz"}-${(set.id || "").slice(0, 6)}`;
   return `/mcqs/${slug}`;
 }
 
 /** Build a statement-style URL: /flashcards/<title-slug> */
 export function buildFlashcardPath(set: { id: string; title: string; slug?: string | null }): string {
-  const slug = (set.slug && set.slug.trim()) || `${slugifyTitle(set.title) || "flashcards"}-${set.id.slice(0, 6)}`;
+  const rawSlug = typeof set.slug === "string" ? set.slug.trim() : "";
+  const slug = rawSlug || `${slugifyTitle(set.title) || "flashcards"}-${(set.id || "").slice(0, 6)}`;
   return `/flashcards/${slug}`;
 }
 
 /** Build a statement-style URL: /exams/<title-slug>/start */
 export function buildExamPath(exam: { id: string; title: string; slug?: string | null }): string {
-  const slug = (exam.slug && exam.slug.trim()) || `${slugifyTitle(exam.title) || "exam"}-${exam.id.slice(0, 6)}`;
+  const rawSlug = typeof exam.slug === "string" ? exam.slug.trim() : "";
+  const slug = rawSlug || `${slugifyTitle(exam.title) || "exam"}-${(exam.id || "").slice(0, 6)}`;
   return `/exams/${slug}/start`;
 }
 
@@ -603,13 +606,32 @@ export async function getMcqSetBySlugOrId(param: string): Promise<McqSet | null>
   if (!v) return null;
   const id = extractIdFromParam(v);
   if (id) return getMcqSetById(id);
+  // 1) Exact slug match
   const { data } = await supabase
     .from("mcq_sets")
     .select("*")
     .eq("slug", v)
     .is("deleted_at", null)
     .maybeSingle();
-  return (data as unknown as McqSet | null) || null;
+  if (data) return data as unknown as McqSet;
+  // 2) Fallback: title slug fuzzy match (handles legacy '<slug>-<id6>' or stale slugs)
+  const titlePart = v.replace(/-[0-9a-f]{6}$/, "");
+  const { data: list } = await supabase
+    .from("mcq_sets")
+    .select("*")
+    .or(`slug.ilike.${titlePart}%,slug.ilike.%${titlePart}%`)
+    .is("deleted_at", null)
+    .limit(1);
+  if (list && list[0]) return list[0] as unknown as McqSet;
+  // 3) Final fallback: title contains
+  const titleSearch = titlePart.replace(/-/g, " ");
+  const { data: byTitle } = await supabase
+    .from("mcq_sets")
+    .select("*")
+    .ilike("title", `%${titleSearch}%`)
+    .is("deleted_at", null)
+    .limit(1);
+  return (byTitle && byTitle[0]) ? (byTitle[0] as unknown as McqSet) : null;
 }
 
 export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Promise<McqSet> {
@@ -724,10 +746,13 @@ export async function getArticleCategories(): Promise<ArticleCategory[]> {
   return (data || []) as unknown as ArticleCategory[];
 }
 
-export async function saveArticleCategory(name: string): Promise<ArticleCategory> {
+export async function saveArticleCategory(input: string | { name?: string }): Promise<ArticleCategory> {
+  const raw = typeof input === "string" ? input : (input?.name ?? "");
+  const name = String(raw).trim();
+  if (!name) throw new Error("Category name required");
   const { data, error } = await (supabase as any)
     .from("article_categories")
-    .insert({ name: name.trim() })
+    .insert({ name })
     .select()
     .single();
   if (error) throw error;

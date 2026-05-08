@@ -30,7 +30,7 @@ function stripHtml(input, max = 160) {
 }
 
 function buildHTML({ title, description, content, url, image, noindex = false }) {
-  const safeTitle = esc(title || "OMPATH");
+  const safeTitle = esc(title || "Ompath Study");
   const safeDesc = esc(description || "Medical study platform for Kenyan students");
   const safeContent = (content || "").slice(0, 5000);
   const robotsTag = noindex ? '<meta name="robots" content="noindex, nofollow">' : '<meta name="robots" content="index, follow">';
@@ -91,14 +91,14 @@ export default async function handler(req, res) {
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.meta_title || record.title,
-          description: record.meta_description || stripHtml(record.content) || `${record.title} - OMPATH`,
+          description: record.meta_description || stripHtml(record.content) || `${record.title}`,
           content: `<p>${esc(stripHtml(record.content, 3000))}</p>`,
           url: pageUrl,
           image: record.og_image_url || record.cover_image,
         }));
       }
       return res.status(404).send(buildHTML({
-        title: "Article Not Found | OMPATH",
+        title: "Article Not Found",
         description: "This article may have been removed or the link is incorrect.",
         url: pageUrl,
         noindex: true,
@@ -124,7 +124,7 @@ export default async function handler(req, res) {
           image: record.og_image_url,
         }));
       }
-      return res.status(404).send(buildHTML({ title: "MCQ Not Found | OMPATH", description: "This MCQ set was not found.", url: pageUrl, noindex: true }));
+      return res.status(404).send(buildHTML({ title: "MCQ Not Found", description: "This MCQ set was not found.", url: pageUrl, noindex: true }));
     }
 
     if (flashcard) {
@@ -168,7 +168,7 @@ export default async function handler(req, res) {
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.meta_title || record.title,
-          description: record.meta_description || stripHtml(record.content) || `${record.title} - OMPATH`,
+          description: record.meta_description || stripHtml(record.content) || `${record.title}`,
           content: `<p>${esc(stripHtml(record.content, 3000))}</p>`,
           url: pageUrl,
           image: record.og_image_url || record.cover_image_url,
@@ -210,7 +210,7 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).send(buildHTML({
-      title: "OMPATH – Free Medical Study Platform for Kenyan Students",
+      title: "Free Medical Study Platform for Kenyan Students",
       description: "Comprehensive medical study notes, flashcards, MCQs, and exam preparation for Kenyan medical students.",
       url: "https://www.ompathstudy.com",
     }));
@@ -218,7 +218,7 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error("OG Proxy Error:", error);
     return res.status(500).send(buildHTML({
-      title: "OMPATH",
+      title: "Ompath Study",
       description: "Medical study platform for Kenyan students",
     }));
   }

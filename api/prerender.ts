@@ -109,7 +109,7 @@ function buildHtml(meta: {
   <meta property="og:description" content="${esc(meta.description)}" />
   <meta property="og:image" content="${esc(meta.image)}" />
   <meta property="og:url" content="${esc(meta.url)}" />
-  <meta property="og:site_name" content="OMPATH" />
+  <meta property="og:site_name" content="Ompath Study" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${esc(meta.title)}" />
   <meta name="twitter:description" content="${esc(meta.description)}" />
@@ -119,7 +119,7 @@ function buildHtml(meta: {
 <body>
   <h1>${esc(meta.title)}</h1>
   <p>${esc(meta.description)}</p>
-  <a href="${esc(meta.url)}">View on OMPATH</a>
+  <a href="${esc(meta.url)}">View here</a>
 </body>
 </html>`;
 }
@@ -142,7 +142,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (blogMatch) {
       const article = await fetchArticleBySlug(blogMatch[1]);
       if (article) {
-        const title = `${(article.meta_title || article.title).replace(/^#+\s*/, "")} | OMPATH`;
+        const title = `${(article.meta_title || article.title).replace(/^#+\s*/, "")}`;
         const description = article.meta_description
           ? stripMarkdown(article.meta_description, 160)
           : stripMarkdown(article.content || "", 160);
@@ -160,8 +160,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               image,
               url,
               datePublished: article.created_at,
-              author: { "@type": "Organization", name: "OMPATH" },
-              publisher: { "@type": "Organization", name: "OMPATH" },
+              author: { "@type": "Organization", name: "Ompath Study" },
+              publisher: { "@type": "Organization", name: "Ompath Study" },
             },
           })
         );
@@ -173,10 +173,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (mcqMatch) {
       const mcq = await fetchMcqBySlug(mcqMatch[1]);
       if (mcq) {
-        const title = `${mcq.title} – MCQ Quiz | OMPATH`;
+        const title = `${mcq.title} – MCQ Quiz`;
         const description = mcq.description
           ? stripMarkdown(mcq.description, 160)
-          : `Practice MCQ quiz on ${mcq.title}. Test your knowledge on OMPATH.`;
+          : `Practice MCQ quiz on ${mcq.title}. Test your knowledge here.`;
         const url = `${SITE_URL}/mcqs/${mcqMatch[1]}`;
 
         return res.status(200).setHeader("Content-Type", "text/html").send(
@@ -189,7 +189,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               description,
               url,
               datePublished: mcq.created_at,
-              provider: { "@type": "Organization", name: "OMPATH" },
+              provider: { "@type": "Organization", name: "Ompath Study" },
             },
           })
         );
@@ -201,10 +201,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (fcMatch) {
       const fc = await fetchFlashcardBySlug(fcMatch[1]);
       if (fc) {
-        const title = `${fc.title} – Flashcards | OMPATH`;
+        const title = `${fc.title} – Flashcards`;
         const description = fc.description
           ? stripMarkdown(fc.description, 160)
-          : `Study flashcards for ${fc.title} on OMPATH.`;
+          : `Study flashcards for ${fc.title} here.`;
         const url = `${SITE_URL}/flashcards/${fcMatch[1]}`;
 
         return res.status(200).setHeader("Content-Type", "text/html").send(
@@ -217,7 +217,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               description,
               url,
               datePublished: fc.created_at,
-              provider: { "@type": "Organization", name: "OMPATH" },
+              provider: { "@type": "Organization", name: "Ompath Study" },
             },
           })
         );
@@ -230,7 +230,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Fallback: serve generic homepage meta
   return res.status(200).setHeader("Content-Type", "text/html").send(
     buildHtml({
-      title: "OMPATH – Medical Study Platform",
+      title: "Medical Study Platform",
       description: "Free medical study platform. Articles, flashcards, MCQ quizzes, and timed exams for Kenyan health students.",
       image: defaultImage,
       url: `${SITE_URL}${path}`,
@@ -238,7 +238,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       schema: {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        name: "OMPATH",
+        name: "Ompath Study",
         url: SITE_URL,
         description: "Medical study platform for Kenyan health students.",
       },
