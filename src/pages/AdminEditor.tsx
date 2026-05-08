@@ -425,10 +425,10 @@ export default function AdminEditor() {
 
   // Add new category
   const handleAddCategory = async () => {
-    const name = newCategoryName.trim();
+    const name = String(newCategoryName ?? "").trim();
     if (!name) return;
     try {
-      await saveArticleCategory({ name } as any);
+      await saveArticleCategory(name);
       setCustomCategories(prev => [...prev, { id: "", name, created_at: "" }]);
       setEditCategory(name);
       setNewCategoryName("");
