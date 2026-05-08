@@ -53,6 +53,30 @@ export type Database = {
         }
         Relationships: []
       }
+      article_comments: {
+        Row: {
+          article_id: string
+          author_name: string
+          body: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          article_id: string
+          author_name?: string
+          body: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          article_id?: string
+          author_name?: string
+          body?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       articles: {
         Row: {
           category: string
