@@ -18,7 +18,7 @@ interface Story {
 export default function Stories() {
   useEffect(() => {
     updateMetaTags({
-      title: "Medical Stories | OMPATH",
+      title: "Medical Stories",
       description: "Medical stories, narratives and experiences from Kenyan medical students and professionals.",
       url: `${SITE_URL}/stories`,
       type: "website",

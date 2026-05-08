@@ -2087,7 +2087,7 @@ function ExamResultsTab() {
     </thead>
     <tbody>${rows}</tbody>
   </table>
-  <p style="margin-top:32px;text-align:center;font-size:10px;color:#9ca3af">OMPATH Exam Results &bull; Confidential</p>
+  <p style="margin-top:32px;text-align:center;font-size:10px;color:#9ca3af">Ompath Study Exam Results &bull; Confidential</p>
 </body>
 </html>`;
 

@@ -13,7 +13,7 @@ const LOAD_MORE_STEP = 12;
 export default function Mcqs() {
   useEffect(() => {
     updateMetaTags({
-      title: "MCQ Question Bank | OMPATH",
+      title: "MCQ Question Bank",
       description: "Interactive medical multiple choice quizzes from Kenyan medical notes. Practice with unit-based MCQ sets.",
     });
   }, []);

@@ -731,7 +731,7 @@ export default function BlogPost() {
       .then((a) => {
         if (!a) {
           setNotFound(true);
-          document.title = "Article Not Found | OMPATH";
+          document.title = "Article Not Found";
           let noindex = document.querySelector('meta[name="robots"]');
           if (!noindex) {
             noindex = document.createElement("meta");

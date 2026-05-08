@@ -59,8 +59,8 @@ export default function McqStudy() {
         const canonical = buildMcqPath(s);
         if (location.pathname !== canonical) navigate(canonical, { replace: true });
         updateMetaTags({
-          title: `${s.title} – MCQs | OMPATH`,
-          description: s.description ? stripRichText(s.description, 155) : `Practice ${s.title} MCQs on OMPATH. Interactive medical study quiz with answers and explanations.`,
+          title: `${s.title} – MCQs`,
+          description: s.description ? stripRichText(s.description, 155) : `Practice ${s.title} MCQs here. Interactive medical study quiz with answers and explanations.`,
         });
       }
       if (s && (!s.access_password || s.access_password === "")) setPasswordUnlocked(true);
