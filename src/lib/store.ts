@@ -746,10 +746,13 @@ export async function getArticleCategories(): Promise<ArticleCategory[]> {
   return (data || []) as unknown as ArticleCategory[];
 }
 
-export async function saveArticleCategory(name: string): Promise<ArticleCategory> {
+export async function saveArticleCategory(input: string | { name?: string }): Promise<ArticleCategory> {
+  const raw = typeof input === "string" ? input : (input?.name ?? "");
+  const name = String(raw).trim();
+  if (!name) throw new Error("Category name required");
   const { data, error } = await (supabase as any)
     .from("article_categories")
-    .insert({ name: name.trim() })
+    .insert({ name })
     .select()
     .single();
   if (error) throw error;
