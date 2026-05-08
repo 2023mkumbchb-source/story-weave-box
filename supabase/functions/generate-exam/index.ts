@@ -17,31 +17,39 @@ function normalizeUnitName(category: string): string {
 }
 
 async function callGeminiFallback(prompt: string): Promise<string> {
-  const geminiKey = Deno.env.get("GEMINI_API_KEY");
-  if (!geminiKey) throw new Error("No GEMINI_API_KEY fallback available");
+  const keys: string[] = [];
+  for (const name of ["GEMINI_API_KEY", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3", "GEMINI_API_KEY_4", "GEMINI_API_KEY_5"]) {
+    const v = Deno.env.get(name);
+    if (v && !keys.includes(v)) keys.push(v);
+  }
+  if (keys.length === 0) throw new Error("No GEMINI_API_KEY configured");
 
-  const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
-  for (const model of models) {
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: `You are a senior medical exam writer. Return ONLY valid JSON, no markdown or code blocks.\n\n${prompt}` }] }],
-          }),
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
+  for (const apiKey of keys) {
+    for (const model of models) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `You are a senior medical exam writer. Return ONLY valid JSON, no markdown or code blocks.\n\n${prompt}` }] }],
+            }),
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          if (text) return text;
         }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        if (response.status === 429) continue;
+      } catch (e) {
+        console.error(`Gemini ${model} key ...${apiKey.slice(-4)} failed:`, e);
       }
-    } catch (e) {
-      console.error(`Gemini fallback ${model} failed:`, e);
     }
   }
-  throw new Error("Both Lovable AI and Gemini fallback failed");
+  throw new Error("All Gemini keys/models exhausted");
 }
 
 async function generateWithFallback(prompt: string): Promise<string> {
