@@ -898,6 +898,46 @@ export default function AdminEditor() {
           {/* MCQ Editor Mode */}
           {editorMode === "mcqs" && currentMcqSummary && !isAddMode && (
             <div className="space-y-3">
+              {/* Editable header */}
+              <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+                <Input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="MCQ set title"
+                  className="text-sm h-8"
+                />
+                <div className="flex gap-1.5">
+                  <select
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    className="flex-1 min-w-0 rounded-md border border-input bg-background px-2 py-1.5 text-xs"
+                  >
+                    <option value="">Select category</option>
+                    {allCategoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                    <option value="Uncategorized">Uncategorized</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground mb-0.5 block">Slug</label>
+                    <Input value={editSlug} onChange={(e) => setEditSlug(e.target.value)} placeholder={slugifyText(editTitle)} className="text-xs h-7" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground mb-0.5 block">Access password (optional)</label>
+                    <Input value={editMcqPassword} onChange={(e) => setEditMcqPassword(e.target.value)} placeholder="Leave empty for public" className="text-xs h-7" />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-1">
+                  <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                    <input type="checkbox" checked={editPublished} onChange={(e) => setEditPublished(e.target.checked)} className="rounded" />
+                    <span className="font-medium">Published</span>
+                  </label>
+                  <Button size="sm" onClick={handleSaveMcq} disabled={savingMcq} className="gap-1 text-xs h-7">
+                    {savingMcq ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Save
+                  </Button>
+                </div>
+              </div>
+
               <div className="rounded-xl border border-border bg-card p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
                   <div className="min-w-0 flex-1">
