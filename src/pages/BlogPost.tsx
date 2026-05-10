@@ -5,6 +5,7 @@ import {
   ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2, ImagePlus,
 } from "lucide-react";
 import ShareButtons from "@/components/ShareButtons";
+import ArticleComments from "@/components/ArticleComments";
 import { motion, AnimatePresence } from "framer-motion";
 import { getArticleBySlugOrId, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, type Article } from "@/lib/store";
 import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags, autoIndexUrls } from "@/lib/seo";
@@ -1071,6 +1072,35 @@ export default function BlogPost() {
                 </div>
               </div>
             )}
+
+            {related.articles && related.articles.length > 0 && (
+              <div className="mt-12">
+                <div className="flex items-center gap-2 mb-4">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <h2 className="font-serif text-xl font-bold text-foreground">Related Articles</h2>
+                </div>
+                <div className="-mx-5 px-5 overflow-x-auto pb-2">
+                  <div className="flex gap-3 snap-x snap-mandatory">
+                    {related.articles.slice(0, 12).map((a: any) => (
+                      <Link
+                        key={a.id}
+                        to={buildBlogPath(a)}
+                        className="snap-start shrink-0 w-64 rounded-xl border border-border bg-card p-4 hover:border-primary/40 hover:shadow-sm transition-all"
+                      >
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-1.5">
+                          {getCategoryDisplayName(a.category)}
+                        </p>
+                        <p className="text-sm font-semibold text-foreground leading-snug line-clamp-3">
+                          {a.title}
+                        </p>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <ArticleComments articleId={article.id} />
           </article>
         </div>
       </div>
