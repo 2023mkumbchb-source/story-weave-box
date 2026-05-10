@@ -269,6 +269,8 @@ export default function AdminEditor() {
   const [editCategory, setEditCategory] = useState("");
   const [editOgImage, setEditOgImage] = useState("");
   const [editPublished, setEditPublished] = useState(false);
+  const [editMcqPassword, setEditMcqPassword] = useState("");
+  const [savingMcq, setSavingMcq] = useState(false);
 
   // Load content based on mode
   const loadContent = useCallback(async () => {
