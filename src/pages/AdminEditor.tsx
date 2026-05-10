@@ -288,7 +288,7 @@ export default function AdminEditor() {
       } else if (editorMode === "mcqs") {
         const { data, error } = await supabase
           .from("mcq_sets")
-          .select("id, title, category, created_at, updated_at, published, slug, questions")
+          .select("id, title, category, created_at, updated_at, published, slug, questions, original_notes, access_password")
           .is("deleted_at", null)
           .order("updated_at", { ascending: false })
           .limit(500);
