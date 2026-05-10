@@ -425,6 +425,48 @@ export default function AdminEditor() {
     setEditPublished(fullArticle.published);
   }, [fullArticle, editor, isAddMode]);
 
+  // Initialise edit fields when an MCQ set is selected
+  useEffect(() => {
+    if (editorMode !== "mcqs" || !currentMcqSummary || isAddMode) return;
+    setEditTitle(currentMcqSummary.title || "");
+    setEditCategory(currentMcqSummary.category || "");
+    setEditPublished(!!currentMcqSummary.published);
+    setEditSlug(currentMcqSummary.slug || "");
+    setEditMcqPassword((currentMcqSummary as any).access_password || "");
+  }, [currentMcqSummary?.id, editorMode, isAddMode]);
+
+  // Save edited MCQ set metadata
+  const handleSaveMcq = async () => {
+    if (!currentMcqSummary) return;
+    setSavingMcq(true);
+    try {
+      await saveMcqSet({
+        id: currentMcqSummary.id,
+        title: editTitle || currentMcqSummary.title,
+        questions: currentMcqSummary.questions,
+        published: editPublished,
+        original_notes: (currentMcqSummary as any).original_notes || "",
+        category: editCategory || currentMcqSummary.category || `Year ${selectedYear}: General`,
+        access_password: editMcqPassword || "",
+        slug: editSlug || slugifyText(editTitle || currentMcqSummary.title) || "",
+        is_raw: false,
+      } as any);
+      toast({ title: "MCQ set saved!" });
+      setAllMcqSets(prev => prev.map(m => m.id === currentMcqSummary.id ? {
+        ...m,
+        title: editTitle || m.title,
+        category: editCategory || m.category,
+        published: editPublished,
+        slug: editSlug || m.slug,
+        access_password: editMcqPassword,
+      } as any : m));
+    } catch (err: any) {
+      toast({ title: "Save failed", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingMcq(false);
+    }
+  };
+
   // Add new category
   const handleAddCategory = async () => {
     const name = String(newCategoryName ?? "").trim();
