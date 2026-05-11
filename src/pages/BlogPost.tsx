@@ -89,21 +89,21 @@ function TableBlock({ lines }: { lines: string[] }) {
   const rows = bodyLines.map(parseRow);
 
   return (
-    <div className="my-6 overflow-hidden rounded-lg border border-border">
+    <div className="not-prose my-6 -mx-5 sm:mx-0 sm:rounded-lg border-y sm:border border-border bg-card">
       <div className="w-full overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
+        <table className="w-full min-w-[640px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/50">
+            <tr className="border-b border-border bg-muted/60 sticky top-0">
               {headers.map((h, i) => (
-                <th key={i} className="px-4 py-2.5 text-left font-semibold text-foreground"><Inline text={h} /></th>
+                <th key={i} className="whitespace-nowrap px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-foreground"><Inline text={h} /></th>
               ))}
             </tr>
           </thead>
           <tbody>
             {rows.map((row, ri) => (
-              <tr key={ri} className="border-b border-border/50 last:border-0">
+              <tr key={ri} className="border-b border-border/50 last:border-0 even:bg-muted/20">
                 {headers.map((_, ci) => (
-                  <td key={ci} className="px-4 py-2.5 text-foreground/85 leading-relaxed">
+                  <td key={ci} className="px-4 py-3 align-top text-foreground/90 leading-relaxed">
                     {row[ci] != null ? <Inline text={row[ci]} /> : null}
                   </td>
                 ))}
@@ -112,6 +112,7 @@ function TableBlock({ lines }: { lines: string[] }) {
           </tbody>
         </table>
       </div>
+      <div className="px-4 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground sm:hidden">Scroll →</div>
     </div>
   );
 }
@@ -120,17 +121,17 @@ function TableBlock({ lines }: { lines: string[] }) {
 function PracticeQuestion({ number, question, answer }: { number: string; question: string; answer: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-lg border border-border overflow-hidden">
-      <button onClick={() => setOpen(o => !o)} className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors">
-        <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold mt-0.5">{number}</span>
-        <span className="flex-1 text-sm font-medium text-foreground leading-snug"><Inline text={question} /></span>
-        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground mt-0.5 transition-transform ${open ? "rotate-180" : ""}`} />
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-start gap-3 px-4 py-4 sm:px-5 sm:py-4 text-left hover:bg-muted/30 transition-colors">
+        <span className="shrink-0 flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold mt-0.5">{number}</span>
+        <span className="flex-1 text-sm sm:text-[15px] font-medium text-foreground leading-relaxed"><Inline text={question} /></span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground mt-1 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       <AnimatePresence initial={false}>
         {open && (
           <motion.div key="a" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.15 }} className="overflow-hidden">
-            <div className="px-4 py-3 border-t border-border bg-muted/20">
-              <p className="text-sm text-foreground/85 leading-relaxed"><Inline text={answer} /></p>
+            <div className="px-4 py-4 sm:px-5 sm:py-5 border-t border-border bg-muted/20">
+              <p className="text-sm sm:text-[15px] text-foreground/90 leading-[1.75] whitespace-pre-line"><Inline text={answer} /></p>
             </div>
           </motion.div>
         )}
