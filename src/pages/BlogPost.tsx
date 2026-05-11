@@ -192,20 +192,82 @@ function splitInlineTable(s: string): string[] {
 
 const META_HEADING = /^(key points|detailed notes|summary)$/i;
 
+function cleanHeadingText(value: string): string {
+  return value
+    .replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, "")
+    .replace(/⭐+/g, "")
+    .replace(/\*+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function splitMalformedHeading(raw: string): { heading: string; extras: string[] } {
+  let text = cleanHeadingText(raw.replace(/^HOW\s+TO\s+OPEN>\s*"?/i, "").replace(/^say\s*:?>\s*"?/i, ""));
+  const extras: string[] = [];
+  const inlineBulletIdx = text.search(/[:—-]\s+-\s+/);
+  if (inlineBulletIdx > 3) {
+    const bullet = text.slice(inlineBulletIdx).replace(/^[:—-]\s*/, "").trim();
+    text = text.slice(0, inlineBulletIdx).replace(/[:\s]+$/, "").trim();
+    if (bullet) extras.push(bullet.startsWith("- ") ? bullet : `- ${bullet}`);
+  }
+  const quoteIdx = text.indexOf(">");
+  if (quoteIdx > 8) {
+    const quote = text.slice(quoteIdx + 1).replace(/^"|"$/g, "").trim();
+    text = text.slice(0, quoteIdx).replace(/[:\s]+$/, "").trim();
+    if (quote) extras.push(`> ${quote}`);
+  }
+
+  const italic = text.match(/^(.*?)(?:\s*)\*([^*]{8,})\*$/);
+  if (italic && italic[1].trim().length > 10) {
+    text = italic[1].replace(/[:\s]+$/, "").trim();
+    extras.push(italic[2].trim());
+  }
+
+  const transition = text.search(/\b(?:Think of|The most|Every reaction|Almost always|This is why|If someone|There are|ABO incompatibility)\b/);
+  if (transition > 18) {
+    extras.push(text.slice(transition).trim());
+    text = text.slice(0, transition).replace(/[:\s]+$/, "").trim();
+  }
+
+  const sentence = text.match(/^(.{12,90}?[:?.])\s*(?=[A-Z"(])/);
+  if (sentence && text.slice(sentence[0].length).trim().length > 12) {
+    extras.push(text.slice(sentence[0].length).trim());
+    text = sentence[1].replace(/[:\s]+$/, "").trim();
+  }
+
+  return { heading: text.replace(/^\d+\.\s*/, "").trim(), extras };
+}
+
 function preprocessContent(raw: string): string {
   const out: string[] = [];
   let inKeyPoints = false;
 
   for (const line of raw.split("\n")) {
-    const t = line
+    let t = line
       .trim()
       .replace(/^HOW\s+TO\s+OPEN>\s*"?/i, "")
       .replace(/^say\s*:?>\s*"?/i, "")
-      .replace(/([:.;!?])(?=[A-Z])/g, "$1 ");
+      .replace(/([:.;!?])(?=\S)/g, "$1 ")
+      .replace(/([a-z])(?=(?:Think of|The most|Every reaction|Almost always|This is why|If someone|There are|ABO incompatibility)\b)/g, "$1 ");
     if (!t) { out.push(""); continue; }
+    if (/^#?(SECTION\s+\d+|PART\s+\d+|PART\s+[A-Z])\b/i.test(t)) {
+      out.push(`## ${cleanHeadingText(t.replace(/^#+\s*/, ""))}`);
+      continue;
+    }
+    if (/^-\s*$/.test(t)) continue;
     if (/^[-*_]{3,}$/.test(t)) { out.push(""); continue; }
     if (/^\d+$/.test(t)) continue;
     if (/^-?\s*.+\s\d+\.$/.test(t) && !t.includes("→") && !t.startsWith("|")) continue;
+
+    if (/^#{1,6}\s*/.test(t)) {
+      const hashes = t.match(/^#{1,6}/)?.[0] || "##";
+      const rawHeading = t.replace(/^#{1,6}\s*/, "");
+      const { heading, extras } = splitMalformedHeading(rawHeading);
+      if (!heading || META_HEADING.test(heading)) continue;
+      out.push(`${hashes.length === 1 ? "##" : hashes} ${heading}`);
+      extras.forEach((extra) => out.push(extra));
+      continue;
+    }
 
     if (t.startsWith("|") && (t.includes("|---") || t.includes("| ---"))) {
       splitInlineTable(t).forEach(r => out.push(r));
@@ -229,7 +291,7 @@ function preprocessContent(raw: string): string {
         out.push(`> ${heading.replace(/^HOW\s+TO\s+OPEN>\s*"?/i, "").replace(/^say\s*:?>\s*"?/i, "").replace(/^"|"$/g, "").trim()}`);
         continue;
       }
-      out.push(line);
+      out.push(t);
       continue;
     }
 
@@ -245,7 +307,7 @@ function preprocessContent(raw: string): string {
         headText.slice(bulletSplit + 3).split(/ - (?=[A-Z*\d"(])/).map(b => b.trim()).filter(Boolean).forEach(b => out.push(`- ${b}`));
         continue;
       }
-      out.push(line);
+      out.push(t);
       continue;
     }
 
@@ -272,7 +334,7 @@ function preprocessContent(raw: string): string {
       continue;
     }
 
-    out.push(line);
+    out.push(t);
   }
 
   return out.join("\n");
@@ -377,8 +439,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       const src = imageMatch[2]?.trim();
       if (src) {
         els.push(
-          <figure key={`img-${i}`} className="my-6 overflow-hidden rounded-2xl border border-border bg-muted/20">
+          <figure key={`img-${i}`} className="my-7 overflow-hidden rounded-lg border border-border bg-muted/20">
             <img src={src} alt={alt} loading="lazy" className="w-full object-cover" />
+            {alt && <figcaption className="border-t border-border px-4 py-2 text-sm leading-relaxed text-muted-foreground">{alt}</figcaption>}
           </figure>
         );
       }
@@ -483,7 +546,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (boldLabelMatch) {
       flushList();
       els.push(<h3 key={`bl-${i}`} className="mt-6 mb-2 font-semibold text-base text-foreground">{boldLabelMatch[1].replace(/:$/, "").trim()}</h3>);
-      underSubheading = true;
+      underSubheading = false;
       return;
     }
 
@@ -491,7 +554,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (isSubLabel) {
       flushList();
       els.push(<h3 key={`sl-${i}`} className="mt-6 mb-2 font-semibold text-lg text-foreground"><Inline text={t.slice(0, -1)} /></h3>);
-      underSubheading = true;
+      underSubheading = false;
       return;
     }
 
@@ -506,7 +569,8 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         );
         return;
       }
-      pushBullet(t, `auto-li-${i}`);
+      underSubheading = false;
+      els.push(<p key={`p-sub-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
       return;
     }
 

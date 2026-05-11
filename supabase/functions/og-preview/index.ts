@@ -13,6 +13,15 @@ function slugify(value: string): string {
   return (value || "").toLowerCase().trim().replace(/&/g, " and ").replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 }
 
+function cleanPublicSlug(rawSlug: string | null | undefined, fallbackTitle: string, fallback = "study"): string {
+  const base = String(rawSlug || slugify(fallbackTitle) || fallback).trim().toLowerCase();
+  return base
+    .replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i, "")
+    .replace(/-[0-9a-f]{6}$/i, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "") || fallback;
+}
+
 function stripRichText(input: string, maxLength = 160): string {
   return (input || "")
     .replace(/<[^>]*>/g, " ")
@@ -20,6 +29,7 @@ function stripRichText(input: string, maxLength = 160): string {
     .replace(/\[[^\]]+\]\([^)]*\)/g, " ")
     .replace(/^#+\s+/gm, "")
     .replace(/[*_`>|#]/g, " ")
+    .replace(/Mount Kenya University|\bMKU\b/gi, "Kenyan medical schools")
     .replace(/data:image\/[^\s)]+/g, "")
     .replace(/https?:\/\/\S+/g, "")
     .replace(/\s+/g, " ")
@@ -151,7 +161,7 @@ serve(async (req) => {
 
     const siteUrl = await resolveSiteUrl(supabase);
     const userAgent = (req.headers.get("user-agent") || "").toLowerCase();
-    const isCrawler = /(bot|crawl|spider|facebookexternalhit|whatsapp|twitterbot|slackbot|telegrambot|discordbot|linkedinbot)/i.test(userAgent);
+    const isCrawler = /(bot|crawl|spider|facebookexternalhit|whatsapp|twitterbot|slackbot|telegrambot|discordbot|linkedinbot|gptbot|chatgpt-user|oai-searchbot|claude|anthropic|perplexity|google-extended|bytespider|amazonbot|youbot|cohere|mistral)/i.test(userAgent);
 
     let title = "", description = "", image = "", canonicalPath = "", bodyText = "", publishedAt = "", type = "article";
 
@@ -224,10 +234,12 @@ serve(async (req) => {
       const firstQ = Array.isArray(mcq.questions) && mcq.questions[0]
         ? stripRichText(mcq.questions[0].question || mcq.questions[0].text || "", 90)
         : "";
-      title = `${mcq.title} – ${qCount} ${cat} MCQs with Answers | Kenya MBChB, UoN, MKU`.slice(0, 95);
+      const mcqItems = Array.isArray(mcq.questions) ? mcq.questions.filter((q: any) => Array.isArray(q?.options) && q.options.length >= 2) : [];
+      const writtenItems = Array.isArray(mcq.questions) ? mcq.questions.filter((q: any) => !Array.isArray(q?.options) || q.options.length < 2) : [];
+      title = `${mcq.title} – ${mcqItems.length} MCQs${writtenItems.length ? ` + ${writtenItems.length} Written` : ""} | Kenya MBChB`.slice(0, 95);
       description = (firstQ
-        ? `${qCount} ${cat} MCQs on ${mcq.title} for medical students at UoN, MKU, KU, JKUAT and other Kenyan universities. Sample: ${firstQ}`
-        : `${qCount} ${cat} MCQs on ${mcq.title} with answers and explanations for MBChB students at University of Nairobi, Mount Kenya University, Kenyatta University and other Kenyan & African medical schools.`
+        ? `${qCount} ${cat} exam questions on ${mcq.title} for medical students. Includes MCQs, answers, explanations and written questions. Sample: ${firstQ}`
+        : `${qCount} ${cat} exam questions on ${mcq.title} with MCQs, answers, explanations, SAQs and essays for MBChB students.`
       ).slice(0, 160);
       publishedAt = mcq.created_at;
       type = "website";
@@ -236,18 +248,20 @@ serve(async (req) => {
         bodyText = `<p>This MCQ set contains ${qCount} questions on <strong>${esc(mcq.title)}</strong> in the ${esc(cat)} unit. Each question includes the correct answer and a detailed explanation for active recall and exam preparation.</p>` +
           mcq.questions.slice(0, 25).map((q: any, i: number) => {
             const qText = esc(stripRichText(q.question || q.text || "", 300));
-            const opts = Array.isArray(q.options)
+            const isMcq = Array.isArray(q.options) && q.options.length >= 2;
+            const opts = isMcq
               ? q.options.map((o: string, idx: number) => `<li>${String.fromCharCode(65 + idx)}. ${esc(stripRichText(o, 150))}</li>`).join("")
               : "";
             const correctIdx = typeof q.correct_answer === "number" ? q.correct_answer : (typeof q.answer === "number" ? q.answer : -1);
             const correctText = correctIdx >= 0 && Array.isArray(q.options) && q.options[correctIdx]
               ? `<p><em>Correct answer: ${String.fromCharCode(65 + correctIdx)} – ${esc(stripRichText(q.options[correctIdx], 150))}</em></p>`
               : "";
-            const expl = q.explanation ? `<p>${esc(stripRichText(q.explanation, 400))}</p>` : "";
-            return `<section><h3>Q${i + 1}: ${qText}</h3>${opts ? `<ol type="A">${opts}</ol>` : ""}${correctText}${expl}</section>`;
+            const writtenAnswer = !isMcq && (q.model_answer || q.answer || q.explanation) ? `<p><em>Model answer:</em> ${esc(stripRichText(q.model_answer || q.answer || q.explanation, 500))}</p>` : "";
+            const expl = isMcq && q.explanation ? `<p>${esc(stripRichText(q.explanation, 400))}</p>` : "";
+            return `<section><h3>Q${i + 1}: ${qText}</h3>${opts ? `<ol type="A">${opts}</ol>` : ""}${correctText}${expl}${writtenAnswer}</section>`;
           }).join("\n");
       }
-      canonicalPath = `/mcqs/${mcq.slug || mcq.id}`;
+      canonicalPath = `/mcqs/${cleanPublicSlug(mcq.slug, mcq.title, "quiz")}`;
     }
     // ── Single Flashcard ──
     else if (flashcardParam) {
@@ -267,7 +281,7 @@ serve(async (req) => {
       const firstCard = Array.isArray(fc.cards) && fc.cards[0]
         ? stripRichText(fc.cards[0].question || "", 80)
         : "";
-      title = `${fc.title} – ${cardCount} ${fcCat} Flashcards | Kenya MBChB, UoN, MKU`.slice(0, 95);
+      title = `${fc.title} – ${cardCount} ${fcCat} Flashcards | Kenya MBChB`.slice(0, 95);
       description = (firstCard
         ? `${cardCount} ${fcCat} flashcards on ${fc.title} for medical students at UoN, MKU, KU, JKUAT and other Kenyan universities. Sample: ${firstCard}`
         : `${cardCount} ${fcCat} active-recall flashcards on ${fc.title} for MBChB students at Kenyan and East African medical schools.`
@@ -282,7 +296,7 @@ serve(async (req) => {
             return `<section><h3>Card ${i + 1}: ${qText}</h3>${aText ? `<p>${aText}</p>` : ""}</section>`;
           }).join("\n");
       }
-      canonicalPath = `/flashcards/${fc.slug || fc.id}`;
+      canonicalPath = `/flashcards/${cleanPublicSlug(fc.slug, fc.title, "flashcards")}`;
     }
     // ── Single Essay (redirect to blog) ──
     else if (essayParam) {
@@ -310,20 +324,20 @@ serve(async (req) => {
 
       if (!article) return notFoundResponse(siteUrl, `/blog/${slugParam}`, isCrawler);
 
-      const articleSlug = article.slug || slugify(article.title) || "article";
+      const articleSlug = cleanPublicSlug(article.slug, article.title, "article");
       const cat = (article.category || "").replace(/^Year\s*\d+:\s*/i, "").trim() || "Medical";
       const cleanSnippet = stripRichText(article.content || "", 155);
       title = (article.meta_title?.trim()
-        || `${article.title} – ${cat} Notes & MCQs | Kenya MBChB, UoN, MKU, KU`).slice(0, 95);
+        || `${article.title} – ${cat} Notes & MCQs | Kenya MBChB`).slice(0, 95);
       description = (article.meta_description?.trim()
         || (cleanSnippet
           ? cleanSnippet
-          : `${article.title} study notes and MCQs for medical students at University of Nairobi (UoN), Mount Kenya University (MKU), Kenyatta University, JKUAT, Moi and other Kenyan & African medical schools. ${cat} unit revision.`)
+          : `${article.title} study notes and MCQs for medical students in Kenyan and African medical schools. ${cat} unit revision.`)
       ).slice(0, 160);
       image = article.og_image_url || extractFirstImage(article.content || "") || "";
       bodyText = buildBodyText(stripRichText(article.content || "", 8000));
       publishedAt = article.created_at;
-      canonicalPath = `/blog/${article.id}-${articleSlug}`;
+      canonicalPath = `/blog/${articleSlug}`;
     }
     // ── Root fallback ──
     else {

@@ -19,6 +19,15 @@ function slugify(value: string): string {
     .replace(/^-|-$/g, "");
 }
 
+function cleanPublicSlug(rawSlug: string | null | undefined, fallbackTitle: string, fallback = "study"): string {
+  const base = String(rawSlug || slugify(fallbackTitle) || fallback).trim().toLowerCase();
+  return base
+    .replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i, "")
+    .replace(/-[0-9a-f]{6}$/i, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "") || fallback;
+}
+
 function normalizeBaseUrl(url: string | null | undefined): string {
   const trimmed = String(url || "").trim();
   if (!trimmed) return DEFAULT_BASE_URL;
@@ -87,7 +96,7 @@ serve(async (req) => {
 
     // Articles
     for (const a of (articles || []) as any[]) {
-      const articleSlug = a.slug || slugify(a.title) || "article";
+      const articleSlug = cleanPublicSlug(a.slug, a.title, "article");
       const lastmod = (a.updated_at || a.created_at) ? new Date(a.updated_at || a.created_at).toISOString().split("T")[0] : "";
       const imageUrl = a.og_image_url || extractFirstImage(a.content);
       xml += `  <url>\n    <loc>${baseUrl}/blog/${articleSlug}</loc>\n`;
@@ -101,7 +110,7 @@ serve(async (req) => {
 
     // Stories
     for (const s of (stories || []) as any[]) {
-      const storySlug = s.slug || slugify(s.title) || "story";
+      const storySlug = cleanPublicSlug(s.slug, s.title, "story");
       const lastmod = s.created_at ? new Date(s.created_at).toISOString().split("T")[0] : "";
       const imageUrl = s.cover_image_url || extractFirstImage(s.content);
       xml += `  <url>\n    <loc>${baseUrl}/stories/${s.id}-${storySlug}</loc>\n`;
@@ -115,7 +124,7 @@ serve(async (req) => {
 
     // MCQs
     for (const m of (mcqs || []) as any[]) {
-      const mcqSlug = m.slug || slugify(m.title) || m.id;
+      const mcqSlug = cleanPublicSlug(m.slug, m.title, "quiz");
       const lastmod = (m.updated_at || m.created_at) ? new Date(m.updated_at || m.created_at).toISOString().split("T")[0] : "";
       xml += `  <url>\n    <loc>${baseUrl}/mcqs/${mcqSlug}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
@@ -128,7 +137,7 @@ serve(async (req) => {
 
     // Flashcards
     for (const f of (flashcards || []) as any[]) {
-      const flashcardSlug = f.slug || slugify(f.title) || f.id;
+      const flashcardSlug = cleanPublicSlug(f.slug, f.title, "flashcards");
       const lastmod = (f.updated_at || f.created_at) ? new Date(f.updated_at || f.created_at).toISOString().split("T")[0] : "";
       xml += `  <url>\n    <loc>${baseUrl}/flashcards/${flashcardSlug}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;

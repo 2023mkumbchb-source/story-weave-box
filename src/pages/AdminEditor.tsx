@@ -69,14 +69,16 @@ function extractTitleFromNotes(notes: string): string {
   return "";
 }
 
-/** Parse manually-formatted MCQs (markdown). Supports A–F options and ✅ Answer markers. */
-function parseMcqsFromText(raw: string): { question: string; options: string[]; correct_answer: number; explanation: string }[] {
+/** Parse manually-formatted MCQs from full papers. Supports A–F options and answer markers. */
+function parseMcqsFromText(raw: string): { type: "mcq"; question: string; options: string[]; correct_answer: number; explanation: string }[] {
   if (!raw) return [];
-  const blocks = raw.split(/\n(?=\s*(?:#{1,4}\s*)?(?:MCQ|Question|Q)\s*\d+)/i);
+  const normalized = raw.replace(/\r/g, "").replace(/([A-F])[.)]\s+/g, "\n$1. ").replace(/\n{3,}/g, "\n\n");
+  const blocks = normalized.split(/\n(?=\s*(?:#{1,4}\s*)?(?:MCQ|Multiple\s*Choice|Question|Q|\d+[.)])\s*\d*)/i);
   const out: any[] = [];
   for (const block of blocks) {
     const text = block.trim();
     if (!text) continue;
+    if (/\b(?:SAQ|Short\s*Answer|Essay|LAQ|Long\s*Answer)\b/i.test(text.slice(0, 120))) continue;
     const optRe = /^\s*[-*]?\s*([A-F])[.):\-]\s+(.+)$/gm;
     const optMatches: { letter: string; text: string; index: number }[] = [];
     let m;
@@ -107,6 +109,7 @@ function parseMcqsFromText(raw: string): { question: string; options: string[]; 
       explanation = explanation.replace(/\*\*/g, "").trim();
     }
     out.push({
+      type: "mcq",
       question: qPart,
       options: optMatches.map(o => o.text.replace(/\*\*/g, "").trim()),
       correct_answer: correctIdx,
@@ -118,20 +121,62 @@ function parseMcqsFromText(raw: string): { question: string; options: string[]; 
 
 function parseWrittenQuestionsFromText(raw: string): any[] {
   if (!raw) return [];
-  const blocks = raw.split(/\n(?=\s*(?:#{1,4}\s*)?(?:SAQ|Short\s*Answer|Essay|LAQ|Long\s*Answer)\s*\d*)/i);
-  return blocks.map((block) => {
-    const text = block.trim();
-    if (!/^(?:#{1,4}\s*)?(?:SAQ|Short\s*Answer|Essay|LAQ|Long\s*Answer)\s*\d*/i.test(text)) return null;
-    const isEssay = /^(?:#{1,4}\s*)?(?:Essay|LAQ|Long\s*Answer)/i.test(text);
-    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-    const first = (lines.shift() || "").replace(/^#{1,4}\s*/, "").replace(/^(SAQ|Short\s*Answer|Essay|LAQ|Long\s*Answer)\s*\d*\s*[:.)-]?\s*/i, "").trim();
-    const joined = [first, ...lines].join("\n").trim();
-    const answerMatch = joined.match(/(?:\*\*)?(?:Model\s*)?Answer(?:\*\*)?\s*:?\s*([\s\S]+)/i);
-    const question = (answerMatch ? joined.slice(0, answerMatch.index) : joined).replace(/\*\*/g, "").trim();
-    const answer = answerMatch ? answerMatch[1].replace(/^[-—:*\s]+/, "").replace(/\*\*/g, "").trim() : "";
-    if (!question) return null;
-    return { type: isEssay ? "essay" : "saq", question, answer, marks: isEssay ? 20 : 5 };
-  }).filter(Boolean);
+  const lines = raw.replace(/\r/g, "").split("\n");
+  const questions: any[] = [];
+  let mode: "saq" | "essay" | null = null;
+  let current: { type: "saq" | "essay"; lines: string[] } | null = null;
+
+  const startNew = (type: "saq" | "essay", firstLine: string) => {
+    flush();
+    current = { type, lines: [firstLine].filter(Boolean) };
+  };
+  const flush = () => {
+    if (!current) return;
+    const item = current;
+    const joined = item.lines.join("\n").replace(/\*\*/g, "").trim();
+    current = null;
+    if (!joined || /^[\-–—]+$/.test(joined)) return;
+    const marksMatch = joined.match(/\(?\b(\d{1,2})\s*marks?\b\)?/i);
+    const answerMatch = joined.match(/(?:Model\s*)?(?:Answer|Marking\s*Guide|Suggested\s*Answer)\s*:?\s*([\s\S]+)/i);
+    const question = (answerMatch ? joined.slice(0, answerMatch.index) : joined)
+      .replace(/^\s*(?:Question\s*)?\d+\s*[:.)-]\s*/i, "")
+      .replace(/\(?\b\d{1,2}\s*marks?\b\)?/gi, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    const answer = answerMatch ? answerMatch[1].replace(/^[-—:*\s]+/, "").trim() : "";
+    if (question.length < 8) return;
+    const inferredEssay = item.type === "essay" || /\b(?:essay|discuss|describe in detail|long answer)\b/i.test(question) || Number(marksMatch?.[1] || 0) >= 12;
+    questions.push({
+      type: inferredEssay ? "essay" : "saq",
+      question,
+      answer,
+      marks: marksMatch ? Number(marksMatch[1]) : inferredEssay ? 20 : 5,
+    });
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || /^[-*_]{3,}$/.test(line)) continue;
+    const heading = line.replace(/^#{1,6}\s*/, "");
+    if (/\b(?:MCQ|Multiple\s*Choice)\b/i.test(heading)) { flush(); mode = null; continue; }
+    if (/\b(?:SAQ|Short\s*Answer)\b/i.test(heading) && !/^\s*(?:SAQ|Short\s*Answer)\s*\d+/i.test(heading)) { flush(); mode = "saq"; continue; }
+    if (/\b(?:Essay|LAQ|Long\s*Answer)\b/i.test(heading) && !/^\s*(?:Essay|LAQ|Long\s*Answer)\s*\d+/i.test(heading)) { flush(); mode = "essay"; continue; }
+
+    const explicit = heading.match(/^(SAQ|Short\s*Answer|Essay|LAQ|Long\s*Answer)\s*\d*\s*[:.)-]?\s*(.*)$/i);
+    if (explicit) {
+      const type = /Essay|LAQ|Long/i.test(explicit[1]) ? "essay" : "saq";
+      mode = type;
+      startNew(type, explicit[2] || heading);
+      continue;
+    }
+
+    const numberedWritten = mode && line.match(/^(?:Question\s*)?\d+\s*[:.)-]\s+(.+)$/i);
+    if (numberedWritten) { startNew(mode, numberedWritten[1]); continue; }
+
+    if (current) current.lines.push(line);
+  }
+  flush();
+  return questions;
 }
 
 function htmlToMd(html: string): string {
@@ -604,7 +649,7 @@ export default function AdminEditor() {
       if (editorMode === "mcqs") {
         const parsed = parseMcqsFromText(geminiNotes);
         const written = parseWrittenQuestionsFromText(geminiNotes);
-        if (parsed.length >= 2 || (parsed.length >= 1 && written.length >= 1)) {
+        if (parsed.length + written.length >= 1) {
           const cat = editCategory || `Year ${selectedYear}: General`;
           const title = editTitle || extractTitleFromNotes(geminiNotes) || `MCQ: ${cat.split(":").pop()?.trim() || "General"}`;
           await saveMcqSet({
@@ -629,13 +674,14 @@ export default function AdminEditor() {
       if (editorMode === "mcqs" && Array.isArray(data)) {
         const cat = editCategory || `Year ${selectedYear}: General`;
         const title = editTitle || extractTitleFromNotes(geminiNotes) || `MCQ: ${cat.split(":").pop()?.trim() || "General"}`;
+        const written = parseWrittenQuestionsFromText(geminiNotes);
         await saveMcqSet({
           title,
-          questions: data, published: true, category: cat,
+          questions: [...data.map((q: any) => ({ type: "mcq", ...q })), ...written] as any, published: true, category: cat,
           original_notes: geminiNotes, access_password: "",
           created_at: new Date().toISOString(),
         } as any);
-        toast({ title: `Created ${data.length} MCQs!` });
+        toast({ title: `Created ${data.length} MCQs${written.length ? ` + ${written.length} written questions` : ""}!` });
         setIsAddMode(false);
         await loadContent();
       } else {
