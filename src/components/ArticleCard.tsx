@@ -6,16 +6,21 @@ import anatomyThumb from "@/assets/thumb-anatomy.jpg";
 import physiologyThumb from "@/assets/thumb-physiology.jpg";
 import pharmacologyThumb from "@/assets/thumb-pharmacology.jpg";
 import pathologyThumb from "@/assets/thumb-pathology.jpg";
+import { useTopicThumbnail } from "@/lib/topicThumbnail";
 
-function getArticleThumbnail(article: Article): string {
-  const contentImage = (article.content || "").match(/!\[[^\]]*\]\((.*?)\)/)?.[1]?.trim();
-  if (contentImage) return contentImage;
-
-  const text = `${article.category} ${article.title}`.toLowerCase();
+function getCategoryFallback(text: string): string {
   if (text.includes("anatom") || text.includes("histology") || text.includes("embryology")) return anatomyThumb;
   if (text.includes("physiology") || text.includes("cardio") || text.includes("respirat")) return physiologyThumb;
   if (text.includes("pharmac") || text.includes("drug")) return pharmacologyThumb;
   return pathologyThumb;
+}
+
+function getArticleStaticThumb(article: Article): string {
+  const og = (article.og_image_url || "").trim();
+  if (og) return og;
+  const contentImage = (article.content || "").match(/!\[[^\]]*\]\((.*?)\)/)?.[1]?.trim();
+  if (contentImage) return contentImage;
+  return getCategoryFallback(`${article.category} ${article.title}`.toLowerCase());
 }
 
 export default function ArticleCard({ article }: { article: Article }) {
@@ -29,7 +34,10 @@ export default function ArticleCard({ article }: { article: Article }) {
 
   const unit = getCategoryDisplayName(article.category);
   const year = getYearFromCategory(article.category);
-  const cover = getArticleThumbnail(article);
+  const staticCover = getArticleStaticThumb(article);
+  const hasOwnImage = !!(article.og_image_url || (article.content || "").match(/!\[/));
+  const wikiThumb = useTopicThumbnail(article.title, article.category, !hasOwnImage);
+  const cover = hasOwnImage ? staticCover : (wikiThumb || staticCover);
   const displayDate = new Date(article.updated_at || article.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const location = useLocation();
   const fromPath = `${location.pathname}${location.search}`;
