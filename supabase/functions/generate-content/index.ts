@@ -617,7 +617,10 @@ STRICT FORMAT:
     } else if (type === "mcqs") {
       systemPrompt = `You are a senior medical exam writer. Create EXACTLY ${cardCount} clinically-oriented MCQs.
 
-CRITICAL RULE: The correct answers MUST be well-distributed across A, B, C, D. No more than 2 consecutive questions should have the same correct answer. Aim for roughly equal distribution.
+CRITICAL RULES:
+1. The correct answers MUST be evenly distributed across A, B, C, D. NO TWO consecutive questions may share the same correct letter. Vary the correct letter for every single question.
+2. ALL FOUR options for each question must have SIMILAR LENGTH (within 25% of each other in word count). Never make the correct option obviously longer or shorter than the distractors. Distractors must be plausible, of comparable specificity, and the same grammatical form as the correct answer.
+3. Each option must read as a complete answer to the stem - not "All of the above" or "None of the above".
 
 Return ONLY valid JSON array with schema:
 {"question":"...","options":["A","B","C","D"],"correct_answer":0,"explanation":"..."}`;
