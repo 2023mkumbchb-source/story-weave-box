@@ -6,6 +6,7 @@ import { getPublishedMcqSets, getCategoryDisplayName, getYearFromCategory, build
 import { getVisitedMcqIds } from "@/lib/progress-store";
 import { updateMetaTags } from "@/lib/seo";
 import CategoryTabs from "@/components/CategoryTabs";
+import { useTopicThumbnail } from "@/lib/topicThumbnail";
 
 const INITIAL_VISIBLE = 12;
 const LOAD_MORE_STEP = 12;
@@ -240,15 +241,14 @@ export default function Mcqs() {
                     <motion.div key={s.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.05 }}>
                       <Link
                         to={buildMcqPath(s)}
-                        className="group relative flex h-full flex-col rounded-xl border border-border bg-card p-5 sm:p-6 transition-shadow hover:[box-shadow:var(--shadow-card-hover)]"
+                        className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:[box-shadow:var(--shadow-card-hover)]"
                         style={{ boxShadow: "var(--shadow-card)" }}
                       >
+                        <McqCover set={s} />
                         {visitedIds.has(s.id) && (
                           <div className="absolute right-3 top-3"><ContinueBadge /></div>
                         )}
-                        <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-accent/20 text-accent sm:mb-4 sm:h-10 sm:w-10">
-                          <ListChecks className="h-4 w-4 sm:h-5 sm:w-5" />
-                        </div>
+                        <div className="flex flex-1 flex-col p-5 sm:p-6">
                         {s.category && s.category !== "Uncategorized" && (
                           <span className="mb-2 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                             {getCategoryDisplayName(s.category)}
@@ -267,6 +267,7 @@ export default function Mcqs() {
                         <div className="mt-auto flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1"><Layers className="h-3 w-3" /> {s.questions.length} Qs</span>
                           <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(s.created_at).toLocaleDateString()}</span>
+                        </div>
                         </div>
                       </Link>
                     </motion.div>
@@ -296,6 +297,25 @@ function ContinueBadge() {
       <RotateCcw className="h-2.5 w-2.5" />
       Continue
     </span>
+  );
+}
+
+function McqCover({ set }: { set: McqSet }) {
+  const og = (set.og_image_url || "").trim();
+  const wiki = useTopicThumbnail(set.title, set.category, !og);
+  const src = og || wiki;
+  if (!src) {
+    return (
+      <div className="flex aspect-[16/9] w-full items-center justify-center bg-gradient-to-br from-primary/15 via-accent/15 to-primary/5 text-primary">
+        <ListChecks className="h-8 w-8 opacity-60" />
+      </div>
+    );
+  }
+  return (
+    <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted">
+      <img src={src} alt={`${set.title} thumbnail`} loading="lazy"
+        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+    </div>
   );
 }
 
