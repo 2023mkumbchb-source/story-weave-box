@@ -282,6 +282,8 @@ export type Database = {
           deleted_at: string | null
           id: string
           is_raw: boolean | null
+          meta_description: string | null
+          meta_title: string | null
           og_image_url: string | null
           original_notes: string
           published: boolean
@@ -297,6 +299,8 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_raw?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
           og_image_url?: string | null
           original_notes?: string
           published?: boolean
@@ -312,6 +316,8 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_raw?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
           og_image_url?: string | null
           original_notes?: string
           published?: boolean
