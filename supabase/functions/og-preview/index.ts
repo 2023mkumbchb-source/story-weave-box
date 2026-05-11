@@ -161,7 +161,7 @@ serve(async (req) => {
 
     const siteUrl = await resolveSiteUrl(supabase);
     const userAgent = (req.headers.get("user-agent") || "").toLowerCase();
-    const isCrawler = /(bot|crawl|spider|facebookexternalhit|whatsapp|twitterbot|slackbot|telegrambot|discordbot|linkedinbot)/i.test(userAgent);
+    const isCrawler = /(bot|crawl|spider|facebookexternalhit|whatsapp|twitterbot|slackbot|telegrambot|discordbot|linkedinbot|gptbot|chatgpt-user|oai-searchbot|claude|anthropic|perplexity|google-extended|bytespider|amazonbot|youbot|cohere|mistral)/i.test(userAgent);
 
     let title = "", description = "", image = "", canonicalPath = "", bodyText = "", publishedAt = "", type = "article";
 
