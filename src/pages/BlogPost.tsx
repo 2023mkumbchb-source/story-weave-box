@@ -9,6 +9,7 @@ import ArticleComments from "@/components/ArticleComments";
 import { motion, AnimatePresence } from "framer-motion";
 import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, type Article } from "@/lib/store";
 import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags, autoIndexUrls } from "@/lib/seo";
+import { useTopicThumbnail } from "@/lib/topicThumbnail";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { markArticleVisited } from "@/lib/progress-store";
@@ -185,10 +186,8 @@ function InArticleRelated({ articles }: { articles: any[] }) {
 }
 
 /* ─── Classic magazine-style article hero ─── */
-function ClassicHero({
-  title, image, date, unit, shareUrl, description,
-}: { title: string; image: string; date: string; unit: string; shareUrl: string; description: string }) {
-  return ClassicHeroInner({ title, image, date, unit, shareUrl, description });
+function ClassicHero(props: { title: string; image: string; date: string; unit: string; shareUrl: string; description: string; category?: string }) {
+  return <ClassicHeroInner {...props} />;
 }
 
 /* ─── Closest-article fuzzy match for graceful redirects ─── */
@@ -222,42 +221,65 @@ async function findClosestArticle(slugOrParam: string): Promise<{ id: string; ti
   }
 }
 
-/* ─── Classic hero implementation (image, then title block) ─── */
+/* ─── Classic hero: cinematic image with title + description overlaid ─── */
 function ClassicHeroInner({
-  title, image, date, unit, shareUrl, description,
-}: { title: string; image: string; date: string; unit: string; shareUrl: string; description: string }) {
+  title, image, date, unit, shareUrl, description, category,
+}: { title: string; image: string; date: string; unit: string; shareUrl: string; description: string; category?: string }) {
+  // Topic-aware fallback so every article has a meaningful cover even without og_image_url
+  const topicThumb = useTopicThumbnail(title, category, !image);
+  const heroImage = image || topicThumb || "";
+
   return (
     <header className="mb-10 -mx-5 sm:mx-0">
-      {image && (
-        <div className="relative overflow-hidden sm:rounded-2xl bg-muted shadow-sm animate-hero-fade">
-          <div className="relative aspect-[16/10] sm:aspect-[21/9] w-full">
+      <div className="relative overflow-hidden sm:rounded-2xl bg-muted shadow-sm">
+        {heroImage ? (
+          <div className="group relative aspect-[16/10] sm:aspect-[21/9] w-full">
+            {/* Slow zoom — gives the cinematic "video" feel */}
             <img
-              src={image}
+              src={heroImage}
               alt={title}
-              className="absolute inset-0 h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full object-cover animate-hero-fade animate-hero-zoom will-change-transform"
               loading="eager"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+            {/* Strong bottom gradient so overlaid text stays readable */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/15" />
+            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8 lg:p-10 animate-hero-rise">
+              {unit && (
+                <span className="inline-block mb-3 rounded-full bg-primary/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary-foreground backdrop-blur">
+                  {unit}
+                </span>
+              )}
+              <h1 className="font-serif text-2xl font-bold leading-tight text-white drop-shadow sm:text-4xl lg:text-5xl">
+                {title}
+              </h1>
+              {description && (
+                <p className="mt-3 max-w-prose font-serif text-sm sm:text-base text-white/90 drop-shadow leading-relaxed line-clamp-3">
+                  {description}
+                </p>
+              )}
+              <div className="mt-3 flex items-center gap-2 text-xs sm:text-sm text-white/85">
+                <span>{date}</span>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
-      <div className={`px-5 sm:px-0 ${image ? "mt-6 sm:mt-8" : "py-10"} animate-hero-rise`}>
-        {unit && (
-          <span className="inline-block mb-4 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
-            {unit}
-          </span>
+        ) : (
+          <div className="relative px-5 py-10 sm:px-10 sm:py-14 bg-gradient-to-br from-primary/15 via-background to-primary/5 animate-hero-fade">
+            {unit && (
+              <span className="inline-block mb-3 rounded-full bg-primary/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
+                {unit}
+              </span>
+            )}
+            <h1 className="font-serif text-3xl font-bold leading-tight text-foreground sm:text-5xl animate-hero-rise">
+              {title}
+            </h1>
+            {description && (
+              <p className="mt-4 max-w-prose font-serif text-base text-muted-foreground leading-relaxed">
+                {description}
+              </p>
+            )}
+            <div className="mt-3 text-sm text-muted-foreground">{date}</div>
+          </div>
         )}
-        <h1 className="font-serif text-3xl font-bold leading-tight text-foreground sm:text-4xl lg:text-5xl">
-          {title}
-        </h1>
-        {description && (
-          <p className="mt-4 font-serif text-base sm:text-lg text-muted-foreground leading-relaxed max-w-prose">
-            {description}
-          </p>
-        )}
-        <div className="mt-4 flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
-          <span>{date}</span>
-        </div>
       </div>
       <ShareButtons url={shareUrl} title={title} description={description} variant="full" className="mt-5 px-5 sm:px-0" />
     </header>
@@ -1210,6 +1232,7 @@ export default function BlogPost() {
               unit={unitName && unitName !== "Uncategorized" ? unitName : ""}
               shareUrl={`${SITE_URL}${buildBlogPath(article)}`}
               description={article.meta_description || ""}
+              category={article.category}
             />
 
             <div className="prose-custom">
