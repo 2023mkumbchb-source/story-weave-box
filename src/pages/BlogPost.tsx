@@ -151,7 +151,11 @@ function preprocessContent(raw: string): string {
   let inKeyPoints = false;
 
   for (const line of raw.split("\n")) {
-    const t = line.trim();
+    const t = line
+      .trim()
+      .replace(/^HOW\s+TO\s+OPEN>\s*"?/i, "")
+      .replace(/^say\s*:?>\s*"?/i, "")
+      .replace(/([:.;!?])(?=[A-Z])/g, "$1 ");
     if (!t) { out.push(""); continue; }
     if (/^[-*_]{3,}$/.test(t)) { out.push(""); continue; }
     if (/^\d+$/.test(t)) continue;
@@ -175,6 +179,10 @@ function preprocessContent(raw: string): string {
       if (/^key points$/i.test(heading)) { inKeyPoints = true; continue; }
       if (inKeyPoints) inKeyPoints = false;
       if (META_HEADING.test(heading)) continue;
+      if (/^(HOW\s+TO\s+OPEN|say\s*:?>)/i.test(heading) || /^".*"$/.test(heading)) {
+        out.push(`> ${heading.replace(/^HOW\s+TO\s+OPEN>\s*"?/i, "").replace(/^say\s*:?>\s*"?/i, "").replace(/^"|"$/g, "").trim()}`);
+        continue;
+      }
       out.push(line);
       continue;
     }
