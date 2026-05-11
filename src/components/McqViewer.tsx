@@ -299,6 +299,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
   // ── Answer handling ────────────────────────────────────────────────────────
   const handleSelect = (optionIndex: number) => {
     if (revealed) return;
+    if (!isMcqQuestion(q)) return;
     if (hideAnswers) {
       // In hideAnswers mode, just mark the selected option but don't reveal correct answer
       const newWrong = new Set(wrongAttempts).add(optionIndex);
@@ -367,6 +368,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
   };
 
   const getOptionStyle = (i: number) => {
+    if (!isMcqQuestion(q)) return "border-border bg-card";
     if (!hideAnswers && revealed && i === q.correct_answer)
       return "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400";
     if (wrongAttempts.has(i))
