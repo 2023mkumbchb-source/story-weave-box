@@ -603,15 +603,16 @@ export default function AdminEditor() {
       // Try client-side parsing first for MCQs (fast, free, handles 5+ options)
       if (editorMode === "mcqs") {
         const parsed = parseMcqsFromText(geminiNotes);
-        if (parsed.length >= 2) {
+        const written = parseWrittenQuestionsFromText(geminiNotes);
+        if (parsed.length >= 2 || (parsed.length >= 1 && written.length >= 1)) {
           const cat = editCategory || `Year ${selectedYear}: General`;
           const title = editTitle || extractTitleFromNotes(geminiNotes) || `MCQ: ${cat.split(":").pop()?.trim() || "General"}`;
           await saveMcqSet({
-            title, questions: parsed, published: true, category: cat,
+            title, questions: [...parsed, ...written] as any, published: true, category: cat,
             original_notes: geminiNotes, access_password: "",
             created_at: new Date().toISOString(),
           } as any);
-          toast({ title: `Parsed ${parsed.length} MCQs directly (no AI needed)!` });
+          toast({ title: `Parsed ${parsed.length} MCQs${written.length ? ` + ${written.length} written questions` : ""} directly!` });
           setIsAddMode(false);
           await loadContent();
           setGeminiLoading(false);
