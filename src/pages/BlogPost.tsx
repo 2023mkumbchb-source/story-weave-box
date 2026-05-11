@@ -232,33 +232,42 @@ function ClassicHeroInner({
 
   return (
     <header className="mb-10 -mx-5 sm:mx-0">
-      <div className="relative overflow-hidden sm:rounded-2xl bg-muted shadow-sm">
+      <div className="relative overflow-hidden sm:rounded-2xl bg-neutral-900 shadow-lg ring-1 ring-black/5">
         {heroImage ? (
-          <div className="group relative aspect-[16/10] sm:aspect-[21/9] w-full">
-            {/* Slow zoom — gives the cinematic "video" feel */}
+          <div className="group relative aspect-[4/5] sm:aspect-[16/10] lg:aspect-[21/9] w-full">
+            {/* Blurred backdrop so the real image is never letterboxed awkwardly */}
+            <div
+              aria-hidden
+              className="absolute inset-0 scale-110 bg-cover bg-center blur-2xl opacity-70"
+              style={{ backgroundImage: `url(${heroImage})` }}
+            />
+            {/* Foreground image with continuous Ken-Burns pan + zoom */}
             <img
               src={heroImage}
               alt={title}
-              className="absolute inset-0 h-full w-full object-cover animate-hero-fade animate-hero-zoom will-change-transform"
+              className="absolute inset-0 h-full w-full object-cover object-center animate-hero-fade animate-hero-kenburns will-change-transform"
               loading="eager"
             />
-            {/* Strong bottom gradient so overlaid text stays readable */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/15" />
-            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8 lg:p-10 animate-hero-rise">
+            {/* Layered gradients for depth + text legibility */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/10" />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-transparent to-transparent mix-blend-overlay" />
+            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8 lg:p-12 animate-hero-rise">
               {unit && (
-                <span className="inline-block mb-3 rounded-full bg-primary/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary-foreground backdrop-blur">
+                <span className="inline-flex items-center gap-1.5 mb-4 rounded-full bg-primary/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary-foreground backdrop-blur shadow-sm">
+                  <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
                   {unit}
                 </span>
               )}
-              <h1 className="font-serif text-2xl font-bold leading-tight text-white drop-shadow sm:text-4xl lg:text-5xl">
+              <h1 className="font-serif text-3xl font-bold leading-[1.1] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] sm:text-5xl lg:text-6xl">
                 {title}
               </h1>
               {description && (
-                <p className="mt-3 max-w-prose font-serif text-sm sm:text-base text-white/90 drop-shadow leading-relaxed line-clamp-3">
+                <p className="mt-4 max-w-prose font-serif text-sm sm:text-lg text-white/90 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)] leading-relaxed line-clamp-3">
                   {description}
                 </p>
               )}
-              <div className="mt-3 flex items-center gap-2 text-xs sm:text-sm text-white/85">
+              <div className="mt-4 flex items-center gap-2 text-xs sm:text-sm uppercase tracking-wider text-white/80">
+                <span className="h-px w-8 bg-white/60" />
                 <span>{date}</span>
               </div>
             </div>
