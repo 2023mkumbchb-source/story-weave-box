@@ -1068,13 +1068,13 @@ function ScrollMcqList(props: ScrollProps) {
       </div>
 
       {/* ── PAYWALL: translucent preview of locked questions ── */}
-      {freeLimit > 0 && !isPaid && order.length > freeLimit && (
+      {freeLimit > 0 && !isPaid && mcqOrder.length > freeLimit && (
         <div className="relative mt-8">
           {/* Blurred preview content */}
           <div className="pointer-events-none select-none space-y-5" style={{ filter: "blur(7px)", opacity: 0.55 }} aria-hidden="true">
-            {order.slice(freeLimit, freeLimit + 5).map((qIdx, i) => {
+            {mcqOrder.slice(freeLimit, freeLimit + 5).map((qIdx, i) => {
               const q = questions[qIdx];
-              if (!q) return null;
+              if (!isMcqQuestion(q)) return null;
               return (
                 <div key={i} className="rounded-2xl border border-border bg-card p-4 sm:p-5">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">Question {freeLimit + i + 1}</p>
@@ -1107,7 +1107,7 @@ function ScrollMcqList(props: ScrollProps) {
                   You've previewed <strong className="text-foreground">{freeLimit}</strong> questions.
                 </p>
                 <p className="mb-5 text-sm text-muted-foreground">
-                  Pay <strong className="text-foreground">KES {mcqPrice}</strong> via M-Pesa to unlock all <strong className="text-foreground">{order.length}</strong>.
+                  Pay <strong className="text-foreground">KES {mcqPrice}</strong> via M-Pesa to unlock all <strong className="text-foreground">{mcqOrder.length}</strong>.
                 </p>
 
                 {paymentStatus === "pending" ? (
@@ -1148,9 +1148,9 @@ function ScrollMcqList(props: ScrollProps) {
 
           {/* SEO: full questions in DOM for crawlers */}
           <div className="sr-only" aria-hidden="false">
-            {order.slice(freeLimit).map((qIdx, i) => {
+            {mcqOrder.slice(freeLimit).map((qIdx, i) => {
               const sq = questions[qIdx];
-              if (!sq) return null;
+              if (!isMcqQuestion(sq)) return null;
               return (
                 <div key={i}>
                   <p>Q{freeLimit + i + 1}: {sq.question}</p>
@@ -1161,6 +1161,31 @@ function ScrollMcqList(props: ScrollProps) {
             })}
           </div>
         </div>
+      )}
+      {writtenItems.length > 0 && (
+        <section className="mt-8 space-y-3 border-t border-border pt-6">
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-primary" />
+            <h3 className="font-serif text-xl font-bold text-foreground">Short Answer & Essay Questions</h3>
+          </div>
+          {writtenItems.map((item, i) => (
+            <div key={i} className="rounded-xl border border-border bg-card p-4">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                  {item.type === "essay" ? "Essay" : "Short Answer"} {i + 1}
+                </p>
+                {item.marks && <span className="text-xs text-muted-foreground">{item.marks} marks</span>}
+              </div>
+              <p className="text-base font-medium leading-relaxed text-foreground">{cleanQuestionText(item.question)}</p>
+              {(item.answer || item.model_answer || item.explanation) && !hideAnswers && (
+                <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-primary">Model answer</p>
+                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-foreground/90">{item.model_answer || item.answer || item.explanation}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </section>
       )}
     </div>
   );
