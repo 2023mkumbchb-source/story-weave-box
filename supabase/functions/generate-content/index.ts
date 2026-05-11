@@ -162,12 +162,12 @@ function parseAndNormalizeMcqs(raw: string, expectedCount: number) {
   // Redistribute answers to avoid consecutive same answers
   const result = unique.slice(0, expectedCount);
   for (let i = 1; i < result.length; i++) {
-    let consecutive = 1;
-    for (let j = i - 1; j >= 0 && result[j].correct_answer === result[i].correct_answer; j--) consecutive++;
-    if (consecutive >= 3) {
-      // Shuffle the correct answer by rotating options
+    if (result[i].correct_answer === result[i - 1].correct_answer) {
+      // Move correct answer to a different letter so no two adjacent share a letter
       const q = result[i];
-      const newCorrect = (q.correct_answer + 1 + Math.floor(Math.random() * 3)) % 4;
+      const optCount = Array.isArray(q.options) ? q.options.length : 4;
+      let newCorrect = (q.correct_answer + 1) % optCount;
+      if (newCorrect === result[i - 1].correct_answer) newCorrect = (newCorrect + 1) % optCount;
       const opts = [...q.options];
       const temp = opts[q.correct_answer];
       opts[q.correct_answer] = opts[newCorrect];
