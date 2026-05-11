@@ -186,10 +186,8 @@ function InArticleRelated({ articles }: { articles: any[] }) {
 }
 
 /* ─── Classic magazine-style article hero ─── */
-function ClassicHero({
-  title, image, date, unit, shareUrl, description,
-}: { title: string; image: string; date: string; unit: string; shareUrl: string; description: string }) {
-  return ClassicHeroInner({ title, image, date, unit, shareUrl, description });
+function ClassicHero(props: { title: string; image: string; date: string; unit: string; shareUrl: string; description: string; category?: string }) {
+  return <ClassicHeroInner {...props} />;
 }
 
 /* ─── Closest-article fuzzy match for graceful redirects ─── */
