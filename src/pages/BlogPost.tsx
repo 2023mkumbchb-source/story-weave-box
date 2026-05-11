@@ -307,7 +307,7 @@ function extractToc(content: string): TocItem[] {
 /* ─── Article content renderer ─── */
 let _sec = 0;
 
-const ArticleContent = memo(function ArticleContent({ content }: { content: string }) {
+const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [] }: { content: string; inlineRelated?: any[] }) {
   _sec = 0;
   const lines = preprocessContent(content).split("\n");
   const els: React.ReactNode[] = [];
@@ -316,6 +316,7 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
   let tableBuf: string[] = [];
   let underSubheading = false;
   const pqs: { number: string; question: string; answer: string }[] = [];
+  let insertedRelated = false;
 
   const flushList = () => {
     if (!listBuf) return;
@@ -424,9 +425,13 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
       const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").replace(/^\d+\.\s*/, "").replace(/^[IVXLC]+\.\s+/, "").trim();
       if (heading.toLowerCase().includes("practice")) { inPractice = true; return; }
       flushPractice(); inPractice = false;
+      if (!insertedRelated && inlineRelated.length > 0 && els.length >= 4) {
+        els.push(<InArticleRelated key="in-article-related" articles={inlineRelated} />);
+        insertedRelated = true;
+      }
       _sec++;
       els.push(
-        <h2 key={`h2-${i}`} id={`section-${_sec}`} className="mt-10 mb-4 font-serif font-bold text-2xl text-foreground scroll-mt-20 border-b border-border pb-3 sm:text-[2rem]">
+        <h2 key={`h2-${i}`} id={`section-${_sec}`} className="mt-9 mb-4 scroll-mt-20 border-b border-border pb-3 font-serif text-2xl font-bold leading-tight text-foreground sm:text-3xl">
           {heading}
         </h2>
       );
@@ -436,7 +441,7 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
     if (/^#{3,6}\s/.test(t)) {
       flushList(); underSubheading = true;
       const txt = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").trim();
-      els.push(<h3 key={`h3-${i}`} className="mt-6 mb-2 font-semibold text-lg text-foreground">{txt}</h3>);
+      els.push(<h3 key={`h3-${i}`} className="mt-6 mb-2 font-serif text-xl font-bold leading-snug text-foreground">{txt}</h3>);
       return;
     }
 
@@ -517,10 +522,13 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
       return;
     }
 
-    els.push(<p key={`p-${i}`} className="mb-5 text-base leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
+    els.push(<p key={`p-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
   });
 
   flushList(); flushTable(); flushPractice();
+  if (!insertedRelated && inlineRelated.length > 0 && els.length > 8) {
+    els.splice(Math.max(4, Math.floor(els.length / 2)), 0, <InArticleRelated key="in-article-related" articles={inlineRelated} />);
+  }
   return <div>{els}</div>;
 });
 
