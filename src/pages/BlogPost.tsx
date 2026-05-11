@@ -7,7 +7,7 @@ import {
 import ShareButtons from "@/components/ShareButtons";
 import ArticleComments from "@/components/ArticleComments";
 import { motion, AnimatePresence } from "framer-motion";
-import { getArticleBySlugOrId, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, type Article } from "@/lib/store";
+import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, type Article } from "@/lib/store";
 import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags, autoIndexUrls } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -188,45 +188,76 @@ function InArticleRelated({ articles }: { articles: any[] }) {
 function ClassicHero({
   title, image, date, unit, shareUrl, description,
 }: { title: string; image: string; date: string; unit: string; shareUrl: string; description: string }) {
+  return ClassicHeroInner({ title, image, date, unit, shareUrl, description });
+}
+
+/* ─── Closest-article fuzzy match for graceful redirects ─── */
+const STOP = new Set(["the","a","an","and","or","of","to","in","for","with","on","at","by","from","is","are","be","as"]);
+function tokenize(s: string): string[] {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .split(/[\s-]+/)
+    .filter((t) => t.length > 2 && !STOP.has(t));
+}
+async function findClosestArticle(slugOrParam: string): Promise<{ id: string; title: string; path: string; score: number } | null> {
+  try {
+    const target = new Set(tokenize(decodeURIComponent(slugOrParam)));
+    if (!target.size) return null;
+    const list = await getPublishedArticleSummaries();
+    let best: { id: string; title: string; path: string; score: number } | null = null;
+    for (const row of list) {
+      const tokens = new Set(tokenize(row.title));
+      let inter = 0;
+      target.forEach((t) => { if (tokens.has(t)) inter++; });
+      const union = new Set([...target, ...tokens]).size || 1;
+      const score = inter / union;
+      if (!best || score > best.score) {
+        best = { id: row.id, title: row.title, path: buildBlogPath(row), score };
+      }
+    }
+    return best && best.score > 0 ? best : null;
+  } catch {
+    return null;
+  }
+}
+
+/* ─── Classic hero implementation (image, then title block) ─── */
+function ClassicHeroInner({
+  title, image, date, unit, shareUrl, description,
+}: { title: string; image: string; date: string; unit: string; shareUrl: string; description: string }) {
   return (
     <header className="mb-10 -mx-5 sm:mx-0">
-      <div className="relative overflow-hidden sm:rounded-2xl bg-muted shadow-sm">
-        {image ? (
+      {image && (
+        <div className="relative overflow-hidden sm:rounded-2xl bg-muted shadow-sm animate-hero-fade">
           <div className="relative aspect-[16/10] sm:aspect-[21/9] w-full">
             <img
               src={image}
               alt={title}
-              className="absolute inset-0 h-full w-full object-cover animate-hero-fade"
+              className="absolute inset-0 h-full w-full object-cover"
               loading="eager"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10" />
-            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8 lg:p-10 animate-hero-rise">
-              {unit && (
-                <span className="inline-block mb-3 rounded-full bg-primary/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary-foreground backdrop-blur">
-                  {unit}
-                </span>
-              )}
-              <h1 className="font-serif text-2xl font-bold leading-tight text-white drop-shadow sm:text-4xl lg:text-5xl">
-                {title}
-              </h1>
-              <div className="mt-3 flex items-center gap-2 text-xs sm:text-sm text-white/85">
-                <span>{date}</span>
-              </div>
-            </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
           </div>
-        ) : (
-          <div className="relative px-5 py-10 sm:px-10 sm:py-14 bg-gradient-to-br from-primary/15 via-background to-primary/5 animate-hero-fade">
-            {unit && (
-              <span className="inline-block mb-3 rounded-full bg-primary/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
-                {unit}
-              </span>
-            )}
-            <h1 className="font-serif text-3xl font-bold leading-tight text-foreground sm:text-5xl animate-hero-rise">
-              {title}
-            </h1>
-            <div className="mt-3 text-sm text-muted-foreground">{date}</div>
-          </div>
+        </div>
+      )}
+      <div className={`px-5 sm:px-0 ${image ? "mt-6 sm:mt-8" : "py-10"} animate-hero-rise`}>
+        {unit && (
+          <span className="inline-block mb-4 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
+            {unit}
+          </span>
         )}
+        <h1 className="font-serif text-3xl font-bold leading-tight text-foreground sm:text-4xl lg:text-5xl">
+          {title}
+        </h1>
+        {description && (
+          <p className="mt-4 font-serif text-base sm:text-lg text-muted-foreground leading-relaxed max-w-prose">
+            {description}
+          </p>
+        )}
+        <div className="mt-4 flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
+          <span>{date}</span>
+        </div>
       </div>
       <ShareButtons url={shareUrl} title={title} description={description} variant="full" className="mt-5 px-5 sm:px-0" />
     </header>
