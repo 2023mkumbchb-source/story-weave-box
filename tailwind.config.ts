@@ -100,6 +100,11 @@ export default {
           "0%": { transform: "scale(1.08)" },
           "100%": { transform: "scale(1.0)" },
         },
+        "hero-kenburns": {
+          "0%":   { transform: "scale(1.08) translate3d(-1.5%, -1%, 0)" },
+          "50%":  { transform: "scale(1.16) translate3d(1.5%, 1%, 0)" },
+          "100%": { transform: "scale(1.08) translate3d(-1.5%, -1%, 0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -109,6 +114,7 @@ export default {
         "marquee": "marquee 45s linear infinite",
         "marquee-slow": "marquee 80s linear infinite",
         "hero-zoom": "hero-zoom 14s ease-out both",
+        "hero-kenburns": "hero-kenburns 28s ease-in-out infinite",
       },
     },
   },
