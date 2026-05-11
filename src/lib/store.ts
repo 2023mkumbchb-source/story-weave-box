@@ -42,7 +42,7 @@ export interface FlashcardSet {
 export interface McqSet {
   id: string;
   title: string;
-  questions: { question: string; options: string[]; correct_answer: number; explanation?: string }[];
+  questions: { question: string; options?: string[]; correct_answer?: number; explanation?: string; type?: "mcq" | "saq" | "essay"; answer?: string; model_answer?: string; marks?: number }[];
   created_at: string;
   updated_at?: string;
   published: boolean;
@@ -214,24 +214,29 @@ export function slugifyTitle(title: string): string {
     .replace(/^-|-$/g, "");
 }
 
+function cleanPublicSlug(rawSlug: string, fallbackTitle: string, fallback = "study"): string {
+  const base = (rawSlug || slugifyTitle(fallbackTitle) || fallback).trim().toLowerCase();
+  return base
+    .replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i, "")
+    .replace(/-[0-9a-f]{6}$/i, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "") || fallback;
+}
+
 export function buildBlogPath(article: Pick<Article, "id" | "title"> & { slug?: string }): string {
-  const slug = article.slug || slugifyTitle(article.title) || "article";
-  const cleanSlug = slug.replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i, "");
-  return `/blog/${cleanSlug}`;
+  return `/blog/${cleanPublicSlug(article.slug || "", article.title, "article")}`;
 }
 
 /** Build a statement-style URL: /mcqs/<title-slug> */
 export function buildMcqPath(set: { id: string; title: string; slug?: string | null }): string {
   const rawSlug = typeof set.slug === "string" ? set.slug.trim() : "";
-  const slug = rawSlug || `${slugifyTitle(set.title) || "quiz"}-${(set.id || "").slice(0, 6)}`;
-  return `/mcqs/${slug}`;
+  return `/mcqs/${cleanPublicSlug(rawSlug, set.title, "quiz")}`;
 }
 
 /** Build a statement-style URL: /flashcards/<title-slug> */
 export function buildFlashcardPath(set: { id: string; title: string; slug?: string | null }): string {
   const rawSlug = typeof set.slug === "string" ? set.slug.trim() : "";
-  const slug = rawSlug || `${slugifyTitle(set.title) || "flashcards"}-${(set.id || "").slice(0, 6)}`;
-  return `/flashcards/${slug}`;
+  return `/flashcards/${cleanPublicSlug(rawSlug, set.title, "flashcards")}`;
 }
 
 /** Build a statement-style URL: /exams/<title-slug>/start */
