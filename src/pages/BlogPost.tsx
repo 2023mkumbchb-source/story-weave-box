@@ -1086,27 +1086,14 @@ export default function BlogPost() {
           )}
 
           <article id="section-top" className="min-w-0">
-            <header className="mb-10">
-              <h1 className="mb-3 font-serif text-3xl font-bold leading-tight text-foreground sm:text-5xl">
-                {article.title.replace(/^#+\s*/, "")}
-              </h1>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <span>{date}</span>
-                {unitName && unitName !== "Uncategorized" && (
-                  <>
-                    <span>·</span>
-                    <span className="font-medium text-foreground/70">{unitName}</span>
-                  </>
-                )}
-              </div>
-              <ShareButtons
-                url={`${SITE_URL}${buildBlogPath(article)}`}
-                title={article.title}
-                description={article.meta_description || ""}
-                variant="full"
-                className="mt-4"
-              />
-            </header>
+            <ClassicHero
+              title={article.title.replace(/^#+\s*/, "")}
+              image={article.og_image_url || extractFirstImageFromContent(article.content || "") || ""}
+              date={date}
+              unit={unitName && unitName !== "Uncategorized" ? unitName : ""}
+              shareUrl={`${SITE_URL}${buildBlogPath(article)}`}
+              description={article.meta_description || ""}
+            />
 
             <div className="prose-custom">
               <ArticleContent content={article.content} inlineRelated={related.articles || []} />
