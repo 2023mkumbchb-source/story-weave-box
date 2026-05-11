@@ -91,6 +91,61 @@ export function authenticate(password: string): boolean {
   return password === ADMIN_PASSWORD;
 }
 
+/**
+ * Rebalance MCQ correct-answer letters so no two adjacent MCQs share the
+ * same correct letter. Also reshuffles the options array so that the correct
+ * answer is moved to the chosen target index. Non-MCQ items (SAQ/essay) and
+ * malformed entries are passed through untouched.
+ */
+export function rebalanceMcqAnswerLetters<T extends { question?: string; options?: string[]; correct_answer?: number; type?: string }>(items: T[]): T[] {
+  if (!Array.isArray(items) || items.length === 0) return items;
+  const out: T[] = items.map((q) => ({ ...q }));
+  let prevLetter: number | null = null;
+  let prevPrevLetter: number | null = null;
+
+  for (let i = 0; i < out.length; i++) {
+    const q: any = out[i];
+    const isMcq = Array.isArray(q.options) && q.options.length >= 2 && typeof q.correct_answer === "number";
+    if (!isMcq) continue;
+
+    const optCount = q.options.length;
+    const currentCorrectText = q.options[q.correct_answer];
+    if (currentCorrectText === undefined) continue;
+
+    // Choose a target letter index that:
+    //  - differs from the previous correct letter (hard rule)
+    //  - avoids being equal to two-back when possible (soft rule)
+    let target = q.correct_answer;
+    const isBad = (idx: number) =>
+      idx === prevLetter || (prevLetter !== null && prevPrevLetter === prevLetter && idx === prevLetter);
+
+    if (isBad(target)) {
+      // Pick a deterministic-but-varied target based on position.
+      const candidates: number[] = [];
+      for (let k = 0; k < optCount; k++) {
+        if (!isBad(k)) candidates.push(k);
+      }
+      if (candidates.length > 0) {
+        target = candidates[(i + (q.question?.length || 0)) % candidates.length];
+      }
+    }
+
+    if (target !== q.correct_answer) {
+      const opts = [...q.options];
+      const temp = opts[target];
+      opts[target] = opts[q.correct_answer];
+      opts[q.correct_answer] = temp;
+      q.options = opts;
+      q.correct_answer = target;
+    }
+
+    prevPrevLetter = prevLetter;
+    prevLetter = q.correct_answer;
+  }
+
+  return out;
+}
+
 // Medical unit categories organized by year (based on actual timetable)
 export const YEAR_CATEGORIES: Record<string, string[]> = {
   "Year 1": [
@@ -640,9 +695,10 @@ export async function getMcqSetBySlugOrId(param: string): Promise<McqSet | null>
 }
 
 export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Promise<McqSet> {
+  const balancedQuestions = rebalanceMcqAnswerLetters((set.questions || []) as any[]);
   const payload = {
     title: set.title,
-    questions: set.questions as any,
+    questions: balancedQuestions as any,
     published: set.published,
     original_notes: set.original_notes,
     category: set.category,
