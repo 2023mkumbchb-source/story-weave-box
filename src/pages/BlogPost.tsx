@@ -678,6 +678,8 @@ export default function BlogPost() {
 
   const [article, setArticle] = useState<Article | null>(null);
   const [notFound, setNotFound] = useState(false); // ✅ track not-found separately
+  const [isOffline, setIsOffline] = useState(typeof navigator !== "undefined" ? !navigator.onLine : false);
+  const [suggestion, setSuggestion] = useState<{ id: string; title: string; path: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; mcqs: any[]; essays: any[] }>({ articles: [], flashcards: [], mcqs: [], essays: [] });
@@ -900,13 +902,22 @@ export default function BlogPost() {
     }
   };
 
-  // ✅ FIXED: noindex on not-found, no debug info exposed
   useEffect(() => {
     if (!slug) { setLoading(false); return; }
     getArticleBySlugOrId(slug)
       .then((a) => {
         if (!a) {
           setNotFound(true);
+          // Try to redirect to the closest published article by token overlap.
+          findClosestArticle(slug).then((match) => {
+            if (!match) return;
+            // Strong match → redirect immediately. Weak match → just suggest.
+            if (match.score >= 0.6) {
+              navigate(match.path, { replace: true });
+            } else {
+              setSuggestion({ id: match.id, title: match.title, path: match.path });
+            }
+          }).catch(() => {});
           document.title = "Article Not Found";
           let noindex = document.querySelector('meta[name="robots"]');
           if (!noindex) {
@@ -932,6 +943,18 @@ export default function BlogPost() {
       })
       .finally(() => setLoading(false));
   }, [slug, navigate, location.pathname]);
+
+  // Track offline/online so we can show a clearer message instead of "Not found".
+  useEffect(() => {
+    const goOffline = () => setIsOffline(true);
+    const goOnline = () => setIsOffline(false);
+    window.addEventListener("offline", goOffline);
+    window.addEventListener("online", goOnline);
+    return () => {
+      window.removeEventListener("offline", goOffline);
+      window.removeEventListener("online", goOnline);
+    };
+  }, []);
 
   const toc = useMemo(() => article ? extractToc(article.content) : [], [article]);
 
@@ -1010,13 +1033,27 @@ export default function BlogPost() {
   if (notFound || !article) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-        <h1 className="mb-2 text-2xl font-bold text-foreground">Article Not Found</h1>
+        <h1 className="mb-2 text-2xl font-bold text-foreground">
+          {isOffline ? "You're offline" : "Article unavailable"}
+        </h1>
         <p className="mb-6 text-sm text-muted-foreground">
-          This article may have been removed or the link may be incorrect.
+          {isOffline
+            ? "We couldn't load this article without an internet connection. Reconnect and tap retry."
+            : "This link may have changed or the article was removed. Try one of the options below."}
         </p>
-        <Button asChild variant="outline">
-          <Link to="/blog"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Study Notes</Link>
-        </Button>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {isOffline && (
+            <Button variant="default" onClick={() => window.location.reload()}>Retry</Button>
+          )}
+          {suggestion && !isOffline && (
+            <Button asChild variant="default">
+              <Link to={suggestion.path}>Open closest match: {suggestion.title}</Link>
+            </Button>
+          )}
+          <Button asChild variant="outline">
+            <Link to="/blog"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Study Notes</Link>
+          </Button>
+        </div>
       </div>
     );
   }
