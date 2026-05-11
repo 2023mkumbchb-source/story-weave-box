@@ -282,6 +282,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           is_raw: boolean | null
+          og_image_url: string | null
           original_notes: string
           published: boolean
           questions: Json
@@ -296,6 +297,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_raw?: boolean | null
+          og_image_url?: string | null
           original_notes?: string
           published?: boolean
           questions?: Json
@@ -310,6 +312,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_raw?: boolean | null
+          og_image_url?: string | null
           original_notes?: string
           published?: boolean
           questions?: Json
