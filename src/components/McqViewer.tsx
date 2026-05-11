@@ -974,11 +974,13 @@ function ScrollMcqList(props: ScrollProps) {
   const [picks, setPicks] = useState<Record<number, number[]>>({}); // qIdx -> wrong picks
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
   const refs = useRef<Record<number, HTMLDivElement | null>>({});
+  const mcqOrder = order.filter((idx) => isMcqQuestion(questions[idx]));
+  const writtenItems = questions.filter((q) => !isMcqQuestion(q));
 
   const handlePick = (qPos: number, optionIdx: number) => {
     if (revealed[qPos]) return;
-    const q = questions[order[qPos]];
-    if (!q) return;
+    const q = questions[mcqOrder[qPos]];
+    if (!isMcqQuestion(q)) return;
     if (hideAnswers) {
       setPicks((p) => ({ ...p, [qPos]: [...(p[qPos] || []), optionIdx] }));
       return;
@@ -996,13 +998,13 @@ function ScrollMcqList(props: ScrollProps) {
   };
 
   const correctCount = Object.values(revealed).filter(Boolean).length;
-  const limit = freeLimit > 0 && !isPaid ? Math.min(freeLimit, order.length) : order.length;
+  const limit = freeLimit > 0 && !isPaid ? Math.min(freeLimit, mcqOrder.length) : mcqOrder.length;
 
   return (
     <div className="mx-auto max-w-2xl px-2">
       <h2 className="mb-2 text-center font-serif text-xl sm:text-2xl font-bold text-foreground">{title}</h2>
       <div className="mb-4 flex flex-wrap items-center justify-center gap-3 text-xs sm:text-sm text-muted-foreground">
-        <span>{order.length} questions</span>
+        <span>{mcqOrder.length} MCQs{writtenItems.length ? ` + ${writtenItems.length} written` : ""}</span>
         <span>·</span>
         <span>{correctCount} correct</span>
         <span>·</span>
@@ -1016,9 +1018,9 @@ function ScrollMcqList(props: ScrollProps) {
       </div>
 
       <div className="space-y-5">
-        {order.slice(0, limit).map((qIdx, qPos) => {
+        {mcqOrder.slice(0, limit).map((qIdx, qPos) => {
           const q = questions[qIdx];
-          if (!q) return null;
+          if (!isMcqQuestion(q)) return null;
           const isRevealed = !!revealed[qPos];
           const wrongPicks = picks[qPos] || [];
           return (
