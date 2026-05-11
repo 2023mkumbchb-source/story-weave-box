@@ -7,9 +7,13 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface McqQuestion {
   question: string;
-  options: string[];
-  correct_answer: number;
+  options?: string[];
+  correct_answer?: number;
   explanation?: string;
+  type?: "mcq" | "saq" | "essay";
+  answer?: string;
+  model_answer?: string;
+  marks?: number;
 }
 
 interface StudentInfo {
