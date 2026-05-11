@@ -1032,20 +1032,40 @@ export default function AdminEditor() {
                   </div>
                 </div>
                 <div className="max-h-[55vh] overflow-y-auto space-y-2">
-                  {(currentMcqSummary.questions as any[]).map((q: any, i: number) => (
-                    <div key={i} className="rounded-lg border border-border p-2 space-y-1">
-                      <p className="text-xs font-medium text-foreground">{i + 1}. {q.question}</p>
-                      <div className="grid grid-cols-1 gap-0.5">
-                        {q.options?.map((opt: string, j: number) => (
-                          <p key={j} className={cn("text-[11px] px-2 py-0.5 rounded",
-                            j === q.correct_answer ? "bg-green-500/10 text-green-700 dark:text-green-400 font-medium" : "text-muted-foreground")}>
-                            {String.fromCharCode(65 + j)}. {opt}
-                          </p>
-                        ))}
+                  {editMcqQuestions.map((q: any, i: number) => (
+                    <div key={i} className="rounded-lg border border-border p-2 space-y-1.5">
+                      <div className="flex items-start gap-1.5">
+                        <span className="text-[10px] font-bold text-muted-foreground pt-1.5">{i + 1}.</span>
+                        <Textarea value={q.question || ""}
+                          onChange={(e) => setEditMcqQuestions(prev => prev.map((p, idx) => idx === i ? { ...p, question: e.target.value } : p))}
+                          className="text-xs min-h-[40px] flex-1" placeholder="Question text" />
+                        <Button size="sm" variant="ghost" onClick={() => setEditMcqQuestions(prev => prev.filter((_, idx) => idx !== i))}
+                          className="h-6 w-6 p-0 text-destructive shrink-0">×</Button>
                       </div>
-                      {q.explanation && <p className="text-[10px] text-muted-foreground italic mt-1">{q.explanation}</p>}
+                      <div className="space-y-0.5 pl-4">
+                        {(q.options || []).map((opt: string, j: number) => (
+                          <div key={j} className="flex items-center gap-1.5">
+                            <input type="radio" name={`correct-${i}`} checked={j === q.correct_answer}
+                              onChange={() => setEditMcqQuestions(prev => prev.map((p, idx) => idx === i ? { ...p, correct_answer: j } : p))}
+                              className="shrink-0" />
+                            <span className="text-[10px] font-bold w-3 text-muted-foreground">{String.fromCharCode(65 + j)}</span>
+                            <Input value={opt}
+                              onChange={(e) => setEditMcqQuestions(prev => prev.map((p, idx) => idx === i ? { ...p, options: p.options.map((o: string, k: number) => k === j ? e.target.value : o) } : p))}
+                              className="text-[11px] h-6 flex-1" />
+                            <Button size="sm" variant="ghost" onClick={() => setEditMcqQuestions(prev => prev.map((p, idx) => idx === i ? { ...p, options: p.options.filter((_: any, k: number) => k !== j), correct_answer: p.correct_answer >= j && p.correct_answer > 0 ? p.correct_answer - 1 : p.correct_answer } : p))}
+                              className="h-5 w-5 p-0 text-muted-foreground shrink-0">×</Button>
+                          </div>
+                        ))}
+                        <Button size="sm" variant="outline" onClick={() => setEditMcqQuestions(prev => prev.map((p, idx) => idx === i ? { ...p, options: [...(p.options || []), ""] } : p))}
+                          className="h-5 text-[10px] px-2 mt-1">+ Option</Button>
+                      </div>
+                      <Textarea value={q.explanation || ""}
+                        onChange={(e) => setEditMcqQuestions(prev => prev.map((p, idx) => idx === i ? { ...p, explanation: e.target.value } : p))}
+                        className="text-[10px] min-h-[28px] italic" placeholder="Explanation (optional)" />
                     </div>
                   ))}
+                  <Button size="sm" variant="outline" onClick={() => setEditMcqQuestions(prev => [...prev, { question: "", options: ["", "", "", ""], correct_answer: 0, explanation: "" }])}
+                    className="w-full h-7 text-xs">+ Add Question</Button>
                 </div>
               </div>
             </div>
