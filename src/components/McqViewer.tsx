@@ -534,6 +534,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
               <div key={i} className="rounded-2xl border border-border bg-card p-5">
                 <span className="mb-2 block text-xs font-medium uppercase tracking-wider text-primary">Question {freeLimit + i + 1}</span>
                 <p className="text-base font-medium text-foreground leading-relaxed">{cleanQuestionText(bq.question)}</p>
+                {Array.isArray(bq.options) && (
                 <div className="mt-3 space-y-2">
                   {bq.options.map((opt, j) => (
                     <div key={j} className="rounded-xl border border-border bg-card p-3 text-sm font-medium flex items-start gap-3">
@@ -544,6 +545,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
                     </div>
                   ))}
                 </div>
+                )}
               </div>
             ))}
           </div>
@@ -601,7 +603,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
           {questions.slice(freeLimit).map((sq, i) => (
             <div key={i}>
               <p>{sq.question}</p>
-              {sq.options.map((opt, j) => <span key={j}>{opt}</span>)}
+              {Array.isArray(sq.options) && sq.options.map((opt, j) => <span key={j}>{opt}</span>)}
               {sq.explanation && <p>{sq.explanation}</p>}
             </div>
           ))}
