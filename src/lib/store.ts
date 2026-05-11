@@ -489,17 +489,13 @@ export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | 
 export async function saveArticle(article: Omit<Article, "id"> & { id?: string }): Promise<Article> {
   const normalizedSlug = (article.slug || slugifyTitle(article.title)).trim();
   const cat = article.category ? article.category.replace(/^Year\s*\d+:\s*/i, "").trim() : "";
-  const baseTitle = article.meta_title?.trim() || article.title;
-  const normalizedMetaTitle = (
-    baseTitle.length > 70
-      ? baseTitle
-      : `${baseTitle}${cat ? ` – ${cat} Notes` : ""} | Kenya Medical Students`
-  ).slice(0, 80);
+  // Meta title is ALWAYS the article title (auto on publish)
+  const normalizedMetaTitle = (article.title || "Study Notes").slice(0, 80);
   const generatedDescription = stripRichText(article.content || article.original_notes || "", 160);
   const normalizedMetaDescription = (
-    article.meta_description?.trim() ||
     generatedDescription ||
-    `${article.title} study notes for medical students at UoN, MKU, KU, JKUAT, Moi and other Kenyan & African universities. ${cat ? cat + " revision." : ""}`.trim()
+    article.meta_description?.trim() ||
+    `${article.title} — clinical study notes${cat ? " on " + cat : ""} for medical students.`
   ).slice(0, 160);
   const normalizedOgImage = article.og_image_url?.trim() || extractFirstImageFromContent(article.content || "") || null;
 
@@ -697,6 +693,14 @@ export async function getMcqSetBySlugOrId(param: string): Promise<McqSet | null>
 
 export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Promise<McqSet> {
   const balancedQuestions = rebalanceMcqAnswerLetters((set.questions || []) as any[]);
+  const cat = set.category ? set.category.replace(/^Year\s*\d+:\s*/i, "").trim() : "";
+  const qCount = balancedQuestions.length;
+  const firstQ = stripRichText(((balancedQuestions[0] as any)?.question) || "", 90);
+  const autoMetaTitle = (set.title || "MCQ Practice").slice(0, 80);
+  const autoMetaDesc = (
+    set.meta_description?.trim() ||
+    `${qCount} clinical MCQs${cat ? " in " + cat : ""}. ${firstQ}`
+  ).slice(0, 160);
   const payload = {
     title: set.title,
     questions: balancedQuestions as any,
@@ -706,7 +710,9 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
     access_password: set.access_password || "",
     is_raw: set.is_raw ?? false,
     slug: (set.slug && set.slug.trim()) || slugifyTitle(set.title) || null,
-  };
+    meta_title: autoMetaTitle,
+    meta_description: autoMetaDesc,
+  } as any;
 
   if (set.id) {
     const { data, error } = await supabase
