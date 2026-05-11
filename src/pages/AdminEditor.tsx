@@ -116,6 +116,24 @@ function parseMcqsFromText(raw: string): { question: string; options: string[]; 
   return out;
 }
 
+function parseWrittenQuestionsFromText(raw: string): any[] {
+  if (!raw) return [];
+  const blocks = raw.split(/\n(?=\s*(?:#{1,4}\s*)?(?:SAQ|Short\s*Answer|Essay|LAQ|Long\s*Answer)\s*\d*)/i);
+  return blocks.map((block) => {
+    const text = block.trim();
+    if (!/^(?:#{1,4}\s*)?(?:SAQ|Short\s*Answer|Essay|LAQ|Long\s*Answer)\s*\d*/i.test(text)) return null;
+    const isEssay = /^(?:#{1,4}\s*)?(?:Essay|LAQ|Long\s*Answer)/i.test(text);
+    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const first = (lines.shift() || "").replace(/^#{1,4}\s*/, "").replace(/^(SAQ|Short\s*Answer|Essay|LAQ|Long\s*Answer)\s*\d*\s*[:.)-]?\s*/i, "").trim();
+    const joined = [first, ...lines].join("\n").trim();
+    const answerMatch = joined.match(/(?:\*\*)?(?:Model\s*)?Answer(?:\*\*)?\s*:?\s*([\s\S]+)/i);
+    const question = (answerMatch ? joined.slice(0, answerMatch.index) : joined).replace(/\*\*/g, "").trim();
+    const answer = answerMatch ? answerMatch[1].replace(/^[-—:*\s]+/, "").replace(/\*\*/g, "").trim() : "";
+    if (!question) return null;
+    return { type: isEssay ? "essay" : "saq", question, answer, marks: isEssay ? 20 : 5 };
+  }).filter(Boolean);
+}
+
 function htmlToMd(html: string): string {
   if (!html) return "";
   return html
