@@ -649,7 +649,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
 
           {/* Options */}
           <div className="space-y-2 mb-4">
-            {q?.options.map((opt, i) => (
+            {(q?.options ?? []).map((opt, i) => (
               <motion.button key={i} onClick={() => handleSelect(i)}
                 whileTap={!revealed ? { scale: 0.98 } : {}}
                 className={`w-full rounded-xl border p-3 sm:p-4 text-left text-sm sm:text-base font-medium transition-colors flex items-start gap-3 ${getOptionStyle(i)}`}>
