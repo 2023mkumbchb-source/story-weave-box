@@ -333,6 +333,7 @@ export default function AdminEditor() {
   const [editOgImage, setEditOgImage] = useState("");
   const [editPublished, setEditPublished] = useState(false);
   const [editMcqPassword, setEditMcqPassword] = useState("");
+  const [editMcqQuestions, setEditMcqQuestions] = useState<any[]>([]);
   const [savingMcq, setSavingMcq] = useState(false);
 
   // Load content based on mode
@@ -496,6 +497,7 @@ export default function AdminEditor() {
     setEditPublished(!!currentMcqSummary.published);
     setEditSlug(currentMcqSummary.slug || "");
     setEditMcqPassword((currentMcqSummary as any).access_password || "");
+    setEditMcqQuestions(Array.isArray(currentMcqSummary.questions) ? JSON.parse(JSON.stringify(currentMcqSummary.questions)) : []);
   }, [currentMcqSummary?.id, editorMode, isAddMode]);
 
   // Save edited MCQ set metadata
@@ -506,7 +508,7 @@ export default function AdminEditor() {
       await saveMcqSet({
         id: currentMcqSummary.id,
         title: editTitle || currentMcqSummary.title,
-        questions: currentMcqSummary.questions,
+        questions: editMcqQuestions,
         published: editPublished,
         original_notes: (currentMcqSummary as any).original_notes || "",
         category: editCategory || currentMcqSummary.category || `Year ${selectedYear}: General`,
