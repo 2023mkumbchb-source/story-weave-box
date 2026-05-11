@@ -184,6 +184,55 @@ function InArticleRelated({ articles }: { articles: any[] }) {
   );
 }
 
+/* ─── Classic magazine-style article hero ─── */
+function ClassicHero({
+  title, image, date, unit, shareUrl, description,
+}: { title: string; image: string; date: string; unit: string; shareUrl: string; description: string }) {
+  return (
+    <header className="mb-10 -mx-5 sm:mx-0">
+      <div className="relative overflow-hidden sm:rounded-2xl bg-muted shadow-sm">
+        {image ? (
+          <div className="relative aspect-[16/10] sm:aspect-[21/9] w-full">
+            <img
+              src={image}
+              alt={title}
+              className="absolute inset-0 h-full w-full object-cover animate-hero-fade"
+              loading="eager"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10" />
+            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8 lg:p-10 animate-hero-rise">
+              {unit && (
+                <span className="inline-block mb-3 rounded-full bg-primary/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary-foreground backdrop-blur">
+                  {unit}
+                </span>
+              )}
+              <h1 className="font-serif text-2xl font-bold leading-tight text-white drop-shadow sm:text-4xl lg:text-5xl">
+                {title}
+              </h1>
+              <div className="mt-3 flex items-center gap-2 text-xs sm:text-sm text-white/85">
+                <span>{date}</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="relative px-5 py-10 sm:px-10 sm:py-14 bg-gradient-to-br from-primary/15 via-background to-primary/5 animate-hero-fade">
+            {unit && (
+              <span className="inline-block mb-3 rounded-full bg-primary/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
+                {unit}
+              </span>
+            )}
+            <h1 className="font-serif text-3xl font-bold leading-tight text-foreground sm:text-5xl animate-hero-rise">
+              {title}
+            </h1>
+            <div className="mt-3 text-sm text-muted-foreground">{date}</div>
+          </div>
+        )}
+      </div>
+      <ShareButtons url={shareUrl} title={title} description={description} variant="full" className="mt-5 px-5 sm:px-0" />
+    </header>
+  );
+}
+
 /* ─── Helpers ─── */
 function splitInlineTable(s: string): string[] {
   if (!s.includes("|---") && !s.includes("| ---")) return [];
