@@ -16,12 +16,11 @@ const tryReloadOnce = (reason: string) => {
     sessionStorage.setItem(KEY, String(Date.now()));
     console.warn("[ompath] reloading after chunk error:", reason);
     // Best-effort: drop SW caches so the new index can fetch fresh assets
+    const doReload = () => window.location.reload();
     if ("caches" in window) {
-      caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))).finally(() => {
-        window.location.reload();
-      });
+      caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))).finally(doReload);
     } else {
-      window.location.reload();
+      doReload();
     }
   } catch {
     window.location.reload();
