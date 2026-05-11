@@ -96,6 +96,10 @@ export default {
           "0%": { transform: "translateX(0)" },
           "100%": { transform: "translateX(-50%)" },
         },
+        "hero-zoom": {
+          "0%": { transform: "scale(1.08)" },
+          "100%": { transform: "scale(1.0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -104,6 +108,7 @@ export default {
         "hero-rise": "hero-rise 0.8s ease-out 0.15s both",
         "marquee": "marquee 45s linear infinite",
         "marquee-slow": "marquee 80s linear infinite",
+        "hero-zoom": "hero-zoom 14s ease-out both",
       },
     },
   },
