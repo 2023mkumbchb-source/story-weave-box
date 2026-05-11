@@ -433,8 +433,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       const src = imageMatch[2]?.trim();
       if (src) {
         els.push(
-          <figure key={`img-${i}`} className="my-6 overflow-hidden rounded-2xl border border-border bg-muted/20">
+          <figure key={`img-${i}`} className="my-7 overflow-hidden rounded-lg border border-border bg-muted/20">
             <img src={src} alt={alt} loading="lazy" className="w-full object-cover" />
+            {alt && <figcaption className="border-t border-border px-4 py-2 text-sm leading-relaxed text-muted-foreground">{alt}</figcaption>}
           </figure>
         );
       }
@@ -539,7 +540,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (boldLabelMatch) {
       flushList();
       els.push(<h3 key={`bl-${i}`} className="mt-6 mb-2 font-semibold text-base text-foreground">{boldLabelMatch[1].replace(/:$/, "").trim()}</h3>);
-      underSubheading = true;
+      underSubheading = false;
       return;
     }
 
@@ -547,7 +548,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (isSubLabel) {
       flushList();
       els.push(<h3 key={`sl-${i}`} className="mt-6 mb-2 font-semibold text-lg text-foreground"><Inline text={t.slice(0, -1)} /></h3>);
-      underSubheading = true;
+      underSubheading = false;
       return;
     }
 
@@ -562,7 +563,8 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         );
         return;
       }
-      pushBullet(t, `auto-li-${i}`);
+      underSubheading = false;
+      els.push(<p key={`p-sub-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
       return;
     }
 
