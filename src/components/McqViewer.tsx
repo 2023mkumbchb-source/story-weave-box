@@ -19,9 +19,13 @@ const fetchMcqs       = () => getPublishedMcqSets().catch(() => ([] as any[]));
 
 interface McqQuestion {
   question: string;
-  options: string[];
-  correct_answer: number;
+  options?: string[];
+  correct_answer?: number;
   explanation?: string;
+  type?: "mcq" | "saq" | "essay";
+  answer?: string;
+  model_answer?: string;
+  marks?: number;
 }
 interface Props {
   questions: McqQuestion[];
@@ -60,6 +64,10 @@ function cleanQuestionText(text: string | undefined): string {
     .replace(/^Question\s*\d+\s*/i, "")
     .replace(/\s*Choices:\s*$/i, "")
     .trim();
+}
+
+function isMcqQuestion(q: McqQuestion | undefined): q is McqQuestion & { options: string[]; correct_answer: number } {
+  return !!q && Array.isArray(q.options) && q.options.length >= 2 && typeof q.correct_answer === "number";
 }
 
 
