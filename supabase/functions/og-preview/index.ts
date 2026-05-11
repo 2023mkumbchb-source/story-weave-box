@@ -29,7 +29,6 @@ function stripRichText(input: string, maxLength = 160): string {
     .replace(/\[[^\]]+\]\([^)]*\)/g, " ")
     .replace(/^#+\s+/gm, "")
     .replace(/[*_`>|#]/g, " ")
-    .replace(/Mount Kenya University|\bMKU\b/gi, "Kenyan medical schools")
     .replace(/data:image\/[^\s)]+/g, "")
     .replace(/https?:\/\/\S+/g, "")
     .replace(/\s+/g, " ")
@@ -97,6 +96,7 @@ function buildOgHtml(options: {
   const ogImage = image || `${DEFAULT_SITE_URL}/og-default.png`;
   const redirectMarkup = isCrawler ? "" : `<meta http-equiv="refresh" content="0;url=${esc(canonical)}">\n  <script>window.location.replace(${JSON.stringify(canonical)});</script>`;
   const robotsTag = noindex ? '<meta name="robots" content="noindex, nofollow">' : '<meta name="robots" content="index, follow">';
+  const KEYWORDS = "MBChB, medical school Kenya, UoN, University of Nairobi, MKU, Mount Kenya University, KU, Kenyatta University, JKUAT, Moi University, Egerton, Maseno, Uganda Makerere, MUST, KMTC, medical notes, MCQs, flashcards, past papers, pathology, pharmacology, anatomy, physiology, microbiology, biochemistry, OmpathStudy, Ompath Study";
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -116,6 +116,7 @@ function buildOgHtml(options: {
   <meta charset="UTF-8">
   <title>${esc(title)}</title>
   <meta name="description" content="${esc(description)}">
+  <meta name="keywords" content="${esc(KEYWORDS)}">
   ${robotsTag}
   <meta property="og:type" content="${type === 'article' ? 'article' : 'website'}">
   <meta property="og:site_name" content="OmpathStudy">
