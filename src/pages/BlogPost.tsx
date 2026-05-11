@@ -1242,14 +1242,16 @@ export default function BlogPost() {
                   <FileText className="h-4 w-4 text-primary" />
                   <h2 className="font-serif text-xl font-bold text-foreground">Related Articles</h2>
                   </div>
-                  <span className="text-xs text-muted-foreground">Swipe</span>
+                  <span className="text-xs text-muted-foreground">Auto-scrolling</span>
                 </div>
-                <div className="-mx-5 px-5 overflow-x-auto pb-2">
-                  <div className="flex gap-3 snap-x snap-mandatory">
-                    {related.articles.slice(0, 12).map((a: any) => (
-                      <RelatedArticleCard key={a.id} article={a} compact />
+                <div className="group relative -mx-5 overflow-hidden">
+                  <div className="flex w-max gap-3 px-5 animate-marquee-slow [animation-play-state:running] group-hover:[animation-play-state:paused]">
+                    {[...related.articles.slice(0, 12), ...related.articles.slice(0, 12)].map((a: any, i: number) => (
+                      <RelatedArticleCard key={`${a.id}-${i}`} article={a} compact />
                     ))}
                   </div>
+                  <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-background to-transparent" />
+                  <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent" />
                 </div>
               </section>
             )}
