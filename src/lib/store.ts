@@ -693,6 +693,14 @@ export async function getMcqSetBySlugOrId(param: string): Promise<McqSet | null>
 
 export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Promise<McqSet> {
   const balancedQuestions = rebalanceMcqAnswerLetters((set.questions || []) as any[]);
+  const cat = set.category ? set.category.replace(/^Year\s*\d+:\s*/i, "").trim() : "";
+  const qCount = balancedQuestions.length;
+  const firstQ = stripRichText(((balancedQuestions[0] as any)?.question) || "", 90);
+  const autoMetaTitle = (set.title || "MCQ Practice").slice(0, 80);
+  const autoMetaDesc = (
+    set.meta_description?.trim() ||
+    `${qCount} clinical MCQs${cat ? " in " + cat : ""}. ${firstQ}`
+  ).slice(0, 160);
   const payload = {
     title: set.title,
     questions: balancedQuestions as any,
@@ -702,7 +710,9 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
     access_password: set.access_password || "",
     is_raw: set.is_raw ?? false,
     slug: (set.slug && set.slug.trim()) || slugifyTitle(set.title) || null,
-  };
+    meta_title: autoMetaTitle,
+    meta_description: autoMetaDesc,
+  } as any;
 
   if (set.id) {
     const { data, error } = await supabase
