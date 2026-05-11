@@ -218,6 +218,21 @@ export default function McqStudy() {
 
       {/* Exam-style cover card */}
       <div className="mb-6 rounded-2xl border-2 border-primary/30 bg-card overflow-hidden shadow-sm">
+        {(set as any).og_image_url && (
+          <div className="relative aspect-[21/9] w-full overflow-hidden bg-muted">
+            <img
+              src={(set as any).og_image_url}
+              alt={set.title}
+              className="absolute inset-0 h-full w-full object-cover animate-hero-fade"
+              loading="eager"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5 animate-hero-rise">
+              <span className="inline-block rounded-full bg-primary/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground">{paperSource}</span>
+              <h1 className="mt-2 font-serif text-lg sm:text-2xl font-bold leading-tight text-white drop-shadow">{set.title}</h1>
+            </div>
+          </div>
+        )}
         <div className="bg-primary/10 px-5 py-3 text-center border-b-2 border-primary/20">
           <div className="flex items-center justify-center gap-2 text-primary">
             <GraduationCap className="h-4 w-4" />
