@@ -323,6 +323,7 @@ function toArticlePreview(row: any): Article {
     is_raw: row.is_raw ?? false,
     slug: row.slug ?? undefined,
     meta_description: row.meta_description ?? undefined,
+    og_image_url: row.og_image_url ?? undefined,
   };
 }
 
