@@ -138,6 +138,52 @@ function PracticeQuestion({ number, question, answer }: { number: string; questi
   );
 }
 
+function RelatedArticleCard({ article, compact = false }: { article: any; compact?: boolean }) {
+  const image = article.og_image_url || extractFirstImageFromContent(article.content || "");
+  const summary = stripRichText(article.meta_description || article.content || "", compact ? 95 : 135);
+  return (
+    <Link
+      to={buildBlogPath(article)}
+      className={`${compact ? "w-[82vw] max-w-[340px] sm:w-80" : "w-full"} group grid shrink-0 snap-start overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-primary/40 sm:grid-cols-[132px_1fr]`}
+    >
+      <div className="aspect-[4/3] bg-muted sm:aspect-auto">
+        {image ? (
+          <img src={image} alt={article.title} loading="lazy" className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full min-h-28 items-center justify-center bg-primary/10 text-primary">
+            <FileText className="h-7 w-7" />
+          </div>
+        )}
+      </div>
+      <div className="min-w-0 p-3.5">
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-primary">{getCategoryDisplayName(article.category)}</p>
+        <h3 className="line-clamp-2 text-sm font-bold leading-snug text-foreground group-hover:text-primary">{article.title}</h3>
+        {summary && <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-muted-foreground">{summary}</p>}
+      </div>
+    </Link>
+  );
+}
+
+function InArticleRelated({ articles }: { articles: any[] }) {
+  if (!articles.length) return null;
+  return (
+    <aside className="not-prose my-8 border-y border-border py-5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-primary" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Continue Reading</p>
+        </div>
+        <span className="text-[11px] text-muted-foreground">Swipe</span>
+      </div>
+      <div className="-mx-5 overflow-x-auto px-5 pb-1">
+        <div className="flex snap-x snap-mandatory gap-3">
+          {articles.slice(0, 8).map((a) => <RelatedArticleCard key={a.id} article={a} compact />)}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 /* ─── Helpers ─── */
 function splitInlineTable(s: string): string[] {
   if (!s.includes("|---") && !s.includes("| ---")) return [];
