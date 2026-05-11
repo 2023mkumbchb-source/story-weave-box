@@ -1023,7 +1023,7 @@ export default function BlogPost() {
 
           <article id="section-top" className="min-w-0">
             <header className="mb-10">
-              <h1 className="mb-3 font-serif text-4xl font-bold leading-tight text-foreground sm:text-5xl">
+              <h1 className="mb-3 font-serif text-3xl font-bold leading-tight text-foreground sm:text-5xl">
                 {article.title.replace(/^#+\s*/, "")}
               </h1>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -1045,7 +1045,7 @@ export default function BlogPost() {
             </header>
 
             <div className="prose-custom">
-              <ArticleContent content={article.content} />
+              <ArticleContent content={article.content} inlineRelated={related.articles || []} />
             </div>
 
             <div className="mt-10 pt-6 border-t border-border">
@@ -1136,30 +1136,22 @@ export default function BlogPost() {
             )}
 
             {related.articles && related.articles.length > 0 && (
-              <div className="mt-12">
-                <div className="flex items-center gap-2 mb-4">
+              <section className="mt-12 border-t border-border pt-8">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-primary" />
                   <h2 className="font-serif text-xl font-bold text-foreground">Related Articles</h2>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Swipe</span>
                 </div>
                 <div className="-mx-5 px-5 overflow-x-auto pb-2">
                   <div className="flex gap-3 snap-x snap-mandatory">
                     {related.articles.slice(0, 12).map((a: any) => (
-                      <Link
-                        key={a.id}
-                        to={buildBlogPath(a)}
-                        className="snap-start shrink-0 w-64 rounded-xl border border-border bg-card p-4 hover:border-primary/40 hover:shadow-sm transition-all"
-                      >
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-1.5">
-                          {getCategoryDisplayName(a.category)}
-                        </p>
-                        <p className="text-sm font-semibold text-foreground leading-snug line-clamp-3">
-                          {a.title}
-                        </p>
-                      </Link>
+                      <RelatedArticleCard key={a.id} article={a} compact />
                     ))}
                   </div>
                 </div>
-              </div>
+              </section>
             )}
 
             <ArticleComments articleId={article.id} />
