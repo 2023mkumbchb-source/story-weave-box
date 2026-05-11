@@ -3,6 +3,48 @@ import App from "./App.tsx";
 import "./index.css";
 import { HelmetProvider } from "react-helmet-async";
 
+// Auto-recover from stale chunk loads after a deploy. When the cached
+// index.html refers to chunk hashes that no longer exist (or the cached
+// SW serves stale assets), dynamic imports fail with "Failed to fetch
+// dynamically imported module". Reload once with a cache-busting flag
+// instead of showing a Not Found page.
+const tryReloadOnce = (reason: string) => {
+  try {
+    const KEY = "__chunk_reload_at__";
+    const last = Number(sessionStorage.getItem(KEY) || "0");
+    if (Date.now() - last < 15000) return; // avoid loops
+    sessionStorage.setItem(KEY, String(Date.now()));
+    console.warn("[ompath] reloading after chunk error:", reason);
+    // Best-effort: drop SW caches so the new index can fetch fresh assets
+    if ("caches" in window) {
+      caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))).finally(() => {
+        window.location.reload();
+      });
+    } else {
+      window.location.reload();
+    }
+  } catch {
+    window.location.reload();
+  }
+};
+
+window.addEventListener("vite:preloadError", (e) => {
+  e.preventDefault();
+  tryReloadOnce("vite:preloadError");
+});
+window.addEventListener("error", (e) => {
+  const msg = String((e as ErrorEvent).message || "");
+  if (/dynamically imported module|Importing a module script failed|ChunkLoadError/i.test(msg)) {
+    tryReloadOnce("error:" + msg.slice(0, 80));
+  }
+});
+window.addEventListener("unhandledrejection", (e) => {
+  const msg = String((e as PromiseRejectionEvent).reason?.message || (e as PromiseRejectionEvent).reason || "");
+  if (/dynamically imported module|Importing a module script failed|ChunkLoadError/i.test(msg)) {
+    tryReloadOnce("rejection:" + msg.slice(0, 80));
+  }
+});
+
 // Register service worker for offline caching
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
