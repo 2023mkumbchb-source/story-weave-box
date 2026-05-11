@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen, GraduationCap, ListChecks, Loader2,
-  ArrowRight, Trophy, BookMarked, Phone, MessageCircle, Clock, Sparkles,
+  ArrowRight, Trophy, BookMarked, Phone, MessageCircle, Clock, Sparkles, Globe2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getAllCategories, getCategoryDisplayName, getYearFromCategory, YEAR_CATEGORIES, buildBlogPath, buildMcqPath, buildFlashcardPath } from "@/lib/store";
@@ -10,23 +10,11 @@ import { updateMetaTags } from "@/lib/seo";
 import { supabase } from "@/integrations/supabase/client";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
 
-const YEAR_META: Record<string, { color: string; border: string }> = {
-  "Year 1": { color: "text-primary", border: "border-primary/30" },
-  "Year 2": { color: "text-primary", border: "border-primary/30" },
-  "Year 3": { color: "text-primary", border: "border-primary/30" },
-  "Year 4": { color: "text-primary", border: "border-primary/30" },
-  "Year 5": { color: "text-primary", border: "border-primary/30" },
-  "Year 6": { color: "text-primary", border: "border-primary/30" },
-};
-
-const HERO_TINT = "bg-primary/15";
-
-const NAV_ITEMS = [
-  { to: "/blog", label: "Articles", icon: BookOpen },
-  { to: "/flashcards", label: "Flashcards", icon: GraduationCap },
-  { to: "/mcqs", label: "MCQs", icon: ListChecks },
-  { to: "/exams", label: "Exams", icon: Trophy },
-  { to: "/stories", label: "Stories", icon: BookMarked },
+const QUICK_ACCESS = [
+  { to: "/mcqs", label: "MCQ Bank", desc: "Clinical practice questions", icon: ListChecks, tint: "bg-primary/10 text-primary" },
+  { to: "/flashcards", label: "Flashcards", desc: "Spaced repetition ready", icon: GraduationCap, tint: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+  { to: "/blog", label: "Articles", desc: "Expert clinical guides", icon: BookOpen, tint: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
+  { to: "/exams", label: "Past Papers", desc: "Timed exam mode", icon: Trophy, tint: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
 ];
 
 type RecentItem = { id: string; title: string; type: "article" | "mcq" | "flashcard" | "story"; category: string; created_at: string; slug?: string | null };
@@ -96,44 +84,80 @@ export default function Index() {
     }
   }
 
-  const typeIcon = { article: BookOpen, mcq: ListChecks, flashcard: GraduationCap, story: BookMarked };
-  const typeLabel = { article: "Article", mcq: "MCQ", flashcard: "Flashcard", story: "Story" };
-  const typeColor = { article: "text-blue-500", mcq: "text-emerald-500", flashcard: "text-amber-500", story: "text-purple-500" };
+  const typeMeta = {
+    article: { label: "Article", short: "ART", icon: BookOpen, badge: "bg-purple-500/10 text-purple-700 dark:text-purple-300" },
+    mcq:     { label: "MCQ Set", short: "MCQ", icon: ListChecks, badge: "bg-primary/10 text-primary" },
+    flashcard:{ label: "Flashcards", short: "FC", icon: GraduationCap, badge: "bg-blue-500/10 text-blue-700 dark:text-blue-300" },
+    story:   { label: "Story",   short: "STY", icon: BookMarked, badge: "bg-amber-500/10 text-amber-700 dark:text-amber-300" },
+  } as const;
 
   return (
-    <div className="min-h-dvh bg-background">
-      {/* Hero — compact so Continue Reading is visible above the fold */}
+    <div className="min-h-dvh bg-muted/30">
+      {/* Hero — Academic Premium */}
       <section className="relative overflow-hidden bg-primary text-primary-foreground">
-        <div className={`absolute inset-0 ${HERO_TINT}`} />
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-primary to-accent/60" />
-        <div className="relative mx-auto max-w-5xl px-5 py-6 sm:py-12">
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <h1 className="font-serif text-2xl sm:text-4xl font-bold mb-2 leading-tight break-words">
-              Medical Notes, MCQs & Past Papers — Kenya & East Africa
+        <div className="absolute inset-0 opacity-[0.12] pointer-events-none" aria-hidden>
+          <svg className="h-full w-full" preserveAspectRatio="none">
+            <defs>
+              <pattern id="hero-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+                <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.6" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#hero-grid)" />
+          </svg>
+        </div>
+        <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-white/5 pointer-events-none" />
+        <div className="absolute -bottom-32 -left-16 h-72 w-72 rounded-full border border-white/10 pointer-events-none" />
+
+        <div className="relative mx-auto max-w-6xl px-5 pt-12 pb-20 sm:pt-16 sm:pb-28">
+          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+            <div className="mb-5 inline-flex items-center gap-2 text-primary-foreground/80">
+              <span className="h-px w-8 bg-primary-foreground/40" />
+              <Globe2 className="h-3.5 w-3.5" />
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">Global Medical Education · East Africa</span>
+            </div>
+            <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight max-w-3xl">
+              Master medicine in East Africa <span className="text-primary-foreground/80">&amp; beyond.</span>
             </h1>
-            <p className="text-white/80 text-sm sm:text-base max-w-xl leading-snug mb-4">
-              Free study notes, flashcards, MCQs and timed exams for medical students at UoN, KU, MKU, JKUAT, Moi, Egerton and other Kenyan & East African universities — organized by year and unit.
+            <p className="mt-5 max-w-xl text-base sm:text-lg leading-relaxed text-primary-foreground/85">
+              The most comprehensive open repository for medical students — high-yield notes, MCQ banks, past papers and clinical stories, organised by year and unit.
             </p>
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              {NAV_ITEMS.map(item => (
-                <Link key={item.to} to={item.to}
-                  className="group flex items-center gap-1.5 rounded-lg border border-primary-foreground/15 bg-primary-foreground/10 backdrop-blur-sm px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-primary-foreground hover:bg-primary-foreground/20 transition-all">
-                  <item.icon className="h-3.5 w-3.5 text-primary-foreground/80" />
-                  {item.label}
-                </Link>
-              ))}
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link to="/blog" className="rounded-full bg-white px-7 py-3 text-sm font-bold text-primary shadow-lg shadow-black/10 hover:bg-white/95 transition">
+                Start Studying
+              </Link>
+              <Link to="/mcqs" className="rounded-full border border-primary-foreground/25 bg-white/10 px-7 py-3 text-sm font-bold text-primary-foreground backdrop-blur-sm hover:bg-white/20 transition">
+                Practice MCQs
+              </Link>
             </div>
           </motion.div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl px-5 py-8">
+      {/* Quick Access Grid — overlapping cards */}
+      <section className="mx-auto max-w-6xl px-5 -mt-12 sm:-mt-14 relative z-10">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+          {QUICK_ACCESS.map((q, i) => (
+            <motion.div key={q.to} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+              <Link to={q.to}
+                className="group block rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+                <div className={`mb-3 flex h-11 w-11 items-center justify-center rounded-xl ${q.tint}`}>
+                  <q.icon className="h-5 w-5" />
+                </div>
+                <h3 className="font-bold text-foreground text-sm sm:text-base">{q.label}</h3>
+                <p className="mt-0.5 text-[11px] sm:text-xs text-muted-foreground">{q.desc}</p>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-5 py-10 sm:py-14">
         {/* Last Read */}
         {lastRead.length > 0 && (
-          <div className="mb-8">
+          <div className="mb-10">
             <div className="flex items-center gap-2 mb-3">
               <Clock className="h-4 w-4 text-primary" />
-              <h2 className="font-serif text-lg font-bold text-foreground">Continue Reading</h2>
+              <h2 className="font-serif text-xl font-bold text-foreground">Continue Reading</h2>
             </div>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {lastRead.slice(0, 3).map(ra => (
@@ -150,16 +174,71 @@ export default function Index() {
           </div>
         )}
 
-        {/* Recently Uploaded */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <h2 className="font-serif text-lg font-bold text-foreground">Recently Added</h2>
+        {/* Browse by Year */}
+        <div className="mb-10">
+          <div className="flex items-end justify-between border-b border-border pb-3 mb-5">
+            <div>
+              <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground">Browse by Year</h2>
+              <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground">MBChB curriculum, organised by year &amp; unit</p>
+            </div>
+            <Link to="/blog" className="text-xs sm:text-sm font-semibold text-primary hover:underline whitespace-nowrap">View all</Link>
           </div>
-          <div className="flex gap-1 mb-3 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+          {loading ? (
+            <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+          ) : yearGroups.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border p-10 text-center">
+              <GraduationCap className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
+              <p className="text-muted-foreground">No study materials yet. Content is being added regularly!</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2 overflow-x-auto pb-2 mb-5" style={{ scrollbarWidth: "none" }}>
+                {yearGroups.map(g => (
+                  <Link key={g.year} to={`/blog?year=${encodeURIComponent(g.year)}`}
+                    className="whitespace-nowrap rounded-full border border-border bg-card px-5 py-2 text-xs sm:text-sm font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary transition">
+                    {g.year}
+                  </Link>
+                ))}
+              </div>
+              <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {yearGroups.map((group, i) => (
+                  <motion.div key={group.year} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                    <Link to={`/blog?year=${encodeURIComponent(group.year)}`}
+                      className="group block h-full rounded-2xl border border-border bg-card p-5 hover:shadow-md hover:border-primary/30 transition-all">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="font-serif text-lg font-bold text-primary">{group.year}</span>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                      <div className="space-y-1">
+                        {group.categories.slice(0, 5).map(cat => (
+                          <p key={cat.name} className="text-sm text-muted-foreground truncate">{getCategoryDisplayName(cat.name)}</p>
+                        ))}
+                        {group.categories.length > 5 && (
+                          <p className="text-xs text-muted-foreground/60">+{group.categories.length - 5} more units</p>
+                        )}
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Recently Added */}
+        <div>
+          <div className="flex items-end justify-between border-b border-border pb-3 mb-5">
+            <div>
+              <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" /> Recently Added
+              </h2>
+              <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground">Fresh notes, MCQs, flashcards &amp; clinical stories</p>
+            </div>
+          </div>
+          <div className="flex gap-2 mb-5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
             {(["all", "articles", "mcqs", "flashcards", "stories"] as const).map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-all capitalize ${activeTab === tab ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+                className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition-all capitalize ${activeTab === tab ? "bg-foreground text-background" : "border border-border bg-card text-muted-foreground hover:text-foreground"}`}>
                 {tab}
               </button>
             ))}
@@ -169,65 +248,29 @@ export default function Index() {
               <p className="text-sm text-muted-foreground">No content yet. Check back soon!</p>
             </div>
           ) : (
-            <div className="space-y-1.5">
+            <div className="space-y-3">
               {filteredRecent.slice(0, 10).map(item => {
-                const Icon = typeIcon[item.type];
+                const meta = typeMeta[item.type];
+                const Icon = meta.icon;
                 return (
                   <Link key={`${item.type}-${item.id}`} to={getItemLink(item)}
-                    className="group flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-all hover:shadow-sm hover:border-primary/20">
-                    <Icon className={`h-4 w-4 shrink-0 ${typeColor[item.type]}`} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">{item.title}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {typeLabel[item.type]} · {getCategoryDisplayName(item.category)} · {timeAgo(item.created_at)}
-                      </p>
+                    className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-3 sm:p-4 transition-all hover:border-primary/30 hover:shadow-sm">
+                    <div className={`hidden sm:flex h-14 w-14 shrink-0 items-center justify-center rounded-xl ${meta.badge} font-bold text-xs tracking-wide`}>
+                      {meta.short}
                     </div>
-                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                    <div className="flex sm:hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
+                      <Icon className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${meta.badge}`}>{meta.label}</span>
+                        <span className="text-[11px] text-muted-foreground">{timeAgo(item.created_at)}</span>
+                      </div>
+                      <h4 className="truncate text-sm sm:text-base font-semibold text-foreground group-hover:text-primary transition-colors">{item.title}</h4>
+                      <p className="truncate text-xs text-muted-foreground">{getCategoryDisplayName(item.category)}</p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                   </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Year sections */}
-        <div>
-          <h2 className="font-serif text-lg font-bold text-foreground mb-4">Browse by Year</h2>
-          {loading ? (
-            <div className="flex justify-center py-16">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : yearGroups.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border p-12 text-center">
-              <GraduationCap className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
-              <p className="text-muted-foreground">No study materials yet. Content is being added regularly!</p>
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {yearGroups.map((group, i) => {
-                const meta = YEAR_META[group.year] || YEAR_META["Year 1"];
-                return (
-                  <motion.div key={group.year} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-                    <Link to={`/blog?year=${encodeURIComponent(group.year)}`}
-                      className={`group block rounded-xl border ${meta.border} bg-card p-5 hover:shadow-md transition-all`}
-                      style={{ boxShadow: "var(--shadow-card)" }}>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className={`text-lg font-bold font-serif ${meta.color}`}>{group.year}</span>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                      <div className="space-y-1">
-                        {group.categories.slice(0, 5).map(cat => (
-                          <p key={cat.name} className="text-sm text-muted-foreground truncate">{getCategoryDisplayName(cat.name)}</p>
-                        ))}
-                        {group.categories.length > 5 && (
-                          <p className="text-xs text-muted-foreground/60">+{group.categories.length - 5} more</p>
-                        )}
-                      </div>
-                      <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
-                        {group.categories.length} units · {group.total} items
-                      </div>
-                    </Link>
-                  </motion.div>
                 );
               })}
             </div>
@@ -236,8 +279,8 @@ export default function Index() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border">
-        <div className="mx-auto max-w-5xl px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="border-t border-border bg-background">
+        <div className="mx-auto max-w-6xl px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Ompath Study</p>
           <div className="flex gap-2">
             <a href="tel:+254115475543" className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors">
