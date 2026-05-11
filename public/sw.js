@@ -1,5 +1,5 @@
-// OmpathStudy Service Worker - v5 Enhanced Offline
-const CACHE_NAME = "ompath-v5";
+// OmpathStudy Service Worker - v6 Network-first JS to avoid stale chunks
+const CACHE_NAME = "ompath-v6";
 const API_CACHE = "ompath-api-v3";
 const STATIC_ASSETS = ["/", "/index.html", "/manifest.json"];
 
@@ -69,11 +69,26 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets: cache-first
-  if (
-    url.pathname.startsWith("/assets/") ||
-    /\.(js|css|png|jpg|jpeg|svg|ico|woff2?|webp)$/.test(url.pathname)
-  ) {
+  // JS/CSS chunks: network-first to avoid serving stale hashed bundles after deploy.
+  // Falls back to cache only when offline.
+  const isHashedBundle = url.pathname.startsWith("/assets/") || /\.(js|css)$/.test(url.pathname);
+  if (isHashedBundle) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((r) => r || new Response("", { status: 503 })))
+    );
+    return;
+  }
+
+  // Images / fonts: cache-first (safe to keep stale)
+  if (/\.(png|jpg|jpeg|svg|ico|woff2?|webp|gif)$/.test(url.pathname)) {
     event.respondWith(
       caches.match(event.request).then((cached) => {
         if (cached) return cached;
