@@ -13,6 +13,15 @@ function slugify(value: string): string {
   return (value || "").toLowerCase().trim().replace(/&/g, " and ").replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 }
 
+function cleanPublicSlug(rawSlug: string | null | undefined, fallbackTitle: string, fallback = "study"): string {
+  const base = String(rawSlug || slugify(fallbackTitle) || fallback).trim().toLowerCase();
+  return base
+    .replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i, "")
+    .replace(/-[0-9a-f]{6}$/i, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "") || fallback;
+}
+
 function stripRichText(input: string, maxLength = 160): string {
   return (input || "")
     .replace(/<[^>]*>/g, " ")
@@ -20,6 +29,7 @@ function stripRichText(input: string, maxLength = 160): string {
     .replace(/\[[^\]]+\]\([^)]*\)/g, " ")
     .replace(/^#+\s+/gm, "")
     .replace(/[*_`>|#]/g, " ")
+    .replace(/Mount Kenya University|\bMKU\b/gi, "Kenyan medical schools")
     .replace(/data:image\/[^\s)]+/g, "")
     .replace(/https?:\/\/\S+/g, "")
     .replace(/\s+/g, " ")
