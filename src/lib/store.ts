@@ -390,7 +390,7 @@ export async function getPublishedArticleSummaries(year?: string): Promise<Artic
 
   let query = supabase
     .from("articles")
-    .select("id, title, category, created_at, updated_at, published, slug, meta_description")
+    .select("id, title, category, created_at, updated_at, published, slug, meta_description, og_image_url")
     .eq("published", true)
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
@@ -414,7 +414,7 @@ export async function searchPublishedArticles(queryText: string, year?: string, 
   const safeQ = q.replace(/[,%]/g, " ").slice(0, 80);
   let query = supabase
     .from("articles")
-    .select("id, title, category, created_at, updated_at, published, slug, meta_description")
+    .select("id, title, category, created_at, updated_at, published, slug, meta_description, og_image_url")
     .eq("published", true)
     .is("deleted_at", null)
     .or(`title.ilike.%${safeQ}%,category.ilike.%${safeQ}%,content.ilike.%${safeQ}%`)
