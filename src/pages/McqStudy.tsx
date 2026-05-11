@@ -20,6 +20,16 @@ function persistUnlockedMcqs(set: Set<string>) {
   localStorage.setItem(MCQ_UNLOCKED_KEY, JSON.stringify([...set]));
 }
 
+function isMcqItem(q: any) {
+  return Array.isArray(q?.options) && q.options.length >= 2;
+}
+
+function inferPaperSource(title: string) {
+  const t = title.toLowerCase();
+  const known = ["mount kenya university", "uon", "university of nairobi", "ku", "kenyatta university", "moi university", "jkuat"];
+  return known.find((name) => t.includes(name))?.replace(/\buon\b/i, "University of Nairobi").replace(/\bku\b/i, "Kenyatta University") || "Medical Exam Paper";
+}
+
 export default function McqStudy() {
   const { id: param } = useParams();
   const navigate = useNavigate();
@@ -152,16 +162,21 @@ export default function McqStudy() {
   const hideAnswers = !!(set.access_password && set.access_password !== "" && !passwordUnlocked);
   const needsPayForExam = mcqFreeLimit > 0 && !isPaid && set.questions.length > mcqFreeLimit;
 
+  const mcqQuestions = set.questions.filter(isMcqItem) as any[];
+  const writtenQuestions = set.questions.filter((q: any) => !isMcqItem(q));
+  const saqCount = writtenQuestions.filter((q: any) => q.type === "saq" || !/essay|laq|long/i.test(q.type || q.question || "")).length;
+  const essayCount = writtenQuestions.length - saqCount;
   const qCount = set.questions.length;
-  const estMinutes = Math.max(5, Math.round(qCount * 1.2));
+  const estMinutes = Math.max(5, Math.round(mcqQuestions.length * 1.2 + saqCount * 5 + essayCount * 20));
   const examDate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const paperSource = inferPaperSource(set.title);
 
   // Exam mode — if paid or no paywall needed
   if (examMode) {
     return (
       <div className="mx-auto max-w-3xl px-5 pb-20 pt-10 sm:px-6 sm:py-12">
         <ExamMode
-          questions={set.questions}
+          questions={mcqQuestions}
           title={set.title}
           setId={set.id}
           onExit={() => setExamMode(false)}
@@ -206,9 +221,9 @@ export default function McqStudy() {
         <div className="bg-primary/10 px-5 py-3 text-center border-b-2 border-primary/20">
           <div className="flex items-center justify-center gap-2 text-primary">
             <GraduationCap className="h-4 w-4" />
-            <p className="text-xs font-bold uppercase tracking-wider">Mount Kenya University</p>
+            <p className="text-xs font-bold uppercase tracking-wider">{paperSource}</p>
           </div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">School of Medicine — Continuous Assessment</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">University-style revision paper</p>
         </div>
         <div className="px-5 py-4 text-center">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Unit</p>
@@ -220,8 +235,8 @@ export default function McqStudy() {
         <div className="grid grid-cols-3 border-t border-border bg-muted/30 text-center">
           <div className="px-2 py-2.5 border-r border-border">
             <ListChecks className="h-3.5 w-3.5 mx-auto mb-0.5 text-primary" />
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Questions</p>
-            <p className="text-sm font-bold text-foreground">{qCount}</p>
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Sections</p>
+            <p className="text-sm font-bold text-foreground">{mcqQuestions.length} MCQ{writtenQuestions.length ? ` + ${writtenQuestions.length}` : ""}</p>
           </div>
           <div className="px-2 py-2.5 border-r border-border">
             <Clock className="h-3.5 w-3.5 mx-auto mb-0.5 text-primary" />
@@ -235,7 +250,7 @@ export default function McqStudy() {
           </div>
         </div>
         <div className="px-5 py-2.5 border-t border-border bg-card text-[11px] text-muted-foreground">
-          <p><span className="font-semibold text-foreground">Instructions:</span> Answer all questions. Each question has only one correct answer. Tap an option to reveal the explanation.</p>
+          <p><span className="font-semibold text-foreground">Instructions:</span> Answer MCQs first. Short-answer and essay questions appear after the MCQs when included in the paper.</p>
         </div>
       </div>
 

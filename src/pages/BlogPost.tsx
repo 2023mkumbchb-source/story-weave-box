@@ -138,6 +138,52 @@ function PracticeQuestion({ number, question, answer }: { number: string; questi
   );
 }
 
+function RelatedArticleCard({ article, compact = false }: { article: any; compact?: boolean }) {
+  const image = article.og_image_url || extractFirstImageFromContent(article.content || "");
+  const summary = stripRichText(article.meta_description || article.content || "", compact ? 95 : 135);
+  return (
+    <Link
+      to={buildBlogPath(article)}
+      className={`${compact ? "w-[82vw] max-w-[340px] sm:w-80" : "w-full"} group grid shrink-0 snap-start overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-primary/40 sm:grid-cols-[132px_1fr]`}
+    >
+      <div className="aspect-[4/3] bg-muted sm:aspect-auto">
+        {image ? (
+          <img src={image} alt={article.title} loading="lazy" className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full min-h-28 items-center justify-center bg-primary/10 text-primary">
+            <FileText className="h-7 w-7" />
+          </div>
+        )}
+      </div>
+      <div className="min-w-0 p-3.5">
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-primary">{getCategoryDisplayName(article.category)}</p>
+        <h3 className="line-clamp-2 text-sm font-bold leading-snug text-foreground group-hover:text-primary">{article.title}</h3>
+        {summary && <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-muted-foreground">{summary}</p>}
+      </div>
+    </Link>
+  );
+}
+
+function InArticleRelated({ articles }: { articles: any[] }) {
+  if (!articles.length) return null;
+  return (
+    <aside className="not-prose my-8 border-y border-border py-5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-primary" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Continue Reading</p>
+        </div>
+        <span className="text-[11px] text-muted-foreground">Swipe</span>
+      </div>
+      <div className="-mx-5 overflow-x-auto px-5 pb-1">
+        <div className="flex snap-x snap-mandatory gap-3">
+          {articles.slice(0, 8).map((a) => <RelatedArticleCard key={a.id} article={a} compact />)}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 /* ─── Helpers ─── */
 function splitInlineTable(s: string): string[] {
   if (!s.includes("|---") && !s.includes("| ---")) return [];
@@ -151,7 +197,11 @@ function preprocessContent(raw: string): string {
   let inKeyPoints = false;
 
   for (const line of raw.split("\n")) {
-    const t = line.trim();
+    const t = line
+      .trim()
+      .replace(/^HOW\s+TO\s+OPEN>\s*"?/i, "")
+      .replace(/^say\s*:?>\s*"?/i, "")
+      .replace(/([:.;!?])(?=[A-Z])/g, "$1 ");
     if (!t) { out.push(""); continue; }
     if (/^[-*_]{3,}$/.test(t)) { out.push(""); continue; }
     if (/^\d+$/.test(t)) continue;
@@ -175,6 +225,10 @@ function preprocessContent(raw: string): string {
       if (/^key points$/i.test(heading)) { inKeyPoints = true; continue; }
       if (inKeyPoints) inKeyPoints = false;
       if (META_HEADING.test(heading)) continue;
+      if (/^(HOW\s+TO\s+OPEN|say\s*:?>)/i.test(heading) || /^".*"$/.test(heading)) {
+        out.push(`> ${heading.replace(/^HOW\s+TO\s+OPEN>\s*"?/i, "").replace(/^say\s*:?>\s*"?/i, "").replace(/^"|"$/g, "").trim()}`);
+        continue;
+      }
       out.push(line);
       continue;
     }
@@ -253,7 +307,7 @@ function extractToc(content: string): TocItem[] {
 /* ─── Article content renderer ─── */
 let _sec = 0;
 
-const ArticleContent = memo(function ArticleContent({ content }: { content: string }) {
+const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [] }: { content: string; inlineRelated?: any[] }) {
   _sec = 0;
   const lines = preprocessContent(content).split("\n");
   const els: React.ReactNode[] = [];
@@ -262,6 +316,7 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
   let tableBuf: string[] = [];
   let underSubheading = false;
   const pqs: { number: string; question: string; answer: string }[] = [];
+  let insertedRelated = false;
 
   const flushList = () => {
     if (!listBuf) return;
@@ -370,9 +425,13 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
       const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").replace(/^\d+\.\s*/, "").replace(/^[IVXLC]+\.\s+/, "").trim();
       if (heading.toLowerCase().includes("practice")) { inPractice = true; return; }
       flushPractice(); inPractice = false;
+      if (!insertedRelated && inlineRelated.length > 0 && els.length >= 4) {
+        els.push(<InArticleRelated key="in-article-related" articles={inlineRelated} />);
+        insertedRelated = true;
+      }
       _sec++;
       els.push(
-        <h2 key={`h2-${i}`} id={`section-${_sec}`} className="mt-10 mb-4 font-serif font-bold text-2xl text-foreground scroll-mt-20 border-b border-border pb-3 sm:text-[2rem]">
+        <h2 key={`h2-${i}`} id={`section-${_sec}`} className="mt-9 mb-4 scroll-mt-20 border-b border-border pb-3 font-serif text-2xl font-bold leading-tight text-foreground sm:text-3xl">
           {heading}
         </h2>
       );
@@ -382,7 +441,7 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
     if (/^#{3,6}\s/.test(t)) {
       flushList(); underSubheading = true;
       const txt = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").trim();
-      els.push(<h3 key={`h3-${i}`} className="mt-6 mb-2 font-semibold text-lg text-foreground">{txt}</h3>);
+      els.push(<h3 key={`h3-${i}`} className="mt-6 mb-2 font-serif text-xl font-bold leading-snug text-foreground">{txt}</h3>);
       return;
     }
 
@@ -463,10 +522,13 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
       return;
     }
 
-    els.push(<p key={`p-${i}`} className="mb-5 text-base leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
+    els.push(<p key={`p-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
   });
 
   flushList(); flushTable(); flushPractice();
+  if (!insertedRelated && inlineRelated.length > 0 && els.length > 8) {
+    els.splice(Math.max(4, Math.floor(els.length / 2)), 0, <InArticleRelated key="in-article-related" articles={inlineRelated} />);
+  }
   return <div>{els}</div>;
 });
 
@@ -961,7 +1023,7 @@ export default function BlogPost() {
 
           <article id="section-top" className="min-w-0">
             <header className="mb-10">
-              <h1 className="mb-3 font-serif text-4xl font-bold leading-tight text-foreground sm:text-5xl">
+              <h1 className="mb-3 font-serif text-3xl font-bold leading-tight text-foreground sm:text-5xl">
                 {article.title.replace(/^#+\s*/, "")}
               </h1>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -983,7 +1045,7 @@ export default function BlogPost() {
             </header>
 
             <div className="prose-custom">
-              <ArticleContent content={article.content} />
+              <ArticleContent content={article.content} inlineRelated={related.articles || []} />
             </div>
 
             <div className="mt-10 pt-6 border-t border-border">
@@ -1074,30 +1136,22 @@ export default function BlogPost() {
             )}
 
             {related.articles && related.articles.length > 0 && (
-              <div className="mt-12">
-                <div className="flex items-center gap-2 mb-4">
+              <section className="mt-12 border-t border-border pt-8">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-primary" />
                   <h2 className="font-serif text-xl font-bold text-foreground">Related Articles</h2>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Swipe</span>
                 </div>
                 <div className="-mx-5 px-5 overflow-x-auto pb-2">
                   <div className="flex gap-3 snap-x snap-mandatory">
                     {related.articles.slice(0, 12).map((a: any) => (
-                      <Link
-                        key={a.id}
-                        to={buildBlogPath(a)}
-                        className="snap-start shrink-0 w-64 rounded-xl border border-border bg-card p-4 hover:border-primary/40 hover:shadow-sm transition-all"
-                      >
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-1.5">
-                          {getCategoryDisplayName(a.category)}
-                        </p>
-                        <p className="text-sm font-semibold text-foreground leading-snug line-clamp-3">
-                          {a.title}
-                        </p>
-                      </Link>
+                      <RelatedArticleCard key={a.id} article={a} compact />
                     ))}
                   </div>
                 </div>
-              </div>
+              </section>
             )}
 
             <ArticleComments articleId={article.id} />

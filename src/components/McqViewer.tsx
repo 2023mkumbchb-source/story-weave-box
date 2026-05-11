@@ -19,9 +19,13 @@ const fetchMcqs       = () => getPublishedMcqSets().catch(() => ([] as any[]));
 
 interface McqQuestion {
   question: string;
-  options: string[];
-  correct_answer: number;
+  options?: string[];
+  correct_answer?: number;
   explanation?: string;
+  type?: "mcq" | "saq" | "essay";
+  answer?: string;
+  model_answer?: string;
+  marks?: number;
 }
 interface Props {
   questions: McqQuestion[];
@@ -60,6 +64,10 @@ function cleanQuestionText(text: string | undefined): string {
     .replace(/^Question\s*\d+\s*/i, "")
     .replace(/\s*Choices:\s*$/i, "")
     .trim();
+}
+
+function isMcqQuestion(q: McqQuestion | undefined): q is McqQuestion & { options: string[]; correct_answer: number } {
+  return !!q && Array.isArray(q.options) && q.options.length >= 2 && typeof q.correct_answer === "number";
 }
 
 
@@ -291,6 +299,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
   // ── Answer handling ────────────────────────────────────────────────────────
   const handleSelect = (optionIndex: number) => {
     if (revealed) return;
+    if (!isMcqQuestion(q)) return;
     if (hideAnswers) {
       // In hideAnswers mode, just mark the selected option but don't reveal correct answer
       const newWrong = new Set(wrongAttempts).add(optionIndex);
@@ -359,6 +368,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
   };
 
   const getOptionStyle = (i: number) => {
+    if (!isMcqQuestion(q)) return "border-border bg-card";
     if (!hideAnswers && revealed && i === q.correct_answer)
       return "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400";
     if (wrongAttempts.has(i))
@@ -639,7 +649,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
 
           {/* Options */}
           <div className="space-y-2 mb-4">
-            {q?.options.map((opt, i) => (
+            {(q?.options ?? []).map((opt, i) => (
               <motion.button key={i} onClick={() => handleSelect(i)}
                 whileTap={!revealed ? { scale: 0.98 } : {}}
                 className={`w-full rounded-xl border p-3 sm:p-4 text-left text-sm sm:text-base font-medium transition-colors flex items-start gap-3 ${getOptionStyle(i)}`}>
@@ -964,11 +974,13 @@ function ScrollMcqList(props: ScrollProps) {
   const [picks, setPicks] = useState<Record<number, number[]>>({}); // qIdx -> wrong picks
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
   const refs = useRef<Record<number, HTMLDivElement | null>>({});
+  const mcqOrder = order.filter((idx) => isMcqQuestion(questions[idx]));
+  const writtenItems = questions.filter((q) => !isMcqQuestion(q));
 
   const handlePick = (qPos: number, optionIdx: number) => {
     if (revealed[qPos]) return;
-    const q = questions[order[qPos]];
-    if (!q) return;
+    const q = questions[mcqOrder[qPos]];
+    if (!isMcqQuestion(q)) return;
     if (hideAnswers) {
       setPicks((p) => ({ ...p, [qPos]: [...(p[qPos] || []), optionIdx] }));
       return;
@@ -986,13 +998,13 @@ function ScrollMcqList(props: ScrollProps) {
   };
 
   const correctCount = Object.values(revealed).filter(Boolean).length;
-  const limit = freeLimit > 0 && !isPaid ? Math.min(freeLimit, order.length) : order.length;
+  const limit = freeLimit > 0 && !isPaid ? Math.min(freeLimit, mcqOrder.length) : mcqOrder.length;
 
   return (
     <div className="mx-auto max-w-2xl px-2">
       <h2 className="mb-2 text-center font-serif text-xl sm:text-2xl font-bold text-foreground">{title}</h2>
       <div className="mb-4 flex flex-wrap items-center justify-center gap-3 text-xs sm:text-sm text-muted-foreground">
-        <span>{order.length} questions</span>
+        <span>{mcqOrder.length} MCQs{writtenItems.length ? ` + ${writtenItems.length} written` : ""}</span>
         <span>·</span>
         <span>{correctCount} correct</span>
         <span>·</span>
@@ -1006,9 +1018,9 @@ function ScrollMcqList(props: ScrollProps) {
       </div>
 
       <div className="space-y-5">
-        {order.slice(0, limit).map((qIdx, qPos) => {
+        {mcqOrder.slice(0, limit).map((qIdx, qPos) => {
           const q = questions[qIdx];
-          if (!q) return null;
+          if (!isMcqQuestion(q)) return null;
           const isRevealed = !!revealed[qPos];
           const wrongPicks = picks[qPos] || [];
           return (
@@ -1056,13 +1068,13 @@ function ScrollMcqList(props: ScrollProps) {
       </div>
 
       {/* ── PAYWALL: translucent preview of locked questions ── */}
-      {freeLimit > 0 && !isPaid && order.length > freeLimit && (
+      {freeLimit > 0 && !isPaid && mcqOrder.length > freeLimit && (
         <div className="relative mt-8">
           {/* Blurred preview content */}
           <div className="pointer-events-none select-none space-y-5" style={{ filter: "blur(7px)", opacity: 0.55 }} aria-hidden="true">
-            {order.slice(freeLimit, freeLimit + 5).map((qIdx, i) => {
+            {mcqOrder.slice(freeLimit, freeLimit + 5).map((qIdx, i) => {
               const q = questions[qIdx];
-              if (!q) return null;
+              if (!isMcqQuestion(q)) return null;
               return (
                 <div key={i} className="rounded-2xl border border-border bg-card p-4 sm:p-5">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">Question {freeLimit + i + 1}</p>
@@ -1095,7 +1107,7 @@ function ScrollMcqList(props: ScrollProps) {
                   You've previewed <strong className="text-foreground">{freeLimit}</strong> questions.
                 </p>
                 <p className="mb-5 text-sm text-muted-foreground">
-                  Pay <strong className="text-foreground">KES {mcqPrice}</strong> via M-Pesa to unlock all <strong className="text-foreground">{order.length}</strong>.
+                  Pay <strong className="text-foreground">KES {mcqPrice}</strong> via M-Pesa to unlock all <strong className="text-foreground">{mcqOrder.length}</strong>.
                 </p>
 
                 {paymentStatus === "pending" ? (
@@ -1136,9 +1148,9 @@ function ScrollMcqList(props: ScrollProps) {
 
           {/* SEO: full questions in DOM for crawlers */}
           <div className="sr-only" aria-hidden="false">
-            {order.slice(freeLimit).map((qIdx, i) => {
+            {mcqOrder.slice(freeLimit).map((qIdx, i) => {
               const sq = questions[qIdx];
-              if (!sq) return null;
+              if (!isMcqQuestion(sq)) return null;
               return (
                 <div key={i}>
                   <p>Q{freeLimit + i + 1}: {sq.question}</p>
@@ -1149,6 +1161,31 @@ function ScrollMcqList(props: ScrollProps) {
             })}
           </div>
         </div>
+      )}
+      {writtenItems.length > 0 && (
+        <section className="mt-8 space-y-3 border-t border-border pt-6">
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-primary" />
+            <h3 className="font-serif text-xl font-bold text-foreground">Short Answer & Essay Questions</h3>
+          </div>
+          {writtenItems.map((item, i) => (
+            <div key={i} className="rounded-xl border border-border bg-card p-4">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                  {item.type === "essay" ? "Essay" : "Short Answer"} {i + 1}
+                </p>
+                {item.marks && <span className="text-xs text-muted-foreground">{item.marks} marks</span>}
+              </div>
+              <p className="text-base font-medium leading-relaxed text-foreground">{cleanQuestionText(item.question)}</p>
+              {(item.answer || item.model_answer || item.explanation) && !hideAnswers && (
+                <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-primary">Model answer</p>
+                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-foreground/90">{item.model_answer || item.answer || item.explanation}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </section>
       )}
     </div>
   );
