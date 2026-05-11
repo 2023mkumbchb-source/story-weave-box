@@ -132,7 +132,8 @@ function parseWrittenQuestionsFromText(raw: string): any[] {
   };
   const flush = () => {
     if (!current) return;
-    const joined = current.lines.join("\n").replace(/\*\*/g, "").trim();
+    const item = current;
+    const joined = item.lines.join("\n").replace(/\*\*/g, "").trim();
     current = null;
     if (!joined || /^[\-–—]+$/.test(joined)) return;
     const marksMatch = joined.match(/\(?\b(\d{1,2})\s*marks?\b\)?/i);
@@ -144,7 +145,7 @@ function parseWrittenQuestionsFromText(raw: string): any[] {
       .trim();
     const answer = answerMatch ? answerMatch[1].replace(/^[-—:*\s]+/, "").trim() : "";
     if (question.length < 8) return;
-    const inferredEssay = current?.type === "essay" || /\b(?:essay|discuss|describe in detail|long answer)\b/i.test(question) || Number(marksMatch?.[1] || 0) >= 12;
+    const inferredEssay = item.type === "essay" || /\b(?:essay|discuss|describe in detail|long answer)\b/i.test(question) || Number(marksMatch?.[1] || 0) >= 12;
     questions.push({
       type: inferredEssay ? "essay" : "saq",
       question,
