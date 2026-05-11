@@ -649,7 +649,7 @@ export default function AdminEditor() {
       if (editorMode === "mcqs") {
         const parsed = parseMcqsFromText(geminiNotes);
         const written = parseWrittenQuestionsFromText(geminiNotes);
-        if (parsed.length >= 2 || (parsed.length >= 1 && written.length >= 1)) {
+        if (parsed.length + written.length >= 1) {
           const cat = editCategory || `Year ${selectedYear}: General`;
           const title = editTitle || extractTitleFromNotes(geminiNotes) || `MCQ: ${cat.split(":").pop()?.trim() || "General"}`;
           await saveMcqSet({
@@ -674,13 +674,14 @@ export default function AdminEditor() {
       if (editorMode === "mcqs" && Array.isArray(data)) {
         const cat = editCategory || `Year ${selectedYear}: General`;
         const title = editTitle || extractTitleFromNotes(geminiNotes) || `MCQ: ${cat.split(":").pop()?.trim() || "General"}`;
+        const written = parseWrittenQuestionsFromText(geminiNotes);
         await saveMcqSet({
           title,
-          questions: data, published: true, category: cat,
+          questions: [...data.map((q: any) => ({ type: "mcq", ...q })), ...written] as any, published: true, category: cat,
           original_notes: geminiNotes, access_password: "",
           created_at: new Date().toISOString(),
         } as any);
-        toast({ title: `Created ${data.length} MCQs!` });
+        toast({ title: `Created ${data.length} MCQs${written.length ? ` + ${written.length} written questions` : ""}!` });
         setIsAddMode(false);
         await loadContent();
       } else {
