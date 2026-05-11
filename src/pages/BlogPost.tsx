@@ -204,6 +204,12 @@ function cleanHeadingText(value: string): string {
 function splitMalformedHeading(raw: string): { heading: string; extras: string[] } {
   let text = cleanHeadingText(raw.replace(/^HOW\s+TO\s+OPEN>\s*"?/i, "").replace(/^say\s*:?>\s*"?/i, ""));
   const extras: string[] = [];
+  const inlineBulletIdx = text.search(/[:—-]\s+-\s+/);
+  if (inlineBulletIdx > 3) {
+    const bullet = text.slice(inlineBulletIdx).replace(/^[:—-]\s*/, "").trim();
+    text = text.slice(0, inlineBulletIdx).replace(/[:\s]+$/, "").trim();
+    if (bullet) extras.push(bullet.startsWith("- ") ? bullet : `- ${bullet}`);
+  }
   const quoteIdx = text.indexOf(">");
   if (quoteIdx > 8) {
     const quote = text.slice(quoteIdx + 1).replace(/^"|"$/g, "").trim();
