@@ -554,7 +554,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
                         {String.fromCharCode(65 + j)}
                       </span>
-                      <span className="flex-1">{opt}</span>
+                      <span className="flex-1">{cleanMcqOption(opt)}</span>
                     </div>
                   ))}
                 </div>
@@ -671,7 +671,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
                   {String.fromCharCode(65 + i)}
                 </span>
-                <span className="flex-1 break-words">{opt}</span>
+                <span className="flex-1 break-words">{cleanMcqOption(opt)}</span>
                 {revealed && i === q.correct_answer && <Check className="h-5 w-5 text-green-500 shrink-0" />}
                 {wrongAttempts.has(i) && <X className="h-5 w-5 text-destructive shrink-0" />}
               </motion.button>
@@ -689,10 +689,10 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
               <p className="text-center text-sm font-semibold text-green-600 dark:text-green-400">
                 {wrongAttempts.size === 0 ? "🎉 Correct on first try!" : "✅ Correct!"}
               </p>
-              {q?.explanation && (
+                  {q?.explanation && (
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex gap-3">
                   <Lightbulb className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <p className="text-sm text-foreground leading-relaxed">{q.explanation}</p>
+                      <p className="text-sm text-foreground leading-relaxed">{cleanMcqOption(q.explanation)}</p>
                 </div>
               )}
             </div>
