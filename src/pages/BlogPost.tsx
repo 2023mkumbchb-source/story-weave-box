@@ -117,6 +117,31 @@ function TableBlock({ lines }: { lines: string[] }) {
   );
 }
 
+function FlowBlock({ lines }: { lines: string[] }) {
+  const compact = lines.map((l) => l.trim()).filter(Boolean);
+  if (!compact.length) return null;
+  return (
+    <div className="not-prose my-5 overflow-hidden rounded-lg border border-border bg-card">
+      <div className="max-h-[70vh] overflow-x-auto px-4 py-4 sm:px-5">
+        <div className="min-w-max space-y-2 text-center font-mono text-[13px] leading-6 text-foreground/90 sm:text-sm">
+          {compact.map((line, i) => {
+            const arrowOnly = /^(↓|v|\|)$/i.test(line);
+            const branch = /\+[-+]+\+/.test(line) || /\s{2,}/.test(line);
+            return (
+              <div
+                key={i}
+                className={arrowOnly ? "text-primary" : branch ? "text-muted-foreground" : "rounded-md bg-muted/40 px-3 py-2"}
+              >
+                {arrowOnly ? "↓" : line}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Practice Q expandable ─── */
 function PracticeQuestion({ number, question, answer }: { number: string; question: string; answer: string }) {
   const [open, setOpen] = useState(false);
@@ -348,7 +373,10 @@ const META_HEADING = /^(key points|detailed notes|summary)$/i;
 /* Decode common HTML entities so pasted-from-Word content doesn't show "&nbsp;" literally */
 function decodeEntities(s: string): string {
   if (!s) return s;
-  return s
+  let text = s;
+  for (let i = 0; i < 2; i++) {
+    text = text
+    .replace(/&amp;nbsp;/gi, " ")
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
     .replace(/&lt;/gi, "<")
@@ -363,6 +391,8 @@ function decodeEntities(s: string): string {
     .replace(/&rdquo;/gi, "\u201D")
     .replace(/&ldquo;/gi, "\u201C")
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)));
+  }
+  return text;
 }
 
 /* Strip generic university/course-code branding so it never reaches the reader */
@@ -376,6 +406,12 @@ function stripBranding(s: string): string {
     .replace(/^\s*\|\s*/g, "")
     .replace(/\s{2,}/g, " ")
     .trim();
+}
+
+function isCourseBrandingLine(s: string): boolean {
+  const t = s.trim();
+  if (!t) return false;
+  return /Mount\s+Kenya\s+University|\bMKU\b/i.test(t) && /\b[A-Z]{2,5}\s*\d{3,4}\b|semester|university/i.test(t);
 }
 
 function cleanHeadingText(value: string): string {
@@ -432,7 +468,10 @@ function preprocessContent(raw: string): string {
   // Decode HTML entities up-front so "&nbsp;" / "&amp;" don't survive into the reader.
   const decoded = decodeEntities(raw);
 
-  for (const rawLine of decoded.split("\n")) {
+  const sourceLines = decoded.replace(/\r\n?/g, "\n").split("\n");
+
+  for (let idx = 0; idx < sourceLines.length; idx++) {
+    const rawLine = sourceLines[idx];
     // Preserve fenced code blocks verbatim — these hold ASCII flowcharts and tables.
     const fenceTrim = rawLine.trim();
     if (/^```/.test(fenceTrim)) {
@@ -442,23 +481,52 @@ function preprocessContent(raw: string): string {
     }
     if (inFence) {
       // Keep raw spacing so flowcharts line up.
-      out.push(rawLine.replace(/\u00A0/g, " ").replace(/\s+$/g, ""));
+      out.push(rawLine.replace(/\u00A0/g, " ").replace(/&nbsp;/gi, " ").replace(/\s+$/g, ""));
       continue;
     }
 
     const line = rawLine;
     let t = line
       .trim()
+      .replace(/&nbsp;/gi, " ")
+      .replace(/\u00A0/g, " ")
       .replace(/^HOW\s+TO\s+OPEN>\s*"?/i, "")
       .replace(/^say\s*:?>\s*"?/i, "")
       .replace(/([:.;!?])(?=\S)/g, "$1 ")
       .replace(/([a-z])(?=(?:Think of|The most|Every reaction|Almost always|This is why|If someone|There are|ABO incompatibility)\b)/g, "$1 ");
     // Drop branding lines like "MBML 3223 | Semester 3 | Mount Kenya University"
-    if (/Mount\s+Kenya\s+University|\bMKU\b/i.test(t)) {
+    if (isCourseBrandingLine(t)) {
+      out.push("");
+      continue;
+    } else if (/Mount\s+Kenya\s+University|\bMKU\b/i.test(t)) {
       t = stripBranding(t);
       if (!t || t.length < 4) { out.push(""); continue; }
     }
     if (!t) { out.push(""); continue; }
+
+    // Common raw paste: a heading marker followed by a real title on the next line.
+    if (/^#{1,6}$/.test(t) && sourceLines[idx + 1]?.trim()) {
+      const next = cleanHeadingText(decodeEntities(sourceLines[idx + 1].trim()));
+      if (next && !META_HEADING.test(next)) {
+        out.push(`${t.length <= 2 ? "##" : "###"} ${next}`);
+        idx++;
+        continue;
+      }
+    }
+
+    // Remove orphan fence markers from bad pasted snippets, while preserving actual multi-line code fences above.
+    if (/^```+$/.test(t)) { out.push(""); continue; }
+
+    // Convert simple ASCII arrows/flowchart rows into compact flow lines instead of huge raw paragraphs.
+    if (/^(\|+|v+|↓+|[-+|\s]+|\s*\+[-+]+\+\s*)$/i.test(t)) {
+      out.push(t.includes("+") ? t.replace(/\s+/g, " ") : "↓");
+      continue;
+    }
+
+    if (/^\*\*\d+\.\s+.+\*\*$/i.test(t)) {
+      out.push(t.replace(/^\*\*/, "").replace(/\*\*$/, ""));
+      continue;
+    }
     if (/^#?(SECTION\s+\d+|PART\s+\d+|PART\s+[A-Z])\b/i.test(t)) {
       out.push(`## ${cleanHeadingText(t.replace(/^#+\s*/, ""))}`);
       continue;
@@ -585,6 +653,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   let listBuf: { type: "ul" | "ol"; items: React.ReactNode[] } | null = null;
   let inPractice = false;
   let tableBuf: string[] = [];
+  let flowBuf: string[] = [];
   let underSubheading = false;
   const pqs: { number: string; question: string; answer: string }[] = [];
   let insertedRelated = false;
@@ -597,6 +666,12 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   const flushTable = () => {
     if (tableBuf.length >= 2) els.push(<TableBlock key={`tbl-${els.length}`} lines={[...tableBuf]} />);
     tableBuf = [];
+  };
+  const flushFlow = () => {
+    const meaningful = flowBuf.filter((l) => l.trim() && !/^(↓|v|\|)$/i.test(l.trim()));
+    if (meaningful.length >= 2) els.push(<FlowBlock key={`flow-${els.length}`} lines={[...flowBuf]} />);
+    else meaningful.forEach((l, idx) => els.push(<p key={`flow-p-${els.length}-${idx}`} className="mb-4 text-[1.03rem] leading-8 text-foreground/90"><Inline text={l} /></p>));
+    flowBuf = [];
   };
   const flushPractice = () => {
     if (!pqs.length) return;
@@ -632,15 +707,11 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     // Fenced code block: collect verbatim lines, render as <pre>
     if (/^```/.test(t)) {
       if (codeBuf == null) {
-        flushList(); flushTable(); flushPractice(); underSubheading = false;
+        flushList(); flushTable(); flushFlow(); flushPractice(); underSubheading = false;
         codeBuf = [];
       } else {
         const code = codeBuf.join("\n");
-        els.push(
-          <pre key={`code-${i}`} className="not-prose my-5 -mx-5 sm:mx-0 sm:rounded-lg overflow-x-auto border-y sm:border border-border bg-muted/40 px-4 py-4 text-[13px] leading-6 font-mono text-foreground/90 whitespace-pre">
-            {code}
-          </pre>
-        );
+        els.push(<FlowBlock key={`code-flow-${i}`} lines={code.split("\n")} />);
         codeBuf = null;
       }
       continue;
@@ -648,15 +719,15 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (codeBuf) { codeBuf.push(line); continue; }
 
     // MCQ answer + explanation → collapse until next MCQ / Question / heading boundary
-    if (/^(✅\s*)?Answer\s*[:：]/i.test(t)) {
-      flushList(); underSubheading = false;
-      const buf: string[] = [t];
+    if (/^\*{0,2}\s*(✅\s*)?Answer\s*[:：]/i.test(t)) {
+      flushList(); flushFlow(); underSubheading = false;
+      const buf: string[] = [t.replace(/^\*+/, "").replace(/\*+$/g, "")];
       let j = i + 1;
       while (j < lines.length) {
         const nt = lines[j].trim();
         if (/^(MCQ|Question|Q)\s*\d+/i.test(nt)) break;
         if (/^#{1,6}\s/.test(nt)) break;
-        if (/^(✅\s*)?Answer\s*[:：]/i.test(nt)) break;
+        if (/^\*{0,2}\s*(✅\s*)?Answer\s*[:：]/i.test(nt)) break;
         buf.push(lines[j]);
         j++;
       }
@@ -667,10 +738,14 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
-    if (t.startsWith("|")) { flushList(); tableBuf.push(t); underSubheading = false; return; }
+    const flowLike = /^(↓|v|\||\+[-+]+\+|[-+|\s]{3,})$/i.test(t) || (/^[A-Za-z0-9()\/,.'’\-\s]+$/.test(t) && /^(STEP\s+\d+|[A-Z][A-Z\s\-]{4,}|Compatible\s+Incompatible|AHR\s+FNHR|Packed\s+Platelet|Hypothermia\s+Dilutional)/.test(t));
+    if (t.startsWith("|")) { flushList(); flushFlow(); tableBuf.push(t); underSubheading = false; continue; }
     else if (tableBuf.length) { flushTable(); }
 
-    if (!t) { flushList(); underSubheading = false; return; }
+    if (flowLike) { flushList(); flowBuf.push(t); underSubheading = false; continue; }
+    else if (flowBuf.length) { flushFlow(); }
+
+    if (!t) { flushList(); flushFlow(); underSubheading = false; continue; }
 
     if (t.startsWith("> ")) {
       flushList(); underSubheading = false;
@@ -737,7 +812,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (/^#{1,2}\s/.test(t)) {
       flushList(); underSubheading = false;
       const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").replace(/^\d+\.\s*/, "").replace(/^[IVXLC]+\.\s+/, "").trim();
-      if (heading.toLowerCase().includes("practice")) { inPractice = true; return; }
+      if (heading.toLowerCase().includes("practice")) { inPractice = true; continue; }
       flushPractice(); inPractice = false;
       if (!insertedRelated && inlineRelated.length > 0 && els.length >= 4) {
         els.push(<InArticleRelated key="in-article-related" articles={inlineRelated} />);
@@ -779,7 +854,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
     if (inPractice && t.startsWith("→")) continue;
 
-    if (t.startsWith("- ")) { pushBullet(t.slice(2), `li-${i}`); return; }
+    if (t.startsWith("- ")) { pushBullet(t.slice(2), `li-${i}`); continue; }
 
     if (/^\d+\.\s/.test(t) && !t.includes("→") && !inPractice) {
       if (!listBuf || listBuf.type !== "ol") { flushList(); listBuf = { type: "ol", items: [] }; }
@@ -841,14 +916,10 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   }
   // Flush dangling code block (if author forgot closing fence)
   if (codeBuf && codeBuf.length) {
-    els.push(
-      <pre key="code-tail" className="not-prose my-5 -mx-5 sm:mx-0 sm:rounded-lg overflow-x-auto border-y sm:border border-border bg-muted/40 px-4 py-4 text-[13px] leading-6 font-mono text-foreground/90 whitespace-pre">
-        {codeBuf.join("\n")}
-      </pre>
-    );
+    els.push(<FlowBlock key="code-tail-flow" lines={codeBuf} />);
   }
 
-  flushList(); flushTable(); flushPractice();
+  flushList(); flushTable(); flushFlow(); flushPractice();
   if (!insertedRelated && inlineRelated.length > 0 && els.length > 8) {
     els.splice(Math.max(4, Math.floor(els.length / 2)), 0, <InArticleRelated key="in-article-related" articles={inlineRelated} />);
   }
@@ -1429,7 +1500,7 @@ export default function BlogPost() {
               category={article.category}
             />
 
-            <div className="prose-custom">
+            <div className="prose-custom article-reader">
               <ArticleContent content={article.content} inlineRelated={related.articles || []} />
             </div>
 

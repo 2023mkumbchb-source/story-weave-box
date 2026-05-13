@@ -60,9 +60,22 @@ interface RelatedResult {
 function cleanQuestionText(text: string | undefined): string {
   if (!text) return "";
   return text
+    .replace(/&amp;nbsp;|&nbsp;|\u00A0/gi, " ")
+    .replace(/Mount\s+Kenya\s+University\s*\|?\s*/gi, "")
+    .replace(/\b[A-Z]{2,5}\s*\d{3,4}\b\s*\|?\s*/g, "")
+    .replace(/^SECTION\s+\d+\s*[:\-–—].*$/gim, "")
     .replace(/^#{1,6}\s+/gm, "")
     .replace(/^Question\s*\d+\s*/i, "")
     .replace(/\s*Choices:\s*$/i, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function cleanMcqOption(text: string | undefined): string {
+  return String(text || "")
+    .replace(/&amp;nbsp;|&nbsp;|\u00A0/gi, " ")
+    .replace(/^\s*[A-E][.)]\s*/i, "")
+    .replace(/\s{2,}/g, " ")
     .trim();
 }
 
@@ -541,7 +554,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
                         {String.fromCharCode(65 + j)}
                       </span>
-                      <span className="flex-1">{opt}</span>
+                      <span className="flex-1">{cleanMcqOption(opt)}</span>
                     </div>
                   ))}
                 </div>
@@ -603,8 +616,8 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
           {questions.slice(freeLimit).map((sq, i) => (
             <div key={i}>
               <p>{sq.question}</p>
-              {Array.isArray(sq.options) && sq.options.map((opt, j) => <span key={j}>{opt}</span>)}
-              {sq.explanation && <p>{sq.explanation}</p>}
+              {Array.isArray(sq.options) && sq.options.map((opt, j) => <span key={j}>{cleanMcqOption(opt)}</span>)}
+              {sq.explanation && <p>{cleanMcqOption(sq.explanation)}</p>}
             </div>
           ))}
         </div>
@@ -658,7 +671,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
                   {String.fromCharCode(65 + i)}
                 </span>
-                <span className="flex-1 break-words">{opt}</span>
+                <span className="flex-1 break-words">{cleanMcqOption(opt)}</span>
                 {revealed && i === q.correct_answer && <Check className="h-5 w-5 text-green-500 shrink-0" />}
                 {wrongAttempts.has(i) && <X className="h-5 w-5 text-destructive shrink-0" />}
               </motion.button>
@@ -676,10 +689,10 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
               <p className="text-center text-sm font-semibold text-green-600 dark:text-green-400">
                 {wrongAttempts.size === 0 ? "🎉 Correct on first try!" : "✅ Correct!"}
               </p>
-              {q?.explanation && (
+                  {q?.explanation && (
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex gap-3">
                   <Lightbulb className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <p className="text-sm text-foreground leading-relaxed">{q.explanation}</p>
+                      <p className="text-sm text-foreground leading-relaxed">{cleanMcqOption(q.explanation)}</p>
                 </div>
               )}
             </div>
@@ -860,7 +873,7 @@ function MiniQuiz({ set, startIndex = 0, onDone }: { set: any; startIndex?: numb
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold">
                 {String.fromCharCode(65 + i)}
               </span>
-              <span className="flex-1 break-words">{opt}</span>
+              <span className="flex-1 break-words">{cleanMcqOption(opt)}</span>
               {isCorrect && <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />}
               {isWrong && <X className="h-3.5 w-3.5 text-destructive shrink-0" />}
             </button>
@@ -1048,7 +1061,7 @@ function ScrollMcqList(props: ScrollProps) {
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
                         {String.fromCharCode(65 + i)}
                       </span>
-                      <span className="flex-1 break-words">{opt}</span>
+                      <span className="flex-1 break-words">{cleanMcqOption(opt)}</span>
                       {isCorrect && <Check className="h-5 w-5 text-green-500 shrink-0" />}
                       {isWrong && <X className="h-5 w-5 text-destructive shrink-0" />}
                     </button>
@@ -1061,7 +1074,7 @@ function ScrollMcqList(props: ScrollProps) {
               {isRevealed && q.explanation && (
                 <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4 flex gap-3">
                   <Lightbulb className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <p className="text-sm text-foreground leading-relaxed">{q.explanation}</p>
+                  <p className="text-sm text-foreground leading-relaxed">{cleanMcqOption(q.explanation)}</p>
                 </div>
               )}
             </div>
@@ -1087,7 +1100,7 @@ function ScrollMcqList(props: ScrollProps) {
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
                           {String.fromCharCode(65 + j)}
                         </span>
-                        <span className="flex-1">{opt}</span>
+                        <span className="flex-1">{cleanMcqOption(opt)}</span>
                       </div>
                     ))}
                   </div>
@@ -1156,8 +1169,8 @@ function ScrollMcqList(props: ScrollProps) {
               return (
                 <div key={i}>
                   <p>Q{freeLimit + i + 1}: {sq.question}</p>
-                  {sq.options.map((opt, j) => <span key={j}>{String.fromCharCode(65 + j)}. {opt}</span>)}
-                  {sq.explanation && <p>Explanation: {sq.explanation}</p>}
+                  {sq.options.map((opt, j) => <span key={j}>{String.fromCharCode(65 + j)}. {cleanMcqOption(opt)}</span>)}
+                  {sq.explanation && <p>Explanation: {cleanMcqOption(sq.explanation)}</p>}
                 </div>
               );
             })}
@@ -1182,7 +1195,7 @@ function ScrollMcqList(props: ScrollProps) {
               {(item.answer || item.model_answer || item.explanation) && !hideAnswers && (
                 <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
                   <p className="text-xs font-semibold uppercase tracking-wider text-primary">Model answer</p>
-                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-foreground/90">{item.model_answer || item.answer || item.explanation}</p>
+                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-foreground/90">{cleanMcqOption(item.model_answer || item.answer || item.explanation)}</p>
                 </div>
               )}
             </div>
