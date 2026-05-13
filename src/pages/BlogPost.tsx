@@ -916,14 +916,10 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   }
   // Flush dangling code block (if author forgot closing fence)
   if (codeBuf && codeBuf.length) {
-    els.push(
-      <pre key="code-tail" className="not-prose my-5 -mx-5 sm:mx-0 sm:rounded-lg overflow-x-auto border-y sm:border border-border bg-muted/40 px-4 py-4 text-[13px] leading-6 font-mono text-foreground/90 whitespace-pre">
-        {codeBuf.join("\n")}
-      </pre>
-    );
+    els.push(<FlowBlock key="code-tail-flow" lines={codeBuf} />);
   }
 
-  flushList(); flushTable(); flushPractice();
+  flushList(); flushTable(); flushFlow(); flushPractice();
   if (!insertedRelated && inlineRelated.length > 0 && els.length > 8) {
     els.splice(Math.max(4, Math.floor(els.length / 2)), 0, <InArticleRelated key="in-article-related" articles={inlineRelated} />);
   }
