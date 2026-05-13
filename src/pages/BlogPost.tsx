@@ -911,6 +911,24 @@ export default function BlogPost() {
   };
 
   useLayoutEffect(() => {
+    // If this is a page reload, restore the saved scroll position for this article instead of resetting to top.
+    let isReload = false;
+    try {
+      const navEntry = (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined);
+      isReload = navEntry?.type === "reload";
+    } catch { /* ignore */ }
+    if (isReload && slug) {
+      const saved = parseInt(sessionStorage.getItem(`blog_scroll_${slug}`) || "0", 10);
+      if (saved > 0) {
+        const restore = () => window.scrollTo({ top: saved, left: 0, behavior: "auto" });
+        const r1 = requestAnimationFrame(() => { restore(); requestAnimationFrame(restore); });
+        const t1 = window.setTimeout(restore, 120);
+        const t2 = window.setTimeout(restore, 350);
+        const t3 = window.setTimeout(restore, 800);
+        return () => { cancelAnimationFrame(r1); clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+      }
+    }
+
     const resetToTop = () => {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
       document.documentElement.scrollTop = 0;
@@ -936,6 +954,25 @@ export default function BlogPost() {
       clearTimeout(t2);
     };
   }, [slug, location.key, article?.id]);
+
+  // Continuously persist scroll position so a refresh can restore it.
+  useEffect(() => {
+    if (!slug) return;
+    const key = `blog_scroll_${slug}`;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        sessionStorage.setItem(key, String(window.scrollY));
+        raf = 0;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [slug]);
 
   const reloadCurrentArticle = async (id: string) => {
     const refreshed = await getArticleBySlugOrId(id);
