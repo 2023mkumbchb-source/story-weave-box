@@ -616,8 +616,8 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
           {questions.slice(freeLimit).map((sq, i) => (
             <div key={i}>
               <p>{sq.question}</p>
-              {Array.isArray(sq.options) && sq.options.map((opt, j) => <span key={j}>{opt}</span>)}
-              {sq.explanation && <p>{sq.explanation}</p>}
+              {Array.isArray(sq.options) && sq.options.map((opt, j) => <span key={j}>{cleanMcqOption(opt)}</span>)}
+              {sq.explanation && <p>{cleanMcqOption(sq.explanation)}</p>}
             </div>
           ))}
         </div>
@@ -873,7 +873,7 @@ function MiniQuiz({ set, startIndex = 0, onDone }: { set: any; startIndex?: numb
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold">
                 {String.fromCharCode(65 + i)}
               </span>
-              <span className="flex-1 break-words">{opt}</span>
+              <span className="flex-1 break-words">{cleanMcqOption(opt)}</span>
               {isCorrect && <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />}
               {isWrong && <X className="h-3.5 w-3.5 text-destructive shrink-0" />}
             </button>
@@ -1061,7 +1061,7 @@ function ScrollMcqList(props: ScrollProps) {
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
                         {String.fromCharCode(65 + i)}
                       </span>
-                      <span className="flex-1 break-words">{opt}</span>
+                      <span className="flex-1 break-words">{cleanMcqOption(opt)}</span>
                       {isCorrect && <Check className="h-5 w-5 text-green-500 shrink-0" />}
                       {isWrong && <X className="h-5 w-5 text-destructive shrink-0" />}
                     </button>
@@ -1074,7 +1074,7 @@ function ScrollMcqList(props: ScrollProps) {
               {isRevealed && q.explanation && (
                 <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4 flex gap-3">
                   <Lightbulb className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <p className="text-sm text-foreground leading-relaxed">{q.explanation}</p>
+                  <p className="text-sm text-foreground leading-relaxed">{cleanMcqOption(q.explanation)}</p>
                 </div>
               )}
             </div>
@@ -1100,7 +1100,7 @@ function ScrollMcqList(props: ScrollProps) {
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
                           {String.fromCharCode(65 + j)}
                         </span>
-                        <span className="flex-1">{opt}</span>
+                        <span className="flex-1">{cleanMcqOption(opt)}</span>
                       </div>
                     ))}
                   </div>
@@ -1169,7 +1169,7 @@ function ScrollMcqList(props: ScrollProps) {
               return (
                 <div key={i}>
                   <p>Q{freeLimit + i + 1}: {sq.question}</p>
-                  {sq.options.map((opt, j) => <span key={j}>{String.fromCharCode(65 + j)}. {opt}</span>)}
+                  {sq.options.map((opt, j) => <span key={j}>{String.fromCharCode(65 + j)}. {cleanMcqOption(opt)}</span>)}
                   {sq.explanation && <p>Explanation: {sq.explanation}</p>}
                 </div>
               );
