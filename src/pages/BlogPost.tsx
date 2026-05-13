@@ -1500,7 +1500,7 @@ export default function BlogPost() {
               category={article.category}
             />
 
-            <div className="prose-custom">
+            <div className="prose-custom article-reader">
               <ArticleContent content={article.content} inlineRelated={related.articles || []} />
             </div>
 
