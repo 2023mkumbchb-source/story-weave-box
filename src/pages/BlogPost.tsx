@@ -710,10 +710,10 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
-    if (t.startsWith("|")) { flushList(); tableBuf.push(t); underSubheading = false; return; }
+    if (t.startsWith("|")) { flushList(); tableBuf.push(t); underSubheading = false; continue; }
     else if (tableBuf.length) { flushTable(); }
 
-    if (!t) { flushList(); underSubheading = false; return; }
+    if (!t) { flushList(); underSubheading = false; continue; }
 
     if (t.startsWith("> ")) {
       flushList(); underSubheading = false;
@@ -780,7 +780,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (/^#{1,2}\s/.test(t)) {
       flushList(); underSubheading = false;
       const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").replace(/^\d+\.\s*/, "").replace(/^[IVXLC]+\.\s+/, "").trim();
-      if (heading.toLowerCase().includes("practice")) { inPractice = true; return; }
+      if (heading.toLowerCase().includes("practice")) { inPractice = true; continue; }
       flushPractice(); inPractice = false;
       if (!insertedRelated && inlineRelated.length > 0 && els.length >= 4) {
         els.push(<InArticleRelated key="in-article-related" articles={inlineRelated} />);
@@ -822,7 +822,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
     if (inPractice && t.startsWith("→")) continue;
 
-    if (t.startsWith("- ")) { pushBullet(t.slice(2), `li-${i}`); return; }
+    if (t.startsWith("- ")) { pushBullet(t.slice(2), `li-${i}`); continue; }
 
     if (/^\d+\.\s/.test(t) && !t.includes("→") && !inPractice) {
       if (!listBuf || listBuf.type !== "ol") { flushList(); listBuf = { type: "ol", items: [] }; }
