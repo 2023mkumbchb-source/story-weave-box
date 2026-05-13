@@ -679,7 +679,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           <p className="text-[15px] italic text-foreground/70 leading-relaxed"><Inline text={t.slice(2)} /></p>
         </blockquote>
       );
-      return;
+      continue;
     }
 
     const imageMatch = t.match(/^!\[(.*?)\]\((.*?)\)$/);
@@ -696,7 +696,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           </figure>
         );
       }
-      return;
+      continue;
     }
 
     const questionMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)[:\s-]*(.*)/i);
@@ -718,7 +718,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           <hr className="border-border" />
         </div>
       );
-      return;
+      continue;
     }
 
     const subQMatch = t.match(/^(\(?[a-z]\)|[ivx]+\)|\([ivx]+\))\s*(.+)/i);
@@ -731,7 +731,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           <p className="flex-1 text-[15px] font-medium text-foreground leading-relaxed pt-0.5"><Inline text={subQMatch[2]} /></p>
         </div>
       );
-      return;
+      continue;
     }
 
     if (/^#{1,2}\s/.test(t)) {
@@ -749,14 +749,14 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           {heading}
         </h2>
       );
-      return;
+      continue;
     }
 
     if (/^#{3,6}\s/.test(t)) {
       flushList(); underSubheading = true;
       const txt = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").trim();
       els.push(<h3 key={`h3-${i}`} className="mt-6 mb-2 font-serif text-xl font-bold leading-snug text-foreground">{txt}</h3>);
-      return;
+      continue;
     }
 
     const qa = t.match(/^(\d+)\.\s(.+?)\s*→\s*(.+)$/);
@@ -769,15 +769,15 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           <p className="mt-1.5 text-sm text-primary font-medium">→ <Inline text={qa[3]} /></p>
         </div>
       );
-      return;
+      continue;
     }
 
     if (inPractice && /^\d+\.\s/.test(t) && !t.includes("→")) {
       const next = lines[i + 1]?.trim() ?? "";
       pqs.push({ number: t.match(/^(\d+)/)?.[1] ?? "", question: t.replace(/^\d+\.\s/, ""), answer: next.startsWith("→") ? next.slice(1).trim() : "" });
-      return;
+      continue;
     }
-    if (inPractice && t.startsWith("→")) return;
+    if (inPractice && t.startsWith("→")) continue;
 
     if (t.startsWith("- ")) { pushBullet(t.slice(2), `li-${i}`); return; }
 
@@ -790,7 +790,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           <span className="flex-1"><Inline text={t.replace(/^\d+\.\s/, "")} /></span>
         </li>
       );
-      return;
+      continue;
     }
 
     const boldLabelMatch = t.match(/^\*\*([^*]+)\*\*:?$/);
@@ -798,7 +798,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       flushList();
       els.push(<h3 key={`bl-${i}`} className="mt-6 mb-2 font-semibold text-base text-foreground">{boldLabelMatch[1].replace(/:$/, "").trim()}</h3>);
       underSubheading = false;
-      return;
+      continue;
     }
 
     const isSubLabel = /^[A-Za-z*\s()–-]{2,60}:$/.test(t);
@@ -806,7 +806,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       flushList();
       els.push(<h3 key={`sl-${i}`} className="mt-6 mb-2 font-semibold text-lg text-foreground"><Inline text={t.slice(0, -1)} /></h3>);
       underSubheading = false;
-      return;
+      continue;
     }
 
     if (underSubheading) {
@@ -818,11 +818,11 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
             <p className="text-sm leading-relaxed text-foreground/85"><Inline text={t.replace(/^⚠️?\s*/, "")} /></p>
           </div>
         );
-        return;
+        continue;
       }
       underSubheading = false;
       els.push(<p key={`p-sub-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
-      return;
+      continue;
     }
 
     flushList(); underSubheading = false;
@@ -834,7 +834,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           <p className="text-sm leading-relaxed text-foreground/85"><Inline text={t.replace(/^⚠️?\s*/, "")} /></p>
         </div>
       );
-      return;
+      continue;
     }
 
     els.push(<p key={`p-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
