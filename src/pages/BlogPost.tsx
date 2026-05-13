@@ -622,8 +622,50 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     );
   };
 
-  lines.forEach((line, i) => {
+  let codeBuf: string[] | null = null;
+  let skipUntil = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (i < skipUntil) continue;
+    const line = lines[i];
     const t = line.trim();
+
+    // Fenced code block: collect verbatim lines, render as <pre>
+    if (/^```/.test(t)) {
+      if (codeBuf == null) {
+        flushList(); flushTable(); flushPractice(); underSubheading = false;
+        codeBuf = [];
+      } else {
+        const code = codeBuf.join("\n");
+        els.push(
+          <pre key={`code-${i}`} className="not-prose my-5 -mx-5 sm:mx-0 sm:rounded-lg overflow-x-auto border-y sm:border border-border bg-muted/40 px-4 py-4 text-[13px] leading-6 font-mono text-foreground/90 whitespace-pre">
+            {code}
+          </pre>
+        );
+        codeBuf = null;
+      }
+      continue;
+    }
+    if (codeBuf) { codeBuf.push(line); continue; }
+
+    // MCQ answer + explanation → collapse until next MCQ / Question / heading boundary
+    if (/^(✅\s*)?Answer\s*[:：]/i.test(t)) {
+      flushList(); underSubheading = false;
+      const buf: string[] = [t];
+      let j = i + 1;
+      while (j < lines.length) {
+        const nt = lines[j].trim();
+        if (/^(MCQ|Question|Q)\s*\d+/i.test(nt)) break;
+        if (/^#{1,6}\s/.test(nt)) break;
+        if (/^(✅\s*)?Answer\s*[:：]/i.test(nt)) break;
+        buf.push(lines[j]);
+        j++;
+      }
+      // trim trailing blank lines
+      while (buf.length && !buf[buf.length - 1].trim()) buf.pop();
+      els.push(<McqAnswerBlock key={`mcq-${i}`} raw={buf.join("\n")} />);
+      skipUntil = j;
+      continue;
+    }
 
     if (t.startsWith("|")) { flushList(); tableBuf.push(t); underSubheading = false; return; }
     else if (tableBuf.length) { flushTable(); }
@@ -796,7 +838,15 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
 
     els.push(<p key={`p-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
-  });
+  }
+  // Flush dangling code block (if author forgot closing fence)
+  if (codeBuf && codeBuf.length) {
+    els.push(
+      <pre key="code-tail" className="not-prose my-5 -mx-5 sm:mx-0 sm:rounded-lg overflow-x-auto border-y sm:border border-border bg-muted/40 px-4 py-4 text-[13px] leading-6 font-mono text-foreground/90 whitespace-pre">
+        {codeBuf.join("\n")}
+      </pre>
+    );
+  }
 
   flushList(); flushTable(); flushPractice();
   if (!insertedRelated && inlineRelated.length > 0 && els.length > 8) {
