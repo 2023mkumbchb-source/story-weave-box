@@ -653,6 +653,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   let listBuf: { type: "ul" | "ol"; items: React.ReactNode[] } | null = null;
   let inPractice = false;
   let tableBuf: string[] = [];
+  let flowBuf: string[] = [];
   let underSubheading = false;
   const pqs: { number: string; question: string; answer: string }[] = [];
   let insertedRelated = false;
@@ -665,6 +666,12 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   const flushTable = () => {
     if (tableBuf.length >= 2) els.push(<TableBlock key={`tbl-${els.length}`} lines={[...tableBuf]} />);
     tableBuf = [];
+  };
+  const flushFlow = () => {
+    const meaningful = flowBuf.filter((l) => l.trim() && !/^(↓|v|\|)$/i.test(l.trim()));
+    if (meaningful.length >= 2) els.push(<FlowBlock key={`flow-${els.length}`} lines={[...flowBuf]} />);
+    else meaningful.forEach((l, idx) => els.push(<p key={`flow-p-${els.length}-${idx}`} className="mb-4 text-[1.03rem] leading-8 text-foreground/90"><Inline text={l} /></p>));
+    flowBuf = [];
   };
   const flushPractice = () => {
     if (!pqs.length) return;
@@ -700,15 +707,11 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     // Fenced code block: collect verbatim lines, render as <pre>
     if (/^```/.test(t)) {
       if (codeBuf == null) {
-        flushList(); flushTable(); flushPractice(); underSubheading = false;
+        flushList(); flushTable(); flushFlow(); flushPractice(); underSubheading = false;
         codeBuf = [];
       } else {
         const code = codeBuf.join("\n");
-        els.push(
-          <pre key={`code-${i}`} className="not-prose my-5 -mx-5 sm:mx-0 sm:rounded-lg overflow-x-auto border-y sm:border border-border bg-muted/40 px-4 py-4 text-[13px] leading-6 font-mono text-foreground/90 whitespace-pre">
-            {code}
-          </pre>
-        );
+        els.push(<FlowBlock key={`code-flow-${i}`} lines={code.split("\n")} />);
         codeBuf = null;
       }
       continue;
@@ -717,7 +720,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
 
     // MCQ answer + explanation → collapse until next MCQ / Question / heading boundary
     if (/^(✅\s*)?Answer\s*[:：]/i.test(t)) {
-      flushList(); underSubheading = false;
+      flushList(); flushFlow(); underSubheading = false;
       const buf: string[] = [t];
       let j = i + 1;
       while (j < lines.length) {
@@ -735,10 +738,14 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
-    if (t.startsWith("|")) { flushList(); tableBuf.push(t); underSubheading = false; continue; }
+    const flowLike = /^(↓|v|\||\+[-+]+\+|[-+|\s]{3,})$/i.test(t) || (/^[A-Za-z0-9()\/,.'’\-\s]+$/.test(t) && /^(STEP\s+\d+|[A-Z][A-Z\s\-]{4,}|Compatible\s+Incompatible|AHR\s+FNHR|Packed\s+Platelet|Hypothermia\s+Dilutional)/.test(t));
+    if (t.startsWith("|")) { flushList(); flushFlow(); tableBuf.push(t); underSubheading = false; continue; }
     else if (tableBuf.length) { flushTable(); }
 
-    if (!t) { flushList(); underSubheading = false; continue; }
+    if (flowLike) { flushList(); flowBuf.push(t); underSubheading = false; continue; }
+    else if (flowBuf.length) { flushFlow(); }
+
+    if (!t) { flushList(); flushFlow(); underSubheading = false; continue; }
 
     if (t.startsWith("> ")) {
       flushList(); underSubheading = false;
