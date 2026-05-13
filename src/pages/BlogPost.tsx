@@ -719,15 +719,15 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (codeBuf) { codeBuf.push(line); continue; }
 
     // MCQ answer + explanation → collapse until next MCQ / Question / heading boundary
-    if (/^(✅\s*)?Answer\s*[:：]/i.test(t)) {
+    if (/^\*{0,2}\s*(✅\s*)?Answer\s*[:：]/i.test(t)) {
       flushList(); flushFlow(); underSubheading = false;
-      const buf: string[] = [t];
+      const buf: string[] = [t.replace(/^\*+/, "").replace(/\*+$/g, "")];
       let j = i + 1;
       while (j < lines.length) {
         const nt = lines[j].trim();
         if (/^(MCQ|Question|Q)\s*\d+/i.test(nt)) break;
         if (/^#{1,6}\s/.test(nt)) break;
-        if (/^(✅\s*)?Answer\s*[:：]/i.test(nt)) break;
+        if (/^\*{0,2}\s*(✅\s*)?Answer\s*[:：]/i.test(nt)) break;
         buf.push(lines[j]);
         j++;
       }
