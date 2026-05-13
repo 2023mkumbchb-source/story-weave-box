@@ -140,6 +140,47 @@ function PracticeQuestion({ number, question, answer }: { number: string; questi
   );
 }
 
+/* ─── MCQ answer + explanation collapsible (used inside articles) ─── */
+function McqAnswerBlock({ raw }: { raw: string }) {
+  const [open, setOpen] = useState(false);
+  // raw begins with the answer line; subsequent lines are the explanation.
+  const lines = raw.split("\n");
+  const answerLine = (lines.shift() || "").replace(/^✅\s*/, "").replace(/^Answer\s*[:：]\s*/i, "");
+  const explanation = lines.join("\n").trim();
+  return (
+    <div className="not-prose my-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-emerald-500/10"
+      >
+        <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-emerald-500/15">✓</span>
+          {open ? "Hide answer & explanation" : "Show answer & explanation"}
+        </span>
+        <ChevronDown className={`h-4 w-4 text-emerald-600 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div key="ans" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18 }} className="overflow-hidden">
+            <div className="border-t border-emerald-500/20 px-4 py-3 space-y-2">
+              <p className="text-[15px] font-semibold text-foreground">
+                <span className="text-emerald-600 dark:text-emerald-400">Answer:</span>{" "}
+                <Inline text={answerLine} />
+              </p>
+              {explanation && (
+                <div className="text-[14px] leading-7 text-foreground/85 whitespace-pre-line">
+                  <Inline text={explanation} />
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function RelatedArticleCard({ article, compact = false }: { article: any; compact?: boolean }) {
   const image = article.og_image_url || extractFirstImageFromContent(article.content || "");
   const summary = stripRichText(article.meta_description || article.content || "", compact ? 95 : 135);
@@ -304,6 +345,39 @@ function splitInlineTable(s: string): string[] {
 
 const META_HEADING = /^(key points|detailed notes|summary)$/i;
 
+/* Decode common HTML entities so pasted-from-Word content doesn't show "&nbsp;" literally */
+function decodeEntities(s: string): string {
+  if (!s) return s;
+  return s
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&mdash;/gi, "—")
+    .replace(/&ndash;/gi, "–")
+    .replace(/&hellip;/gi, "…")
+    .replace(/&rsquo;/gi, "'")
+    .replace(/&lsquo;/gi, "'")
+    .replace(/&rdquo;/gi, "\u201D")
+    .replace(/&ldquo;/gi, "\u201C")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)));
+}
+
+/* Strip generic university/course-code branding so it never reaches the reader */
+function stripBranding(s: string): string {
+  if (!s) return s;
+  return s
+    .replace(/Mount\s+Kenya\s+University/gi, "")
+    .replace(/\bMKU\b/g, "")
+    .replace(/\|\s*\|/g, "|")
+    .replace(/\|\s*$/g, "")
+    .replace(/^\s*\|\s*/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 function cleanHeadingText(value: string): string {
   return value
     .replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, "")
@@ -353,14 +427,37 @@ function splitMalformedHeading(raw: string): { heading: string; extras: string[]
 function preprocessContent(raw: string): string {
   const out: string[] = [];
   let inKeyPoints = false;
+  let inFence = false;
 
-  for (const line of raw.split("\n")) {
+  // Decode HTML entities up-front so "&nbsp;" / "&amp;" don't survive into the reader.
+  const decoded = decodeEntities(raw);
+
+  for (const rawLine of decoded.split("\n")) {
+    // Preserve fenced code blocks verbatim — these hold ASCII flowcharts and tables.
+    const fenceTrim = rawLine.trim();
+    if (/^```/.test(fenceTrim)) {
+      out.push("```");
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) {
+      // Keep raw spacing so flowcharts line up.
+      out.push(rawLine.replace(/\u00A0/g, " ").replace(/\s+$/g, ""));
+      continue;
+    }
+
+    const line = rawLine;
     let t = line
       .trim()
       .replace(/^HOW\s+TO\s+OPEN>\s*"?/i, "")
       .replace(/^say\s*:?>\s*"?/i, "")
       .replace(/([:.;!?])(?=\S)/g, "$1 ")
       .replace(/([a-z])(?=(?:Think of|The most|Every reaction|Almost always|This is why|If someone|There are|ABO incompatibility)\b)/g, "$1 ");
+    // Drop branding lines like "MBML 3223 | Semester 3 | Mount Kenya University"
+    if (/Mount\s+Kenya\s+University|\bMKU\b/i.test(t)) {
+      t = stripBranding(t);
+      if (!t || t.length < 4) { out.push(""); continue; }
+    }
     if (!t) { out.push(""); continue; }
     if (/^#?(SECTION\s+\d+|PART\s+\d+|PART\s+[A-Z])\b/i.test(t)) {
       out.push(`## ${cleanHeadingText(t.replace(/^#+\s*/, ""))}`);
@@ -525,8 +622,50 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     );
   };
 
-  lines.forEach((line, i) => {
+  let codeBuf: string[] | null = null;
+  let skipUntil = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (i < skipUntil) continue;
+    const line = lines[i];
     const t = line.trim();
+
+    // Fenced code block: collect verbatim lines, render as <pre>
+    if (/^```/.test(t)) {
+      if (codeBuf == null) {
+        flushList(); flushTable(); flushPractice(); underSubheading = false;
+        codeBuf = [];
+      } else {
+        const code = codeBuf.join("\n");
+        els.push(
+          <pre key={`code-${i}`} className="not-prose my-5 -mx-5 sm:mx-0 sm:rounded-lg overflow-x-auto border-y sm:border border-border bg-muted/40 px-4 py-4 text-[13px] leading-6 font-mono text-foreground/90 whitespace-pre">
+            {code}
+          </pre>
+        );
+        codeBuf = null;
+      }
+      continue;
+    }
+    if (codeBuf) { codeBuf.push(line); continue; }
+
+    // MCQ answer + explanation → collapse until next MCQ / Question / heading boundary
+    if (/^(✅\s*)?Answer\s*[:：]/i.test(t)) {
+      flushList(); underSubheading = false;
+      const buf: string[] = [t];
+      let j = i + 1;
+      while (j < lines.length) {
+        const nt = lines[j].trim();
+        if (/^(MCQ|Question|Q)\s*\d+/i.test(nt)) break;
+        if (/^#{1,6}\s/.test(nt)) break;
+        if (/^(✅\s*)?Answer\s*[:：]/i.test(nt)) break;
+        buf.push(lines[j]);
+        j++;
+      }
+      // trim trailing blank lines
+      while (buf.length && !buf[buf.length - 1].trim()) buf.pop();
+      els.push(<McqAnswerBlock key={`mcq-${i}`} raw={buf.join("\n")} />);
+      skipUntil = j;
+      continue;
+    }
 
     if (t.startsWith("|")) { flushList(); tableBuf.push(t); underSubheading = false; return; }
     else if (tableBuf.length) { flushTable(); }
@@ -540,7 +679,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           <p className="text-[15px] italic text-foreground/70 leading-relaxed"><Inline text={t.slice(2)} /></p>
         </blockquote>
       );
-      return;
+      continue;
     }
 
     const imageMatch = t.match(/^!\[(.*?)\]\((.*?)\)$/);
@@ -557,7 +696,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           </figure>
         );
       }
-      return;
+      continue;
     }
 
     const questionMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)[:\s-]*(.*)/i);
@@ -579,7 +718,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           <hr className="border-border" />
         </div>
       );
-      return;
+      continue;
     }
 
     const subQMatch = t.match(/^(\(?[a-z]\)|[ivx]+\)|\([ivx]+\))\s*(.+)/i);
@@ -592,7 +731,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           <p className="flex-1 text-[15px] font-medium text-foreground leading-relaxed pt-0.5"><Inline text={subQMatch[2]} /></p>
         </div>
       );
-      return;
+      continue;
     }
 
     if (/^#{1,2}\s/.test(t)) {
@@ -610,14 +749,14 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           {heading}
         </h2>
       );
-      return;
+      continue;
     }
 
     if (/^#{3,6}\s/.test(t)) {
       flushList(); underSubheading = true;
       const txt = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").trim();
       els.push(<h3 key={`h3-${i}`} className="mt-6 mb-2 font-serif text-xl font-bold leading-snug text-foreground">{txt}</h3>);
-      return;
+      continue;
     }
 
     const qa = t.match(/^(\d+)\.\s(.+?)\s*→\s*(.+)$/);
@@ -630,15 +769,15 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           <p className="mt-1.5 text-sm text-primary font-medium">→ <Inline text={qa[3]} /></p>
         </div>
       );
-      return;
+      continue;
     }
 
     if (inPractice && /^\d+\.\s/.test(t) && !t.includes("→")) {
       const next = lines[i + 1]?.trim() ?? "";
       pqs.push({ number: t.match(/^(\d+)/)?.[1] ?? "", question: t.replace(/^\d+\.\s/, ""), answer: next.startsWith("→") ? next.slice(1).trim() : "" });
-      return;
+      continue;
     }
-    if (inPractice && t.startsWith("→")) return;
+    if (inPractice && t.startsWith("→")) continue;
 
     if (t.startsWith("- ")) { pushBullet(t.slice(2), `li-${i}`); return; }
 
@@ -651,7 +790,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           <span className="flex-1"><Inline text={t.replace(/^\d+\.\s/, "")} /></span>
         </li>
       );
-      return;
+      continue;
     }
 
     const boldLabelMatch = t.match(/^\*\*([^*]+)\*\*:?$/);
@@ -659,7 +798,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       flushList();
       els.push(<h3 key={`bl-${i}`} className="mt-6 mb-2 font-semibold text-base text-foreground">{boldLabelMatch[1].replace(/:$/, "").trim()}</h3>);
       underSubheading = false;
-      return;
+      continue;
     }
 
     const isSubLabel = /^[A-Za-z*\s()–-]{2,60}:$/.test(t);
@@ -667,7 +806,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       flushList();
       els.push(<h3 key={`sl-${i}`} className="mt-6 mb-2 font-semibold text-lg text-foreground"><Inline text={t.slice(0, -1)} /></h3>);
       underSubheading = false;
-      return;
+      continue;
     }
 
     if (underSubheading) {
@@ -679,11 +818,11 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
             <p className="text-sm leading-relaxed text-foreground/85"><Inline text={t.replace(/^⚠️?\s*/, "")} /></p>
           </div>
         );
-        return;
+        continue;
       }
       underSubheading = false;
       els.push(<p key={`p-sub-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
-      return;
+      continue;
     }
 
     flushList(); underSubheading = false;
@@ -695,11 +834,19 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           <p className="text-sm leading-relaxed text-foreground/85"><Inline text={t.replace(/^⚠️?\s*/, "")} /></p>
         </div>
       );
-      return;
+      continue;
     }
 
     els.push(<p key={`p-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
-  });
+  }
+  // Flush dangling code block (if author forgot closing fence)
+  if (codeBuf && codeBuf.length) {
+    els.push(
+      <pre key="code-tail" className="not-prose my-5 -mx-5 sm:mx-0 sm:rounded-lg overflow-x-auto border-y sm:border border-border bg-muted/40 px-4 py-4 text-[13px] leading-6 font-mono text-foreground/90 whitespace-pre">
+        {codeBuf.join("\n")}
+      </pre>
+    );
+  }
 
   flushList(); flushTable(); flushPractice();
   if (!insertedRelated && inlineRelated.length > 0 && els.length > 8) {
@@ -764,6 +911,24 @@ export default function BlogPost() {
   };
 
   useLayoutEffect(() => {
+    // If this is a page reload, restore the saved scroll position for this article instead of resetting to top.
+    let isReload = false;
+    try {
+      const navEntry = (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined);
+      isReload = navEntry?.type === "reload";
+    } catch { /* ignore */ }
+    if (isReload && slug) {
+      const saved = parseInt(sessionStorage.getItem(`blog_scroll_${slug}`) || "0", 10);
+      if (saved > 0) {
+        const restore = () => window.scrollTo({ top: saved, left: 0, behavior: "auto" });
+        const r1 = requestAnimationFrame(() => { restore(); requestAnimationFrame(restore); });
+        const t1 = window.setTimeout(restore, 120);
+        const t2 = window.setTimeout(restore, 350);
+        const t3 = window.setTimeout(restore, 800);
+        return () => { cancelAnimationFrame(r1); clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+      }
+    }
+
     const resetToTop = () => {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
       document.documentElement.scrollTop = 0;
@@ -789,6 +954,25 @@ export default function BlogPost() {
       clearTimeout(t2);
     };
   }, [slug, location.key, article?.id]);
+
+  // Continuously persist scroll position so a refresh can restore it.
+  useEffect(() => {
+    if (!slug) return;
+    const key = `blog_scroll_${slug}`;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        sessionStorage.setItem(key, String(window.scrollY));
+        raf = 0;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [slug]);
 
   const reloadCurrentArticle = async (id: string) => {
     const refreshed = await getArticleBySlugOrId(id);
