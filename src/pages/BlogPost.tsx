@@ -443,7 +443,10 @@ function preprocessContent(raw: string): string {
   // Decode HTML entities up-front so "&nbsp;" / "&amp;" don't survive into the reader.
   const decoded = decodeEntities(raw);
 
-  for (const rawLine of decoded.split("\n")) {
+  const sourceLines = decoded.replace(/\r\n?/g, "\n").split("\n");
+
+  for (let idx = 0; idx < sourceLines.length; idx++) {
+    const rawLine = sourceLines[idx];
     // Preserve fenced code blocks verbatim — these hold ASCII flowcharts and tables.
     const fenceTrim = rawLine.trim();
     if (/^```/.test(fenceTrim)) {
@@ -453,23 +456,52 @@ function preprocessContent(raw: string): string {
     }
     if (inFence) {
       // Keep raw spacing so flowcharts line up.
-      out.push(rawLine.replace(/\u00A0/g, " ").replace(/\s+$/g, ""));
+      out.push(rawLine.replace(/\u00A0/g, " ").replace(/&nbsp;/gi, " ").replace(/\s+$/g, ""));
       continue;
     }
 
     const line = rawLine;
     let t = line
       .trim()
+      .replace(/&nbsp;/gi, " ")
+      .replace(/\u00A0/g, " ")
       .replace(/^HOW\s+TO\s+OPEN>\s*"?/i, "")
       .replace(/^say\s*:?>\s*"?/i, "")
       .replace(/([:.;!?])(?=\S)/g, "$1 ")
       .replace(/([a-z])(?=(?:Think of|The most|Every reaction|Almost always|This is why|If someone|There are|ABO incompatibility)\b)/g, "$1 ");
     // Drop branding lines like "MBML 3223 | Semester 3 | Mount Kenya University"
-    if (/Mount\s+Kenya\s+University|\bMKU\b/i.test(t)) {
+    if (isCourseBrandingLine(t)) {
+      out.push("");
+      continue;
+    } else if (/Mount\s+Kenya\s+University|\bMKU\b/i.test(t)) {
       t = stripBranding(t);
       if (!t || t.length < 4) { out.push(""); continue; }
     }
     if (!t) { out.push(""); continue; }
+
+    // Common raw paste: a heading marker followed by a real title on the next line.
+    if (/^#{1,6}$/.test(t) && sourceLines[idx + 1]?.trim()) {
+      const next = cleanHeadingText(decodeEntities(sourceLines[idx + 1].trim()));
+      if (next && !META_HEADING.test(next)) {
+        out.push(`${t.length <= 2 ? "##" : "###"} ${next}`);
+        idx++;
+        continue;
+      }
+    }
+
+    // Remove orphan fence markers from bad pasted snippets, while preserving actual multi-line code fences above.
+    if (/^```+$/.test(t)) { out.push(""); continue; }
+
+    // Convert simple ASCII arrows/flowchart rows into compact flow lines instead of huge raw paragraphs.
+    if (/^(\|+|v+|↓+|[-+|\s]+|\s*\+[-+]+\+\s*)$/i.test(t)) {
+      out.push(t.includes("+") ? t.replace(/\s+/g, " ") : "↓");
+      continue;
+    }
+
+    if (/^\*\*\d+\.\s+.+\*\*$/i.test(t)) {
+      out.push(t.replace(/^\*\*/, "").replace(/\*\*$/, ""));
+      continue;
+    }
     if (/^#?(SECTION\s+\d+|PART\s+\d+|PART\s+[A-Z])\b/i.test(t)) {
       out.push(`## ${cleanHeadingText(t.replace(/^#+\s*/, ""))}`);
       continue;
