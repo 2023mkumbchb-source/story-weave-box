@@ -140,6 +140,47 @@ function PracticeQuestion({ number, question, answer }: { number: string; questi
   );
 }
 
+/* ─── MCQ answer + explanation collapsible (used inside articles) ─── */
+function McqAnswerBlock({ raw }: { raw: string }) {
+  const [open, setOpen] = useState(false);
+  // raw begins with the answer line; subsequent lines are the explanation.
+  const lines = raw.split("\n");
+  const answerLine = (lines.shift() || "").replace(/^✅\s*/, "").replace(/^Answer\s*[:：]\s*/i, "");
+  const explanation = lines.join("\n").trim();
+  return (
+    <div className="not-prose my-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-emerald-500/10"
+      >
+        <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-emerald-500/15">✓</span>
+          {open ? "Hide answer & explanation" : "Show answer & explanation"}
+        </span>
+        <ChevronDown className={`h-4 w-4 text-emerald-600 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div key="ans" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18 }} className="overflow-hidden">
+            <div className="border-t border-emerald-500/20 px-4 py-3 space-y-2">
+              <p className="text-[15px] font-semibold text-foreground">
+                <span className="text-emerald-600 dark:text-emerald-400">Answer:</span>{" "}
+                <Inline text={answerLine} />
+              </p>
+              {explanation && (
+                <div className="text-[14px] leading-7 text-foreground/85 whitespace-pre-line">
+                  <Inline text={explanation} />
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function RelatedArticleCard({ article, compact = false }: { article: any; compact?: boolean }) {
   const image = article.og_image_url || extractFirstImageFromContent(article.content || "");
   const summary = stripRichText(article.meta_description || article.content || "", compact ? 95 : 135);
