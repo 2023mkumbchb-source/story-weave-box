@@ -348,7 +348,10 @@ const META_HEADING = /^(key points|detailed notes|summary)$/i;
 /* Decode common HTML entities so pasted-from-Word content doesn't show "&nbsp;" literally */
 function decodeEntities(s: string): string {
   if (!s) return s;
-  return s
+  let text = s;
+  for (let i = 0; i < 2; i++) {
+    text = text
+    .replace(/&amp;nbsp;/gi, " ")
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
     .replace(/&lt;/gi, "<")
@@ -363,6 +366,8 @@ function decodeEntities(s: string): string {
     .replace(/&rdquo;/gi, "\u201D")
     .replace(/&ldquo;/gi, "\u201C")
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)));
+  }
+  return text;
 }
 
 /* Strip generic university/course-code branding so it never reaches the reader */
@@ -376,6 +381,12 @@ function stripBranding(s: string): string {
     .replace(/^\s*\|\s*/g, "")
     .replace(/\s{2,}/g, " ")
     .trim();
+}
+
+function isCourseBrandingLine(s: string): boolean {
+  const t = s.trim();
+  if (!t) return false;
+  return /Mount\s+Kenya\s+University|\bMKU\b/i.test(t) && /\b[A-Z]{2,5}\s*\d{3,4}\b|semester|university/i.test(t);
 }
 
 function cleanHeadingText(value: string): string {
