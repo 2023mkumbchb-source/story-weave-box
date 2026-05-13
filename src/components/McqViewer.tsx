@@ -60,9 +60,22 @@ interface RelatedResult {
 function cleanQuestionText(text: string | undefined): string {
   if (!text) return "";
   return text
+    .replace(/&amp;nbsp;|&nbsp;|\u00A0/gi, " ")
+    .replace(/Mount\s+Kenya\s+University\s*\|?\s*/gi, "")
+    .replace(/\b[A-Z]{2,5}\s*\d{3,4}\b\s*\|?\s*/g, "")
+    .replace(/^SECTION\s+\d+\s*[:\-–—].*$/gim, "")
     .replace(/^#{1,6}\s+/gm, "")
     .replace(/^Question\s*\d+\s*/i, "")
     .replace(/\s*Choices:\s*$/i, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function cleanMcqOption(text: string | undefined): string {
+  return String(text || "")
+    .replace(/&amp;nbsp;|&nbsp;|\u00A0/gi, " ")
+    .replace(/^\s*[A-E][.)]\s*/i, "")
+    .replace(/\s{2,}/g, " ")
     .trim();
 }
 
