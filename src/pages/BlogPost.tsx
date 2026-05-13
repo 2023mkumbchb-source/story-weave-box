@@ -117,6 +117,31 @@ function TableBlock({ lines }: { lines: string[] }) {
   );
 }
 
+function FlowBlock({ lines }: { lines: string[] }) {
+  const compact = lines.map((l) => l.trim()).filter(Boolean);
+  if (!compact.length) return null;
+  return (
+    <div className="not-prose my-5 overflow-hidden rounded-lg border border-border bg-card">
+      <div className="max-h-[70vh] overflow-x-auto px-4 py-4 sm:px-5">
+        <div className="min-w-max space-y-2 text-center font-mono text-[13px] leading-6 text-foreground/90 sm:text-sm">
+          {compact.map((line, i) => {
+            const arrowOnly = /^(↓|v|\|)$/i.test(line);
+            const branch = /\+[-+]+\+/.test(line) || /\s{2,}/.test(line);
+            return (
+              <div
+                key={i}
+                className={arrowOnly ? "text-primary" : branch ? "text-muted-foreground" : "rounded-md bg-muted/40 px-3 py-2"}
+              >
+                {arrowOnly ? "↓" : line}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Practice Q expandable ─── */
 function PracticeQuestion({ number, question, answer }: { number: string; question: string; answer: string }) {
   const [open, setOpen] = useState(false);
