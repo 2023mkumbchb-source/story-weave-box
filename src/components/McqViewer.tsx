@@ -1170,7 +1170,7 @@ function ScrollMcqList(props: ScrollProps) {
                 <div key={i}>
                   <p>Q{freeLimit + i + 1}: {sq.question}</p>
                   {sq.options.map((opt, j) => <span key={j}>{String.fromCharCode(65 + j)}. {cleanMcqOption(opt)}</span>)}
-                  {sq.explanation && <p>Explanation: {sq.explanation}</p>}
+                  {sq.explanation && <p>Explanation: {cleanMcqOption(sq.explanation)}</p>}
                 </div>
               );
             })}
@@ -1195,7 +1195,7 @@ function ScrollMcqList(props: ScrollProps) {
               {(item.answer || item.model_answer || item.explanation) && !hideAnswers && (
                 <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
                   <p className="text-xs font-semibold uppercase tracking-wider text-primary">Model answer</p>
-                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-foreground/90">{item.model_answer || item.answer || item.explanation}</p>
+                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-foreground/90">{cleanMcqOption(item.model_answer || item.answer || item.explanation)}</p>
                 </div>
               )}
             </div>
