@@ -15,6 +15,7 @@ const exploreLinks = [
   { to: "/", label: "Home" },
   { to: "/stories", label: "Stories" },
   { to: "/exams", label: "Weekly Exams" },
+  { to: "/about", label: "About the Founder" },
   { to: "/admin", label: "Dashboard" },
 ];
 
