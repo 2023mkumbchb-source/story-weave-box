@@ -723,12 +723,28 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       flushList(); flushFlow(); underSubheading = false;
       const buf: string[] = [t.replace(/^\*+/, "").replace(/\*+$/g, "")];
       let j = i + 1;
+      let sawExp = false;
       while (j < lines.length) {
         const nt = lines[j].trim();
+        // Stop at the next question (any of these patterns)
         if (/^(MCQ|Question|Q)\s*\d+/i.test(nt)) break;
         if (/^#{1,6}\s/.test(nt)) break;
         if (/^\*{0,2}\s*(✅\s*)?Answer\s*[:：]/i.test(nt)) break;
+        // Bold-numbered question like **2. Some question:** — common MCQ format
+        if (/^\*{1,2}\d+\.\s/.test(nt)) break;
+        // Plain numbered question line ending with ? or :
+        if (/^\d+\.\s.{4,}[?:]\s*\*{0,2}$/.test(nt)) break;
+        // Blank line AFTER we've already captured the explanation = end of this MCQ
+        if (!nt) {
+          if (sawExp) break;
+          buf.push(lines[j]);
+          j++;
+          continue;
+        }
+        // Option bullet ("- A. Foo") that isn't the explanation: signals next question's options
+        if (sawExp && /^-\s+[A-E][\.\)]\s/.test(nt)) break;
         buf.push(lines[j]);
+        if (/^\*{0,2}\s*Explanation\s*[:：]/i.test(nt)) sawExp = true;
         j++;
       }
       // trim trailing blank lines
