@@ -213,7 +213,7 @@ function ToolbarBtn({ onClick, active, children, title }: { onClick: () => void;
   );
 }
 
-const YEARS = [1, 2, 3, 4, 5, 6];
+const YEARS = [0, 1, 2, 3, 4, 5, 6]; // 0 = Uncategorized
 
 export default function AdminEditor() {
   const navigate = useNavigate();
@@ -380,7 +380,12 @@ export default function AdminEditor() {
   useEffect(() => { loadContent(); setCurrentIndex(0); }, [loadContent]);
 
   const filteredArticles = useMemo(() => {
-    let list = allArticles.filter((a) => (a.category || "").startsWith(`Year ${selectedYear}:`));
+    let list = selectedYear === 0
+      ? allArticles.filter((a) => {
+          const c = (a.category || "").trim();
+          return !c || c.toLowerCase() === "uncategorized" || !/^Year\s*[1-6]\s*:/.test(c);
+        })
+      : allArticles.filter((a) => (a.category || "").startsWith(`Year ${selectedYear}:`));
     if (selectedUnit) list = list.filter((a) => a.category === selectedUnit);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -390,7 +395,12 @@ export default function AdminEditor() {
   }, [allArticles, selectedYear, selectedUnit, searchQuery]);
 
   const filteredMcqs = useMemo(() => {
-    let list = allMcqSets.filter((m) => (m.category || "").startsWith(`Year ${selectedYear}:`));
+    let list = selectedYear === 0
+      ? allMcqSets.filter((m) => {
+          const c = (m.category || "").trim();
+          return !c || c.toLowerCase() === "uncategorized" || !/^Year\s*[1-6]\s*:/.test(c);
+        })
+      : allMcqSets.filter((m) => (m.category || "").startsWith(`Year ${selectedYear}:`));
     if (selectedUnit) list = list.filter((m) => m.category === selectedUnit);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -850,7 +860,7 @@ export default function AdminEditor() {
                   <button key={yr} onClick={() => { setSelectedYear(yr); setSelectedUnit(""); setCurrentIndex(0); setIsAddMode(false); }}
                     className={cn("flex-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all whitespace-nowrap",
                       selectedYear === yr ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
-                    Y{yr}
+                    {yr === 0 ? "Uncat" : `Y${yr}`}
                   </button>
                 ))}
               </div>
