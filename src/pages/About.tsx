@@ -135,17 +135,21 @@ export default function About() {
       {/* Bio + values */}
       <section className="mx-auto max-w-4xl px-5 py-14">
         <div className="prose prose-lg max-w-none text-foreground/90">
-          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-foreground">Hi, I'm Abongo 👋</h2>
+          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-foreground">About me</h2>
           <p className="text-base sm:text-lg leading-relaxed text-muted-foreground">
-            I'm a medical student at <strong className="text-foreground">Mount Kenya University</strong> and the founder of
-            <strong className="text-foreground"> Ompath Study</strong> — the platform you're on right now. I build because I love
-            making things that solve real problems for real people. Two passions drive almost everything I do: <em>medicine</em>
-            and <em>technology</em>.
+            I'm Abongo Davis — a medical student at <strong className="text-foreground">Mount Kenya University</strong> and
+            the founder of <strong className="text-foreground">Ompath Study</strong>, the free study platform you're on right now.
+            I built this site for one reason: to make studying medicine easier, cheaper and a lot less lonely for students across Kenya and East Africa.
           </p>
           <p className="text-base sm:text-lg leading-relaxed text-muted-foreground">
-            On the medical side, I'm obsessed with learning — the kind of obsession that turns into late-night study sessions, MCQ
-            drills and clinical reasoning marathons. On the tech side, I'm a self-taught vibe coder who loves taking an idea from
-            "what if…" all the way to a polished, shipped product. I'm self-driven, hardworking, and I genuinely enjoy the work.
+            Outside the wards I'm a self-taught web developer. I design and ship modern, fast, SEO-friendly websites for businesses,
+            startups and creators — most recently <strong className="text-foreground">Kenya Adverts</strong>, a national listings
+            and services marketplace. If you have an idea you'd like turned into a real product, I'm available for client work.
+          </p>
+          <p className="text-base sm:text-lg leading-relaxed text-muted-foreground">
+            I'm based in Kenya. The fastest way to reach me is WhatsApp on
+            {" "}<a href="https://wa.me/254115475543" className="text-primary font-semibold">+254 115 475 543</a>{" "}
+            or email at <a href="mailto:hydrosafecare@gmail.com" className="text-primary font-semibold">hydrosafecare@gmail.com</a>.
           </p>
         </div>
 
