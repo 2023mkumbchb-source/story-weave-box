@@ -544,8 +544,12 @@ export default function AdminEditor() {
 
   // Add new category
   const handleAddCategory = async () => {
-    const name = String(newCategoryName ?? "").trim();
-    if (!name) return;
+    const raw = String(newCategoryName ?? "").trim();
+    if (!raw) return;
+    // Auto-prefix "Year N: " when in a year context and the user didn't supply one
+    const name = (selectedYear >= 1 && selectedYear <= 6 && !/^Year\s*[1-6]\s*:/i.test(raw))
+      ? `Year ${selectedYear}: ${raw}`
+      : raw;
     try {
       await saveArticleCategory(name);
       setCustomCategories(prev => [...prev, { id: "", name, created_at: "" }]);
