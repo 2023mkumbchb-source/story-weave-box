@@ -950,7 +950,7 @@ export default function AdminEditor() {
               {showAddCategory && (
                 <div className="flex gap-1.5">
                   <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)}
-                    placeholder="e.g. Year 3: Hematopathology" className="text-xs h-7 flex-1" />
+                    placeholder={selectedYear >= 1 && selectedYear <= 6 ? `New unit name (will save as "Year ${selectedYear}: ...")` : "e.g. Year 3: Hematopathology"} className="text-xs h-7 flex-1" />
                   <Button size="sm" onClick={handleAddCategory} className="h-7 text-xs">Add</Button>
                 </div>
               )}
@@ -1149,7 +1149,7 @@ export default function AdminEditor() {
               {showAddCategory && (
                 <div className="flex gap-1.5">
                   <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)}
-                    placeholder="e.g. Year 3: Hematopathology" className="text-xs h-7 flex-1" />
+                    placeholder={selectedYear >= 1 && selectedYear <= 6 ? `New unit name (will save as "Year ${selectedYear}: ...")` : "e.g. Year 3: Hematopathology"} className="text-xs h-7 flex-1" />
                   <Button size="sm" onClick={handleAddCategory} className="h-7 text-xs">Add</Button>
                 </div>
               )}
