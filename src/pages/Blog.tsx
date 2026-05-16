@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, X, Loader2, BookOpen, Clock, ArrowRight, ArrowLeft, ChevronDown } from "lucide-react";
+import { Search, X, BookOpen, Clock, ArrowLeft, ChevronDown } from "lucide-react";
 import {
   getCategoryDisplayName,
   getYearFromCategory,
@@ -125,18 +125,12 @@ export default function Blog() {
     setVisibleCount(20);
   };
 
-  const unitsForYear = useMemo(() => {
-    if (selectedYear === "All") return [];
-    const units = new Map<string, number>();
-    articles.forEach(a => {
-      if (getYearFromCategory(a.category) === selectedYear) {
-        units.set(a.category, (units.get(a.category) || 0) + 1);
-      }
-    });
-    return Array.from(units.entries())
-      .map(([cat, count]) => ({ category: cat, name: getCategoryDisplayName(cat), count }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [articles, selectedYear]);
+  // Helper: get the latest updated/created date across a list of articles
+  function latestDate(arts: Article[]): number {
+    return Math.max(
+      ...arts.map(a => new Date(a.updated_at || a.created_at).getTime())
+    );
+  }
 
   const filtered = useMemo(() => {
     const isSearching = search.trim().length > 0;
@@ -149,7 +143,21 @@ export default function Blog() {
           const matchesUnit = !selectedUnit || a.category === selectedUnit;
           return matchesYear && matchesUnit;
         });
-    return [...base].sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime());
+
+    // Sort by most recently updated/created
+    const sorted = [...base].sort(
+      (a, b) =>
+        new Date(b.updated_at || b.created_at).getTime() -
+        new Date(a.updated_at || a.created_at).getTime()
+    );
+
+    // Deduplicate by article id
+    const seen = new Set<string>();
+    return sorted.filter(a => {
+      if (seen.has(a.id)) return false;
+      seen.add(a.id);
+      return true;
+    });
   }, [articles, search, searchMatches, selectedYear, selectedUnit]);
 
   const filteredRecentArticles = useMemo(() => {
@@ -160,6 +168,26 @@ export default function Blog() {
       return a && normalizeYear(getYearFromCategory(a.category)) === selectedYear;
     });
   }, [articles, recentArticles, selectedYear]);
+
+  // Unit chips — sorted by most recently updated, matching group order below
+  const unitsForYear = useMemo(() => {
+    if (selectedYear === "All") return [];
+    const units = new Map<string, Article[]>();
+    articles.forEach(a => {
+      if (getYearFromCategory(a.category) === selectedYear) {
+        if (!units.has(a.category)) units.set(a.category, []);
+        units.get(a.category)!.push(a);
+      }
+    });
+    return Array.from(units.entries())
+      .map(([cat, arts]) => ({
+        category: cat,
+        name: getCategoryDisplayName(cat),
+        count: arts.length,
+        latest: latestDate(arts),
+      }))
+      .sort((a, b) => b.latest - a.latest); // Most recently updated unit first
+  }, [articles, selectedYear]);
 
   const groupedArticles = useMemo(() => {
     if (selectedUnit || search.trim()) return null;
@@ -174,16 +202,7 @@ export default function Blog() {
     return Array.from(groups.entries())
       .filter(([, arts]) => arts.length > 0)
       .map(([cat, arts]) => ({ category: cat, name: getCategoryDisplayName(cat), articles: arts }))
-      .sort((a, b) => {
-        // Sort categories by the most recently updated article within each group
-        const latestA = Math.max(...a.articles.map(art =>
-          new Date(art.updated_at || art.created_at).getTime()
-        ));
-        const latestB = Math.max(...b.articles.map(art =>
-          new Date(art.updated_at || art.created_at).getTime()
-        ));
-        return latestB - latestA; // Most recently updated category first
-      });
+      .sort((a, b) => latestDate(b.articles) - latestDate(a.articles)); // Most recently updated category first, works for both All and per-year
   }, [filtered, selectedUnit, search, selectedYear]);
 
   const toggleGroup = (category: string) => {
@@ -295,7 +314,7 @@ export default function Blog() {
         ))}
       </div>
 
-      {/* Unit chips */}
+      {/* Unit chips — ordered by most recently updated */}
       {selectedYear !== "All" && unitsForYear.length > 0 && (
         <div className="mb-6 flex flex-wrap gap-1.5">
           <button
