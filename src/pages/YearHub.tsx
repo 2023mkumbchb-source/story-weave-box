@@ -145,6 +145,38 @@ export default function YearHub() {
           ))}
         </div>
       </div>
+
+      {recent.length > 0 && (
+        <div className="mt-6 rounded-2xl border border-border bg-card p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Clock className="h-4 w-4 text-primary" />
+            <h2 className="font-serif text-lg font-bold text-foreground">Recently Added in {yearLabel}</h2>
+          </div>
+          <div className="space-y-1">
+            {recent.map(a => (
+              <Link
+                key={a.id}
+                to={buildBlogPath(a)}
+                state={{ from: `${location2.pathname}${location2.search}` }}
+                className="group flex items-start gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/40"
+              >
+                <BookOpen className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">{a.title}</p>
+                  <p className="text-[11px] text-muted-foreground">{getCategoryDisplayName(a.category)} · {timeAgo(a.updated_at || a.created_at)}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+          <Link
+            to={`/blog?year=${encodeURIComponent(yearLabel)}`}
+            className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+          >
+            View all {yearLabel} articles
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
