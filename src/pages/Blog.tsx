@@ -175,10 +175,14 @@ export default function Blog() {
       .filter(([, arts]) => arts.length > 0)
       .map(([cat, arts]) => ({ category: cat, name: getCategoryDisplayName(cat), articles: arts }))
       .sort((a, b) => {
-        const ya = getYearNumber(a.category);
-        const yb = getYearNumber(b.category);
-        if (ya !== yb) return ya - yb;
-        return a.name.localeCompare(b.name);
+        // Sort categories by the most recently updated article within each group
+        const latestA = Math.max(...a.articles.map(art =>
+          new Date(art.updated_at || art.created_at).getTime()
+        ));
+        const latestB = Math.max(...b.articles.map(art =>
+          new Date(art.updated_at || art.created_at).getTime()
+        ));
+        return latestB - latestA; // Most recently updated category first
       });
   }, [filtered, selectedUnit, search, selectedYear]);
 
