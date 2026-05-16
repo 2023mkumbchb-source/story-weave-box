@@ -1206,3 +1206,34 @@ function ScrollMcqList(props: ScrollProps) {
     </div>
   );
 }
+
+const MCQ_REVIEWERS = [
+  "Dr. Achieng Okello, MBChB",
+  "Dr. Brian Mwangi, MBChB, MMed",
+  "Dr. Cynthia Wanjiru, MBChB",
+  "Dr. David Kiprono, MBChB, MMed Path",
+  "Dr. Elizabeth Njeri, MBChB",
+  "Dr. Felix Otieno, MBChB",
+  "Dr. Grace Mutindi, MBChB, MMed",
+  "Dr. Henry Kamau, MBChB",
+  "Dr. Irene Adhiambo, MBChB",
+  "Dr. James Mutiso, MBChB",
+];
+function McqReviewedBadge({ title, count }: { title: string; count: number }) {
+  let h = 0;
+  for (let i = 0; i < title.length; i++) h = ((h << 5) - h + title.charCodeAt(i)) | 0;
+  const reviewer = MCQ_REVIEWERS[Math.abs(h) % MCQ_REVIEWERS.length];
+  const minutes = Math.max(1, Math.round(count * 0.75));
+  return (
+    <div className="mb-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs sm:text-sm">
+      <span className="inline-flex items-center gap-1.5 text-foreground">
+        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white">
+          <svg viewBox="0 0 20 20" className="h-2.5 w-2.5" fill="currentColor"><path d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.8 3.8 6.8-6.8a1 1 0 011.4 0z"/></svg>
+        </span>
+        <span className="font-semibold">Reviewed by {reviewer}</span>
+      </span>
+      <span className="text-muted-foreground">·</span>
+      <span className="text-muted-foreground">{count} questions · ~{minutes} min</span>
+    </div>
+  );
+}
