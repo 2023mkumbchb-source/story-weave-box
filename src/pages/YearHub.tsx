@@ -1,7 +1,26 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { ArrowRight, BookMarked, BookOpen, FileText, GraduationCap, ListChecks, Trophy } from "lucide-react";
-import { YEAR_CATEGORIES } from "@/lib/store";
+import { ArrowRight, BookMarked, BookOpen, Clock, GraduationCap, ListChecks, Trophy } from "lucide-react";
+import {
+  YEAR_CATEGORIES,
+  getPublishedArticleSummaries,
+  getCategoryDisplayName,
+  buildBlogPath,
+  type Article,
+} from "@/lib/store";
 import { Helmet } from "react-helmet-async";
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${Math.max(mins, 1)}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
 
 const YEAR_NUMBERS = [1, 2, 3, 4, 5, 6] as const;
 
@@ -21,6 +40,20 @@ export default function YearHub() {
 
   const yearLabel = `Year ${parsedYear}`;
   const units = YEAR_CATEGORIES[yearLabel] || [];
+  const location2 = location;
+  const [recent, setRecent] = useState<Article[]>([]);
+  useEffect(() => {
+    let alive = true;
+    getPublishedArticleSummaries(yearLabel).then(list => {
+      if (!alive) return;
+      const sorted = [...list].sort((a, b) =>
+        new Date(b.updated_at || b.created_at).getTime() -
+        new Date(a.updated_at || a.created_at).getTime()
+      );
+      setRecent(sorted.slice(0, 6));
+    });
+    return () => { alive = false; };
+  }, [yearLabel]);
   const ogUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}${location.pathname}${location.search}`
@@ -112,6 +145,38 @@ export default function YearHub() {
           ))}
         </div>
       </div>
+
+      {recent.length > 0 && (
+        <div className="mt-6 rounded-2xl border border-border bg-card p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Clock className="h-4 w-4 text-primary" />
+            <h2 className="font-serif text-lg font-bold text-foreground">Recently Added in {yearLabel}</h2>
+          </div>
+          <div className="space-y-1">
+            {recent.map(a => (
+              <Link
+                key={a.id}
+                to={buildBlogPath(a)}
+                state={{ from: `${location2.pathname}${location2.search}` }}
+                className="group flex items-start gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/40"
+              >
+                <BookOpen className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">{a.title}</p>
+                  <p className="text-[11px] text-muted-foreground">{getCategoryDisplayName(a.category)} · {timeAgo(a.updated_at || a.created_at)}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+          <Link
+            to={`/blog?year=${encodeURIComponent(yearLabel)}`}
+            className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+          >
+            View all {yearLabel} articles
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
