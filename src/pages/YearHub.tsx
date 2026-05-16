@@ -1,7 +1,26 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { ArrowRight, BookMarked, BookOpen, FileText, GraduationCap, ListChecks, Trophy } from "lucide-react";
-import { YEAR_CATEGORIES } from "@/lib/store";
+import { ArrowRight, BookMarked, BookOpen, Clock, GraduationCap, ListChecks, Trophy } from "lucide-react";
+import {
+  YEAR_CATEGORIES,
+  getPublishedArticleSummaries,
+  getCategoryDisplayName,
+  buildBlogPath,
+  type Article,
+} from "@/lib/store";
 import { Helmet } from "react-helmet-async";
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${Math.max(mins, 1)}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
 
 const YEAR_NUMBERS = [1, 2, 3, 4, 5, 6] as const;
 
@@ -21,6 +40,20 @@ export default function YearHub() {
 
   const yearLabel = `Year ${parsedYear}`;
   const units = YEAR_CATEGORIES[yearLabel] || [];
+  const location2 = location;
+  const [recent, setRecent] = useState<Article[]>([]);
+  useEffect(() => {
+    let alive = true;
+    getPublishedArticleSummaries(yearLabel).then(list => {
+      if (!alive) return;
+      const sorted = [...list].sort((a, b) =>
+        new Date(b.updated_at || b.created_at).getTime() -
+        new Date(a.updated_at || a.created_at).getTime()
+      );
+      setRecent(sorted.slice(0, 6));
+    });
+    return () => { alive = false; };
+  }, [yearLabel]);
   const ogUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}${location.pathname}${location.search}`
