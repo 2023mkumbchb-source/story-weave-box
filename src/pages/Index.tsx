@@ -160,16 +160,21 @@ export default function Index() {
               <h2 className="font-serif text-xl font-bold text-foreground">Continue Reading</h2>
             </div>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {lastRead.slice(0, 3).map(ra => (
-                <Link key={ra.id} to={buildBlogPath(ra)}
-                  className="group flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-all hover:shadow-sm hover:border-primary/20">
-                  <BookOpen className="h-4 w-4 shrink-0 text-primary" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">{ra.title}</p>
-                    <p className="text-[11px] text-muted-foreground">{ra.category}</p>
-                  </div>
-                </Link>
-              ))}
+              {lastRead.slice(0, 3).map(ra => {
+                const cleanTitle = (ra.title || "")
+                  .replace(/^[\p{Extended_Pictographic}\u2600-\u27BF\uFE0F]+/gu, "")
+                  .trim();
+                return (
+                  <Link key={ra.id} to={buildBlogPath(ra)}
+                    className="group flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-all hover:shadow-sm hover:border-primary/20">
+                    <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors">{cleanTitle}</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground truncate">{ra.category}</p>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}
