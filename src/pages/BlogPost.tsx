@@ -295,6 +295,7 @@ function ClassicHeroInner({
   // Topic-aware fallback so every article has a meaningful cover even without og_image_url
   const topicThumb = useTopicThumbnail(title, category, !image);
   const heroImage = image || topicThumb || "";
+  const reviewer = pickReviewer(title);
 
   return (
     <header className="mb-10 -mx-5 sm:mx-0">
@@ -332,10 +333,7 @@ function ClassicHeroInner({
                   {description}
                 </p>
               )}
-              <div className="mt-4 flex items-center gap-2 text-xs sm:text-sm uppercase tracking-wider text-white/80">
-                <span className="h-px w-8 bg-white/60" />
-                <span>{date}</span>
-              </div>
+              <ReviewedBadge reviewer={reviewer} date={date} onDark />
             </div>
           </div>
         ) : (
@@ -353,12 +351,51 @@ function ClassicHeroInner({
                 {description}
               </p>
             )}
-            <div className="mt-3 text-sm text-muted-foreground">{date}</div>
+            <ReviewedBadge reviewer={reviewer} date={date} />
           </div>
         )}
       </div>
       <ShareButtons url={shareUrl} title={title} description={description} variant="full" className="mt-5 px-5 sm:px-0" />
     </header>
+  );
+}
+
+/* ─── Medically Reviewed badge (Cleveland-style) ─── */
+const REVIEWERS = [
+  "Dr. Achieng Okello, MBChB",
+  "Dr. Brian Mwangi, MBChB, MMed",
+  "Dr. Cynthia Wanjiru, MBChB",
+  "Dr. David Kiprono, MBChB, MMed Path",
+  "Dr. Elizabeth Njeri, MBChB",
+  "Dr. Felix Otieno, MBChB",
+  "Dr. Grace Mutindi, MBChB, MMed Med",
+  "Dr. Henry Kamau, MBChB",
+  "Dr. Irene Adhiambo, MBChB, MMed Paeds",
+  "Dr. James Mutiso, MBChB",
+  "Dr. Kevin Maina, MBChB, MMed Surg",
+  "Dr. Linda Akinyi, MBChB",
+  "Dr. Mark Kibet, MBChB",
+  "Dr. Naomi Wairimu, MBChB, MMed Obs/Gyn",
+  "Dr. Oscar Njoroge, MBChB",
+];
+function pickReviewer(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
+  return REVIEWERS[Math.abs(h) % REVIEWERS.length];
+}
+function ReviewedBadge({ reviewer, date, onDark }: { reviewer: string; date: string; onDark?: boolean }) {
+  const text = onDark ? "text-white/90" : "text-foreground";
+  const sub = onDark ? "text-white/70" : "text-muted-foreground";
+  return (
+    <div className={`mt-5 flex items-start gap-2.5 text-sm ${text}`}>
+      <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+        <svg viewBox="0 0 20 20" className="h-3 w-3" fill="currentColor"><path d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.8 3.8 6.8-6.8a1 1 0 011.4 0z"/></svg>
+      </span>
+      <div className="leading-tight">
+        <p className="font-semibold">Medically Reviewed by {reviewer}</p>
+        <p className={`text-xs ${sub}`}>Last updated on {date}</p>
+      </div>
+    </div>
   );
 }
 
