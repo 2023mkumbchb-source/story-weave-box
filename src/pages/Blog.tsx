@@ -4,7 +4,6 @@ import { Search, X, BookOpen, Clock, ArrowLeft, ChevronDown } from "lucide-react
 import {
   getCategoryDisplayName,
   getYearFromCategory,
-  getYearNumber,
   getPublishedArticleSummaries,
   searchPublishedArticles,
   buildBlogPath,
@@ -43,6 +42,7 @@ export default function Blog() {
       description: "Comprehensive medical study notes and articles for Kenyan health students. Organized by unit and year.",
     });
   }, []);
+
   const navigate = useNavigate();
   const location = useLocation();
   const fromPath = `${location.pathname}${location.search}`;
@@ -94,7 +94,6 @@ export default function Blog() {
       setSearchMatches(null);
       return;
     }
-
     const t = setTimeout(async () => {
       setSearchLoading(true);
       try {
@@ -108,7 +107,6 @@ export default function Blog() {
         setSearchLoading(false);
       }
     }, 220);
-
     return () => clearTimeout(t);
   }, [search, selectedYear]);
 
@@ -169,7 +167,7 @@ export default function Blog() {
     });
   }, [articles, recentArticles, selectedYear]);
 
-  // Unit chips — sorted by most recently updated, matching group order below
+  // Unit chips — sorted by most recently updated, matching group order
   const unitsForYear = useMemo(() => {
     if (selectedYear === "All") return [];
     const units = new Map<string, Article[]>();
@@ -186,7 +184,7 @@ export default function Blog() {
         count: arts.length,
         latest: latestDate(arts),
       }))
-      .sort((a, b) => b.latest - a.latest); // Most recently updated unit first
+      .sort((a, b) => b.latest - a.latest);
   }, [articles, selectedYear]);
 
   const groupedArticles = useMemo(() => {
@@ -202,7 +200,7 @@ export default function Blog() {
     return Array.from(groups.entries())
       .filter(([, arts]) => arts.length > 0)
       .map(([cat, arts]) => ({ category: cat, name: getCategoryDisplayName(cat), articles: arts }))
-      .sort((a, b) => latestDate(b.articles) - latestDate(a.articles)); // Most recently updated category first, works for both All and per-year
+      .sort((a, b) => latestDate(b.articles) - latestDate(a.articles));
   }, [filtered, selectedUnit, search, selectedYear]);
 
   const toggleGroup = (category: string) => {
@@ -249,7 +247,10 @@ export default function Blog() {
         <h1 className="font-serif text-3xl font-bold leading-tight text-foreground sm:text-4xl">Study Notes</h1>
         <p className="mt-1 text-sm text-muted-foreground">Browse structured clinical notes by year and unit.</p>
         {yearRoute && (
-          <button onClick={() => navigate(`/year/${yearRoute}`)} className="mt-2 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
+          <button
+            onClick={() => navigate(`/year/${yearRoute}`)}
+            className="mt-2 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
             <ArrowLeft className="h-3.5 w-3.5" /> Back to Year {yearRoute}
           </button>
         )}
@@ -264,7 +265,12 @@ export default function Blog() {
           </div>
           <div className="space-y-1">
             {filteredRecentArticles.slice(0, 3).map(ra => (
-              <Link key={ra.id} to={buildBlogPath(ra)} state={{ from: fromPath }} className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/40">
+              <Link
+                key={ra.id}
+                to={buildBlogPath(ra)}
+                state={{ from: fromPath }}
+                className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/40"
+              >
                 <BookOpen className="h-3.5 w-3.5 shrink-0 text-primary" />
                 <span className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">{ra.title}</span>
                 <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{timeAgo(ra.visitedAt)}</span>
@@ -287,7 +293,9 @@ export default function Blog() {
             className="w-full bg-transparent px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
           {search && (
-            <button onClick={() => setSearch("")} className="mr-3 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+            <button onClick={() => setSearch("")} className="mr-3 text-muted-foreground hover:text-foreground">
+              <X className="h-4 w-4" />
+            </button>
           )}
         </div>
         {search.trim() && (
@@ -320,7 +328,9 @@ export default function Blog() {
           <button
             onClick={() => setUnit(null)}
             className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-              !selectedUnit ? "border border-primary/30 bg-primary/10 text-primary" : "border border-transparent text-muted-foreground hover:text-foreground"
+              !selectedUnit
+                ? "border border-primary/30 bg-primary/10 text-primary"
+                : "border border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             All Units ({filtered.length})
@@ -330,7 +340,9 @@ export default function Blog() {
               key={u.category}
               onClick={() => setUnit(selectedUnit === u.category ? null : u.category)}
               className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                selectedUnit === u.category ? "border border-primary/30 bg-primary/10 text-primary" : "border border-transparent text-muted-foreground hover:text-foreground"
+                selectedUnit === u.category
+                  ? "border border-primary/30 bg-primary/10 text-primary"
+                  : "border border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
               {u.name} ({u.count})
@@ -354,11 +366,15 @@ export default function Blog() {
               <div key={group.category}>
                 <div className="mb-3 flex items-center gap-3">
                   <h2 className="font-serif text-xl font-bold text-foreground sm:text-2xl">{group.name}</h2>
-                  <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">{group.articles.length}</span>
+                  <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                    {group.articles.length}
+                  </span>
                   <div className="h-px flex-1 bg-border" />
                 </div>
                 <div className="space-y-3">
-                  {group.articles.slice(0, showCount).map(a => <ArticleCard key={a.id} article={a} />)}
+                  {group.articles.slice(0, showCount).map(a => (
+                    <ArticleCard key={a.id} article={a} />
+                  ))}
                 </div>
                 {hasMore && (
                   <button
@@ -381,7 +397,9 @@ export default function Blog() {
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.slice(0, visibleCount).map(a => <ArticleCard key={a.id} article={a} />)}
+          {filtered.slice(0, visibleCount).map(a => (
+            <ArticleCard key={a.id} article={a} />
+          ))}
           {filtered.length > visibleCount && (
             <button
               onClick={() => setVisibleCount(prev => prev + LOAD_MORE_STEP)}
