@@ -112,15 +112,11 @@ export function rebalanceMcqAnswerLetters<T extends { question?: string; options
     const currentCorrectText = q.options[q.correct_answer];
     if (currentCorrectText === undefined) continue;
 
-    // Choose a target letter index that:
-    //  - differs from the previous correct letter (hard rule)
-    //  - avoids being equal to two-back when possible (soft rule)
     let target = q.correct_answer;
     const isBad = (idx: number) =>
       idx === prevLetter || (prevLetter !== null && prevPrevLetter === prevLetter && idx === prevLetter);
 
     if (isBad(target)) {
-      // Pick a deterministic-but-varied target based on position.
       const candidates: number[] = [];
       for (let k = 0; k < optCount; k++) {
         if (!isBad(k)) candidates.push(k);
@@ -231,7 +227,6 @@ export const UNIT_CATEGORIES = Object.entries(YEAR_CATEGORIES).flatMap(([year, u
 
 export function getYearFromCategory(category: string): string | null {
   if (!category) return null;
-  // Match "Year N" anywhere so "Weekly Exam: Year 1: Anatomy" still maps to "Year 1"
   const match = category.match(/Year\s+(\d)/);
   return match ? `Year ${match[1]}` : null;
 }
@@ -253,7 +248,6 @@ function extractArticleIdFromParam(value: string): string | null {
   const normalized = String(value || "").trim();
   if (!normalized) return null;
   if (UUID_REGEX.test(normalized)) return normalized;
-
   const match = normalized.match(/^([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})(?:-|$)/i);
   return match?.[1] || null;
 }
@@ -282,26 +276,22 @@ export function buildBlogPath(article: Pick<Article, "id" | "title"> & { slug?: 
   return `/blog/${cleanPublicSlug(article.slug || "", article.title, "article")}`;
 }
 
-/** Build a statement-style URL: /mcqs/<title-slug> */
 export function buildMcqPath(set: { id: string; title: string; slug?: string | null }): string {
   const rawSlug = typeof set.slug === "string" ? set.slug.trim() : "";
   return `/mcqs/${cleanPublicSlug(rawSlug, set.title, "quiz")}`;
 }
 
-/** Build a statement-style URL: /flashcards/<title-slug> */
 export function buildFlashcardPath(set: { id: string; title: string; slug?: string | null }): string {
   const rawSlug = typeof set.slug === "string" ? set.slug.trim() : "";
   return `/flashcards/${cleanPublicSlug(rawSlug, set.title, "flashcards")}`;
 }
 
-/** Build a statement-style URL: /exams/<title-slug>/start */
 export function buildExamPath(exam: { id: string; title: string; slug?: string | null }): string {
   const rawSlug = typeof exam.slug === "string" ? exam.slug.trim() : "";
   const slug = rawSlug || `${slugifyTitle(exam.title) || "exam"}-${(exam.id || "").slice(0, 6)}`;
   return `/exams/${slug}/start`;
 }
 
-/** Extract a UUID from a legacy param like "<uuid>-<title>" or just "<uuid>". Returns null otherwise. */
 export function extractIdFromParam(value: string | undefined | null): string | null {
   if (!value) return null;
   const v = String(value).trim();
@@ -327,18 +317,16 @@ function toArticlePreview(row: any): Article {
   };
 }
 
-// Simple in-memory + sessionStorage cache for article summaries
+// ─── Cache ────────────────────────────────────────────────────────────────────
 const SUMMARY_CACHE_KEY = "article_summaries_cache_v2";
-const SUMMARY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const SUMMARY_CACHE_TTL = 30 * 1000; // 30 seconds — short enough to feel live
 
 let memorySummaryCache: { data: Article[]; ts: number } | null = null;
 
 function getCachedSummaries(): Article[] | null {
-  // Check memory first
   if (memorySummaryCache && Date.now() - memorySummaryCache.ts < SUMMARY_CACHE_TTL) {
     return memorySummaryCache.data;
   }
-  // Check sessionStorage
   try {
     const raw = sessionStorage.getItem(SUMMARY_CACHE_KEY);
     if (raw) {
@@ -359,6 +347,18 @@ function setCachedSummaries(data: Article[]) {
     sessionStorage.setItem(SUMMARY_CACHE_KEY, JSON.stringify(entry));
   } catch {}
 }
+
+/**
+ * Call this whenever an article is saved or deleted so the Blog page
+ * immediately reflects the change instead of waiting for the TTL to expire.
+ */
+export function clearArticleSummaryCache() {
+  memorySummaryCache = null;
+  try {
+    sessionStorage.removeItem(SUMMARY_CACHE_KEY);
+  } catch {}
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Articles
 export async function getArticles(): Promise<Article[]> {
@@ -383,7 +383,6 @@ export async function getPublishedArticles(): Promise<Article[]> {
 }
 
 export async function getPublishedArticleSummaries(year?: string): Promise<Article[]> {
-  // Only cache the "all" request (no year filter)
   if (!year) {
     const cached = getCachedSummaries();
     if (cached) return cached;
@@ -458,7 +457,6 @@ export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | 
   const explicitId = extractArticleIdFromParam(normalizedParam);
   if (explicitId) return getArticleById(explicitId);
 
-  // Check DB slug column first
   const { data: slugMatch } = await supabase
     .from("articles")
     .select("id")
@@ -469,7 +467,6 @@ export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | 
 
   if (slugMatch) return getArticleById(slugMatch.id);
 
-  // Fallback: match by title slug
   const { data, error } = await supabase
     .from("articles")
     .select("id, title")
@@ -489,7 +486,6 @@ export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | 
 export async function saveArticle(article: Omit<Article, "id"> & { id?: string }): Promise<Article> {
   const normalizedSlug = (article.slug || slugifyTitle(article.title)).trim();
   const cat = article.category ? article.category.replace(/^Year\s*\d+:\s*/i, "").trim() : "";
-  // Meta title is ALWAYS the article title (auto on publish)
   const normalizedMetaTitle = (article.title || "Study Notes").slice(0, 80);
   const generatedDescription = stripRichText(article.content || article.original_notes || "", 160);
   const normalizedMetaDescription = (
@@ -512,6 +508,8 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
     og_image_url: normalizedOgImage,
   };
 
+  let saved: Article;
+
   if (article.id) {
     const { data, error } = await supabase
       .from("articles")
@@ -520,9 +518,7 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
       .select()
       .single();
     if (error) throw error;
-    const saved = data as Article;
-    if (saved.published) autoIndexUrls([`${SITE_URL}${buildBlogPath(saved)}`]);
-    return saved;
+    saved = data as Article;
   } else {
     const { data, error } = await supabase
       .from("articles")
@@ -530,16 +526,21 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
       .select()
       .single();
     if (error) throw error;
-    const saved = data as Article;
-    if (saved.published) autoIndexUrls([`${SITE_URL}${buildBlogPath(saved)}`]);
-    return saved;
+    saved = data as Article;
   }
+
+  // Clear cache so Blog page immediately shows the updated category order
+  clearArticleSummaryCache();
+
+  if (saved.published) autoIndexUrls([`${SITE_URL}${buildBlogPath(saved)}`]);
+  return saved;
 }
 
 export async function deleteArticle(id: string) {
-  // Soft delete
   const { error } = await supabase.from("articles").update({ deleted_at: new Date().toISOString() } as any).eq("id", id);
   if (error) throw error;
+  // Clear cache so deleted article disappears immediately
+  clearArticleSummaryCache();
 }
 
 // Flashcard Sets
@@ -574,7 +575,6 @@ export async function getFlashcardSetById(id: string): Promise<FlashcardSet | nu
   return data as unknown as FlashcardSet | null;
 }
 
-/** Resolve a flashcard set by UUID, legacy "<uuid>-<slug>", or slug. */
 export async function getFlashcardSetBySlugOrId(param: string): Promise<FlashcardSet | null> {
   const v = decodeURIComponent(String(param || "")).trim();
   if (!v) return null;
@@ -657,13 +657,11 @@ export async function getMcqSetById(id: string): Promise<McqSet | null> {
   return data as unknown as McqSet | null;
 }
 
-/** Resolve an MCQ set by UUID, legacy "<uuid>-<slug>", or slug. */
 export async function getMcqSetBySlugOrId(param: string): Promise<McqSet | null> {
   const v = decodeURIComponent(String(param || "")).trim();
   if (!v) return null;
   const id = extractIdFromParam(v);
   if (id) return getMcqSetById(id);
-  // 1) Exact slug match
   const { data } = await supabase
     .from("mcq_sets")
     .select("*")
@@ -671,7 +669,6 @@ export async function getMcqSetBySlugOrId(param: string): Promise<McqSet | null>
     .is("deleted_at", null)
     .maybeSingle();
   if (data) return data as unknown as McqSet;
-  // 2) Fallback: title slug fuzzy match (handles legacy '<slug>-<id6>' or stale slugs)
   const titlePart = v.replace(/-[0-9a-f]{6}$/, "");
   const { data: list } = await supabase
     .from("mcq_sets")
@@ -680,7 +677,6 @@ export async function getMcqSetBySlugOrId(param: string): Promise<McqSet | null>
     .is("deleted_at", null)
     .limit(1);
   if (list && list[0]) return list[0] as unknown as McqSet;
-  // 3) Final fallback: title contains
   const titleSearch = titlePart.replace(/-/g, " ");
   const { data: byTitle } = await supabase
     .from("mcq_sets")
