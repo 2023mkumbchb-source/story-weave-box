@@ -635,6 +635,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
   return (
     <div className="mx-auto max-w-2xl px-2">
       <h2 className="mb-2 text-center font-serif text-xl sm:text-2xl font-bold text-foreground">{title}</h2>
+      <McqReviewedBadge title={title} count={order.length} />
       <div className="mb-3 flex justify-center">
         <button onClick={() => setViewMode("scroll")} className="text-xs text-primary hover:underline">
           ← Switch to scroll mode (default)
