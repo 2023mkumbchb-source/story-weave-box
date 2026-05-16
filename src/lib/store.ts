@@ -764,32 +764,26 @@ export async function getRelatedContent(category: string, excludeArticleId?: str
 
 export async function getAllCategories(): Promise<{ name: string; articles: number; flashcards: number; mcqs: number }[]> {
   const [{ data: articles }, { data: flashcards }, { data: mcqs }] = await Promise.all([
-    supabase.from("articles").select("category").eq("published", true),
-    supabase.from("flashcard_sets").select("category").eq("published", true),
-    supabase.from("mcq_sets").select("category").eq("published", true),
+    supabase.from("articles").select("category, updated_at, created_at").eq("published", true),
+    supabase.from("flashcard_sets").select("category, updated_at, created_at").eq("published", true),
+    supabase.from("mcq_sets").select("category, updated_at, created_at").eq("published", true),
   ]);
 
-  const cats: Record<string, { articles: number; flashcards: number; mcqs: number }> = {};
-  (articles || []).forEach((a: any) => {
-    const c = a.category || "Uncategorized";
-    if (!cats[c]) cats[c] = { articles: 0, flashcards: 0, mcqs: 0 };
-    cats[c].articles++;
-  });
-  (flashcards || []).forEach((f: any) => {
-    const c = f.category || "Uncategorized";
-    if (!cats[c]) cats[c] = { articles: 0, flashcards: 0, mcqs: 0 };
-    cats[c].flashcards++;
-  });
-  (mcqs || []).forEach((m: any) => {
-    const c = m.category || "Uncategorized";
-    if (!cats[c]) cats[c] = { articles: 0, flashcards: 0, mcqs: 0 };
-    cats[c].mcqs++;
-  });
+  const cats: Record<string, { articles: number; flashcards: number; mcqs: number; latest: number }> = {};
+  const bump = (c: string, key: "articles" | "flashcards" | "mcqs", ts: string | null | undefined) => {
+    if (!cats[c]) cats[c] = { articles: 0, flashcards: 0, mcqs: 0, latest: 0 };
+    cats[c][key]++;
+    const t = ts ? new Date(ts).getTime() : 0;
+    if (t > cats[c].latest) cats[c].latest = t;
+  };
+  (articles || []).forEach((a: any) => bump(a.category || "Uncategorized", "articles", a.updated_at || a.created_at));
+  (flashcards || []).forEach((f: any) => bump(f.category || "Uncategorized", "flashcards", f.updated_at || f.created_at));
+  (mcqs || []).forEach((m: any) => bump(m.category || "Uncategorized", "mcqs", m.updated_at || m.created_at));
 
   return Object.entries(cats)
     .filter(([name]) => name !== "Uncategorized")
-    .map(([name, counts]) => ({ name, ...counts }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .map(([name, c]) => ({ name, articles: c.articles, flashcards: c.flashcards, mcqs: c.mcqs }))
+    .sort((a, b) => (cats[b.name].latest - cats[a.name].latest) || a.name.localeCompare(b.name));
 }
 
 export async function getCategories(): Promise<{ name: string; count: number }[]> {
