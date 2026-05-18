@@ -29,15 +29,10 @@ function renderInline(text: string, keyPrefix = "i") {
 function renderFlashcardMarkdown(raw: string) {
   if (!raw) return null;
 
-  // Normalize: split inline numbered items "1. Foo 2. Bar 3. Baz" onto new lines,
-  // split inline bullet/dash sequences, and split sentences ending with "→" arrows.
   let text = raw
     .replace(/\r/g, "")
-    // split " 2. " mid-line into newlines (but not leading "1.")
     .replace(/\s(?=\d{1,2}\.\s+[A-Z(])/g, "\n")
-    // split inline " - " between bullets
     .replace(/\s-\s(?=[A-Z(])/g, "\n- ")
-    // ensure arrow steps each get a line
     .replace(/\s(?=→\s)/g, "\n")
     .trim();
 
@@ -78,14 +73,12 @@ function renderFlashcardMarkdown(raw: string) {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    // ordered list item: "1. xxx" or "1) xxx"
     const ord = line.match(/^(\d{1,2})[.)]\s+(.+)$/);
     if (ord) {
       if (!listBuf || !listBuf.ordered) { flushList(); listBuf = { ordered: true, items: [] }; }
       listBuf.items.push(ord[2]);
       continue;
     }
-    // bullet list item
     const bul = line.match(/^[-*•]\s+(.+)$/);
     if (bul) {
       if (!listBuf || listBuf.ordered) { flushList(); listBuf = { ordered: false, items: [] }; }
@@ -93,7 +86,6 @@ function renderFlashcardMarkdown(raw: string) {
       continue;
     }
     flushList();
-    // arrow step line
     if (line.startsWith("→")) {
       out.push(
         <p key={`a-${i}`} className="my-1.5 flex items-start gap-2 text-left leading-relaxed text-foreground/90">
@@ -167,7 +159,7 @@ export default function FlashcardViewer({ cards, title, setId }: Props) {
   const handleDragEnd = (_: any, info: { offset: { x: number }; velocity: { x: number } }) => {
     const swipeThreshold = 30;
     const velocityThreshold = 200;
-    
+
     if (Math.abs(info.offset.x) > swipeThreshold || Math.abs(info.velocity.x) > velocityThreshold) {
       if (info.offset.x < 0 || info.velocity.x < -velocityThreshold) {
         next();
@@ -180,12 +172,13 @@ export default function FlashcardViewer({ cards, title, setId }: Props) {
 
   const handleClick = () => {
     if (!isDragging.current) {
-      setFlipped(!flipped);
+      setFlipped((f) => !f);
     }
   };
 
-  // Keyboard shortcuts
-  useState(() => {
+  // ✅ Fixed: was incorrectly using useState — must be useEffect so the
+  // keyboard handler is actually registered and cleaned up properly.
+  useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.code === "Space") { e.preventDefault(); setFlipped((f) => !f); }
       if (e.code === "ArrowRight") next();
@@ -193,7 +186,7 @@ export default function FlashcardViewer({ cards, title, setId }: Props) {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  });
+  }, [next, prev]);
 
   return (
     <div className="mx-auto w-full max-w-4xl px-2">
