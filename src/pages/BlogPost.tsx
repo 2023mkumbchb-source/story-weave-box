@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, type Article } from "@/lib/store";
 import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags, autoIndexUrls } from "@/lib/seo";
 import { useTopicThumbnail } from "@/lib/topicThumbnail";
+import { KeywordLinkProvider, useKeywordLinks, linkifyText } from "@/lib/keyword-link";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { markArticleVisited } from "@/lib/progress-store";
@@ -19,15 +20,16 @@ import { useAuth } from "@/hooks/useAuth";
 
 /* ─── Inline text: bold/italic ─── */
 const Inline = forwardRef<HTMLSpanElement, { text: string }>(({ text }, ref) => {
+  const linkCtx = useKeywordLinks();
   const parts = text.replace(/⭐+/g, "").split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
   return (
     <span ref={ref}>
       {parts.map((part, j) => {
         if (part.startsWith("**") && part.endsWith("**"))
-          return <strong key={j} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
+          return <strong key={j} className="font-semibold text-foreground">{linkifyText(part.slice(2, -2), linkCtx, `s${j}`)}</strong>;
         if (part.startsWith("*") && part.endsWith("*") && part.length > 2)
-          return <em key={j} className="text-foreground/80">{part.slice(1, -1)}</em>;
-        return <span key={j}>{part.replace(/\*/g, "")}</span>;
+          return <em key={j} className="text-foreground/80">{linkifyText(part.slice(1, -1), linkCtx, `e${j}`)}</em>;
+        return <span key={j}>{linkifyText(part.replace(/\*/g, ""), linkCtx, `t${j}`)}</span>;
       })}
     </span>
   );
@@ -1554,7 +1556,9 @@ export default function BlogPost() {
             />
 
             <div className="prose-custom article-reader">
-              <ArticleContent content={article.content} inlineRelated={related.articles || []} />
+              <KeywordLinkProvider currentPath={buildBlogPath(article)}>
+                <ArticleContent content={article.content} inlineRelated={related.articles || []} />
+              </KeywordLinkProvider>
             </div>
 
             <div className="mt-10 pt-6 border-t border-border">

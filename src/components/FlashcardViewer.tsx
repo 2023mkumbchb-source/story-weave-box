@@ -11,6 +11,108 @@ interface Props {
 
 const STORAGE_KEY = "flashcard_progress_";
 
+/* ── Inline formatter: bold / italic ── */
+function renderInline(text: string, keyPrefix = "i") {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
+  return parts.map((p, i) => {
+    if (p.startsWith("**") && p.endsWith("**"))
+      return <strong key={`${keyPrefix}-${i}`} className="font-semibold text-foreground">{p.slice(2, -2)}</strong>;
+    if (p.startsWith("`") && p.endsWith("`"))
+      return <code key={`${keyPrefix}-${i}`} className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em]">{p.slice(1, -1)}</code>;
+    if (p.startsWith("*") && p.endsWith("*") && p.length > 2)
+      return <em key={`${keyPrefix}-${i}`} className="text-foreground/80">{p.slice(1, -1)}</em>;
+    return <span key={`${keyPrefix}-${i}`}>{p}</span>;
+  });
+}
+
+/* ── Markdown block renderer for flashcard answers ── */
+function renderFlashcardMarkdown(raw: string) {
+  if (!raw) return null;
+
+  // Normalize: split inline numbered items "1. Foo 2. Bar 3. Baz" onto new lines,
+  // split inline bullet/dash sequences, and split sentences ending with "→" arrows.
+  let text = raw
+    .replace(/\r/g, "")
+    // split " 2. " mid-line into newlines (but not leading "1.")
+    .replace(/\s(?=\d{1,2}\.\s+[A-Z(])/g, "\n")
+    // split inline " - " between bullets
+    .replace(/\s-\s(?=[A-Z(])/g, "\n- ")
+    // ensure arrow steps each get a line
+    .replace(/\s(?=→\s)/g, "\n")
+    .trim();
+
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  const out: React.ReactNode[] = [];
+  let listBuf: { ordered: boolean; items: string[] } | null = null;
+
+  const flushList = () => {
+    if (!listBuf) return;
+    const { ordered, items } = listBuf;
+    const Tag = ordered ? "ol" : "ul";
+    out.push(
+      <Tag
+        key={`list-${out.length}`}
+        className={ordered
+          ? "my-2 list-decimal space-y-2 pl-6 text-left"
+          : "my-2 space-y-2 pl-1 text-left"}
+      >
+        {items.map((item, i) => (
+          <li
+            key={i}
+            className={ordered
+              ? "pl-1 leading-relaxed text-foreground/90"
+              : "flex items-start gap-2.5 leading-relaxed text-foreground/90"}
+          >
+            {ordered ? renderInline(item, `o${i}`) : (
+              <>
+                <span className="mt-[0.55em] h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                <span className="flex-1">{renderInline(item, `u${i}`)}</span>
+              </>
+            )}
+          </li>
+        ))}
+      </Tag>
+    );
+    listBuf = null;
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // ordered list item: "1. xxx" or "1) xxx"
+    const ord = line.match(/^(\d{1,2})[.)]\s+(.+)$/);
+    if (ord) {
+      if (!listBuf || !listBuf.ordered) { flushList(); listBuf = { ordered: true, items: [] }; }
+      listBuf.items.push(ord[2]);
+      continue;
+    }
+    // bullet list item
+    const bul = line.match(/^[-*•]\s+(.+)$/);
+    if (bul) {
+      if (!listBuf || listBuf.ordered) { flushList(); listBuf = { ordered: false, items: [] }; }
+      listBuf.items.push(bul[1]);
+      continue;
+    }
+    flushList();
+    // arrow step line
+    if (line.startsWith("→")) {
+      out.push(
+        <p key={`a-${i}`} className="my-1.5 flex items-start gap-2 text-left leading-relaxed text-foreground/90">
+          <span className="font-bold text-primary">→</span>
+          <span className="flex-1">{renderInline(line.replace(/^→\s*/, ""), `a${i}`)}</span>
+        </p>
+      );
+      continue;
+    }
+    out.push(
+      <p key={`p-${i}`} className="my-1.5 text-left leading-relaxed text-foreground/90">
+        {renderInline(line, `p${i}`)}
+      </p>
+    );
+  }
+  flushList();
+  return out;
+}
+
 export default function FlashcardViewer({ cards, title, setId }: Props) {
   const storageKey = setId ? STORAGE_KEY + setId : null;
 
@@ -94,14 +196,14 @@ export default function FlashcardViewer({ cards, title, setId }: Props) {
   });
 
   return (
-    <div className="mx-auto max-w-2xl px-2">
-      <h2 className="mb-2 text-center font-serif text-xl sm:text-2xl font-bold text-foreground">{title}</h2>
-      <p className="mb-6 sm:mb-8 text-center text-xs sm:text-sm text-muted-foreground">
+    <div className="mx-auto w-full max-w-4xl px-2">
+      <h2 className="mb-2 text-center font-serif text-2xl sm:text-3xl font-bold text-foreground leading-tight">{title}</h2>
+      <p className="mb-5 sm:mb-7 text-center text-xs sm:text-sm text-muted-foreground">
         Card {current + 1} of {order.length} · Tap to flip · Swipe to navigate
       </p>
 
       <motion.div
-        className="perspective-1000 mx-auto mb-6 sm:mb-8 h-64 sm:h-72 w-full max-w-lg cursor-pointer select-none touch-pan-y"
+        className="perspective-1000 mx-auto mb-6 sm:mb-8 w-full max-w-3xl cursor-pointer select-none touch-pan-y min-h-[22rem] sm:min-h-[26rem]"
         style={{ x: dragX, opacity: dragOpacity, rotate: dragRotate }}
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
@@ -114,24 +216,28 @@ export default function FlashcardViewer({ cards, title, setId }: Props) {
         onClick={handleClick}
       >
         <motion.div
-          className="relative h-full w-full"
+          className="relative h-full w-full min-h-[22rem] sm:min-h-[26rem]"
           animate={{ rotateY: flipped ? 180 : 0 }}
           transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
           style={{ transformStyle: "preserve-3d" }}
         >
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl border border-border bg-card p-6 sm:p-8 text-center"
+            className="absolute inset-0 flex flex-col items-center justify-center overflow-y-auto rounded-2xl border border-border bg-card p-6 sm:p-10 text-center"
             style={{ backfaceVisibility: "hidden", boxShadow: "var(--shadow-elevated)" }}
           >
-            <span className="mb-3 text-xs font-medium uppercase tracking-wider text-primary">Question</span>
-            <p className="text-base sm:text-lg font-medium text-foreground leading-relaxed">{cards[cardIndex]?.question}</p>
+            <span className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">Question</span>
+            <div className="w-full max-w-2xl font-serif text-lg sm:text-2xl font-semibold text-foreground leading-snug">
+              {renderInline(cards[cardIndex]?.question || "", "q")}
+            </div>
           </div>
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl border border-border bg-secondary p-6 sm:p-8 text-center overflow-y-auto"
+            className="absolute inset-0 flex flex-col items-start justify-start overflow-y-auto rounded-2xl border border-border bg-secondary p-6 sm:p-10 text-left"
             style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
           >
-            <span className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Answer</span>
-            <p className="text-base sm:text-lg font-medium text-foreground leading-relaxed">{cards[cardIndex]?.answer}</p>
+            <span className="mb-4 self-center text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">Answer</span>
+            <div className="w-full text-[15px] sm:text-base text-foreground/90 leading-relaxed">
+              {renderFlashcardMarkdown(cards[cardIndex]?.answer || "")}
+            </div>
           </div>
         </motion.div>
       </motion.div>
