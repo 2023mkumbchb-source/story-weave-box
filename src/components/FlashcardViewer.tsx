@@ -119,8 +119,9 @@ export default function FlashcardViewer({ cards, title, setId }: Props) {
   const dragX = useMotionValue(0);
   const dragOpacity = useTransform(dragX, [-150, 0, 150], [0.5, 1, 0.5]);
   const dragRotate = useTransform(dragX, [-150, 0, 150], [-8, 0, 8]);
-  const isDragging = useRef(false);
-  const dragDistance = useRef(0);
+
+  // Track whether the gesture was a real swipe so we don't also fire a flip
+  const wasSwiped = useRef(false);
 
   const cardIndex = order[current];
 
@@ -158,32 +159,33 @@ export default function FlashcardViewer({ cards, title, setId }: Props) {
   };
 
   const handleDragEnd = (_: any, info: { offset: { x: number }; velocity: { x: number } }) => {
-    const swipeThreshold = 30;
-    const velocityThreshold = 200;
+    const swipeThreshold = 40;
+    const velocityThreshold = 300;
 
     if (Math.abs(info.offset.x) > swipeThreshold || Math.abs(info.velocity.x) > velocityThreshold) {
-      isDragging.current = true;
+      // Real swipe — navigate, do NOT flip
+      wasSwiped.current = true;
       if (info.offset.x < 0 || info.velocity.x < -velocityThreshold) {
         next();
       } else {
         prev();
       }
     } else {
-      // Small movement — treat as tap, not swipe
-      isDragging.current = false;
+      // Tiny movement — treat as a tap, allow flip
+      wasSwiped.current = false;
     }
     animate(dragX, 0, { type: "spring", stiffness: 300, damping: 30 });
-    setTimeout(() => { isDragging.current = false; }, 300);
   };
 
+  // onClick fires after every drag end on mobile — only flip if it wasn't a swipe
   const handleClick = () => {
-    if (!isDragging.current) {
+    if (!wasSwiped.current) {
       setFlipped((f) => !f);
     }
+    wasSwiped.current = false;
   };
 
-  // ✅ Fixed: was incorrectly using useState — must be useEffect so the
-  // keyboard handler is actually registered and cleaned up properly.
+  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.code === "Space") { e.preventDefault(); setFlipped((f) => !f); }
@@ -207,11 +209,8 @@ export default function FlashcardViewer({ cards, title, setId }: Props) {
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.7}
-        onDragStart={() => { isDragging.current = false; }}
-        onDragEnd={(e, info) => {
-          handleDragEnd(e, info);
-          setTimeout(() => { isDragging.current = false; }, 50);
-        }}
+        onDragStart={() => { wasSwiped.current = false; }}
+        onDragEnd={handleDragEnd}
         onClick={handleClick}
       >
         <motion.div
