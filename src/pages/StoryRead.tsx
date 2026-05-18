@@ -154,13 +154,27 @@ export default function StoryRead() {
           </span>
         )}
         <h1 className="font-serif text-2xl font-bold leading-tight text-foreground sm:text-4xl">
-          {story.title}
+          {(story as any).meta_title || story.title}
         </h1>
+        {((story as any).meta_description || "") && (
+          <p className="mt-3 max-w-prose font-serif text-base text-muted-foreground leading-relaxed">
+            {(story as any).meta_description}
+          </p>
+        )}
         <div className="mt-3 flex flex-col gap-3">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span>{new Date(story.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</span>
             <span>·</span>
             <span>{readTime} min read</span>
+          </div>
+          <div className="flex items-start gap-2.5 text-sm text-foreground">
+            <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+              <svg viewBox="0 0 20 20" className="h-3 w-3" fill="currentColor"><path d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.8 3.8 6.8-6.8a1 1 0 011.4 0z"/></svg>
+            </span>
+            <div className="leading-tight">
+              <p className="font-semibold">Editorially Reviewed</p>
+              <p className="text-xs text-muted-foreground">Curated for OmpathStudy readers</p>
+            </div>
           </div>
           <ShareButtons url={storyUrl} title={story.title} variant="full" />
         </div>
