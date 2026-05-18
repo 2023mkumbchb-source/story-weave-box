@@ -1556,7 +1556,9 @@ export default function BlogPost() {
             />
 
             <div className="prose-custom article-reader">
-              <ArticleContent content={article.content} inlineRelated={related.articles || []} />
+              <KeywordLinkProvider currentPath={buildBlogPath(article)}>
+                <ArticleContent content={article.content} inlineRelated={related.articles || []} />
+              </KeywordLinkProvider>
             </div>
 
             <div className="mt-10 pt-6 border-t border-border">
