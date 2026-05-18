@@ -120,6 +120,7 @@ export default function FlashcardViewer({ cards, title, setId }: Props) {
   const dragOpacity = useTransform(dragX, [-150, 0, 150], [0.5, 1, 0.5]);
   const dragRotate = useTransform(dragX, [-150, 0, 150], [-8, 0, 8]);
   const isDragging = useRef(false);
+  const dragDistance = useRef(0);
 
   const cardIndex = order[current];
 
@@ -161,13 +162,18 @@ export default function FlashcardViewer({ cards, title, setId }: Props) {
     const velocityThreshold = 200;
 
     if (Math.abs(info.offset.x) > swipeThreshold || Math.abs(info.velocity.x) > velocityThreshold) {
+      isDragging.current = true;
       if (info.offset.x < 0 || info.velocity.x < -velocityThreshold) {
         next();
       } else {
         prev();
       }
+    } else {
+      // Small movement — treat as tap, not swipe
+      isDragging.current = false;
     }
     animate(dragX, 0, { type: "spring", stiffness: 300, damping: 30 });
+    setTimeout(() => { isDragging.current = false; }, 300);
   };
 
   const handleClick = () => {
@@ -201,7 +207,7 @@ export default function FlashcardViewer({ cards, title, setId }: Props) {
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.7}
-        onDragStart={() => { isDragging.current = true; }}
+        onDragStart={() => { isDragging.current = false; }}
         onDragEnd={(e, info) => {
           handleDragEnd(e, info);
           setTimeout(() => { isDragging.current = false; }, 50);
