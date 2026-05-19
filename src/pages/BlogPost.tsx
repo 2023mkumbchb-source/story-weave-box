@@ -1546,7 +1546,7 @@ export default function BlogPost() {
 
           <article id="section-top" className="min-w-0">
             <ClassicHero
-              title={article.title.replace(/^#+\s*/, "")}
+              title={(article.meta_title?.trim() || article.title).replace(/^#+\s*/, "")}
               image={article.og_image_url || extractFirstImageFromContent(article.content || "") || ""}
               date={date}
               unit={unitName && unitName !== "Uncategorized" ? unitName : ""}

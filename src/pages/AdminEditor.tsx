@@ -732,6 +732,30 @@ export default function AdminEditor() {
       if (data?.meta_title) setEditMetaTitle(data.meta_title);
       if (data?.meta_description) setEditMetaDesc(data.meta_description);
       if (data?.slug) setEditSlug(data.slug);
+
+      // Free image lookup via Wikipedia REST API (no key required).
+      // Only fills if no og image is currently set, so we never overwrite user choice.
+      if (!editOgImage) {
+        try {
+          const candidates = [
+            data?.meta_title,
+            editTitle,
+          ].filter(Boolean) as string[];
+          for (const term of candidates) {
+            const clean = term.replace(/[^A-Za-z0-9 \-]/g, "").trim().slice(0, 80);
+            if (!clean) continue;
+            const r = await fetch(
+              `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(clean)}`,
+              { headers: { Accept: "application/json" } }
+            );
+            if (!r.ok) continue;
+            const j: any = await r.json();
+            const img = j?.originalimage?.source || j?.thumbnail?.source;
+            if (img) { setEditOgImage(img); break; }
+          }
+        } catch { /* image lookup is best-effort */ }
+      }
+
       toast({ title: "AI meta generated!" });
     } catch (err: any) {
       toast({ title: "AI meta failed", description: err.message, variant: "destructive" });

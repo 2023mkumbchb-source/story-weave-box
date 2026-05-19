@@ -12,6 +12,13 @@ import { Button } from "@/components/ui/button";
 import {
   getPublishedArticles, getPublishedFlashcardSets, getPublishedMcqSets, buildBlogPath,
 } from "@/lib/store";
+import { useKeywordLinks, linkifyText } from "@/lib/keyword-link";
+
+/** Inline component that linkifies any plain string against the article keyword map. */
+function LinkedText({ text, k = "lk" }: { text: string; k?: string }) {
+  const ctx = useKeywordLinks();
+  return <>{linkifyText(text, ctx, k)}</>;
+}
 
 const fetchArticles   = () => getPublishedArticles().catch(() => ([] as any[]));
 const fetchFlashcards = () => getPublishedFlashcardSets().catch(() => ([] as any[]));
@@ -660,7 +667,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
           <div className="mb-4 rounded-2xl border border-border bg-card p-5 sm:p-6"
             style={{ boxShadow: "var(--shadow-elevated)" }}>
             <span className="mb-3 block text-xs font-medium uppercase tracking-wider text-primary">Question</span>
-            <p className="text-base sm:text-lg font-medium text-foreground leading-relaxed break-words">{cleanQuestionText(q?.question)}</p>
+            <p className="text-base sm:text-lg font-medium text-foreground leading-relaxed break-words"><LinkedText text={cleanQuestionText(q?.question)} k="mq" /></p>
           </div>
 
           {/* Options */}
@@ -693,7 +700,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
                   {q?.explanation && (
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex gap-3">
                   <Lightbulb className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                      <p className="text-sm text-foreground leading-relaxed">{cleanMcqOption(q.explanation)}</p>
+                      <p className="text-sm text-foreground leading-relaxed"><LinkedText text={cleanMcqOption(q.explanation)} k="me" /></p>
                 </div>
               )}
             </div>
@@ -1075,7 +1082,7 @@ function ScrollMcqList(props: ScrollProps) {
               {isRevealed && q.explanation && (
                 <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4 flex gap-3">
                   <Lightbulb className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <p className="text-sm text-foreground leading-relaxed">{cleanMcqOption(q.explanation)}</p>
+                  <p className="text-sm text-foreground leading-relaxed"><LinkedText text={cleanMcqOption(q.explanation)} k="me" /></p>
                 </div>
               )}
             </div>
@@ -1094,7 +1101,7 @@ function ScrollMcqList(props: ScrollProps) {
               return (
                 <div key={i} className="rounded-2xl border border-border bg-card p-4 sm:p-5">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">Question {freeLimit + i + 1}</p>
-                  <p className="mb-3 text-base font-medium text-foreground leading-relaxed">{cleanQuestionText(q.question)}</p>
+                  <p className="mb-3 text-base font-medium text-foreground leading-relaxed"><LinkedText text={cleanQuestionText(q.question)} k="mq2" /></p>
                   <div className="space-y-2">
                     {q.options.map((opt, j) => (
                       <div key={j} className="rounded-xl border border-border bg-card p-3 text-sm font-medium flex items-start gap-3">
