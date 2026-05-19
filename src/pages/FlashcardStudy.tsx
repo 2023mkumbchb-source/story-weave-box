@@ -5,6 +5,7 @@ import { getFlashcardSetBySlugOrId, getCategoryDisplayName, buildFlashcardPath, 
 import { Button } from "@/components/ui/button";
 import FlashcardViewer from "@/components/FlashcardViewer";
 import ShareButtons from "@/components/ShareButtons";
+import { KeywordLinkProvider } from "@/lib/keyword-link";
 import { markFlashcardVisited } from "@/lib/progress-store";
 import { SITE_URL, stripRichText, updateMetaTags } from "@/lib/seo";
 import { useTopicThumbnail } from "@/lib/topicThumbnail";
@@ -131,7 +132,9 @@ function FlashcardStudyInner({ set }: { set: FlashcardSet }) {
         <ShareButtons url={shareUrl} title={heroTitle} description={heroDesc} variant="full" className="mt-5 px-5 sm:px-0" />
       </header>
 
-      <FlashcardViewer cards={set.cards} title={set.title} setId={set.id} />
+      <KeywordLinkProvider>
+        <FlashcardViewer cards={set.cards} title={set.title} setId={set.id} />
+      </KeywordLinkProvider>
     </div>
   );
 }
