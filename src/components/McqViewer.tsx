@@ -12,6 +12,13 @@ import { Button } from "@/components/ui/button";
 import {
   getPublishedArticles, getPublishedFlashcardSets, getPublishedMcqSets, buildBlogPath,
 } from "@/lib/store";
+import { useKeywordLinks, linkifyText } from "@/lib/keyword-link";
+
+/** Inline component that linkifies any plain string against the article keyword map. */
+function LinkedText({ text, k = "lk" }: { text: string; k?: string }) {
+  const ctx = useKeywordLinks();
+  return <>{linkifyText(text, ctx, k)}</>;
+}
 
 const fetchArticles   = () => getPublishedArticles().catch(() => ([] as any[]));
 const fetchFlashcards = () => getPublishedFlashcardSets().catch(() => ([] as any[]));
