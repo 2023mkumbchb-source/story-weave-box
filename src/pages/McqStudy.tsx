@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import McqViewer from "@/components/McqViewer";
 import ExamMode from "@/components/ExamMode";
+import { KeywordLinkProvider } from "@/lib/keyword-link";
 import { markMcqVisited } from "@/lib/progress-store";
 import { supabase } from "@/integrations/supabase/client";
 import { updateMetaTags, stripRichText } from "@/lib/seo";
@@ -305,21 +306,23 @@ export default function McqStudy() {
         </div>
       )}
 
-      <McqViewer
-        questions={set.questions}
-        title={set.title}
-        setId={set.id}
-        category={set.category}
-        hideAnswers={hideAnswers}
-        freeLimit={mcqFreeLimit}
-        mcqPrice={mcqPrice}
-        isPaid={isPaid}
-        paymentStatus={paymentStatus}
-        phoneInput={phoneInput}
-        onPhoneChange={setPhoneInput}
-        onPay={handlePay}
-        onRetryPay={() => setPaymentStatus("idle")}
-      />
+      <KeywordLinkProvider>
+        <McqViewer
+          questions={set.questions}
+          title={set.title}
+          setId={set.id}
+          category={set.category}
+          hideAnswers={hideAnswers}
+          freeLimit={mcqFreeLimit}
+          mcqPrice={mcqPrice}
+          isPaid={isPaid}
+          paymentStatus={paymentStatus}
+          phoneInput={phoneInput}
+          onPhoneChange={setPhoneInput}
+          onPay={handlePay}
+          onRetryPay={() => setPaymentStatus("idle")}
+        />
+      </KeywordLinkProvider>
     </div>
   );
 }
