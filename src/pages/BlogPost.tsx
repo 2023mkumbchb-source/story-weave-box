@@ -91,30 +91,28 @@ function TableBlock({ lines }: { lines: string[] }) {
   const rows = bodyLines.map(parseRow);
 
   return (
-    <div className="not-prose my-6 -mx-5 sm:mx-0 sm:rounded-lg border-y sm:border border-border bg-card">
-      <div className="w-full overflow-x-auto">
-        <table className="w-full min-w-[640px] border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/60 sticky top-0">
-              {headers.map((h, i) => (
-                <th key={i} className="whitespace-nowrap px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-foreground"><Inline text={h} /></th>
+    <div className="not-prose my-6 -mx-5 sm:mx-0 sm:rounded-lg border-y sm:border border-border bg-card overflow-x-auto">
+      <table className="w-full min-w-[500px] border-collapse text-sm">
+        <thead>
+          <tr className="border-b border-border bg-muted/60">
+            {headers.map((h, i) => (
+              <th key={i} className="whitespace-nowrap px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-foreground"><Inline text={h} /></th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, ri) => (
+            <tr key={ri} className="border-b border-border/50 last:border-0 even:bg-muted/20">
+              {headers.map((_, ci) => (
+                <td key={ci} className="px-4 py-3 align-top text-foreground/90 leading-relaxed">
+                  {row[ci] != null ? <Inline text={row[ci]} /> : null}
+                </td>
               ))}
             </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, ri) => (
-              <tr key={ri} className="border-b border-border/50 last:border-0 even:bg-muted/20">
-                {headers.map((_, ci) => (
-                  <td key={ci} className="px-4 py-3 align-top text-foreground/90 leading-relaxed">
-                    {row[ci] != null ? <Inline text={row[ci]} /> : null}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="px-4 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground sm:hidden">Scroll →</div>
+          ))}
+        </tbody>
+      </table>
+      <div className="px-4 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground sm:hidden">← Scroll →</div>
     </div>
   );
 }
