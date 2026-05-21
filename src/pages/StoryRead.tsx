@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Clock, BookOpen, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { buildStoryPath, extractStoryIdFromParam, SITE_URL, stripRichText, updateMetaTags } from "@/lib/seo";
@@ -13,6 +13,8 @@ export default function StoryRead() {
   const navigate = useNavigate();
   const [story, setStory] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
   const ogUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}${location.pathname}${location.search}`
@@ -27,6 +29,17 @@ export default function StoryRead() {
       : "Read a medical story on OmpathStudy—built for Kenyan medical and health students to learn, reflect, and grow.";
   const keywords =
     "OmpathStudy, story, medical narrative, reflective practice, medical students Kenya, nursing students Kenya, health education Kenya";
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const el = document.documentElement;
+      const scrolled = el.scrollTop;
+      const total = el.scrollHeight - el.clientHeight;
+      setScrollProgress(total > 0 ? (scrolled / total) * 100 : 0);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const storyId = extractStoryIdFromParam(id);
@@ -49,20 +62,12 @@ export default function StoryRead() {
           if (location.pathname !== canonicalPath) {
             navigate(canonicalPath, { replace: true });
           }
-
           const url = `${SITE_URL}${canonicalPath}`;
           const fallbackDesc = stripRichText(data.content || "", 160);
           const metaTitle = (data as any).meta_title || `${data.title} Stories`;
           const metaDesc = (data as any).meta_description || fallbackDesc;
           const image = (data as any).og_image_url || data.cover_image_url || `${SITE_URL}/og-default.png`;
-
-          updateMetaTags({
-            title: metaTitle,
-            description: metaDesc,
-            image: image,
-            url: url,
-            type: "article"
-          });
+          updateMetaTags({ title: metaTitle, description: metaDesc, image, url, type: "article" });
         }
       });
   }, [id, location.pathname, navigate]);
@@ -71,17 +76,23 @@ export default function StoryRead() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-7 w-7 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading story…</p>
+        </div>
       </div>
     );
   }
 
   if (!story) {
     return (
-      <div className="mx-auto max-w-3xl px-5 py-16 text-center">
-        <p className="font-medium text-foreground">Story not found</p>
-        <Link to="/stories" className="mt-4 inline-block text-primary hover:underline">← Back to stories</Link>
+      <div className="mx-auto max-w-2xl px-5 py-24 text-center">
+        <p className="text-lg font-semibold text-foreground">Story not found</p>
+        <p className="mt-2 text-sm text-muted-foreground">This story may have been removed or the link is broken.</p>
+        <Link to="/stories" className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90">
+          <ArrowLeft className="h-4 w-4" /> Back to stories
+        </Link>
       </div>
     );
   }
@@ -89,48 +100,135 @@ export default function StoryRead() {
   const storyContent = story.content || "";
   const isHtml = /<[a-z][\s\S]*>/i.test(storyContent);
   const plainForCount = stripRichText(storyContent);
-  const readTime = Math.max(1, Math.ceil((plainForCount.split(/\s+/).filter(Boolean).length || 0) / 200));
+  const wordCount = plainForCount.split(/\s+/).filter(Boolean).length || 0;
+  const readTime = Math.max(1, Math.ceil(wordCount / 200));
 
   const renderInline = (text: string) => {
     const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
     return parts.map((part, j) => {
       if (part.startsWith("**") && part.endsWith("**"))
-        return <strong key={j} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
+        return <strong key={j} className="font-bold text-foreground">{part.slice(2, -2)}</strong>;
       if (part.startsWith("*") && part.endsWith("*") && part.length > 2)
-        return <em key={j} className="text-foreground/80">{part.slice(1, -1)}</em>;
+        return <em key={j} className="italic text-foreground/80">{part.slice(1, -1)}</em>;
       return <span key={j}>{part}</span>;
     });
   };
 
   const renderMarkdown = (content: string) => {
     const cleaned = content.replace(/^(\s*---\s*\n)+/, "");
-    return cleaned.split("\n").map((line: string, i: number) => {
+    const lines = cleaned.split("\n");
+    const elements: React.ReactNode[] = [];
+    let listBuffer: React.ReactNode[] = [];
+
+    const flushList = (i: number) => {
+      if (listBuffer.length > 0) {
+        elements.push(
+          <ul key={`list-${i}`} className="my-4 space-y-1.5 pl-6">
+            {listBuffer}
+          </ul>
+        );
+        listBuffer = [];
+      }
+    };
+
+    lines.forEach((line: string, i: number) => {
       const trimmed = line.trim();
-      if (trimmed.startsWith("# ")) return <h1 key={i} className="mb-4 mt-8 font-serif text-2xl font-bold text-foreground sm:text-3xl">{renderInline(trimmed.slice(2))}</h1>;
-      if (trimmed.startsWith("## ")) return <h2 key={i} className="mb-3 mt-7 font-serif text-xl font-bold text-foreground sm:text-2xl">{renderInline(trimmed.slice(3))}</h2>;
-      if (trimmed.startsWith("### ")) return <h3 key={i} className="mb-2 mt-5 font-serif text-lg font-bold text-foreground">{renderInline(trimmed.slice(4))}</h3>;
-      if (/^[-*_]{3,}$/.test(trimmed)) return <hr key={i} className="my-6 border-border" />;
-      if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) return <li key={i} className="mb-1 ml-5 text-foreground/90 leading-relaxed">{renderInline(trimmed.slice(2))}</li>;
-      if (trimmed.startsWith("> ")) {
-        return (
-          <blockquote key={i} className="my-3 border-l-4 border-primary/30 pl-4 italic text-muted-foreground">
+
+      if (trimmed.startsWith("# ")) {
+        flushList(i);
+        elements.push(
+          <h1 key={i} className="mb-4 mt-10 font-serif text-2xl font-bold leading-tight text-foreground sm:text-3xl">
             {renderInline(trimmed.slice(2))}
+          </h1>
+        );
+        return;
+      }
+      if (trimmed.startsWith("## ")) {
+        flushList(i);
+        elements.push(
+          <h2 key={i} className="mb-3 mt-8 border-l-4 border-primary pl-3 font-serif text-xl font-bold text-foreground sm:text-2xl">
+            {renderInline(trimmed.slice(3))}
+          </h2>
+        );
+        return;
+      }
+      if (trimmed.startsWith("### ")) {
+        flushList(i);
+        elements.push(
+          <h3 key={i} className="mb-2 mt-6 font-serif text-lg font-semibold text-foreground">
+            {renderInline(trimmed.slice(4))}
+          </h3>
+        );
+        return;
+      }
+      if (/^[-*_]{3,}$/.test(trimmed)) {
+        flushList(i);
+        elements.push(
+          <div key={i} className="my-8 flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <div className="h-1.5 w-1.5 rounded-full bg-primary/40" />
+            <div className="h-px flex-1 bg-border" />
+          </div>
+        );
+        return;
+      }
+      if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+        listBuffer.push(
+          <li key={i} className="flex items-start gap-2 text-[15px] leading-relaxed text-foreground/85">
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+            <span>{renderInline(trimmed.slice(2))}</span>
+          </li>
+        );
+        return;
+      }
+      if (trimmed.startsWith("> ")) {
+        flushList(i);
+        elements.push(
+          <blockquote key={i} className="my-5 rounded-r-lg border-l-4 border-primary bg-primary/5 px-5 py-4 italic text-foreground/80">
+            <p className="text-[15px] leading-relaxed">{renderInline(trimmed.slice(2))}</p>
           </blockquote>
         );
+        return;
       }
 
       const imgMatch = trimmed.match(/^!\[(.*?)\]\((.*?)\)$/);
       if (imgMatch) {
-        return <img key={i} src={imgMatch[2]} alt={imgMatch[1] || "Story image"} loading="lazy" className="my-4 w-full rounded-xl object-cover" />;
+        flushList(i);
+        elements.push(
+          <figure key={i} className="my-6 overflow-hidden rounded-xl border border-border">
+            <img src={imgMatch[2]} alt={imgMatch[1] || "Story image"} loading="lazy" className="w-full object-cover" />
+            {imgMatch[1] && <figcaption className="px-4 py-2 text-center text-xs text-muted-foreground">{imgMatch[1]}</figcaption>}
+          </figure>
+        );
+        return;
       }
 
-      if (!trimmed) return <div key={i} className="h-3" />;
-      return <p key={i} className="mb-3 text-[15px] leading-[1.8] text-foreground/90 sm:text-base">{renderInline(line)}</p>;
+      if (!trimmed) {
+        flushList(i);
+        elements.push(<div key={i} className="h-2" />);
+        return;
+      }
+
+      flushList(i);
+      elements.push(
+        <p key={i} className="mb-4 text-[15.5px] leading-[1.85] text-foreground/85 sm:text-base">
+          {renderInline(line)}
+        </p>
+      );
     });
+
+    flushList(lines.length);
+    return elements;
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto max-w-2xl px-5 py-8 sm:px-6 sm:py-12">
+    <>
+      {/* Reading progress bar */}
+      <div
+        className="fixed left-0 top-0 z-50 h-0.5 bg-primary transition-all duration-150"
+        style={{ width: `${scrollProgress}%` }}
+      />
+
       <Helmet>
         <title>{title}</title>
         <meta name="description" content={description} />
@@ -143,56 +241,113 @@ export default function StoryRead() {
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
       </Helmet>
-      <Link to="/stories" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary">
-        <ArrowLeft className="h-4 w-4" /> Back to stories
-      </Link>
 
-      <header className="mb-8">
-        {story.category && story.category !== "Uncategorized" && (
-          <span className="mb-3 inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-            {story.category}
-          </span>
-        )}
-        <h1 className="font-serif text-2xl font-bold leading-tight text-foreground sm:text-4xl">
-          {(story as any).meta_title || story.title}
-        </h1>
-        {((story as any).meta_description || "") && (
-          <p className="mt-3 max-w-prose font-serif text-base text-muted-foreground leading-relaxed">
-            {(story as any).meta_description}
-          </p>
-        )}
-        <div className="mt-3 flex flex-col gap-3">
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span>{new Date(story.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</span>
-            <span>·</span>
-            <span>{readTime} min read</span>
-          </div>
-          <div className="flex items-start gap-2.5 text-sm text-foreground">
-            <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
-              <svg viewBox="0 0 20 20" className="h-3 w-3" fill="currentColor"><path d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.8 3.8 6.8-6.8a1 1 0 011.4 0z"/></svg>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="mx-auto max-w-2xl px-5 pb-16 pt-6 sm:px-6 sm:pt-10"
+      >
+        {/* Back link */}
+        <Link
+          to="/stories"
+          className="mb-8 inline-flex items-center gap-1.5 rounded-full border border-border px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to stories
+        </Link>
+
+        {/* Header */}
+        <header className="mb-8">
+          {story.category && story.category !== "Uncategorized" && (
+            <span className="mb-4 inline-block rounded-full bg-primary/10 px-3.5 py-1 text-[11px] font-bold uppercase tracking-widest text-primary">
+              {story.category}
             </span>
-            <div className="leading-tight">
-              <p className="font-semibold">Editorially Reviewed</p>
-              <p className="text-xs text-muted-foreground">Curated for OmpathStudy readers</p>
+          )}
+
+          <h1 className="font-serif text-[1.75rem] font-bold leading-[1.25] text-foreground sm:text-[2.25rem]">
+            {(story as any).meta_title || story.title}
+          </h1>
+
+          {((story as any).meta_description || "") && (
+            <p className="mt-3 font-serif text-[1.05rem] leading-relaxed text-muted-foreground">
+              {(story as any).meta_description}
+            </p>
+          )}
+
+          {/* Meta row */}
+          <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 border-y border-border py-3 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground/70">
+              {new Date(story.created_at).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5" />
+              {readTime} min read
+            </span>
+            <span className="flex items-center gap-1.5">
+              <BookOpen className="h-3.5 w-3.5" />
+              {wordCount.toLocaleString()} words
+            </span>
+          </div>
+
+          {/* Reviewed badge + share */}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 text-sm">
+              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
+                <svg viewBox="0 0 20 20" className="h-3 w-3" fill="currentColor">
+                  <path d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.8 3.8 6.8-6.8a1 1 0 011.4 0z" />
+                </svg>
+              </span>
+              <div className="leading-tight">
+                <p className="text-xs font-semibold text-foreground">Editorially Reviewed</p>
+                <p className="text-[11px] text-muted-foreground">Curated for OmpathStudy readers</p>
+              </div>
+            </div>
+            <div className="shrink-0">
+              <ShareButtons url={storyUrl} title={story.title} variant="full" />
             </div>
           </div>
+        </header>
+
+        {/* Cover image */}
+        {story.cover_image_url && (
+          <figure className="mb-8 overflow-hidden rounded-2xl border border-border shadow-sm">
+            <img
+              src={story.cover_image_url}
+              alt={story.title}
+              loading="lazy"
+              className="max-h-[420px] w-full object-cover"
+            />
+          </figure>
+        )}
+
+        {/* Article body */}
+        <article className="prose-custom">
+          {isHtml ? (
+            <div
+              className="prose prose-sm max-w-none prose-headings:font-serif prose-p:leading-[1.85] prose-p:text-foreground/85 prose-strong:text-foreground prose-blockquote:border-primary/40 prose-blockquote:bg-primary/5 dark:prose-invert"
+              dangerouslySetInnerHTML={{ __html: storyContent }}
+            />
+          ) : (
+            renderMarkdown(storyContent)
+          )}
+        </article>
+
+        {/* Footer share */}
+        <div className="mt-12 flex flex-col items-center gap-4 border-t border-border pt-8 text-center">
+          <p className="text-sm font-medium text-muted-foreground">Found this helpful? Share it.</p>
           <ShareButtons url={storyUrl} title={story.title} variant="full" />
+          <Link
+            to="/stories"
+            className="mt-2 inline-flex items-center gap-2 text-sm text-primary hover:underline"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> More stories
+          </Link>
         </div>
-      </header>
-
-      {story.cover_image_url && (
-        <figure className="mb-8 overflow-hidden rounded-2xl border border-border">
-          <img src={story.cover_image_url} alt={story.title} loading="lazy" className="max-h-[400px] w-full object-cover" />
-        </figure>
-      )}
-
-      <article className="prose prose-sm max-w-none prose-blockquote:border-primary/30 prose-blockquote:text-muted-foreground prose-headings:font-serif prose-p:leading-[1.8] prose-p:text-foreground/90 dark:prose-invert">
-        {isHtml ? <div dangerouslySetInnerHTML={{ __html: storyContent }} /> : renderMarkdown(storyContent)}
-      </article>
-
-      <div className="mt-10 pt-6 border-t border-border">
-        <ShareButtons url={storyUrl} title={story.title} variant="full" />
-      </div>
-    </motion.div>
+      </motion.div>
+    </>
   );
 }
