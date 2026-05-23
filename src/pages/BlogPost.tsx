@@ -11,6 +11,7 @@ import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, 
 import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags, autoIndexUrls } from "@/lib/seo";
 import { useTopicThumbnail } from "@/lib/topicThumbnail";
 import { KeywordLinkProvider, useKeywordLinks, linkifyText } from "@/lib/keyword-link";
+import { slugify, useHashFlash } from "@/lib/deep-link";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { markArticleVisited } from "@/lib/progress-store";
@@ -873,7 +874,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       }
       _sec++;
       els.push(
-        <h2 key={`h2-${i}`} id={`section-${_sec}`} className="mt-9 mb-4 scroll-mt-20 border-b border-border pb-3 font-serif text-2xl font-bold leading-tight text-foreground sm:text-3xl">
+        <h2 key={`h2-${i}`} id={slugify(heading) || `section-${_sec}`} data-section={`section-${_sec}`} className="mt-9 mb-4 scroll-mt-20 border-b border-border pb-3 font-serif text-2xl font-bold leading-tight text-foreground sm:text-3xl">
           {heading}
         </h2>
       );
@@ -883,7 +884,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (/^#{3,6}\s/.test(t)) {
       flushList(); underSubheading = true;
       const txt = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").trim();
-      els.push(<h3 key={`h3-${i}`} className="mt-6 mb-2 font-serif text-xl font-bold leading-snug text-foreground">{txt}</h3>);
+      els.push(<h3 key={`h3-${i}`} id={slugify(txt)} className="mt-6 mb-2 scroll-mt-20 font-serif text-xl font-bold leading-snug text-foreground">{txt}</h3>);
       continue;
     }
 
