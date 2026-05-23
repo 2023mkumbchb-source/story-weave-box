@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import McqViewer from "@/components/McqViewer";
 import ExamMode from "@/components/ExamMode";
 import { KeywordLinkProvider } from "@/lib/keyword-link";
+import { useHashFlash } from "@/lib/deep-link";
 import { markMcqVisited } from "@/lib/progress-store";
 import { supabase } from "@/integrations/supabase/client";
 import { updateMetaTags, stripRichText } from "@/lib/seo";
@@ -35,6 +36,7 @@ export default function McqStudy() {
   const { id: param } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  useHashFlash();
   const [set, setSet] = useState<McqSet | null>(null);
   const [loading, setLoading] = useState(true);
   const [passwordUnlocked, setPasswordUnlocked] = useState(false);
