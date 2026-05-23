@@ -443,6 +443,9 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           id: string
+          meta_description: string | null
+          meta_title: string | null
+          og_image_url: string | null
           published: boolean
           slug: string | null
           title: string
@@ -454,6 +457,9 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
           published?: boolean
           slug?: string | null
           title: string
@@ -465,6 +471,9 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
           published?: boolean
           slug?: string | null
           title?: string

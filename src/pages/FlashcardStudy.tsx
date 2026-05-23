@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import FlashcardViewer from "@/components/FlashcardViewer";
 import ShareButtons from "@/components/ShareButtons";
 import { KeywordLinkProvider } from "@/lib/keyword-link";
+import { useHashFlash } from "@/lib/deep-link";
 import { markFlashcardVisited } from "@/lib/progress-store";
 import { SITE_URL, stripRichText, updateMetaTags } from "@/lib/seo";
 import { useTopicThumbnail } from "@/lib/topicThumbnail";
@@ -30,6 +31,7 @@ export default function FlashcardStudy() {
   const { id: param } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  useHashFlash();
   const [loading, setLoading] = useState(true);
   const [set, setSet] = useState<FlashcardSet | null>(null);
 

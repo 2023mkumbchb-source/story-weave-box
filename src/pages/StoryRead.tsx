@@ -6,11 +6,14 @@ import { motion } from "framer-motion";
 import { buildStoryPath, extractStoryIdFromParam, SITE_URL, stripRichText, updateMetaTags } from "@/lib/seo";
 import ShareButtons from "@/components/ShareButtons";
 import { Helmet } from "react-helmet-async";
+import { KeywordLinkProvider } from "@/lib/keyword-link";
+import { useHashFlash } from "@/lib/deep-link";
 
 export default function StoryRead() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
+  useHashFlash();
   const [story, setStory] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [scrollProgress, setScrollProgress] = useState(0);

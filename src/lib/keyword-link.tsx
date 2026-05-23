@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { getPublishedArticleSummaries, buildBlogPath, type Article } from "@/lib/store";
+import { slugify } from "@/lib/deep-link";
 
 type LinkEntry = { term: string; path: string; lower: string };
 
@@ -71,8 +72,8 @@ export function linkifyText(text: string, ctx: Ctx | null, keyPrefix = "k"): Rea
     out.push(
       <Link
         key={`${keyPrefix}-l-${i}`}
-        to={entry.path}
-        className="text-primary underline decoration-primary/40 decoration-1 underline-offset-2 transition-colors hover:decoration-primary hover:text-primary"
+        to={`${entry.path}#${slugify(matched)}`}
+        className="deep-link"
       >
         {matched}
       </Link>
