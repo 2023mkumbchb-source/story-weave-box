@@ -1010,6 +1010,7 @@ export default function BlogPost() {
   const location = useLocation();
   const { toast } = useToast();
   const { isAdmin, user } = useAuth();
+  useHashFlash();
 
   const [article, setArticle] = useState<Article | null>(null);
   const [notFound, setNotFound] = useState(false); // ✅ track not-found separately
