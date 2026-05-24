@@ -106,8 +106,7 @@ export default function StoryRead() {
   const wordCount = plainForCount.split(/\s+/).filter(Boolean).length || 0;
   const readTime = Math.max(1, Math.ceil(wordCount / 200));
 
-  const renderInline = (text: string) => {
-    const linkCtx = useKeywordLinks();
+  const renderInline = (text: string, linkCtx: ReturnType<typeof useKeywordLinks>) => {
     const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
     return parts.map((part, j) => {
       if (part.startsWith("**") && part.endsWith("**"))
@@ -118,7 +117,7 @@ export default function StoryRead() {
     });
   };
 
-  const renderMarkdown = (content: string) => {
+  const renderMarkdown = (content: string, linkCtx: ReturnType<typeof useKeywordLinks>) => {
     const cleaned = content.replace(/^(\s*---\s*\n)+/, "");
     const lines = cleaned.split("\n");
     const elements: React.ReactNode[] = [];
@@ -142,7 +141,7 @@ export default function StoryRead() {
         flushList(i);
         elements.push(
           <h1 key={i} id={slugify(trimmed.slice(2))} className="mb-4 mt-10 scroll-mt-20 font-serif text-2xl font-bold leading-tight text-foreground sm:text-3xl">
-            {renderInline(trimmed.slice(2))}
+            {renderInline(trimmed.slice(2), linkCtx)}
           </h1>
         );
         return;
@@ -151,7 +150,7 @@ export default function StoryRead() {
         flushList(i);
         elements.push(
           <h2 key={i} id={slugify(trimmed.slice(3))} className="mb-3 mt-8 scroll-mt-20 border-l-4 border-primary pl-3 font-serif text-xl font-bold text-foreground sm:text-2xl">
-            {renderInline(trimmed.slice(3))}
+            {renderInline(trimmed.slice(3), linkCtx)}
           </h2>
         );
         return;
@@ -160,7 +159,7 @@ export default function StoryRead() {
         flushList(i);
         elements.push(
           <h3 key={i} id={slugify(trimmed.slice(4))} className="mb-2 mt-6 scroll-mt-20 font-serif text-lg font-semibold text-foreground">
-            {renderInline(trimmed.slice(4))}
+            {renderInline(trimmed.slice(4), linkCtx)}
           </h3>
         );
         return;
@@ -180,7 +179,7 @@ export default function StoryRead() {
         listBuffer.push(
           <li key={i} className="flex items-start gap-2 text-[15px] leading-relaxed text-foreground/85">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-            <span>{renderInline(trimmed.slice(2))}</span>
+            <span>{renderInline(trimmed.slice(2), linkCtx)}</span>
           </li>
         );
         return;
@@ -189,7 +188,7 @@ export default function StoryRead() {
         flushList(i);
         elements.push(
           <blockquote key={i} className="my-5 rounded-r-lg border-l-4 border-primary bg-primary/5 px-5 py-4 italic text-foreground/80">
-            <p className="text-[15px] leading-relaxed">{renderInline(trimmed.slice(2))}</p>
+            <p className="text-[15px] leading-relaxed">{renderInline(trimmed.slice(2), linkCtx)}</p>
           </blockquote>
         );
         return;
@@ -216,7 +215,7 @@ export default function StoryRead() {
       flushList(i);
       elements.push(
         <p key={i} className="mb-4 text-[15.5px] leading-[1.85] text-foreground/85 sm:text-base">
-          {renderInline(line)}
+          {renderInline(line, linkCtx)}
         </p>
       );
     });
