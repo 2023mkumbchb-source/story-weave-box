@@ -329,14 +329,9 @@ export default function StoryRead() {
 
         {/* Article body */}
         <article className="prose-custom">
-          {isHtml ? (
-            <div
-              className="prose prose-sm max-w-none prose-headings:font-serif prose-p:leading-[1.85] prose-p:text-foreground/85 prose-strong:text-foreground prose-blockquote:border-primary/40 prose-blockquote:bg-primary/5 dark:prose-invert"
-              dangerouslySetInnerHTML={{ __html: storyContent }}
-            />
-          ) : (
-            renderMarkdown(storyContent)
-          )}
+          <KeywordLinkProvider currentPath={buildStoryPath({ id: story.id, title: story.title })}>
+            <StoryContentBody storyContent={storyContent} isHtml={isHtml} renderMarkdown={renderMarkdown} />
+          </KeywordLinkProvider>
         </article>
 
         {/* Footer share */}
@@ -353,4 +348,17 @@ export default function StoryRead() {
       </motion.div>
     </>
   );
+}
+
+function StoryContentBody({ storyContent, isHtml, renderMarkdown }: { storyContent: string; isHtml: boolean; renderMarkdown: (content: string, linkCtx: ReturnType<typeof useKeywordLinks>) => React.ReactNode[] }) {
+  const linkCtx = useKeywordLinks();
+  if (isHtml) {
+    return (
+      <div
+        className="prose prose-sm max-w-none prose-headings:font-serif prose-p:leading-[1.85] prose-p:text-foreground/85 prose-strong:text-foreground prose-blockquote:border-primary/40 prose-blockquote:bg-primary/5 dark:prose-invert"
+        dangerouslySetInnerHTML={{ __html: storyContent }}
+      />
+    );
+  }
+  return <>{renderMarkdown(storyContent, linkCtx)}</>;
 }
