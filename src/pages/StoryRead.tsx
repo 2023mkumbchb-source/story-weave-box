@@ -6,8 +6,8 @@ import { motion } from "framer-motion";
 import { buildStoryPath, extractStoryIdFromParam, SITE_URL, stripRichText, updateMetaTags } from "@/lib/seo";
 import ShareButtons from "@/components/ShareButtons";
 import { Helmet } from "react-helmet-async";
-import { KeywordLinkProvider } from "@/lib/keyword-link";
-import { useHashFlash } from "@/lib/deep-link";
+import { KeywordLinkProvider, linkifyText, useKeywordLinks } from "@/lib/keyword-link";
+import { slugify, useHashFlash } from "@/lib/deep-link";
 
 export default function StoryRead() {
   const { id } = useParams<{ id: string }>();
@@ -106,18 +106,18 @@ export default function StoryRead() {
   const wordCount = plainForCount.split(/\s+/).filter(Boolean).length || 0;
   const readTime = Math.max(1, Math.ceil(wordCount / 200));
 
-  const renderInline = (text: string) => {
+  const renderInline = (text: string, linkCtx: ReturnType<typeof useKeywordLinks>) => {
     const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
     return parts.map((part, j) => {
       if (part.startsWith("**") && part.endsWith("**"))
-        return <strong key={j} className="font-bold text-foreground">{part.slice(2, -2)}</strong>;
+        return <strong key={j} className="font-bold text-foreground">{linkifyText(part.slice(2, -2), linkCtx, `ss${j}`)}</strong>;
       if (part.startsWith("*") && part.endsWith("*") && part.length > 2)
-        return <em key={j} className="italic text-foreground/80">{part.slice(1, -1)}</em>;
-      return <span key={j}>{part}</span>;
+        return <em key={j} className="italic text-foreground/80">{linkifyText(part.slice(1, -1), linkCtx, `se${j}`)}</em>;
+      return <span key={j}>{linkifyText(part, linkCtx, `st${j}`)}</span>;
     });
   };
 
-  const renderMarkdown = (content: string) => {
+  const renderMarkdown = (content: string, linkCtx: ReturnType<typeof useKeywordLinks>) => {
     const cleaned = content.replace(/^(\s*---\s*\n)+/, "");
     const lines = cleaned.split("\n");
     const elements: React.ReactNode[] = [];
@@ -140,8 +140,8 @@ export default function StoryRead() {
       if (trimmed.startsWith("# ")) {
         flushList(i);
         elements.push(
-          <h1 key={i} className="mb-4 mt-10 font-serif text-2xl font-bold leading-tight text-foreground sm:text-3xl">
-            {renderInline(trimmed.slice(2))}
+          <h1 key={i} id={slugify(trimmed.slice(2))} className="mb-4 mt-10 scroll-mt-20 font-serif text-2xl font-bold leading-tight text-foreground sm:text-3xl">
+            {renderInline(trimmed.slice(2), linkCtx)}
           </h1>
         );
         return;
@@ -149,8 +149,8 @@ export default function StoryRead() {
       if (trimmed.startsWith("## ")) {
         flushList(i);
         elements.push(
-          <h2 key={i} className="mb-3 mt-8 border-l-4 border-primary pl-3 font-serif text-xl font-bold text-foreground sm:text-2xl">
-            {renderInline(trimmed.slice(3))}
+          <h2 key={i} id={slugify(trimmed.slice(3))} className="mb-3 mt-8 scroll-mt-20 border-l-4 border-primary pl-3 font-serif text-xl font-bold text-foreground sm:text-2xl">
+            {renderInline(trimmed.slice(3), linkCtx)}
           </h2>
         );
         return;
@@ -158,8 +158,8 @@ export default function StoryRead() {
       if (trimmed.startsWith("### ")) {
         flushList(i);
         elements.push(
-          <h3 key={i} className="mb-2 mt-6 font-serif text-lg font-semibold text-foreground">
-            {renderInline(trimmed.slice(4))}
+          <h3 key={i} id={slugify(trimmed.slice(4))} className="mb-2 mt-6 scroll-mt-20 font-serif text-lg font-semibold text-foreground">
+            {renderInline(trimmed.slice(4), linkCtx)}
           </h3>
         );
         return;
@@ -179,7 +179,7 @@ export default function StoryRead() {
         listBuffer.push(
           <li key={i} className="flex items-start gap-2 text-[15px] leading-relaxed text-foreground/85">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-            <span>{renderInline(trimmed.slice(2))}</span>
+            <span>{renderInline(trimmed.slice(2), linkCtx)}</span>
           </li>
         );
         return;
@@ -188,7 +188,7 @@ export default function StoryRead() {
         flushList(i);
         elements.push(
           <blockquote key={i} className="my-5 rounded-r-lg border-l-4 border-primary bg-primary/5 px-5 py-4 italic text-foreground/80">
-            <p className="text-[15px] leading-relaxed">{renderInline(trimmed.slice(2))}</p>
+            <p className="text-[15px] leading-relaxed">{renderInline(trimmed.slice(2), linkCtx)}</p>
           </blockquote>
         );
         return;
@@ -215,7 +215,7 @@ export default function StoryRead() {
       flushList(i);
       elements.push(
         <p key={i} className="mb-4 text-[15.5px] leading-[1.85] text-foreground/85 sm:text-base">
-          {renderInline(line)}
+          {renderInline(line, linkCtx)}
         </p>
       );
     });
@@ -329,14 +329,9 @@ export default function StoryRead() {
 
         {/* Article body */}
         <article className="prose-custom">
-          {isHtml ? (
-            <div
-              className="prose prose-sm max-w-none prose-headings:font-serif prose-p:leading-[1.85] prose-p:text-foreground/85 prose-strong:text-foreground prose-blockquote:border-primary/40 prose-blockquote:bg-primary/5 dark:prose-invert"
-              dangerouslySetInnerHTML={{ __html: storyContent }}
-            />
-          ) : (
-            renderMarkdown(storyContent)
-          )}
+          <KeywordLinkProvider currentPath={buildStoryPath({ id: story.id, title: story.title })}>
+            <StoryContentBody storyContent={storyContent} isHtml={isHtml} renderMarkdown={renderMarkdown} />
+          </KeywordLinkProvider>
         </article>
 
         {/* Footer share */}
@@ -353,4 +348,17 @@ export default function StoryRead() {
       </motion.div>
     </>
   );
+}
+
+function StoryContentBody({ storyContent, isHtml, renderMarkdown }: { storyContent: string; isHtml: boolean; renderMarkdown: (content: string, linkCtx: ReturnType<typeof useKeywordLinks>) => React.ReactNode[] }) {
+  const linkCtx = useKeywordLinks();
+  if (isHtml) {
+    return (
+      <div
+        className="prose prose-sm max-w-none prose-headings:font-serif prose-p:leading-[1.85] prose-p:text-foreground/85 prose-strong:text-foreground prose-blockquote:border-primary/40 prose-blockquote:bg-primary/5 dark:prose-invert"
+        dangerouslySetInnerHTML={{ __html: storyContent }}
+      />
+    );
+  }
+  return <>{renderMarkdown(storyContent, linkCtx)}</>;
 }

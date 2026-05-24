@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { getPublishedArticleSummaries, buildBlogPath, type Article } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
+import { buildBlogPath, buildFlashcardPath, buildMcqPath, type Article, type FlashcardSet, type McqSet, type Story } from "@/lib/store";
 import { slugify } from "@/lib/deep-link";
+import { buildStoryPath, stripRichText } from "@/lib/seo";
 
-type LinkEntry = { term: string; path: string; lower: string };
+type LinkEntry = { term: string; path: string; lower: string; target: string };
 
 interface Ctx {
   entries: LinkEntry[];
@@ -20,16 +22,36 @@ async function loadEntries(): Promise<LinkEntry[]> {
   if (cachePromise) return cachePromise;
   cachePromise = (async () => {
     try {
-      const arts = await getPublishedArticleSummaries();
+      const [{ data: articles }, { data: flashcards }, { data: mcqs }, { data: stories }] = await Promise.all([
+        supabase.from("articles").select("id,title,slug,meta_title,meta_description,content").eq("published", true).is("deleted_at", null).limit(1000),
+        supabase.from("flashcard_sets").select("id,title,slug,meta_title,meta_description,cards").eq("published", true).is("deleted_at", null).limit(1000),
+        supabase.from("mcq_sets").select("id,title,slug,meta_title,meta_description,questions").eq("published", true).is("deleted_at", null).limit(1000),
+        supabase.from("stories").select("id,title,meta_title,meta_description,content").eq("published", true).limit(1000),
+      ]);
       const entries: LinkEntry[] = [];
-      for (const a of arts as Article[]) {
-        const t = (a.title || "").trim();
-        if (!t || t.length < 4) continue;
-        // strip leading emoji + trailing parentheticals
-        const clean = t.replace(/^[\u{1F300}-\u{1FAFF}\u2600-\u27BF\s]+/gu, "").replace(/\s*\([^)]+\)\s*$/, "").trim();
-        if (!clean || clean.length < 4) continue;
-        entries.push({ term: clean, path: buildBlogPath(a), lower: clean.toLowerCase() });
-      }
+      const seen = new Set<string>();
+      const addTerm = (raw: string | undefined | null, path: string) => {
+        const clean = cleanTerm(raw || "");
+        if (!isUsefulTerm(clean)) return;
+        const lower = clean.toLowerCase();
+        const key = `${path}|${lower}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        entries.push({ term: clean, path, lower, target: slugify(clean) });
+      };
+      const addAliases = (title: string | undefined | null, desc: string | undefined | null, content: string | undefined | null, path: string) => {
+        addTerm(title, path);
+        addTerm(desc, path);
+        const withoutParen = (title || "").replace(/\([^)]{2,80}\)/g, " ");
+        addTerm(withoutParen, path);
+        (title || "").match(/\(([^)]{3,80})\)/g)?.forEach((m) => addTerm(m.slice(1, -1), path));
+        (title || "").split(/[:–—-]/).forEach((part) => addTerm(part, path));
+        extractDefinedTerms(content || "").forEach((term) => addTerm(term, path));
+      };
+      (articles as Partial<Article>[] || []).forEach((a) => addAliases(a.meta_title || a.title, a.meta_description, a.content, buildBlogPath(a as Article)));
+      (flashcards as Partial<FlashcardSet>[] || []).forEach((f) => addAliases(f.meta_title || f.title, f.meta_description, JSON.stringify(f.cards || []), buildFlashcardPath(f as FlashcardSet)));
+      (mcqs as Partial<McqSet>[] || []).forEach((m) => addAliases(m.meta_title || m.title, m.meta_description, JSON.stringify(m.questions || []), buildMcqPath(m as McqSet)));
+      (stories as Partial<Story>[] || []).forEach((s) => addAliases(s.meta_title || s.title, s.meta_description, s.content, buildStoryPath(s as Story)));
       // longer terms first so they match before shorter substrings
       entries.sort((a, b) => b.term.length - a.term.length);
       cache = entries;
@@ -39,6 +61,33 @@ async function loadEntries(): Promise<LinkEntry[]> {
     }
   })();
   return cachePromise;
+}
+
+function cleanTerm(raw: string): string {
+  return stripRichText(raw)
+    .replace(/^[\u{1F300}-\u{1FAFF}\u2600-\u27BF\s]+/gu, "")
+    .replace(/\b(year|unit|chapter|overview|introduction|definition|summary|clinical notes|study notes)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^[\-–—:;,.]+|[\-–—:;,.]+$/g, "");
+}
+
+function isUsefulTerm(term: string): boolean {
+  if (term.length < 4 || term.length > 80) return false;
+  if (!/[a-z]/i.test(term)) return false;
+  if (/^\d+$/.test(term)) return false;
+  if (term.split(/\s+/).length > 8) return false;
+  const banned = /^(the|and|with|from|into|this|that|these|those|causes|features|management|treatment|diagnosis|classification)$/i;
+  return !banned.test(term);
+}
+
+function extractDefinedTerms(content: string): string[] {
+  const terms = new Set<string>();
+  const text = String(content || "").slice(0, 90000);
+  for (const match of text.matchAll(/^#{1,4}\s+(.+)$/gm)) terms.add(match[1]);
+  for (const match of text.matchAll(/\*\*([^*:\n]{4,80})\*\*\s*:?/g)) terms.add(match[1]);
+  for (const match of text.matchAll(/^([A-Z][A-Za-z][A-Za-z\s\-/()]{2,70}):\s+/gm)) terms.add(match[1]);
+  return Array.from(terms);
 }
 
 export function KeywordLinkProvider({ currentPath, children }: { currentPath?: string; children: ReactNode }) {
@@ -52,37 +101,55 @@ export function KeywordLinkProvider({ currentPath, children }: { currentPath?: s
 export function linkifyText(text: string, ctx: Ctx | null, keyPrefix = "k"): ReactNode {
   if (!ctx || !ctx.entries.length || !text) return text;
   const { entries, used, currentPath } = ctx;
-  // Build single regex of unused terms (cap to first 60 for perf)
-  const pool = entries.filter((e) => !used.has(e.lower) && e.path !== currentPath).slice(0, 80);
-  if (!pool.length) return text;
-  const escaped = pool.map((e) => e.term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  const re = new RegExp(`\\b(${escaped.join("|")})\\b`, "i");
+  const pool = entries.filter((e) => !used.has(e.lower) && e.path !== currentPath).slice(0, 900);
   const out: ReactNode[] = [];
   let rest = text;
   let i = 0;
   while (true) {
-    const m = rest.match(re);
-    if (!m || m.index == null) { out.push(rest); break; }
-    const before = rest.slice(0, m.index);
-    const matched = m[0];
-    const entry = pool.find((e) => e.lower === matched.toLowerCase());
+    const found = findBestMatch(rest, pool);
+    if (!found) { out.push(rest); break; }
+    const { entry, index, matched } = found;
+    const before = rest.slice(0, index);
     if (!entry) { out.push(rest); break; }
     used.add(entry.lower);
     if (before) out.push(<span key={`${keyPrefix}-b-${i}`}>{before}</span>);
     out.push(
       <Link
         key={`${keyPrefix}-l-${i}`}
-        to={`${entry.path}#${slugify(matched)}`}
+        to={`${entry.path}#${entry.target || slugify(matched)}`}
         className="deep-link"
       >
         {matched}
       </Link>
     );
-    rest = rest.slice(m.index + matched.length);
+    rest = rest.slice(index + matched.length);
     i++;
     if (i > 40) { out.push(rest); break; }
   }
   return <>{out}</>;
+}
+
+function findBestMatch(text: string, pool: LinkEntry[]) {
+  const lower = text.toLowerCase();
+  let best: { entry: LinkEntry; index: number; matched: string } | null = null;
+  for (const entry of pool) {
+    let from = 0;
+    while (from < lower.length) {
+      const index = lower.indexOf(entry.lower, from);
+      if (index < 0) break;
+      const end = index + entry.term.length;
+      const before = index === 0 ? "" : lower[index - 1];
+      const after = end >= lower.length ? "" : lower[end];
+      if (!/[a-z0-9]/i.test(before) && !/[a-z0-9]/i.test(after)) {
+        if (!best || index < best.index || (index === best.index && entry.term.length > best.entry.term.length)) {
+          best = { entry, index, matched: text.slice(index, end) };
+        }
+        break;
+      }
+      from = index + 1;
+    }
+  }
+  return best;
 }
 
 export function useKeywordLinks() {
