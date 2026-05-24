@@ -6,8 +6,8 @@ import { motion } from "framer-motion";
 import { buildStoryPath, extractStoryIdFromParam, SITE_URL, stripRichText, updateMetaTags } from "@/lib/seo";
 import ShareButtons from "@/components/ShareButtons";
 import { Helmet } from "react-helmet-async";
-import { KeywordLinkProvider } from "@/lib/keyword-link";
-import { useHashFlash } from "@/lib/deep-link";
+import { KeywordLinkProvider, linkifyText, useKeywordLinks } from "@/lib/keyword-link";
+import { slugify, useHashFlash } from "@/lib/deep-link";
 
 export default function StoryRead() {
   const { id } = useParams<{ id: string }>();
@@ -107,13 +107,14 @@ export default function StoryRead() {
   const readTime = Math.max(1, Math.ceil(wordCount / 200));
 
   const renderInline = (text: string) => {
+    const linkCtx = useKeywordLinks();
     const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
     return parts.map((part, j) => {
       if (part.startsWith("**") && part.endsWith("**"))
-        return <strong key={j} className="font-bold text-foreground">{part.slice(2, -2)}</strong>;
+        return <strong key={j} className="font-bold text-foreground">{linkifyText(part.slice(2, -2), linkCtx, `ss${j}`)}</strong>;
       if (part.startsWith("*") && part.endsWith("*") && part.length > 2)
-        return <em key={j} className="italic text-foreground/80">{part.slice(1, -1)}</em>;
-      return <span key={j}>{part}</span>;
+        return <em key={j} className="italic text-foreground/80">{linkifyText(part.slice(1, -1), linkCtx, `se${j}`)}</em>;
+      return <span key={j}>{linkifyText(part, linkCtx, `st${j}`)}</span>;
     });
   };
 
@@ -140,7 +141,7 @@ export default function StoryRead() {
       if (trimmed.startsWith("# ")) {
         flushList(i);
         elements.push(
-          <h1 key={i} className="mb-4 mt-10 font-serif text-2xl font-bold leading-tight text-foreground sm:text-3xl">
+          <h1 key={i} id={slugify(trimmed.slice(2))} className="mb-4 mt-10 scroll-mt-20 font-serif text-2xl font-bold leading-tight text-foreground sm:text-3xl">
             {renderInline(trimmed.slice(2))}
           </h1>
         );
@@ -149,7 +150,7 @@ export default function StoryRead() {
       if (trimmed.startsWith("## ")) {
         flushList(i);
         elements.push(
-          <h2 key={i} className="mb-3 mt-8 border-l-4 border-primary pl-3 font-serif text-xl font-bold text-foreground sm:text-2xl">
+          <h2 key={i} id={slugify(trimmed.slice(3))} className="mb-3 mt-8 scroll-mt-20 border-l-4 border-primary pl-3 font-serif text-xl font-bold text-foreground sm:text-2xl">
             {renderInline(trimmed.slice(3))}
           </h2>
         );
@@ -158,7 +159,7 @@ export default function StoryRead() {
       if (trimmed.startsWith("### ")) {
         flushList(i);
         elements.push(
-          <h3 key={i} className="mb-2 mt-6 font-serif text-lg font-semibold text-foreground">
+          <h3 key={i} id={slugify(trimmed.slice(4))} className="mb-2 mt-6 scroll-mt-20 font-serif text-lg font-semibold text-foreground">
             {renderInline(trimmed.slice(4))}
           </h3>
         );
