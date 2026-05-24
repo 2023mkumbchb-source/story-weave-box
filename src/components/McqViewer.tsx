@@ -679,7 +679,7 @@ export default function McqViewer({ questions, title, setId, category, hideAnswe
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
                   {String.fromCharCode(65 + i)}
                 </span>
-                <span className="flex-1 break-words">{cleanMcqOption(opt)}</span>
+                <span className="flex-1 break-words"><LinkedText text={cleanMcqOption(opt)} k={`mo-${i}`} /></span>
                 {revealed && i === q.correct_answer && <Check className="h-5 w-5 text-green-500 shrink-0" />}
                 {wrongAttempts.has(i) && <X className="h-5 w-5 text-destructive shrink-0" />}
               </motion.button>
@@ -1052,7 +1052,7 @@ function ScrollMcqList(props: ScrollProps) {
               style={{ boxShadow: "var(--shadow-card)" }}>
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">Question {qPos + 1}</p>
               <p className="mb-4 text-base sm:text-lg font-medium text-foreground leading-relaxed break-words">
-                {cleanQuestionText(q.question)}
+                <LinkedText text={cleanQuestionText(q.question)} k={`mq-${qPos}`} />
               </p>
               <div className="space-y-2">
                 {q.options.map((opt, i) => {
@@ -1069,7 +1069,7 @@ function ScrollMcqList(props: ScrollProps) {
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
                         {String.fromCharCode(65 + i)}
                       </span>
-                      <span className="flex-1 break-words">{cleanMcqOption(opt)}</span>
+                      <span className="flex-1 break-words"><LinkedText text={cleanMcqOption(opt)} k={`mso-${qPos}-${i}`} /></span>
                       {isCorrect && <Check className="h-5 w-5 text-green-500 shrink-0" />}
                       {isWrong && <X className="h-5 w-5 text-destructive shrink-0" />}
                     </button>
