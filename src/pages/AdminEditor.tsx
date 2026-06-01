@@ -814,7 +814,12 @@ export default function AdminEditor() {
   // Load story into editor
   useEffect(() => {
     if (editorMode !== "stories" || !currentStorySummary || !editor || isAddMode) return;
-    editor.commands.setContent(mdToHtml(currentStorySummary.content || ""));
+    // Existing stories may be saved as HTML (new format) or markdown (legacy).
+    // Detect by presence of any HTML tag and load accordingly so the editor
+    // never double-escapes content or loses formatting.
+    const raw = currentStorySummary.content || "";
+    const looksLikeHtml = /<[a-z][\s\S]*>/i.test(raw);
+    editor.commands.setContent(looksLikeHtml ? raw : mdToHtml(raw));
     setEditTitle(currentStorySummary.title || "");
     setEditCategory(currentStorySummary.category || "");
     setEditPublished(currentStorySummary.published);
