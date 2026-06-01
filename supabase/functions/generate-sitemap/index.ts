@@ -32,7 +32,19 @@ function normalizeBaseUrl(url: string | null | undefined): string {
   const trimmed = String(url || "").trim();
   if (!trimmed) return DEFAULT_BASE_URL;
   const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  return withProtocol.replace(/\/+$/, "");
+  // Force canonical www host so sitemap entries match robots.txt + canonical tags.
+  // Google rejects sitemap URLs that don't share the sitemap's hostname.
+  const cleaned = withProtocol.replace(/\/+$/, "");
+  try {
+    const u = new URL(cleaned);
+    if (/(^|\.)ompathstudy\.com$/i.test(u.hostname) && u.hostname.toLowerCase() !== "www.ompathstudy.com") {
+      u.hostname = "www.ompathstudy.com";
+    }
+    u.protocol = "https:";
+    return `${u.protocol}//${u.hostname}`;
+  } catch {
+    return cleaned;
+  }
 }
 
 function escapeXml(str: string): string {
