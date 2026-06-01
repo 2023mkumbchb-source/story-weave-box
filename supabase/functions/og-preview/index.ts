@@ -56,7 +56,17 @@ async function resolveSiteUrl(sb: any): Promise<string> {
   const raw = String((data as any)?.value || "").trim();
   if (!raw) return DEFAULT_SITE_URL;
   const withProto = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-  return withProto.replace(/\/+$/, "");
+  const cleaned = withProto.replace(/\/+$/, "");
+  try {
+    const u = new URL(cleaned);
+    if (/(^|\.)ompathstudy\.com$/i.test(u.hostname) && u.hostname.toLowerCase() !== "www.ompathstudy.com") {
+      u.hostname = "www.ompathstudy.com";
+    }
+    u.protocol = "https:";
+    return `${u.protocol}//${u.hostname}`;
+  } catch {
+    return cleaned;
+  }
 }
 
 function esc(str: string): string {
