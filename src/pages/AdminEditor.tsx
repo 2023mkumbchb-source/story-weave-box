@@ -1139,7 +1139,7 @@ export default function AdminEditor() {
           )}
 
           {/* Story Editor Mode */}
-          {editorMode === "stories" && currentStorySummary && !isAddMode && (
+          {editorMode === "stories" && (currentStorySummary || isAddMode) && (
             <div className="space-y-3">
               <div className="space-y-2">
                 <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="text-sm h-8" placeholder="Story title" />
@@ -1150,6 +1150,8 @@ export default function AdminEditor() {
                     <option value="Medical">Medical</option>
                     <option value="Personal">Personal</option>
                     <option value="Creative">Creative</option>
+                    <option value="Reflection">Reflection</option>
+                    <option value="Inspiration">Inspiration</option>
                     <option value="Uncategorized">Uncategorized</option>
                   </select>
                   <label className="flex items-center gap-1.5 text-xs cursor-pointer">
@@ -1164,13 +1166,25 @@ export default function AdminEditor() {
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold"><Bold className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic"><Italic className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive("heading", { level: 2 })} title="H2"><Heading2 className={iconSize} /></ToolbarBtn>
+                    <ToolbarBtn onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive("heading", { level: 3 })} title="H3"><Heading3 className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullets"><List className={iconSize} /></ToolbarBtn>
+                    <ToolbarBtn onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive("blockquote")} title="Quote"><Quote className={iconSize} /></ToolbarBtn>
+                    <ToolbarBtn onClick={() => { const url = prompt("Image URL:"); if (url) editor.chain().focus().setImage({ src: url }).run(); }} title="Image"><ImagePlus className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().undo().run()} title="Undo"><Undo className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().redo().run()} title="Redo"><Redo className={iconSize} /></ToolbarBtn>
+                    <div className="mx-0.5 h-4 w-px bg-border" />
+                    <Button variant="ghost" size="sm" onClick={handleAiFormat} disabled={geminiLoading} className="gap-1 text-[10px] h-6 px-2">
+                      {geminiLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} AI Format
+                    </Button>
                   </div>
                   <EditorContent editor={editor} />
                 </div>
               )}
+              <div className="flex justify-end">
+                <Button size="sm" onClick={handleSaveStory} disabled={saving} className="gap-1 text-xs h-7">
+                  {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} {isAddMode ? "Create Story" : "Save Story"}
+                </Button>
+              </div>
             </div>
           )}
 
