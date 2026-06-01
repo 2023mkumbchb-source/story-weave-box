@@ -599,19 +599,43 @@ export default function AdminEditor() {
 
   // Save story
   const handleSaveStory = async () => {
-    if (!editor || !currentStorySummary) return;
+    if (!editor) return;
     setSaving(true);
     try {
       const htmlContent = editor.getHTML();
       const mdContent = htmlToMd(htmlContent);
-      await supabase.from("stories").update({
-        title: editTitle,
-        content: mdContent,
-        category: editCategory || "Uncategorized",
-        published: editPublished,
-      } as any).eq("id", currentStorySummary.id);
-      toast({ title: "Story saved!" });
-      setAllStories(prev => prev.map(s => s.id === currentStorySummary.id ? { ...s, title: editTitle, content: mdContent, category: editCategory, published: editPublished } : s));
+      const cover = extractFirstImageFromContent(mdContent) || "";
+      if (isAddMode || !currentStorySummary) {
+        if (!editTitle.trim()) {
+          toast({ title: "Title required", variant: "destructive" });
+          setSaving(false);
+          return;
+        }
+        const { data, error } = await supabase.from("stories").insert({
+          title: editTitle,
+          content: mdContent,
+          category: editCategory || "Uncategorized",
+          published: editPublished,
+          cover_image_url: cover || null,
+          slug: slugifyText(editTitle),
+        } as any).select().single();
+        if (error) throw error;
+        toast({ title: "Story created!" });
+        setIsAddMode(false);
+        await loadContent();
+        if (data) setCurrentIndex(0);
+      } else {
+        await supabase.from("stories").update({
+          title: editTitle,
+          content: mdContent,
+          category: editCategory || "Uncategorized",
+          published: editPublished,
+          cover_image_url: cover || null,
+          slug: slugifyText(editTitle),
+        } as any).eq("id", currentStorySummary.id);
+        toast({ title: "Story saved!" });
+        setAllStories(prev => prev.map(s => s.id === currentStorySummary.id ? { ...s, title: editTitle, content: mdContent, category: editCategory, published: editPublished } : s));
+      }
     } catch (err: any) {
       toast({ title: "Save failed", description: err.message, variant: "destructive" });
     } finally {
@@ -786,12 +810,12 @@ export default function AdminEditor() {
 
   // Load story into editor
   useEffect(() => {
-    if (editorMode !== "stories" || !currentStorySummary || !editor) return;
+    if (editorMode !== "stories" || !currentStorySummary || !editor || isAddMode) return;
     editor.commands.setContent(mdToHtml(currentStorySummary.content || ""));
     setEditTitle(currentStorySummary.title || "");
     setEditCategory(currentStorySummary.category || "");
     setEditPublished(currentStorySummary.published);
-  }, [currentStorySummary?.id, editor, editorMode]);
+  }, [currentStorySummary?.id, editor, editorMode, isAddMode]);
 
   const previewUrl = fullArticle ? `${SITE_URL}${buildBlogPath(fullArticle)}` : "";
   const iconSize = "h-4 w-4";
@@ -932,11 +956,16 @@ export default function AdminEditor() {
 
           {/* Stories search */}
           {editorMode === "stories" && (
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                <Input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentIndex(0); }}
-                  placeholder="Search stories..." className="pl-7 h-8 text-xs" />
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                  <Input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentIndex(0); }}
+                    placeholder="Search stories..." className="pl-7 h-8 text-xs" />
+                </div>
+                <Button variant="outline" size="sm" onClick={() => startAdd("direct")} className="gap-1 text-xs h-8 px-2">
+                  <Plus className="h-3 w-3" /> Add Story
+                </Button>
               </div>
             </div>
           )}
@@ -1110,7 +1139,7 @@ export default function AdminEditor() {
           )}
 
           {/* Story Editor Mode */}
-          {editorMode === "stories" && currentStorySummary && !isAddMode && (
+          {editorMode === "stories" && (currentStorySummary || isAddMode) && (
             <div className="space-y-3">
               <div className="space-y-2">
                 <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="text-sm h-8" placeholder="Story title" />
@@ -1121,6 +1150,8 @@ export default function AdminEditor() {
                     <option value="Medical">Medical</option>
                     <option value="Personal">Personal</option>
                     <option value="Creative">Creative</option>
+                    <option value="Reflection">Reflection</option>
+                    <option value="Inspiration">Inspiration</option>
                     <option value="Uncategorized">Uncategorized</option>
                   </select>
                   <label className="flex items-center gap-1.5 text-xs cursor-pointer">
@@ -1135,13 +1166,25 @@ export default function AdminEditor() {
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold"><Bold className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic"><Italic className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive("heading", { level: 2 })} title="H2"><Heading2 className={iconSize} /></ToolbarBtn>
+                    <ToolbarBtn onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive("heading", { level: 3 })} title="H3"><Heading3 className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullets"><List className={iconSize} /></ToolbarBtn>
+                    <ToolbarBtn onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive("blockquote")} title="Quote"><Quote className={iconSize} /></ToolbarBtn>
+                    <ToolbarBtn onClick={() => { const url = prompt("Image URL:"); if (url) editor.chain().focus().setImage({ src: url }).run(); }} title="Image"><ImagePlus className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().undo().run()} title="Undo"><Undo className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().redo().run()} title="Redo"><Redo className={iconSize} /></ToolbarBtn>
+                    <div className="mx-0.5 h-4 w-px bg-border" />
+                    <Button variant="ghost" size="sm" onClick={handleAiFormat} disabled={geminiLoading} className="gap-1 text-[10px] h-6 px-2">
+                      {geminiLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} AI Format
+                    </Button>
                   </div>
                   <EditorContent editor={editor} />
                 </div>
               )}
+              <div className="flex justify-end">
+                <Button size="sm" onClick={handleSaveStory} disabled={saving} className="gap-1 text-xs h-7">
+                  {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} {isAddMode ? "Create Story" : "Save Story"}
+                </Button>
+              </div>
             </div>
           )}
 
