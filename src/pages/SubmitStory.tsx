@@ -44,9 +44,19 @@ export default function SubmitStory() {
 
     setSubmitting(true);
     try {
-      // AI moderation + grammar fix via edge function
+      // Strip embedded images (incl. base64) before sending to the moderator
+      // so the AI never sees megabytes of binary data and can't corrupt them.
+      const textForModeration = content
+        .replace(/<img[^>]*>/gi, " [image] ")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 8000);
+
+      // AI moderation only (approve/reject). We KEEP the original HTML
+      // content from the rich-text editor so formatting & images stay intact.
       const { data: modResult, error: modError } = await supabase.functions.invoke("generate-content", {
-        body: { notes: content, type: "moderate-and-fix-story", title },
+        body: { notes: textForModeration, type: "moderate-story", title },
       });
 
       if (modError) throw new Error(modError.message);
@@ -60,13 +70,13 @@ export default function SubmitStory() {
         return;
       }
 
-      const baseContent = modResult?.content || content;
-      const coverHtml = coverImage ? `<p><img src="${coverImage}" alt="${title.trim()}" /></p>` : "";
+      // Author byline only — cover image is stored separately and rendered
+      // by the reader UI, so we never inline it (prevents duplicates).
       const authorHtml = authorName.trim() ? `<p><em>By ${authorName.trim()}</em></p>` : "";
-      const finalContent = `${coverHtml}${authorHtml}${baseContent}`;
+      const finalContent = `${authorHtml}${content}`;
 
       const { error } = await supabase.from("stories").insert({
-        title: modResult?.title || title.trim(),
+        title: title.trim(),
         content: finalContent,
         category: category || modResult?.category || "Stories",
         cover_image_url: coverImage || null,

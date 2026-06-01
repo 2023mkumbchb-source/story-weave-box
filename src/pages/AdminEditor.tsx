@@ -602,9 +602,12 @@ export default function AdminEditor() {
     if (!editor) return;
     setSaving(true);
     try {
+      // Save the HTML directly so formatting & embedded images are preserved
+      // exactly as authored. StoryRead renders HTML content via the rich
+      // prose styles, avoiding the lossy markdown round-trip that was
+      // breaking layout and duplicating images.
       const htmlContent = editor.getHTML();
-      const mdContent = htmlToMd(htmlContent);
-      const cover = extractFirstImageFromContent(mdContent) || "";
+      const cover = extractFirstImageFromContent(htmlContent) || "";
       if (isAddMode || !currentStorySummary) {
         if (!editTitle.trim()) {
           toast({ title: "Title required", variant: "destructive" });
@@ -613,7 +616,7 @@ export default function AdminEditor() {
         }
         const { data, error } = await supabase.from("stories").insert({
           title: editTitle,
-          content: mdContent,
+          content: htmlContent,
           category: editCategory || "Uncategorized",
           published: editPublished,
           cover_image_url: cover || null,
@@ -627,14 +630,14 @@ export default function AdminEditor() {
       } else {
         await supabase.from("stories").update({
           title: editTitle,
-          content: mdContent,
+          content: htmlContent,
           category: editCategory || "Uncategorized",
           published: editPublished,
           cover_image_url: cover || null,
           slug: slugifyText(editTitle),
         } as any).eq("id", currentStorySummary.id);
         toast({ title: "Story saved!" });
-        setAllStories(prev => prev.map(s => s.id === currentStorySummary.id ? { ...s, title: editTitle, content: mdContent, category: editCategory, published: editPublished } : s));
+        setAllStories(prev => prev.map(s => s.id === currentStorySummary.id ? { ...s, title: editTitle, content: htmlContent, category: editCategory, published: editPublished } : s));
       }
     } catch (err: any) {
       toast({ title: "Save failed", description: err.message, variant: "destructive" });
@@ -811,7 +814,12 @@ export default function AdminEditor() {
   // Load story into editor
   useEffect(() => {
     if (editorMode !== "stories" || !currentStorySummary || !editor || isAddMode) return;
-    editor.commands.setContent(mdToHtml(currentStorySummary.content || ""));
+    // Existing stories may be saved as HTML (new format) or markdown (legacy).
+    // Detect by presence of any HTML tag and load accordingly so the editor
+    // never double-escapes content or loses formatting.
+    const raw = currentStorySummary.content || "";
+    const looksLikeHtml = /<[a-z][\s\S]*>/i.test(raw);
+    editor.commands.setContent(looksLikeHtml ? raw : mdToHtml(raw));
     setEditTitle(currentStorySummary.title || "");
     setEditCategory(currentStorySummary.category || "");
     setEditPublished(currentStorySummary.published);
