@@ -810,12 +810,12 @@ export default function AdminEditor() {
 
   // Load story into editor
   useEffect(() => {
-    if (editorMode !== "stories" || !currentStorySummary || !editor) return;
+    if (editorMode !== "stories" || !currentStorySummary || !editor || isAddMode) return;
     editor.commands.setContent(mdToHtml(currentStorySummary.content || ""));
     setEditTitle(currentStorySummary.title || "");
     setEditCategory(currentStorySummary.category || "");
     setEditPublished(currentStorySummary.published);
-  }, [currentStorySummary?.id, editor, editorMode]);
+  }, [currentStorySummary?.id, editor, editorMode, isAddMode]);
 
   const previewUrl = fullArticle ? `${SITE_URL}${buildBlogPath(fullArticle)}` : "";
   const iconSize = "h-4 w-4";
