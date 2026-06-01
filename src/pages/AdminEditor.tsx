@@ -599,19 +599,43 @@ export default function AdminEditor() {
 
   // Save story
   const handleSaveStory = async () => {
-    if (!editor || !currentStorySummary) return;
+    if (!editor) return;
     setSaving(true);
     try {
       const htmlContent = editor.getHTML();
       const mdContent = htmlToMd(htmlContent);
-      await supabase.from("stories").update({
-        title: editTitle,
-        content: mdContent,
-        category: editCategory || "Uncategorized",
-        published: editPublished,
-      } as any).eq("id", currentStorySummary.id);
-      toast({ title: "Story saved!" });
-      setAllStories(prev => prev.map(s => s.id === currentStorySummary.id ? { ...s, title: editTitle, content: mdContent, category: editCategory, published: editPublished } : s));
+      const cover = extractFirstImageFromContent(mdContent) || "";
+      if (isAddMode || !currentStorySummary) {
+        if (!editTitle.trim()) {
+          toast({ title: "Title required", variant: "destructive" });
+          setSaving(false);
+          return;
+        }
+        const { data, error } = await supabase.from("stories").insert({
+          title: editTitle,
+          content: mdContent,
+          category: editCategory || "Uncategorized",
+          published: editPublished,
+          cover_image_url: cover || null,
+          slug: slugifyText(editTitle),
+        } as any).select().single();
+        if (error) throw error;
+        toast({ title: "Story created!" });
+        setIsAddMode(false);
+        await loadContent();
+        if (data) setCurrentIndex(0);
+      } else {
+        await supabase.from("stories").update({
+          title: editTitle,
+          content: mdContent,
+          category: editCategory || "Uncategorized",
+          published: editPublished,
+          cover_image_url: cover || null,
+          slug: slugifyText(editTitle),
+        } as any).eq("id", currentStorySummary.id);
+        toast({ title: "Story saved!" });
+        setAllStories(prev => prev.map(s => s.id === currentStorySummary.id ? { ...s, title: editTitle, content: mdContent, category: editCategory, published: editPublished } : s));
+      }
     } catch (err: any) {
       toast({ title: "Save failed", description: err.message, variant: "destructive" });
     } finally {
