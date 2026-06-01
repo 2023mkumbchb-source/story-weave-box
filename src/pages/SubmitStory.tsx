@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Loader2, Send, BookOpen, CheckCircle } from "lucide-react";
+import { Loader2, Send, BookOpen, CheckCircle, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +15,8 @@ export default function SubmitStory() {
   const [title, setTitle] = useState("");
   const [authorName, setAuthorName] = useState("");
   const [content, setContent] = useState("");
+  const [category, setCategory] = useState("Personal");
+  const [coverImage, setCoverImage] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const ogUrl =
@@ -58,14 +60,16 @@ export default function SubmitStory() {
         return;
       }
 
-      const finalContent = authorName.trim()
-        ? `<p><em>By ${authorName.trim()}</em></p>${modResult?.content || content}`
-        : (modResult?.content || content);
+      const baseContent = modResult?.content || content;
+      const coverHtml = coverImage ? `<p><img src="${coverImage}" alt="${title.trim()}" /></p>` : "";
+      const authorHtml = authorName.trim() ? `<p><em>By ${authorName.trim()}</em></p>` : "";
+      const finalContent = `${coverHtml}${authorHtml}${baseContent}`;
 
       const { error } = await supabase.from("stories").insert({
         title: modResult?.title || title.trim(),
         content: finalContent,
-        category: modResult?.category || "Stories",
+        category: category || modResult?.category || "Stories",
+        cover_image_url: coverImage || null,
         published: false,
       });
 
@@ -77,6 +81,16 @@ export default function SubmitStory() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCoverUpload = (file: File) => {
+    if (file.size > 3 * 1024 * 1024) {
+      toast({ title: "Image too large", description: "Please use an image under 3 MB", variant: "destructive" });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => setCoverImage((e.target?.result as string) || "");
+    reader.readAsDataURL(file);
   };
 
   if (submitted) {
@@ -158,6 +172,53 @@ export default function SubmitStory() {
           </div>
 
           <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Category</label>
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="Personal">Personal</option>
+              <option value="Medical">Medical</option>
+              <option value="Creative">Creative</option>
+              <option value="Reflection">Reflection</option>
+              <option value="Inspiration">Inspiration</option>
+              <option value="Uncategorized">Uncategorized</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Cover Image (optional)</label>
+            {coverImage ? (
+              <div className="relative inline-block">
+                <img src={coverImage} alt="Cover preview" className="max-h-40 rounded-md border border-border" />
+                <button
+                  type="button"
+                  onClick={() => setCoverImage("")}
+                  className="absolute -top-2 -right-2 rounded-full bg-destructive p-1 text-destructive-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ) : (
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground hover:bg-muted">
+                <ImagePlus className="h-4 w-4" />
+                Upload cover image
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => {
+                    const f = e.target.files?.[0];
+                    if (f) handleCoverUpload(f);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            )}
+          </div>
+
+          <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">Your Story *</label>
             <RichTextEditor
               content={content}
@@ -165,7 +226,7 @@ export default function SubmitStory() {
               placeholder="Write your story here..."
             />
             <p className="mt-1.5 text-xs text-muted-foreground">
-              {plainText.length} characters · Minimum 200 required
+              {plainText.length} characters · Minimum 200 required · You can paste or upload images directly in the editor.
             </p>
           </div>
 
