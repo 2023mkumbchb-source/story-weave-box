@@ -665,6 +665,8 @@ export async function getMcqSetById(id: string): Promise<McqSet | null> {
     .from("mcq_sets")
     .select("*")
     .eq("id", id)
+    .eq("published", true)
+    .is("deleted_at", null)
     .maybeSingle();
   if (error) throw error;
   return data as unknown as McqSet | null;
@@ -679,6 +681,7 @@ export async function getMcqSetBySlugOrId(param: string): Promise<McqSet | null>
     .from("mcq_sets")
     .select("*")
     .eq("slug", v)
+    .eq("published", true)
     .is("deleted_at", null)
     .maybeSingle();
   if (data) return data as unknown as McqSet;
@@ -687,6 +690,7 @@ export async function getMcqSetBySlugOrId(param: string): Promise<McqSet | null>
     .from("mcq_sets")
     .select("*")
     .or(`slug.ilike.${titlePart}%,slug.ilike.%${titlePart}%`)
+    .eq("published", true)
     .is("deleted_at", null)
     .limit(1);
   if (list && list[0]) return list[0] as unknown as McqSet;
@@ -695,6 +699,7 @@ export async function getMcqSetBySlugOrId(param: string): Promise<McqSet | null>
     .from("mcq_sets")
     .select("*")
     .ilike("title", `%${titleSearch}%`)
+    .eq("published", true)
     .is("deleted_at", null)
     .limit(1);
   return (byTitle && byTitle[0]) ? (byTitle[0] as unknown as McqSet) : null;
