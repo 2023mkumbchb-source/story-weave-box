@@ -45,6 +45,10 @@
       ]
     }
   ],
+  "redirects": [
+    { "source": "/sitemap.xml", "destination": "/sitemap-dynamic.xml", "statusCode": 301 },
+    { "source": "/blog/victory-school-club-membership-system-project-guide", "destination": "/blog", "statusCode": 301 }
+  ],
   "rewrites": [
     {
       "source": "/sitemap-dynamic.xml",
