@@ -69,7 +69,7 @@ const EXCLUDED_PATHS = new Set<string>([
   "/blog/victory-school-club-membership-system-project-guide",
 ]);
 
-async function fetchAllPublished(sb: any, table: string, select: string) {
+async function fetchAllPublished(sb: any, table: string, select: string, orderColumn = "updated_at") {
   const rows: any[] = [];
   const batchSize = 1000;
   for (let from = 0; ; from += batchSize) {
@@ -78,7 +78,7 @@ async function fetchAllPublished(sb: any, table: string, select: string) {
       .select(select)
       .eq("published", true)
       .is("deleted_at", null)
-      .order("updated_at", { ascending: false, nullsFirst: false })
+      .order(orderColumn, { ascending: false, nullsFirst: false })
       .range(from, from + batchSize - 1);
     if (error) throw error;
     rows.push(...(data || []));
@@ -105,7 +105,7 @@ serve(async (req) => {
       fetchAllPublished(supabase, "articles", "id, title, slug, created_at, updated_at, category, og_image_url"),
       fetchAllPublished(supabase, "mcq_sets", "id, title, slug, og_image_url, created_at, updated_at, category"),
       fetchAllPublished(supabase, "flashcard_sets", "id, title, slug, og_image_url, created_at, updated_at, category"),
-      fetchAllPublished(supabase, "stories", "id, title, slug, created_at, category, cover_image_url"),
+      fetchAllPublished(supabase, "stories", "id, title, slug, created_at, category, cover_image_url", "created_at"),
     ]);
 
     const years = new Set<number>();
