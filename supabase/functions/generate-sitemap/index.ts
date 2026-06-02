@@ -64,6 +64,11 @@ function extractFirstImage(content: string | null): string | null {
   return html ? html[1] : null;
 }
 
+const EXCLUDED_PATHS = new Set<string>([
+  "/sitemap.xml",
+  "/blog/victory-school-club-membership-system-project-guide",
+]);
+
 async function fetchAllPublished(sb: any, table: string, select: string) {
   const rows: any[] = [];
   const batchSize = 1000;
@@ -131,7 +136,7 @@ serve(async (req) => {
     for (const a of (articles || []) as any[]) {
       const articleSlug = cleanPublicSlug(a.slug, a.title, "article");
       const path = `/blog/${articleSlug}`;
-      if (emittedPaths.has(path)) continue;
+      if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
       emittedPaths.add(path);
       const lastmod = (a.updated_at || a.created_at) ? new Date(a.updated_at || a.created_at).toISOString().split("T")[0] : "";
       const imageUrl = a.og_image_url || null;
@@ -148,7 +153,7 @@ serve(async (req) => {
     for (const s of (stories || []) as any[]) {
       const storySlug = cleanPublicSlug(s.slug, s.title, "story");
       const path = `/stories/${s.id}-${storySlug}`;
-      if (emittedPaths.has(path)) continue;
+      if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
       emittedPaths.add(path);
       const lastmod = s.created_at ? new Date(s.created_at).toISOString().split("T")[0] : "";
       const imageUrl = s.cover_image_url || null;
@@ -165,7 +170,7 @@ serve(async (req) => {
     for (const m of (mcqs || []) as any[]) {
       const mcqSlug = cleanPublicSlug(m.slug, m.title, "quiz");
       const path = `/mcqs/${mcqSlug}`;
-      if (emittedPaths.has(path)) continue;
+      if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
       emittedPaths.add(path);
       const lastmod = (m.updated_at || m.created_at) ? new Date(m.updated_at || m.created_at).toISOString().split("T")[0] : "";
       xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
@@ -181,7 +186,7 @@ serve(async (req) => {
     for (const f of (flashcards || []) as any[]) {
       const flashcardSlug = cleanPublicSlug(f.slug, f.title, "flashcards");
       const path = `/flashcards/${flashcardSlug}`;
-      if (emittedPaths.has(path)) continue;
+      if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
       emittedPaths.add(path);
       const lastmod = (f.updated_at || f.created_at) ? new Date(f.updated_at || f.created_at).toISOString().split("T")[0] : "";
       xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
