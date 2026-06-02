@@ -282,7 +282,7 @@ serve(async (req) => {
         const { data } = await supabase.from("mcq_sets").select("title, category, questions, created_at, slug, id").eq("slug", mcqParam).eq("published", true).is("deleted_at", null).maybeSingle();
         mcq = data;
       }
-      if (!mcq) return notFoundResponse(siteUrl, `/mcqs/${mcqParam}`, isCrawler);
+      if (!mcq) return redirectResponse(siteUrl, await findClosestLivePath(supabase, "mcq_sets", mcqParam, "/mcqs"));
       const qCount = Array.isArray(mcq.questions) ? mcq.questions.length : 0;
       const cat = mcq.category || "Medical";
       const firstQ = Array.isArray(mcq.questions) && mcq.questions[0]
@@ -372,11 +372,15 @@ serve(async (req) => {
         article = data;
       }
       if (!article) {
-        const { data: candidates } = await supabase.from("articles").select("id, title, content, meta_title, meta_description, og_image_url, slug, created_at, category").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(500);
+        const { data: candidates } = await supabase.from("articles").select("id, title, slug, created_at").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(500);
         article = (candidates || []).find((row: any) => slugify(row.title) === slugParam.toLowerCase()) || null;
+        if (article?.id) {
+          const { data } = await supabase.from("articles").select("title, content, meta_title, meta_description, og_image_url, slug, id, created_at, category").eq("id", article.id).eq("published", true).is("deleted_at", null).maybeSingle();
+          article = data;
+        }
       }
 
-      if (!article) return notFoundResponse(siteUrl, `/blog/${slugParam}`, isCrawler);
+      if (!article) return redirectResponse(siteUrl, await findClosestLivePath(supabase, "articles", slugParam, "/blog"));
 
       const articleSlug = cleanPublicSlug(article.slug, article.title, "article");
       const cat = (article.category || "").replace(/^Year\s*\d+:\s*/i, "").trim() || "Medical";
@@ -409,9 +413,17 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("OG preview error:", error);
-    return new Response("Error", { status: 500, headers: corsHeaders });
+    return new Response("<!DOCTYPE html><html><body><h1>Temporary error</h1></body></html>", { status: 500, headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders } });
   }
 });
+
+function redirectResponse(siteUrl: string, path: string): Response {
+  const destination = `${siteUrl}${path}`;
+  return new Response(null, {
+    status: 301,
+    headers: { "Location": destination, "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400", "Access-Control-Allow-Origin": "*" },
+  });
+}
 
 function notFoundResponse(siteUrl: string, path: string, isCrawler: boolean): Response {
   const html = buildOgHtml({
