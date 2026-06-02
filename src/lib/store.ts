@@ -455,16 +455,29 @@ export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | 
   if (!normalizedParam) return null;
 
   const explicitId = extractArticleIdFromParam(normalizedParam);
-  if (explicitId) return getArticleById(explicitId);
+  if (explicitId) {
+    const { data, error } = await supabase
+      .from("articles")
+      .select("*")
+      .eq("id", explicitId)
+      .eq("published", true)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (error) throw error;
+    return data as Article | null;
+  }
 
-  const { data: slugMatch } = await supabase
+  const { data: slugMatches, error: slugError } = await supabase
     .from("articles")
     .select("id")
     .or(`slug.eq.${normalizedParam},slug.ilike.%-${normalizedParam}`)
     .eq("published", true)
     .is("deleted_at", null)
-    .maybeSingle();
+    .order("updated_at", { ascending: false })
+    .limit(1);
+  if (slugError) throw slugError;
 
+  const slugMatch = slugMatches?.[0];
   if (slugMatch) return getArticleById(slugMatch.id);
 
   const { data, error } = await supabase
