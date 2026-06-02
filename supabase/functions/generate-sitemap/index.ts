@@ -64,6 +64,24 @@ function extractFirstImage(content: string | null): string | null {
   return html ? html[1] : null;
 }
 
+async function fetchAllPublished(sb: any, table: string, select: string) {
+  const rows: any[] = [];
+  const batchSize = 1000;
+  for (let from = 0; ; from += batchSize) {
+    const { data, error } = await sb
+      .from(table)
+      .select(select)
+      .eq("published", true)
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: false, nullsFirst: false })
+      .range(from, from + batchSize - 1);
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < batchSize) break;
+  }
+  return rows;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -78,11 +96,11 @@ serve(async (req) => {
     const { data: siteUrlSetting } = await supabase.from("app_settings").select("value").eq("key", "site_url").maybeSingle();
     const baseUrl = normalizeBaseUrl((siteUrlSetting as any)?.value);
 
-    const [{ data: articles }, { data: mcqs }, { data: flashcards }, { data: stories }] = await Promise.all([
-      supabase.from("articles").select("id, title, slug, content, created_at, updated_at, category, og_image_url").eq("published", true).is("deleted_at", null).limit(5000),
-      supabase.from("mcq_sets").select("id, title, slug, og_image_url, created_at, updated_at, category").eq("published", true).is("deleted_at", null).limit(5000),
-      supabase.from("flashcard_sets").select("id, title, slug, og_image_url, created_at, updated_at, category").eq("published", true).is("deleted_at", null).limit(5000),
-      supabase.from("stories").select("id, title, slug, created_at, category, cover_image_url, content").eq("published", true).is("deleted_at", null).limit(5000),
+    const [articles, mcqs, flashcards, stories] = await Promise.all([
+      fetchAllPublished(supabase, "articles", "id, title, slug, created_at, updated_at, category, og_image_url"),
+      fetchAllPublished(supabase, "mcq_sets", "id, title, slug, og_image_url, created_at, updated_at, category"),
+      fetchAllPublished(supabase, "flashcard_sets", "id, title, slug, og_image_url, created_at, updated_at, category"),
+      fetchAllPublished(supabase, "stories", "id, title, slug, created_at, category, cover_image_url"),
     ]);
 
     const years = new Set<number>();
@@ -91,6 +109,7 @@ serve(async (req) => {
       if (m) years.add(parseInt(m[1]));
     });
 
+    const emittedPaths = new Set<string>(["/", "/blog", "/stories", "/flashcards", "/mcqs", "/exams"]);
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
