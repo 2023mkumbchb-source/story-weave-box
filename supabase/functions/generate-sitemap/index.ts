@@ -122,15 +122,20 @@ serve(async (req) => {
 `;
 
     for (const y of Array.from(years).sort()) {
-      xml += `  <url><loc>${baseUrl}/year/${y}</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>\n`;
+      const path = `/year/${y}`;
+      emittedPaths.add(path);
+      xml += `  <url><loc>${baseUrl}${path}</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>\n`;
     }
 
     // Articles
     for (const a of (articles || []) as any[]) {
       const articleSlug = cleanPublicSlug(a.slug, a.title, "article");
+      const path = `/blog/${articleSlug}`;
+      if (emittedPaths.has(path)) continue;
+      emittedPaths.add(path);
       const lastmod = (a.updated_at || a.created_at) ? new Date(a.updated_at || a.created_at).toISOString().split("T")[0] : "";
-      const imageUrl = a.og_image_url || extractFirstImage(a.content);
-      xml += `  <url>\n    <loc>${baseUrl}/blog/${articleSlug}</loc>\n`;
+      const imageUrl = a.og_image_url || null;
+      xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
       if (imageUrl) {
@@ -142,9 +147,12 @@ serve(async (req) => {
     // Stories
     for (const s of (stories || []) as any[]) {
       const storySlug = cleanPublicSlug(s.slug, s.title, "story");
+      const path = `/stories/${s.id}-${storySlug}`;
+      if (emittedPaths.has(path)) continue;
+      emittedPaths.add(path);
       const lastmod = s.created_at ? new Date(s.created_at).toISOString().split("T")[0] : "";
-      const imageUrl = s.cover_image_url || extractFirstImage(s.content);
-      xml += `  <url>\n    <loc>${baseUrl}/stories/${s.id}-${storySlug}</loc>\n`;
+      const imageUrl = s.cover_image_url || null;
+      xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
       if (imageUrl) {
