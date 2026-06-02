@@ -164,8 +164,11 @@ serve(async (req) => {
     // MCQs
     for (const m of (mcqs || []) as any[]) {
       const mcqSlug = cleanPublicSlug(m.slug, m.title, "quiz");
+      const path = `/mcqs/${mcqSlug}`;
+      if (emittedPaths.has(path)) continue;
+      emittedPaths.add(path);
       const lastmod = (m.updated_at || m.created_at) ? new Date(m.updated_at || m.created_at).toISOString().split("T")[0] : "";
-      xml += `  <url>\n    <loc>${baseUrl}/mcqs/${mcqSlug}</loc>\n`;
+      xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
       if (m.og_image_url) {
@@ -177,8 +180,11 @@ serve(async (req) => {
     // Flashcards
     for (const f of (flashcards || []) as any[]) {
       const flashcardSlug = cleanPublicSlug(f.slug, f.title, "flashcards");
+      const path = `/flashcards/${flashcardSlug}`;
+      if (emittedPaths.has(path)) continue;
+      emittedPaths.add(path);
       const lastmod = (f.updated_at || f.created_at) ? new Date(f.updated_at || f.created_at).toISOString().split("T")[0] : "";
-      xml += `  <url>\n    <loc>${baseUrl}/flashcards/${flashcardSlug}</loc>\n`;
+      xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
       if (f.og_image_url) {
