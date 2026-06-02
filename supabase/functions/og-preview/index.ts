@@ -13,6 +13,25 @@ function slugify(value: string): string {
   return (value || "").toLowerCase().trim().replace(/&/g, " and ").replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 }
 
+const STOP_WORDS = new Set(["the", "and", "for", "with", "from", "into", "onto", "this", "that", "notes", "note", "mcq", "mcqs", "quiz", "questions"]);
+
+function tokenize(value: string): string[] {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .split(/[\s-]+/)
+    .filter((token) => token.length > 2 && !STOP_WORDS.has(token));
+}
+
+function similarity(a: string, b: string): number {
+  const target = new Set(tokenize(a));
+  const candidate = new Set(tokenize(b));
+  if (!target.size || !candidate.size) return 0;
+  let overlap = 0;
+  target.forEach((token) => { if (candidate.has(token)) overlap++; });
+  return overlap / (new Set([...target, ...candidate]).size || 1);
+}
+
 function cleanPublicSlug(rawSlug: string | null | undefined, fallbackTitle: string, fallback = "study"): string {
   const base = String(rawSlug || slugify(fallbackTitle) || fallback).trim().toLowerCase();
   return base
@@ -49,6 +68,29 @@ function extractUuid(value: string | null): string | null {
   if (UUID_REGEX.test(value)) return value;
   const match = value.match(/^([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})(?:-|$)/i);
   return match?.[1] || null;
+}
+
+async function findClosestLivePath(sb: any, table: "articles" | "mcq_sets", param: string, prefix: "/blog" | "/mcqs"): Promise<string> {
+  const { data } = await sb
+    .from(table)
+    .select("id, title, slug, updated_at, created_at")
+    .eq("published", true)
+    .is("deleted_at", null)
+    .order("updated_at", { ascending: false, nullsFirst: false })
+    .limit(500);
+
+  let best: any = null;
+  let bestScore = 0;
+  for (const row of data || []) {
+    const publicSlug = cleanPublicSlug(row.slug, row.title, table === "articles" ? "article" : "quiz");
+    const score = Math.max(similarity(param, publicSlug), similarity(param, row.title || ""));
+    if (score > bestScore) {
+      best = row;
+      bestScore = score;
+    }
+  }
+  if (!best || bestScore < 0.28) return prefix;
+  return `${prefix}/${cleanPublicSlug(best.slug, best.title, table === "articles" ? "article" : "quiz")}`;
 }
 
 async function resolveSiteUrl(sb: any): Promise<string> {
@@ -240,7 +282,7 @@ serve(async (req) => {
         const { data } = await supabase.from("mcq_sets").select("title, category, questions, created_at, slug, id").eq("slug", mcqParam).eq("published", true).is("deleted_at", null).maybeSingle();
         mcq = data;
       }
-      if (!mcq) return notFoundResponse(siteUrl, `/mcqs/${mcqParam}`, isCrawler);
+      if (!mcq) return redirectResponse(siteUrl, await findClosestLivePath(supabase, "mcq_sets", mcqParam, "/mcqs"));
       const qCount = Array.isArray(mcq.questions) ? mcq.questions.length : 0;
       const cat = mcq.category || "Medical";
       const firstQ = Array.isArray(mcq.questions) && mcq.questions[0]
@@ -330,11 +372,15 @@ serve(async (req) => {
         article = data;
       }
       if (!article) {
-        const { data: candidates } = await supabase.from("articles").select("id, title, content, meta_title, meta_description, og_image_url, slug, created_at, category").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(500);
+        const { data: candidates } = await supabase.from("articles").select("id, title, slug, created_at").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(500);
         article = (candidates || []).find((row: any) => slugify(row.title) === slugParam.toLowerCase()) || null;
+        if (article?.id) {
+          const { data } = await supabase.from("articles").select("title, content, meta_title, meta_description, og_image_url, slug, id, created_at, category").eq("id", article.id).eq("published", true).is("deleted_at", null).maybeSingle();
+          article = data;
+        }
       }
 
-      if (!article) return notFoundResponse(siteUrl, `/blog/${slugParam}`, isCrawler);
+      if (!article) return redirectResponse(siteUrl, await findClosestLivePath(supabase, "articles", slugParam, "/blog"));
 
       const articleSlug = cleanPublicSlug(article.slug, article.title, "article");
       const cat = (article.category || "").replace(/^Year\s*\d+:\s*/i, "").trim() || "Medical";
@@ -367,9 +413,17 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("OG preview error:", error);
-    return new Response("Error", { status: 500, headers: corsHeaders });
+    return new Response("<!DOCTYPE html><html><body><h1>Temporary error</h1></body></html>", { status: 500, headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders } });
   }
 });
+
+function redirectResponse(siteUrl: string, path: string): Response {
+  const destination = `${siteUrl}${path}`;
+  return new Response(null, {
+    status: 301,
+    headers: { "Location": destination, "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400", "Access-Control-Allow-Origin": "*" },
+  });
+}
 
 function notFoundResponse(siteUrl: string, path: string, isCrawler: boolean): Response {
   const html = buildOgHtml({

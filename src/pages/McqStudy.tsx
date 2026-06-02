@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Loader2, Lock, Unlock, ListChecks, Phone, CheckCircle, GraduationCap, Calendar, Clock, Users } from "lucide-react";
-import { getMcqSetBySlugOrId, getCategoryDisplayName, getSetting, buildMcqPath, type McqSet } from "@/lib/store";
+import { getMcqSetBySlugOrId, getPublishedMcqSets, getCategoryDisplayName, getSetting, buildMcqPath, type McqSet } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import McqViewer from "@/components/McqViewer";
@@ -30,6 +30,31 @@ function inferPaperSource(title: string) {
   const t = title.toLowerCase();
   const known = ["mount kenya university", "uon", "university of nairobi", "ku", "kenyatta university", "moi university", "jkuat"];
   return known.find((name) => t.includes(name))?.replace(/\buon\b/i, "University of Nairobi").replace(/\bku\b/i, "Kenyatta University") || "Medical Exam Paper";
+}
+
+const STOP = new Set(["the", "and", "for", "with", "from", "into", "onto", "this", "that", "mcq", "mcqs", "quiz", "questions"]);
+function tokenScore(a: string, b: string): number {
+  const toTokens = (s: string) => new Set(String(s || "").toLowerCase().replace(/[^a-z0-9\s-]/g, " ").split(/[\s-]+/).filter((t) => t.length > 2 && !STOP.has(t)));
+  const left = toTokens(a);
+  const right = toTokens(b);
+  if (!left.size || !right.size) return 0;
+  let overlap = 0;
+  left.forEach((t) => { if (right.has(t)) overlap++; });
+  return overlap / (new Set([...left, ...right]).size || 1);
+}
+
+async function findClosestMcqPath(param: string): Promise<string> {
+  try {
+    const sets = await getPublishedMcqSets();
+    let best: { path: string; score: number } | null = null;
+    for (const item of sets) {
+      const score = Math.max(tokenScore(param, item.slug || ""), tokenScore(param, item.title || ""));
+      if (!best || score > best.score) best = { path: buildMcqPath(item), score };
+    }
+    return best && best.score >= 0.28 ? best.path : "/mcqs";
+  } catch {
+    return "/mcqs";
+  }
 }
 
 export default function McqStudy() {
@@ -67,6 +92,10 @@ export default function McqStudy() {
       getSetting("mcq_price"),
     ]).then(([s, limitStr, priceStr]) => {
       setSet(s);
+      if (!s) {
+        findClosestMcqPath(param).then((path) => navigate(path, { replace: true }));
+        return;
+      }
       if (s) {
         markMcqVisited(s.id);
         const canonical = buildMcqPath(s);

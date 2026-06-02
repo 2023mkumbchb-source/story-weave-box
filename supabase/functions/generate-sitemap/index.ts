@@ -64,6 +64,29 @@ function extractFirstImage(content: string | null): string | null {
   return html ? html[1] : null;
 }
 
+const EXCLUDED_PATHS = new Set<string>([
+  "/sitemap.xml",
+  "/blog/victory-school-club-membership-system-project-guide",
+]);
+
+async function fetchAllPublished(sb: any, table: string, select: string, orderColumn = "updated_at") {
+  const rows: any[] = [];
+  const batchSize = 1000;
+  for (let from = 0; ; from += batchSize) {
+    const { data, error } = await sb
+      .from(table)
+      .select(select)
+      .eq("published", true)
+      .is("deleted_at", null)
+      .order(orderColumn, { ascending: false, nullsFirst: false })
+      .range(from, from + batchSize - 1);
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < batchSize) break;
+  }
+  return rows;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -78,11 +101,11 @@ serve(async (req) => {
     const { data: siteUrlSetting } = await supabase.from("app_settings").select("value").eq("key", "site_url").maybeSingle();
     const baseUrl = normalizeBaseUrl((siteUrlSetting as any)?.value);
 
-    const [{ data: articles }, { data: mcqs }, { data: flashcards }, { data: stories }] = await Promise.all([
-      supabase.from("articles").select("id, title, slug, content, created_at, updated_at, category, og_image_url").eq("published", true).is("deleted_at", null).limit(5000),
-      supabase.from("mcq_sets").select("id, title, slug, og_image_url, created_at, updated_at, category").eq("published", true).is("deleted_at", null).limit(5000),
-      supabase.from("flashcard_sets").select("id, title, slug, og_image_url, created_at, updated_at, category").eq("published", true).is("deleted_at", null).limit(5000),
-      supabase.from("stories").select("id, title, slug, created_at, category, cover_image_url, content").eq("published", true).is("deleted_at", null).limit(5000),
+    const [articles, mcqs, flashcards, stories] = await Promise.all([
+      fetchAllPublished(supabase, "articles", "id, title, slug, created_at, updated_at, category, og_image_url"),
+      fetchAllPublished(supabase, "mcq_sets", "id, title, slug, og_image_url, created_at, updated_at, category"),
+      fetchAllPublished(supabase, "flashcard_sets", "id, title, slug, created_at, updated_at, category"),
+      fetchAllPublished(supabase, "stories", "id, title, slug, created_at, category, cover_image_url", "created_at"),
     ]);
 
     const years = new Set<number>();
@@ -91,6 +114,7 @@ serve(async (req) => {
       if (m) years.add(parseInt(m[1]));
     });
 
+    const emittedPaths = new Set<string>(["/", "/blog", "/stories", "/flashcards", "/mcqs", "/exams"]);
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
@@ -103,15 +127,20 @@ serve(async (req) => {
 `;
 
     for (const y of Array.from(years).sort()) {
-      xml += `  <url><loc>${baseUrl}/year/${y}</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>\n`;
+      const path = `/year/${y}`;
+      emittedPaths.add(path);
+      xml += `  <url><loc>${baseUrl}${path}</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>\n`;
     }
 
     // Articles
     for (const a of (articles || []) as any[]) {
       const articleSlug = cleanPublicSlug(a.slug, a.title, "article");
+      const path = `/blog/${articleSlug}`;
+      if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
+      emittedPaths.add(path);
       const lastmod = (a.updated_at || a.created_at) ? new Date(a.updated_at || a.created_at).toISOString().split("T")[0] : "";
-      const imageUrl = a.og_image_url || extractFirstImage(a.content);
-      xml += `  <url>\n    <loc>${baseUrl}/blog/${articleSlug}</loc>\n`;
+      const imageUrl = a.og_image_url || null;
+      xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
       if (imageUrl) {
@@ -123,9 +152,12 @@ serve(async (req) => {
     // Stories
     for (const s of (stories || []) as any[]) {
       const storySlug = cleanPublicSlug(s.slug, s.title, "story");
+      const path = `/stories/${s.id}-${storySlug}`;
+      if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
+      emittedPaths.add(path);
       const lastmod = s.created_at ? new Date(s.created_at).toISOString().split("T")[0] : "";
-      const imageUrl = s.cover_image_url || extractFirstImage(s.content);
-      xml += `  <url>\n    <loc>${baseUrl}/stories/${s.id}-${storySlug}</loc>\n`;
+      const imageUrl = s.cover_image_url || null;
+      xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
       if (imageUrl) {
@@ -137,8 +169,11 @@ serve(async (req) => {
     // MCQs
     for (const m of (mcqs || []) as any[]) {
       const mcqSlug = cleanPublicSlug(m.slug, m.title, "quiz");
+      const path = `/mcqs/${mcqSlug}`;
+      if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
+      emittedPaths.add(path);
       const lastmod = (m.updated_at || m.created_at) ? new Date(m.updated_at || m.created_at).toISOString().split("T")[0] : "";
-      xml += `  <url>\n    <loc>${baseUrl}/mcqs/${mcqSlug}</loc>\n`;
+      xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
       if (m.og_image_url) {
@@ -150,13 +185,13 @@ serve(async (req) => {
     // Flashcards
     for (const f of (flashcards || []) as any[]) {
       const flashcardSlug = cleanPublicSlug(f.slug, f.title, "flashcards");
+      const path = `/flashcards/${flashcardSlug}`;
+      if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
+      emittedPaths.add(path);
       const lastmod = (f.updated_at || f.created_at) ? new Date(f.updated_at || f.created_at).toISOString().split("T")[0] : "";
-      xml += `  <url>\n    <loc>${baseUrl}/flashcards/${flashcardSlug}</loc>\n`;
+      xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
-      if (f.og_image_url) {
-        xml += `    <image:image>\n      <image:loc>${escapeXml(f.og_image_url)}</image:loc>\n      <image:title>${escapeXml(f.title)}</image:title>\n    </image:image>\n`;
-      }
       xml += `  </url>\n`;
     }
 
@@ -164,10 +199,13 @@ serve(async (req) => {
 
     return new Response(xml, {
       status: 200,
-      headers: { "Content-Type": "application/xml", ...corsHeaders },
+      headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400", ...corsHeaders },
     });
   } catch (error: unknown) {
     console.error("Sitemap error:", error);
-    return new Response("Error generating sitemap", { status: 500, headers: corsHeaders });
+    return new Response(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`, {
+      status: 500,
+      headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "no-cache", ...corsHeaders },
+    });
   }
 });
