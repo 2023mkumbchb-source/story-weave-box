@@ -104,7 +104,7 @@ serve(async (req) => {
     const [articles, mcqs, flashcards, stories] = await Promise.all([
       fetchAllPublished(supabase, "articles", "id, title, slug, created_at, updated_at, category, og_image_url"),
       fetchAllPublished(supabase, "mcq_sets", "id, title, slug, og_image_url, created_at, updated_at, category"),
-      fetchAllPublished(supabase, "flashcard_sets", "id, title, slug, og_image_url, created_at, updated_at, category"),
+      fetchAllPublished(supabase, "flashcard_sets", "id, title, slug, created_at, updated_at, category"),
       fetchAllPublished(supabase, "stories", "id, title, slug, created_at, category, cover_image_url", "created_at"),
     ]);
 
@@ -192,9 +192,6 @@ serve(async (req) => {
       xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
-      if (f.og_image_url) {
-        xml += `    <image:image>\n      <image:loc>${escapeXml(f.og_image_url)}</image:loc>\n      <image:title>${escapeXml(f.title)}</image:title>\n    </image:image>\n`;
-      }
       xml += `  </url>\n`;
     }
 
