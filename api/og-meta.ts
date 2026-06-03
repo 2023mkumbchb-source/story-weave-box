@@ -504,7 +504,7 @@ export default async function handler(req: Request): Promise<Response> {
     if (section === "blog" && param) {
       const article = await fetchArticleBySlug(param);
       if (!article) {
-        return permanentRedirect("/blog");
+        return permanentRedirect(await closestLivePath("articles", param, "/blog", "article"));
       }
       const rawTitle = article.meta_title || article.title;
       const rawDesc = article.meta_description || article.content || "";
@@ -536,7 +536,7 @@ export default async function handler(req: Request): Promise<Response> {
     } else if (section === "mcqs" && param) {
       const mcq = await fetchMcqSetBySlugOrId(param);
       if (!mcq) {
-        return permanentRedirect("/mcqs");
+        return permanentRedirect(await closestLivePath("mcq_sets", param, "/mcqs", "quiz"));
       }
       const rawQuestions: unknown[] = Array.isArray(mcq.questions) ? mcq.questions : [];
       const parsed = rawQuestions.map(parseQuestion).filter((p): p is ParsedQuestion => p !== null);
@@ -599,7 +599,7 @@ ${explanationLine}
     } else if (section === "flashcards" && param) {
       const set = await fetchFlashcardSetBySlugOrId(param);
       if (!set) {
-        return permanentRedirect("/flashcards");
+        return permanentRedirect(await closestLivePath("flashcard_sets", param, "/flashcards", "flashcards"));
       }
       const cards: unknown[] = Array.isArray(set.cards) ? set.cards : [];
       const cardCount = cards.length;
