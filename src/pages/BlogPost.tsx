@@ -1644,7 +1644,7 @@ export default function BlogPost() {
                       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Flashcards</p>
                       <div className="space-y-1.5">
                         {related.flashcards.map((f: any) => (
-                          <Link key={f.id} to={`/flashcards/${f.id}`} className="flex items-center gap-3 rounded-lg border border-border p-3 hover:border-primary/40 hover:bg-muted/30 transition-colors">
+                          <Link key={f.id} to={buildFlashcardPath(f)} className="flex items-center gap-3 rounded-lg border border-border p-3 hover:border-primary/40 hover:bg-muted/30 transition-colors">
                             <GraduationCap className="h-4 w-4 text-primary shrink-0" />
                             <span className="truncate text-sm font-medium text-foreground">{f.title}</span>
                             <span className="ml-auto text-xs text-muted-foreground">{(f.cards as any[])?.length || 0} cards</span>
