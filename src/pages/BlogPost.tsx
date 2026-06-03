@@ -1379,7 +1379,7 @@ export default function BlogPost() {
       ? baseTitle.slice(0, 70)
       : `${baseTitle}${cat ? ` – ${cat} Notes & MCQs` : ""} | Kenya Medical Students`;
     const fallbackDesc = stripRichText(article.content || "", 155)
-      || `${article.title} study notes for medical students at UoN, MKU, KU, JKUAT, Moi and other Kenyan & African universities. ${cat ? cat + " revision." : ""}`.trim();
+      || `${article.title} study notes for medical students across Kenya and East Africa. ${cat ? cat + " revision." : ""}`.trim();
     const metaDesc = article.meta_description?.trim()
       ? stripRichText(article.meta_description, 155)
       : fallbackDesc.slice(0, 160);
