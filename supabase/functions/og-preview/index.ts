@@ -83,6 +83,11 @@ async function findClosestLivePath(sb: any, table: "articles" | "mcq_sets", para
   let bestScore = 0;
   for (const row of data || []) {
     const publicSlug = cleanPublicSlug(row.slug, row.title, table === "articles" ? "article" : "quiz");
+    // Exact public-slug match: return immediately so /blog/clean-slug never
+    // 301-redirects to /blog/clean-slug (loop prevention for sitemap URLs).
+    if (publicSlug === String(param || "").toLowerCase()) {
+      return `${prefix}/${publicSlug}`;
+    }
     const score = Math.max(similarity(param, publicSlug), similarity(param, row.title || ""));
     if (score > bestScore) {
       best = row;
