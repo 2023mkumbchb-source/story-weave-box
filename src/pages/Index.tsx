@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getAllCategories, getCategoryDisplayName, getYearFromCategory, YEAR_CATEGORIES, buildBlogPath, buildMcqPath, buildFlashcardPath } from "@/lib/store";
-import { updateMetaTags } from "@/lib/seo";
+import { buildStoryPath, updateMetaTags } from "@/lib/seo";
 import { supabase } from "@/integrations/supabase/client";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
 
@@ -40,8 +40,8 @@ export default function Index() {
 
   useEffect(() => {
     updateMetaTags({
-      title: "Medical Study Notes, MCQs & Past Papers – Kenya, UoN, MKU, KU, JKUAT",
-      description: "Free medical study notes, flashcards, MCQs and timed exams for University of Nairobi (UoN), Kenyatta University, Mount Kenya University (MKU), JKUAT, Moi, Egerton & other African medical schools. Pathology, pharmacology, anatomy, microbiology and more.",
+      title: "Medical Study Notes, MCQs & Past Papers – Kenya",
+      description: "Free medical study notes, flashcards, MCQs and timed exams for medical students across Kenya and East Africa. Pathology, pharmacology, anatomy, microbiology and more.",
     });
 
     // Load categories
@@ -80,7 +80,7 @@ export default function Index() {
       case "article": return buildBlogPath(item);
       case "mcq": return buildMcqPath(item);
       case "flashcard": return buildFlashcardPath(item);
-      case "story": return `/stories/${item.id}`;
+      case "story": return buildStoryPath(item);
     }
   }
 

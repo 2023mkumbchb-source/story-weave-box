@@ -82,6 +82,52 @@ const UUID_REGEX =
 const UUID_PREFIX_REGEX =
   /^([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})-(.+)$/i;
 
+function slugify(value: string): string {
+  return (value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function cleanPublicSlug(rawSlug: string | null | undefined, fallbackTitle: string, fallback = "study"): string {
+  const base = String(rawSlug || slugify(fallbackTitle) || fallback).trim().toLowerCase();
+  return base
+    .replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i, "")
+    .replace(/-[0-9a-f]{6}$/i, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "") || fallback;
+}
+
+const STOP_WORDS = new Set(["the", "and", "for", "with", "from", "into", "onto", "this", "that", "notes", "note", "mcq", "mcqs", "quiz", "questions", "study"]);
+
+function tokenScore(target: string, candidate: string): number {
+  const a = new Set(String(target || "").toLowerCase().replace(/[^a-z0-9\s-]/g, " ").split(/[\s-]+/).filter((t) => t.length > 2 && !STOP_WORDS.has(t)));
+  const b = new Set(String(candidate || "").toLowerCase().replace(/[^a-z0-9\s-]/g, " ").split(/[\s-]+/).filter((t) => t.length > 2 && !STOP_WORDS.has(t)));
+  if (!a.size || !b.size) return 0;
+  let overlap = 0;
+  a.forEach((t) => { if (b.has(t)) overlap++; });
+  return overlap / (new Set([...a, ...b]).size || 1);
+}
+
+async function closestLivePath(table: string, param: string, prefix: "/blog" | "/mcqs" | "/flashcards", fallback: string): Promise<string> {
+  const rows = await sbFetch(table, "select=id,title,slug&published=eq.true&deleted_at=is.null&limit=1000");
+  let best: Record<string, string> | null = null;
+  let score = 0;
+  for (const row of rows || []) {
+    const publicSlug = cleanPublicSlug(row.slug, row.title, fallback);
+    const nextScore = Math.max(tokenScore(param, publicSlug), tokenScore(param, row.title || ""));
+    if (nextScore > score) {
+      best = row;
+      score = nextScore;
+    }
+  }
+  return best && score >= 0.28 ? `${prefix}/${cleanPublicSlug(best.slug, best.title, fallback)}` : prefix;
+}
+
 function extractUuidFromParam(value?: string | null): string | null {
   const v = String(value || "").trim();
   if (!v) return null;
@@ -160,6 +206,23 @@ async function fetchArticleBySlug(slug: string) {
     if (byId && byId.length > 0) return byId[0];
   }
 
+  const candidates = await sbFetch(
+    "articles",
+    `select=id,title,slug&published=eq.true&deleted_at=is.null&limit=1000`
+  );
+  const match = (candidates || []).find((row: Record<string, string>) =>
+    cleanPublicSlug(row.slug, row.title, "article") === decoded ||
+    slugify(row.title || "") === decoded ||
+    String(row.slug || "").toLowerCase() === decoded
+  );
+  if (match?.id) {
+    const byClean = await sbFetch(
+      "articles",
+      `select=${cols}&id=eq.${encodeURIComponent(match.id)}&published=eq.true&deleted_at=is.null&limit=1`
+    );
+    if (byClean && byClean.length > 0) return byClean[0];
+  }
+
   return null;
 }
 
@@ -174,12 +237,30 @@ async function fetchMcqSetBySlugOrId(param: string) {
   if (bySlug && bySlug.length > 0) return bySlug[0];
 
   const id = extractUuidFromParam(param);
-  if (!id) return null;
-  const byId = await sbFetch(
+  if (id) {
+    const byId = await sbFetch(
+      "mcq_sets",
+      `select=${cols}&id=eq.${encodeURIComponent(id)}&published=eq.true&deleted_at=is.null&limit=1`
+    );
+    if (byId && byId.length > 0) return byId[0];
+  }
+
+  const candidates = await sbFetch(
     "mcq_sets",
-    `select=${cols}&id=eq.${encodeURIComponent(id)}&published=eq.true&deleted_at=is.null&limit=1`
+    `select=id,title,slug&published=eq.true&deleted_at=is.null&limit=1000`
   );
-  return byId && byId.length > 0 ? byId[0] : null;
+  const wanted = decoded.toLowerCase();
+  const match = (candidates || []).find((row: Record<string, string>) =>
+    cleanPublicSlug(row.slug, row.title, "quiz") === wanted ||
+    slugify(row.title || "") === wanted ||
+    String(row.slug || "").toLowerCase() === wanted
+  );
+  if (!match?.id) return null;
+  const byClean = await sbFetch(
+    "mcq_sets",
+    `select=${cols}&id=eq.${encodeURIComponent(match.id)}&published=eq.true&deleted_at=is.null&limit=1`
+  );
+  return byClean && byClean.length > 0 ? byClean[0] : null;
 }
 
 async function fetchFlashcardSetBySlugOrId(param: string) {
@@ -193,12 +274,30 @@ async function fetchFlashcardSetBySlugOrId(param: string) {
   if (bySlug && bySlug.length > 0) return bySlug[0];
 
   const id = extractUuidFromParam(param);
-  if (!id) return null;
-  const byId = await sbFetch(
+  if (id) {
+    const byId = await sbFetch(
+      "flashcard_sets",
+      `select=${cols}&id=eq.${encodeURIComponent(id)}&published=eq.true&deleted_at=is.null&limit=1`
+    );
+    if (byId && byId.length > 0) return byId[0];
+  }
+
+  const candidates = await sbFetch(
     "flashcard_sets",
-    `select=${cols}&id=eq.${encodeURIComponent(id)}&published=eq.true&deleted_at=is.null&limit=1`
+    `select=id,title,slug&published=eq.true&deleted_at=is.null&limit=1000`
   );
-  return byId && byId.length > 0 ? byId[0] : null;
+  const wanted = decoded.toLowerCase();
+  const match = (candidates || []).find((row: Record<string, string>) =>
+    cleanPublicSlug(row.slug, row.title, "flashcards") === wanted ||
+    slugify(row.title || "") === wanted ||
+    String(row.slug || "").toLowerCase() === wanted
+  );
+  if (!match?.id) return null;
+  const byClean = await sbFetch(
+    "flashcard_sets",
+    `select=${cols}&id=eq.${encodeURIComponent(match.id)}&published=eq.true&deleted_at=is.null&limit=1`
+  );
+  return byClean && byClean.length > 0 ? byClean[0] : null;
 }
 
 async function fetchEssayByIdOrSlug(param: string) {
@@ -366,6 +465,16 @@ function buildHtml(opts: {
 </html>`;
 }
 
+function permanentRedirect(path: string): Response {
+  return new Response(null, {
+    status: 301,
+    headers: {
+      location: `https://www.ompathstudy.com${path}`,
+      "cache-control": "public, max-age=3600, stale-while-revalidate=86400",
+    },
+  });
+}
+
 export default async function handler(req: Request): Promise<Response> {
   const ua = req.headers.get("user-agent");
   const url = new URL(req.url);
@@ -392,13 +501,41 @@ export default async function handler(req: Request): Promise<Response> {
     let schemaJson = "";
     let bodyExtra = "";
 
-    if (section === "blog" && param) {
+    if (!param && ["blog", "mcqs", "flashcards", "stories", "exams"].includes(section)) {
+      const pages: Record<string, { title: string; description: string; keywords: string }> = {
+        blog: {
+          title: "Medical Study Notes | OmpathStudy Kenya",
+          description: "Browse free medical study notes in pathology, pharmacology, anatomy, physiology, microbiology and biochemistry for Kenyan and East African students.",
+          keywords: "OmpathStudy, medical notes Kenya, MBChB notes, pathology notes, pharmacology notes, anatomy notes",
+        },
+        mcqs: {
+          title: "Medical MCQs with Answers | OmpathStudy Kenya",
+          description: "Practice medical MCQs with answers and explanations by year and unit. Built for Kenyan and East African medical students.",
+          keywords: "OmpathStudy, MCQs Kenya, medical quizzes, MBChB questions, exam practice",
+        },
+        flashcards: {
+          title: "Medical Flashcards | OmpathStudy Kenya",
+          description: "Study active-recall medical flashcards by year and unit for fast exam revision across pathology, pharmacology, anatomy and more.",
+          keywords: "OmpathStudy, flashcards Kenya, medical flashcards, active recall, exam revision",
+        },
+        stories: {
+          title: "Medical School Stories | OmpathStudy Kenya",
+          description: "Read reflective medical school stories and student experiences from Kenya and East Africa.",
+          keywords: "OmpathStudy, medical stories, medical students Kenya, reflective practice",
+        },
+        exams: {
+          title: "Timed Medical Exams | OmpathStudy Kenya",
+          description: "Take timed medical exams and past-paper style MCQ practice for MBChB revision by year and unit.",
+          keywords: "OmpathStudy, medical exams Kenya, timed exams, MBChB past papers, exam practice",
+        },
+      };
+      title = pages[section].title;
+      description = pages[section].description;
+      keywords = pages[section].keywords;
+    } else if (section === "blog" && param) {
       const article = await fetchArticleBySlug(param);
       if (!article) {
-        return new Response(
-          `<html><body><h1>Page not found</h1><p>This article does not exist.</p></body></html>`,
-          { status: 404, headers: { "content-type": "text/html" } }
-        );
+        return permanentRedirect(await closestLivePath("articles", param, "/blog", "article"));
       }
       const rawTitle = article.meta_title || article.title;
       const rawDesc = article.meta_description || article.content || "";
@@ -430,10 +567,7 @@ export default async function handler(req: Request): Promise<Response> {
     } else if (section === "mcqs" && param) {
       const mcq = await fetchMcqSetBySlugOrId(param);
       if (!mcq) {
-        return new Response(
-          `<html><body><h1>Page not found</h1><p>This MCQ set does not exist.</p></body></html>`,
-          { status: 404, headers: { "content-type": "text/html" } }
-        );
+        return permanentRedirect(await closestLivePath("mcq_sets", param, "/mcqs", "quiz"));
       }
       const rawQuestions: unknown[] = Array.isArray(mcq.questions) ? mcq.questions : [];
       const parsed = rawQuestions.map(parseQuestion).filter((p): p is ParsedQuestion => p !== null);
@@ -496,10 +630,7 @@ ${explanationLine}
     } else if (section === "flashcards" && param) {
       const set = await fetchFlashcardSetBySlugOrId(param);
       if (!set) {
-        return new Response(
-          `<html><body><h1>Page not found</h1><p>This flashcard set does not exist.</p></body></html>`,
-          { status: 404, headers: { "content-type": "text/html" } }
-        );
+        return permanentRedirect(await closestLivePath("flashcard_sets", param, "/flashcards", "flashcards"));
       }
       const cards: unknown[] = Array.isArray(set.cards) ? set.cards : [];
       const cardCount = cards.length;

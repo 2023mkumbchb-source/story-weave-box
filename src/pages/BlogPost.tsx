@@ -7,7 +7,7 @@ import {
 import ShareButtons from "@/components/ShareButtons";
 import ArticleComments from "@/components/ArticleComments";
 import { motion, AnimatePresence } from "framer-motion";
-import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, type Article } from "@/lib/store";
+import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, buildFlashcardPath, type Article } from "@/lib/store";
 import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags, autoIndexUrls } from "@/lib/seo";
 import { useTopicThumbnail } from "@/lib/topicThumbnail";
 import { KeywordLinkProvider, useKeywordLinks, linkifyText } from "@/lib/keyword-link";
@@ -84,23 +84,26 @@ function ReadingProgress() {
 function TableBlock({ lines }: { lines: string[] }) {
   const isSep = (l: string) => /^\|[\s\-:|]+\|$/.test(l.trim());
   const parseRow = (l: string) =>
-    l.trim().split("|").map(c => c.trim()).filter((_, i, a) => i > 0 && i < a.length - 1);
+    l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
   const dataLines = lines.filter(l => !isSep(l));
-  if (dataLines.length < 2) return null;
+  if (dataLines.length < 1) return null;
   // Detect a separator line in the original input — required for a real header.
   const hasSeparator = lines.some(isSep);
   const [firstLine, ...restLines] = dataLines;
   const firstRow = parseRow(firstLine);
   const firstIsEmpty = firstRow.every((c) => !c || /^[\s-:]*$/.test(c));
+  const looksLikeHeader = firstRow.length > 1 && restLines.length > 0 && firstRow.every((c) => c.length > 0 && c.length <= 48) && !firstRow.some((c) => /[.!?]$/.test(c));
   // If no separator OR header row is empty, treat every row as body and skip thead.
-  const useHeader = hasSeparator && !firstIsEmpty;
-  const headers = useHeader ? firstRow : firstRow.map((_, i) => `Column ${i + 1}`);
-  const rows = (useHeader ? restLines : dataLines).map(parseRow);
-  const colCount = Math.max(headers.length, ...rows.map((r) => r.length));
+  const useHeader = (hasSeparator || looksLikeHeader) && !firstIsEmpty;
+  const rows = (useHeader ? restLines : dataLines).map(parseRow).filter((row) => row.some(Boolean));
+  const colCount = Math.max(firstRow.length, ...rows.map((r) => r.length));
+  const headers = Array.from({ length: colCount }, (_, i) => (useHeader ? firstRow[i] : "") || `Column ${i + 1}`);
+  if (!rows.length) return null;
 
   return (
-    <div className="not-prose my-6 -mx-5 sm:mx-0 sm:rounded-lg border-y sm:border border-border bg-card overflow-x-auto">
-      <table className="w-full min-w-[500px] border-collapse text-sm">
+    <div className="not-prose my-6 -mx-5 overflow-hidden border-y border-border bg-card sm:mx-0 sm:rounded-lg sm:border">
+      <div className="overflow-x-auto">
+      <table className="article-data-table w-full min-w-[560px] border-collapse text-sm">
         {useHeader && (
           <thead>
             <tr className="border-b border-border bg-muted/60">
@@ -132,6 +135,7 @@ function TableBlock({ lines }: { lines: string[] }) {
           ))}
         </tbody>
       </table>
+      </div>
       <div className="px-4 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground sm:hidden">← Scroll →</div>
     </div>
   );
@@ -1375,7 +1379,7 @@ export default function BlogPost() {
       ? baseTitle.slice(0, 70)
       : `${baseTitle}${cat ? ` – ${cat} Notes & MCQs` : ""} | Kenya Medical Students`;
     const fallbackDesc = stripRichText(article.content || "", 155)
-      || `${article.title} study notes for medical students at UoN, MKU, KU, JKUAT, Moi and other Kenyan & African universities. ${cat ? cat + " revision." : ""}`.trim();
+      || `${article.title} study notes for medical students across Kenya and East Africa. ${cat ? cat + " revision." : ""}`.trim();
     const metaDesc = article.meta_description?.trim()
       ? stripRichText(article.meta_description, 155)
       : fallbackDesc.slice(0, 160);
@@ -1640,7 +1644,7 @@ export default function BlogPost() {
                       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Flashcards</p>
                       <div className="space-y-1.5">
                         {related.flashcards.map((f: any) => (
-                          <Link key={f.id} to={`/flashcards/${f.id}`} className="flex items-center gap-3 rounded-lg border border-border p-3 hover:border-primary/40 hover:bg-muted/30 transition-colors">
+                          <Link key={f.id} to={buildFlashcardPath(f)} className="flex items-center gap-3 rounded-lg border border-border p-3 hover:border-primary/40 hover:bg-muted/30 transition-colors">
                             <GraduationCap className="h-4 w-4 text-primary shrink-0" />
                             <span className="truncate text-sm font-medium text-foreground">{f.title}</span>
                             <span className="ml-auto text-xs text-muted-foreground">{(f.cards as any[])?.length || 0} cards</span>

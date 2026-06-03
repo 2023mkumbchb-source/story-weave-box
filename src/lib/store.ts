@@ -445,6 +445,8 @@ export async function getArticleById(id: string): Promise<Article | null> {
     .from("articles")
     .select("*")
     .eq("id", id)
+    .eq("published", true)
+    .is("deleted_at", null)
     .maybeSingle();
   if (error) throw error;
   return data as Article | null;
@@ -583,6 +585,8 @@ export async function getFlashcardSetById(id: string): Promise<FlashcardSet | nu
     .from("flashcard_sets")
     .select("*")
     .eq("id", id)
+    .eq("published", true)
+    .is("deleted_at", null)
     .maybeSingle();
   if (error) throw error;
   return data as unknown as FlashcardSet | null;
@@ -597,9 +601,20 @@ export async function getFlashcardSetBySlugOrId(param: string): Promise<Flashcar
     .from("flashcard_sets")
     .select("*")
     .eq("slug", v)
+    .eq("published", true)
     .is("deleted_at", null)
     .maybeSingle();
-  return (data as unknown as FlashcardSet | null) || null;
+  if (data) return data as unknown as FlashcardSet;
+  const titlePart = v.replace(/-[0-9a-f]{6}$/, "");
+  const { data: list } = await supabase
+    .from("flashcard_sets")
+    .select("*")
+    .or(`slug.ilike.${titlePart}%,slug.ilike.%${titlePart}%`)
+    .eq("published", true)
+    .is("deleted_at", null)
+    .limit(1);
+  if (list && list[0]) return list[0] as unknown as FlashcardSet;
+  return null;
 }
 
 export async function saveFlashcardSet(set: Omit<FlashcardSet, "id"> & { id?: string }): Promise<FlashcardSet> {
