@@ -149,7 +149,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const image = article.og_image_url || extractFirstImage(article.content || "") || defaultImage;
         const url = `${SITE_URL}/blog/${blogMatch[1]}`;
 
-        return res.status(200).setHeader("Content-Type", "text/html").send(
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        return res.status(200).send(
           buildHtml({
             title, description, image, url, type: "article",
             schema: {
@@ -179,7 +180,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           : `Practice MCQ quiz on ${mcq.title}. Test your knowledge here.`;
         const url = `${SITE_URL}/mcqs/${mcqMatch[1]}`;
 
-        return res.status(200).setHeader("Content-Type", "text/html").send(
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        return res.status(200).send(
           buildHtml({
             title, description, image: defaultImage, url, type: "article",
             schema: {
@@ -207,7 +209,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           : `Study flashcards for ${fc.title} here.`;
         const url = `${SITE_URL}/flashcards/${fcMatch[1]}`;
 
-        return res.status(200).setHeader("Content-Type", "text/html").send(
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        return res.status(200).send(
           buildHtml({
             title, description, image: defaultImage, url, type: "article",
             schema: {
@@ -228,7 +231,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Fallback: serve generic homepage meta
-  return res.status(200).setHeader("Content-Type", "text/html").send(
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.status(200).send(
     buildHtml({
       title: "Medical Study Platform",
       description: "Free medical study platform. Articles, flashcards, MCQ quizzes, and timed exams for Kenyan health students.",
