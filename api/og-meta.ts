@@ -102,6 +102,32 @@ function cleanPublicSlug(rawSlug: string | null | undefined, fallbackTitle: stri
     .replace(/^-|-$/g, "") || fallback;
 }
 
+const STOP_WORDS = new Set(["the", "and", "for", "with", "from", "into", "onto", "this", "that", "notes", "note", "mcq", "mcqs", "quiz", "questions", "study"]);
+
+function tokenScore(target: string, candidate: string): number {
+  const a = new Set(String(target || "").toLowerCase().replace(/[^a-z0-9\s-]/g, " ").split(/[\s-]+/).filter((t) => t.length > 2 && !STOP_WORDS.has(t)));
+  const b = new Set(String(candidate || "").toLowerCase().replace(/[^a-z0-9\s-]/g, " ").split(/[\s-]+/).filter((t) => t.length > 2 && !STOP_WORDS.has(t)));
+  if (!a.size || !b.size) return 0;
+  let overlap = 0;
+  a.forEach((t) => { if (b.has(t)) overlap++; });
+  return overlap / (new Set([...a, ...b]).size || 1);
+}
+
+async function closestLivePath(table: string, param: string, prefix: "/blog" | "/mcqs" | "/flashcards", fallback: string): Promise<string> {
+  const rows = await sbFetch(table, "select=id,title,slug&published=eq.true&deleted_at=is.null&limit=1000");
+  let best: Record<string, string> | null = null;
+  let score = 0;
+  for (const row of rows || []) {
+    const publicSlug = cleanPublicSlug(row.slug, row.title, fallback);
+    const nextScore = Math.max(tokenScore(param, publicSlug), tokenScore(param, row.title || ""));
+    if (nextScore > score) {
+      best = row;
+      score = nextScore;
+    }
+  }
+  return best && score >= 0.28 ? `${prefix}/${cleanPublicSlug(best.slug, best.title, fallback)}` : prefix;
+}
+
 function extractUuidFromParam(value?: string | null): string | null {
   const v = String(value || "").trim();
   if (!v) return null;
