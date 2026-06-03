@@ -439,6 +439,16 @@ function buildHtml(opts: {
 </html>`;
 }
 
+function permanentRedirect(path: string): Response {
+  return new Response(null, {
+    status: 301,
+    headers: {
+      location: `https://www.ompathstudy.com${path}`,
+      "cache-control": "public, max-age=3600, stale-while-revalidate=86400",
+    },
+  });
+}
+
 export default async function handler(req: Request): Promise<Response> {
   const ua = req.headers.get("user-agent");
   const url = new URL(req.url);
@@ -468,10 +478,7 @@ export default async function handler(req: Request): Promise<Response> {
     if (section === "blog" && param) {
       const article = await fetchArticleBySlug(param);
       if (!article) {
-        return new Response(
-          `<html><body><h1>Page not found</h1><p>This article does not exist.</p></body></html>`,
-          { status: 404, headers: { "content-type": "text/html" } }
-        );
+        return permanentRedirect("/blog");
       }
       const rawTitle = article.meta_title || article.title;
       const rawDesc = article.meta_description || article.content || "";
@@ -503,10 +510,7 @@ export default async function handler(req: Request): Promise<Response> {
     } else if (section === "mcqs" && param) {
       const mcq = await fetchMcqSetBySlugOrId(param);
       if (!mcq) {
-        return new Response(
-          `<html><body><h1>Page not found</h1><p>This MCQ set does not exist.</p></body></html>`,
-          { status: 404, headers: { "content-type": "text/html" } }
-        );
+        return permanentRedirect("/mcqs");
       }
       const rawQuestions: unknown[] = Array.isArray(mcq.questions) ? mcq.questions : [];
       const parsed = rawQuestions.map(parseQuestion).filter((p): p is ParsedQuestion => p !== null);
@@ -569,10 +573,7 @@ ${explanationLine}
     } else if (section === "flashcards" && param) {
       const set = await fetchFlashcardSetBySlugOrId(param);
       if (!set) {
-        return new Response(
-          `<html><body><h1>Page not found</h1><p>This flashcard set does not exist.</p></body></html>`,
-          { status: 404, headers: { "content-type": "text/html" } }
-        );
+        return permanentRedirect("/flashcards");
       }
       const cards: unknown[] = Array.isArray(set.cards) ? set.cards : [];
       const cardCount = cards.length;
