@@ -501,7 +501,38 @@ export default async function handler(req: Request): Promise<Response> {
     let schemaJson = "";
     let bodyExtra = "";
 
-    if (section === "blog" && param) {
+    if (!param && ["blog", "mcqs", "flashcards", "stories", "exams"].includes(section)) {
+      const pages: Record<string, { title: string; description: string; keywords: string }> = {
+        blog: {
+          title: "Medical Study Notes | OmpathStudy Kenya",
+          description: "Browse free medical study notes in pathology, pharmacology, anatomy, physiology, microbiology and biochemistry for Kenyan and East African students.",
+          keywords: "OmpathStudy, medical notes Kenya, MBChB notes, pathology notes, pharmacology notes, anatomy notes",
+        },
+        mcqs: {
+          title: "Medical MCQs with Answers | OmpathStudy Kenya",
+          description: "Practice medical MCQs with answers and explanations by year and unit. Built for Kenyan and East African medical students.",
+          keywords: "OmpathStudy, MCQs Kenya, medical quizzes, MBChB questions, exam practice",
+        },
+        flashcards: {
+          title: "Medical Flashcards | OmpathStudy Kenya",
+          description: "Study active-recall medical flashcards by year and unit for fast exam revision across pathology, pharmacology, anatomy and more.",
+          keywords: "OmpathStudy, flashcards Kenya, medical flashcards, active recall, exam revision",
+        },
+        stories: {
+          title: "Medical School Stories | OmpathStudy Kenya",
+          description: "Read reflective medical school stories and student experiences from Kenya and East Africa.",
+          keywords: "OmpathStudy, medical stories, medical students Kenya, reflective practice",
+        },
+        exams: {
+          title: "Timed Medical Exams | OmpathStudy Kenya",
+          description: "Take timed medical exams and past-paper style MCQ practice for MBChB revision by year and unit.",
+          keywords: "OmpathStudy, medical exams Kenya, timed exams, MBChB past papers, exam practice",
+        },
+      };
+      title = pages[section].title;
+      description = pages[section].description;
+      keywords = pages[section].keywords;
+    } else if (section === "blog" && param) {
       const article = await fetchArticleBySlug(param);
       if (!article) {
         return permanentRedirect(await closestLivePath("articles", param, "/blog", "article"));
