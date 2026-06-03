@@ -105,23 +105,23 @@
     },
     {
       "source": "/exams",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=exams"
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "destination": "/api/og-meta?path=/exams"
     },
     {
       "source": "/blog",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=blog"
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "destination": "/api/og-meta?path=/blog"
     },
     {
       "source": "/mcqs",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=mcqs"
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "destination": "/api/og-meta?path=/mcqs"
     },
     {
       "source": "/flashcards",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=flashcards"
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "destination": "/api/og-meta?path=/flashcards"
     },
     {
       "source": "/essays",
@@ -129,18 +129,18 @@
     },
     {
       "source": "/stories",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=stories"
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "destination": "/api/og-meta?path=/stories"
     },
     {
       "source": "/",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?prerender=home"
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "destination": "/api/og-meta?path=/"
     },
     {
       "source": "/year/:year",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
-      "destination": "https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/og-preview?year=:year"
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "destination": "/api/og-meta?path=/year/:year"
     },
     {
       "source": "/exams/:id/start",
