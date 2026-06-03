@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getAllCategories, getCategoryDisplayName, getYearFromCategory, YEAR_CATEGORIES, buildBlogPath, buildMcqPath, buildFlashcardPath } from "@/lib/store";
-import { updateMetaTags } from "@/lib/seo";
+import { buildStoryPath, updateMetaTags } from "@/lib/seo";
 import { supabase } from "@/integrations/supabase/client";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
 
@@ -80,7 +80,7 @@ export default function Index() {
       case "article": return buildBlogPath(item);
       case "mcq": return buildMcqPath(item);
       case "flashcard": return buildFlashcardPath(item);
-      case "story": return `/stories/${item.id}`;
+      case "story": return buildStoryPath(item);
     }
   }
 
