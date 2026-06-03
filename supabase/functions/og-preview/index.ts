@@ -83,6 +83,11 @@ async function findClosestLivePath(sb: any, table: "articles" | "mcq_sets", para
   let bestScore = 0;
   for (const row of data || []) {
     const publicSlug = cleanPublicSlug(row.slug, row.title, table === "articles" ? "article" : "quiz");
+    // Exact public-slug match: return immediately so /blog/clean-slug never
+    // 301-redirects to /blog/clean-slug (loop prevention for sitemap URLs).
+    if (publicSlug === String(param || "").toLowerCase()) {
+      return `${prefix}/${publicSlug}`;
+    }
     const score = Math.max(similarity(param, publicSlug), similarity(param, row.title || ""));
     if (score > bestScore) {
       best = row;
@@ -282,7 +287,27 @@ serve(async (req) => {
         const { data } = await supabase.from("mcq_sets").select("title, category, questions, created_at, slug, id").eq("slug", mcqParam).eq("published", true).is("deleted_at", null).maybeSingle();
         mcq = data;
       }
-      if (!mcq) return redirectResponse(siteUrl, await findClosestLivePath(supabase, "mcq_sets", mcqParam, "/mcqs"));
+      if (!mcq) {
+        // Try cleanPublicSlug match before falling back to redirect.
+        const { data: candidates } = await supabase.from("mcq_sets").select("id, title, slug").eq("published", true).is("deleted_at", null).limit(1000);
+        const wanted = String(mcqParam || "").toLowerCase();
+        const hit = (candidates || []).find((row: any) =>
+          cleanPublicSlug(row.slug, row.title, "quiz") === wanted ||
+          slugify(row.title || "") === wanted ||
+          String(row.slug || "").toLowerCase() === wanted
+        );
+        if (hit?.id) {
+          const { data } = await supabase.from("mcq_sets").select("title, category, questions, created_at, slug, id").eq("id", hit.id).eq("published", true).is("deleted_at", null).maybeSingle();
+          mcq = data;
+        }
+      }
+      if (!mcq) {
+        const dest = await findClosestLivePath(supabase, "mcq_sets", mcqParam, "/mcqs");
+        if (dest === `/mcqs/${String(mcqParam).toLowerCase()}`) {
+          return notFoundResponse(siteUrl, `/mcqs/${mcqParam}`, isCrawler);
+        }
+        return redirectResponse(siteUrl, dest);
+      }
       const qCount = Array.isArray(mcq.questions) ? mcq.questions.length : 0;
       const cat = mcq.category || "Medical";
       const firstQ = Array.isArray(mcq.questions) && mcq.questions[0]
@@ -373,14 +398,25 @@ serve(async (req) => {
       }
       if (!article) {
         const { data: candidates } = await supabase.from("articles").select("id, title, slug, created_at").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(500);
-        article = (candidates || []).find((row: any) => slugify(row.title) === slugParam.toLowerCase()) || null;
+        const wanted = slugParam.toLowerCase();
+        article = (candidates || []).find((row: any) =>
+          cleanPublicSlug(row.slug, row.title, "article") === wanted ||
+          slugify(row.title) === wanted ||
+          String(row.slug || "").toLowerCase() === wanted
+        ) || null;
         if (article?.id) {
           const { data } = await supabase.from("articles").select("title, content, meta_title, meta_description, og_image_url, slug, id, created_at, category").eq("id", article.id).eq("published", true).is("deleted_at", null).maybeSingle();
           article = data;
         }
       }
 
-      if (!article) return redirectResponse(siteUrl, await findClosestLivePath(supabase, "articles", slugParam, "/blog"));
+      if (!article) {
+        const dest = await findClosestLivePath(supabase, "articles", slugParam, "/blog");
+        if (dest === `/blog/${slugParam.toLowerCase()}`) {
+          return notFoundResponse(siteUrl, `/blog/${slugParam}`, isCrawler);
+        }
+        return redirectResponse(siteUrl, dest);
+      }
 
       const articleSlug = cleanPublicSlug(article.slug, article.title, "article");
       const cat = (article.category || "").replace(/^Year\s*\d+:\s*/i, "").trim() || "Medical";

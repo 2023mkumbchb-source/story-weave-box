@@ -87,25 +87,44 @@ function TableBlock({ lines }: { lines: string[] }) {
     l.trim().split("|").map(c => c.trim()).filter((_, i, a) => i > 0 && i < a.length - 1);
   const dataLines = lines.filter(l => !isSep(l));
   if (dataLines.length < 2) return null;
-  const [headerLine, ...bodyLines] = dataLines;
-  const headers = parseRow(headerLine);
-  const rows = bodyLines.map(parseRow);
+  // Detect a separator line in the original input — required for a real header.
+  const hasSeparator = lines.some(isSep);
+  const [firstLine, ...restLines] = dataLines;
+  const firstRow = parseRow(firstLine);
+  const firstIsEmpty = firstRow.every((c) => !c || /^[\s-:]*$/.test(c));
+  // If no separator OR header row is empty, treat every row as body and skip thead.
+  const useHeader = hasSeparator && !firstIsEmpty;
+  const headers = useHeader ? firstRow : firstRow.map((_, i) => `Column ${i + 1}`);
+  const rows = (useHeader ? restLines : dataLines).map(parseRow);
+  const colCount = Math.max(headers.length, ...rows.map((r) => r.length));
 
   return (
     <div className="not-prose my-6 -mx-5 sm:mx-0 sm:rounded-lg border-y sm:border border-border bg-card overflow-x-auto">
       <table className="w-full min-w-[500px] border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border bg-muted/60">
-            {headers.map((h, i) => (
-              <th key={i} className="whitespace-nowrap px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-foreground"><Inline text={h} /></th>
-            ))}
-          </tr>
-        </thead>
+        {useHeader && (
+          <thead>
+            <tr className="border-b border-border bg-muted/60">
+              {Array.from({ length: colCount }).map((_, i) => (
+                <th
+                  key={i}
+                  scope="col"
+                  className="whitespace-nowrap px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-foreground"
+                >
+                  <Inline text={headers[i] || ""} />
+                </th>
+              ))}
+            </tr>
+          </thead>
+        )}
         <tbody>
           {rows.map((row, ri) => (
             <tr key={ri} className="border-b border-border/50 last:border-0 even:bg-muted/20">
-              {headers.map((_, ci) => (
-                <td key={ci} className="px-4 py-3 align-top text-foreground/90 leading-relaxed">
+              {Array.from({ length: colCount }).map((_, ci) => (
+                <td
+                  key={ci}
+                  className="px-4 py-3 align-top text-foreground/90 leading-relaxed"
+                  data-label={headers[ci] || ""}
+                >
                   {row[ci] != null ? <Inline text={row[ci]} /> : null}
                 </td>
               ))}
