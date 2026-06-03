@@ -445,6 +445,8 @@ export async function getArticleById(id: string): Promise<Article | null> {
     .from("articles")
     .select("*")
     .eq("id", id)
+    .eq("published", true)
+    .is("deleted_at", null)
     .maybeSingle();
   if (error) throw error;
   return data as Article | null;
