@@ -7,7 +7,7 @@ import {
 import ShareButtons from "@/components/ShareButtons";
 import ArticleComments from "@/components/ArticleComments";
 import { motion, AnimatePresence } from "framer-motion";
-import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, type Article } from "@/lib/store";
+import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, buildFlashcardPath, type Article } from "@/lib/store";
 import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags, autoIndexUrls } from "@/lib/seo";
 import { useTopicThumbnail } from "@/lib/topicThumbnail";
 import { KeywordLinkProvider, useKeywordLinks, linkifyText } from "@/lib/keyword-link";
