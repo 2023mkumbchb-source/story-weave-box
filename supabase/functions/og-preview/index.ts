@@ -153,7 +153,7 @@ function buildOgHtml(options: {
   const ogImage = image || `${DEFAULT_SITE_URL}/og-default.png`;
   const redirectMarkup = isCrawler ? "" : `<meta http-equiv="refresh" content="0;url=${esc(canonical)}">\n  <script>window.location.replace(${JSON.stringify(canonical)});</script>`;
   const robotsTag = noindex ? '<meta name="robots" content="noindex, nofollow">' : '<meta name="robots" content="index, follow">';
-  const KEYWORDS = "MBChB, medical school Kenya, UoN, University of Nairobi, MKU, Mount Kenya University, KU, Kenyatta University, JKUAT, Moi University, Egerton, Maseno, Uganda Makerere, MUST, KMTC, medical notes, MCQs, flashcards, past papers, pathology, pharmacology, anatomy, physiology, microbiology, biochemistry, OmpathStudy, Ompath Study";
+  const KEYWORDS = "MBChB, medical school Kenya, University of Nairobi, Kenyatta University, JKUAT, Moi University, Egerton, Maseno, Uganda Makerere, MUST, KMTC, medical notes, MCQs, flashcards, past papers, pathology, pharmacology, anatomy, physiology, microbiology, biochemistry, OmpathStudy, Ompath Study";
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -225,8 +225,8 @@ serve(async (req) => {
 
     // ── Year Hubs ──
     if (yearParam) {
-      title = `Year ${yearParam} Medical Notes, MCQs & Exams – Kenya, UoN, MKU, KU, JKUAT`;
-      description = `Year ${yearParam} medical study notes, flashcards, MCQs and timed exams for University of Nairobi (UoN), Mount Kenya University (MKU), Kenyatta University, JKUAT, Moi and other Kenyan & East African medical schools.`;
+      title = `Year ${yearParam} Medical Notes, MCQs & Exams – Kenya`;
+      description = `Year ${yearParam} medical study notes, flashcards, MCQs and timed exams for Kenyan and East African medical schools.`;
       canonicalPath = `/year/${yearParam}`;
       type = "website";
       const { data: arts } = await supabase.from("articles").select("title").ilike("category", `Year ${yearParam}%`).limit(10);
@@ -238,12 +238,12 @@ serve(async (req) => {
     else if (prerenderParam) {
       type = "website";
       const configs: Record<string, { title: string; desc: string; path: string; table?: string }> = {
-        home: { title: "OmpathStudy – Free Medical Notes, MCQs, Flashcards & Exams | Kenya MBChB", desc: "Free MBChB study notes, MCQs with answers, flashcards and timed exams covering pathology, pharmacology, anatomy, microbiology and more. Built for medical students at University of Nairobi (UoN), Mount Kenya University (MKU), Kenyatta University, JKUAT, Moi and other Kenyan & East African universities.", path: "/", table: "articles" },
-        blog: { title: "Medical Study Notes – Pathology, Pharmacology, Anatomy | Kenya, UoN, MKU, KU", desc: "Free medical study notes for University of Nairobi, Mount Kenya University, Kenyatta University, JKUAT, Moi and other Kenyan & African medical schools. Pathology, pharmacology, anatomy, microbiology and more.", path: "/blog", table: "articles" },
-        mcqs: { title: "Medical MCQs with Answers & Explanations – Kenya, UoN, MKU, KU, JKUAT", desc: "Practice MBChB MCQs with detailed answers and explanations. Chemical pathology, hematopathology, immunopathology, pharmacology, microbiology MCQs for Kenyan & East African medical students.", path: "/mcqs", table: "mcq_sets" },
-        flashcards: { title: "Medical Flashcards – Pathology, Pharmacology, Anatomy | Kenya MBChB", desc: "Active-recall medical flashcards for University of Nairobi, MKU, Kenyatta University and other Kenyan medical schools. Quick revision by year and unit.", path: "/flashcards", table: "flashcard_sets" },
+        home: { title: "OmpathStudy – Free Medical Notes, MCQs, Flashcards & Exams | Kenya MBChB", desc: "Free MBChB study notes, MCQs with answers, flashcards and timed exams covering pathology, pharmacology, anatomy, microbiology and more. Built for medical students across Kenya and East Africa.", path: "/", table: "articles" },
+        blog: { title: "Medical Study Notes – Pathology, Pharmacology, Anatomy | Kenya", desc: "Free medical study notes for Kenyan and East African medical schools. Pathology, pharmacology, anatomy, microbiology and more.", path: "/blog", table: "articles" },
+        mcqs: { title: "Medical MCQs with Answers & Explanations – Kenya", desc: "Practice MBChB MCQs with detailed answers and explanations. Chemical pathology, hematopathology, immunopathology, pharmacology, microbiology MCQs for Kenyan & East African medical students.", path: "/mcqs", table: "mcq_sets" },
+        flashcards: { title: "Medical Flashcards – Pathology, Pharmacology, Anatomy | Kenya MBChB", desc: "Active-recall medical flashcards for Kenyan medical schools. Quick revision by year and unit.", path: "/flashcards", table: "flashcard_sets" },
         stories: { title: "Medical School Stories & Experiences – Kenya & East Africa", desc: "Real medical school stories and reflections from MBChB and clinical students at Kenyan and East African universities.", path: "/stories", table: "stories" },
-        exams: { title: "Timed Medical Exams & Past Papers – Kenya MBChB | UoN, MKU, KU", desc: "Timed past-paper-style medical exams for MBChB students at University of Nairobi, MKU, Kenyatta University, JKUAT, Moi and other Kenyan & East African medical schools.", path: "/exams" },
+        exams: { title: "Timed Medical Exams & Past Papers – Kenya MBChB", desc: "Timed past-paper-style medical exams for MBChB students at Kenyan and East African medical schools.", path: "/exams" },
       };
       // Redirect essay requests to blog
       if (prerenderParam === "essays") {
@@ -362,7 +362,7 @@ serve(async (req) => {
         : "";
       title = `${fc.title} – ${cardCount} ${fcCat} Flashcards | Kenya MBChB`.slice(0, 95);
       description = (firstCard
-        ? `${cardCount} ${fcCat} flashcards on ${fc.title} for medical students at UoN, MKU, KU, JKUAT and other Kenyan universities. Sample: ${firstCard}`
+        ? `${cardCount} ${fcCat} flashcards on ${fc.title} for medical students across Kenya and East Africa. Sample: ${firstCard}`
         : `${cardCount} ${fcCat} active-recall flashcards on ${fc.title} for MBChB students at Kenyan and East African medical schools.`
       ).slice(0, 160);
       publishedAt = fc.created_at;
@@ -435,8 +435,8 @@ serve(async (req) => {
     }
     // ── Root fallback ──
     else {
-      title = "Medical Study Notes, MCQs & Past Papers – Kenya, UoN, MKU, KU, JKUAT";
-      description = "Free medical study notes, flashcards, MCQs and timed exams for University of Nairobi (UoN), Mount Kenya University (MKU), Kenyatta University, JKUAT, Moi and other Kenyan & East African medical schools. Pathology, pharmacology, anatomy, microbiology and more.";
+      title = "Medical Study Notes, MCQs & Past Papers – Kenya";
+      description = "Free medical study notes, flashcards, MCQs and timed exams for Kenyan and East African medical schools. Pathology, pharmacology, anatomy, microbiology and more.";
       canonicalPath = "/";
       type = "website";
     }
