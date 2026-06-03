@@ -34,7 +34,7 @@ export default function About() {
     updateMetaTags({
       title: "Abongo Davis – Founder of Ompath Study | Medical Student & Web Developer",
       description:
-        "Abongo Davis is a medical student at Mount Kenya University, founder of Ompath Study, Kenya Adverts and a self-taught web developer. Hire him to build modern, fast websites.",
+        "Abongo Davis is a medical student, founder of Ompath Study and Kenya Adverts, and a self-taught web developer. Hire him to build modern, fast websites.",
       image: `${SITE_URL}/og-default.png`,
       url: `${SITE_URL}/about`,
       type: "website",
@@ -50,7 +50,6 @@ export default function About() {
       name: "Abongo Davis",
       url: `${SITE_URL}/about`,
       jobTitle: "Medical Student & Web Developer",
-      affiliation: { "@type": "CollegeOrUniversity", name: "Mount Kenya University" },
       email: "mailto:hydrosafecare@gmail.com",
       telephone: "+254115475543",
       sameAs: [
@@ -59,7 +58,7 @@ export default function About() {
         "https://www.kenyaadverts.co.ke",
       ],
       description:
-        "Founder of Ompath Study and Kenya Adverts. Medical student at Mount Kenya University passionate about medicine, technology and building websites.",
+        "Founder of Ompath Study and Kenya Adverts. Medical student passionate about medicine, technology and building websites.",
     });
     document.head.appendChild(ld);
     return () => { document.getElementById("about-person-jsonld")?.remove(); };
@@ -110,7 +109,7 @@ export default function About() {
             </p>
 
             <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5"><GraduationCap className="h-4 w-4 text-primary" /> Mount Kenya University</span>
+              <span className="inline-flex items-center gap-1.5"><GraduationCap className="h-4 w-4 text-primary" /> Medical student</span>
               <span className="inline-flex items-center gap-1.5"><MapPin className="h-4 w-4 text-primary" /> Kenya</span>
             </div>
 
@@ -137,8 +136,7 @@ export default function About() {
         <div className="prose prose-lg max-w-none text-foreground/90">
           <h2 className="font-serif text-2xl sm:text-3xl font-bold text-foreground">About me</h2>
           <p className="text-base sm:text-lg leading-relaxed text-muted-foreground">
-            I'm Abongo Davis — a medical student at <strong className="text-foreground">Mount Kenya University</strong> and
-            the founder of <strong className="text-foreground">Ompath Study</strong>, the free study platform you're on right now.
+            I'm Abongo Davis — a medical student and the founder of <strong className="text-foreground">Ompath Study</strong>, the free study platform you're on right now.
             I built this site for one reason: to make studying medicine easier, cheaper and a lot less lonely for students across Kenya and East Africa.
           </p>
           <p className="text-base sm:text-lg leading-relaxed text-muted-foreground">
