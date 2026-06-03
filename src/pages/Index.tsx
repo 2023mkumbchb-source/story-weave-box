@@ -40,8 +40,8 @@ export default function Index() {
 
   useEffect(() => {
     updateMetaTags({
-      title: "Medical Study Notes, MCQs & Past Papers – Kenya, UoN, MKU, KU, JKUAT",
-      description: "Free medical study notes, flashcards, MCQs and timed exams for University of Nairobi (UoN), Kenyatta University, Mount Kenya University (MKU), JKUAT, Moi, Egerton & other African medical schools. Pathology, pharmacology, anatomy, microbiology and more.",
+      title: "Medical Study Notes, MCQs & Past Papers – Kenya",
+      description: "Free medical study notes, flashcards, MCQs and timed exams for medical students across Kenya and East Africa. Pathology, pharmacology, anatomy, microbiology and more.",
     });
 
     // Load categories
