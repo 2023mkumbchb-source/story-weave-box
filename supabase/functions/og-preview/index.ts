@@ -398,14 +398,25 @@ serve(async (req) => {
       }
       if (!article) {
         const { data: candidates } = await supabase.from("articles").select("id, title, slug, created_at").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(500);
-        article = (candidates || []).find((row: any) => slugify(row.title) === slugParam.toLowerCase()) || null;
+        const wanted = slugParam.toLowerCase();
+        article = (candidates || []).find((row: any) =>
+          cleanPublicSlug(row.slug, row.title, "article") === wanted ||
+          slugify(row.title) === wanted ||
+          String(row.slug || "").toLowerCase() === wanted
+        ) || null;
         if (article?.id) {
           const { data } = await supabase.from("articles").select("title, content, meta_title, meta_description, og_image_url, slug, id, created_at, category").eq("id", article.id).eq("published", true).is("deleted_at", null).maybeSingle();
           article = data;
         }
       }
 
-      if (!article) return redirectResponse(siteUrl, await findClosestLivePath(supabase, "articles", slugParam, "/blog"));
+      if (!article) {
+        const dest = await findClosestLivePath(supabase, "articles", slugParam, "/blog");
+        if (dest === `/blog/${slugParam.toLowerCase()}`) {
+          return notFoundResponse(siteUrl, `/blog/${slugParam}`, isCrawler);
+        }
+        return redirectResponse(siteUrl, dest);
+      }
 
       const articleSlug = cleanPublicSlug(article.slug, article.title, "article");
       const cat = (article.category || "").replace(/^Year\s*\d+:\s*/i, "").trim() || "Medical";
