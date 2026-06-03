@@ -49,7 +49,6 @@ const BASE_UNIVERSITIES = [
   "Maseno University",
   "Masinde Muliro University",
   "Moi University",
-  "Mount Kenya University",
   "Strathmore University",
   "Technical University of Kenya",
   "United States International University",
