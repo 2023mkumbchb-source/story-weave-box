@@ -287,7 +287,27 @@ serve(async (req) => {
         const { data } = await supabase.from("mcq_sets").select("title, category, questions, created_at, slug, id").eq("slug", mcqParam).eq("published", true).is("deleted_at", null).maybeSingle();
         mcq = data;
       }
-      if (!mcq) return redirectResponse(siteUrl, await findClosestLivePath(supabase, "mcq_sets", mcqParam, "/mcqs"));
+      if (!mcq) {
+        // Try cleanPublicSlug match before falling back to redirect.
+        const { data: candidates } = await supabase.from("mcq_sets").select("id, title, slug").eq("published", true).is("deleted_at", null).limit(1000);
+        const wanted = String(mcqParam || "").toLowerCase();
+        const hit = (candidates || []).find((row: any) =>
+          cleanPublicSlug(row.slug, row.title, "quiz") === wanted ||
+          slugify(row.title || "") === wanted ||
+          String(row.slug || "").toLowerCase() === wanted
+        );
+        if (hit?.id) {
+          const { data } = await supabase.from("mcq_sets").select("title, category, questions, created_at, slug, id").eq("id", hit.id).eq("published", true).is("deleted_at", null).maybeSingle();
+          mcq = data;
+        }
+      }
+      if (!mcq) {
+        const dest = await findClosestLivePath(supabase, "mcq_sets", mcqParam, "/mcqs");
+        if (dest === `/mcqs/${String(mcqParam).toLowerCase()}`) {
+          return notFoundResponse(siteUrl, `/mcqs/${mcqParam}`, isCrawler);
+        }
+        return redirectResponse(siteUrl, dest);
+      }
       const qCount = Array.isArray(mcq.questions) ? mcq.questions.length : 0;
       const cat = mcq.category || "Medical";
       const firstQ = Array.isArray(mcq.questions) && mcq.questions[0]
