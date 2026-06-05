@@ -134,7 +134,7 @@ export default function Navbar() {
             <ThemeToggle />
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <SheetTrigger asChild>
-                <button className="text-white p-1">
+                <button className="p-1 text-white" aria-label="Open menu">
                   <Menu className="h-5 w-5" />
                 </button>
               </SheetTrigger>
