@@ -717,20 +717,7 @@ ${explanationLine}
       }
 
     } else if (section === "essays" && param) {
-      const essay = await fetchEssayByIdOrSlug(param);
-      if (!essay) {
-        return new Response(
-          `<html><body><h1>Page not found</h1><p>This essay does not exist.</p></body></html>`,
-          { status: 404, headers: { "content-type": "text/html" } }
-        );
-      }
-      title = `${essay.title} | Essays | OmpathStudy Kenya`;
-      description = to160(
-        `Practice SAQs and LAQs on ${essay.title} with OmpathStudy. Improve structured answering for Kenyan medical and health students.`
-      );
-      ogImage = OG_FALLBACK_IMAGE;
-      keywords = `OmpathStudy, essays Kenya, SAQ, LAQ, ${essay.category || ""}, written questions, exam technique, medical education Kenya`;
-      type = "article";
+      return permanentRedirect("/blog");
 
     } else if (section === "stories" && param) {
       const story = await fetchStoryByParam(param);

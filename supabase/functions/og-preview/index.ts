@@ -435,8 +435,8 @@ serve(async (req) => {
     }
     // ── Root fallback ──
     else {
-      title = "Medical Study Notes, MCQs & Past Papers – Kenya";
-      description = "Free medical study notes, flashcards, MCQs and timed exams for Kenyan and East African medical schools. Pathology, pharmacology, anatomy, microbiology and more.";
+      title = "OmpathStudy | Medical Notes, MCQs & Exams";
+      description = "Free medical study notes, MCQs, flashcards and timed exams for MBChB and health students across Kenya and East Africa.";
       canonicalPath = "/";
       type = "website";
     }

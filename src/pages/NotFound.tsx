@@ -12,7 +12,7 @@ export default function NotFound() {
       : location.pathname;
   const title = "Page Not Found | OmpathStudy Kenya";
   const description =
-    "We couldn’t find that page on OmpathStudy. Browse notes, flashcards, MCQs, exams, essays, and stories for Kenyan medical and health students.";
+    "We couldn’t find that page on OmpathStudy. Browse notes, flashcards, MCQs, exams and stories for Kenyan medical and health students.";
   const keywords =
     "OmpathStudy, 404, page not found, medical education Kenya, study notes, flashcards, MCQs, exams";
 
