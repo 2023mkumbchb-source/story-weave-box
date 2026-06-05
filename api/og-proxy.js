@@ -145,19 +145,8 @@ export default async function handler(req, res) {
     }
 
     if (essay) {
-      const essayId = extractUuid(essay);
-      if (essayId) record = await fetchFromSupabase("essays", "id", essayId);
-      if (!record) record = await fetchFromSupabase("essays", "slug", essay);
-      pageUrl = `https://www.ompathstudy.com/essays/${essay}`;
-      if (record) {
-        return res.status(200).send(buildHTML({
-          title: record.meta_title || `${record.title} | Essays | OmpathStudy Kenya`,
-          description: record.meta_description || `Practice SAQs and LAQs on ${record.title} with OmpathStudy.`,
-          url: pageUrl,
-          image: record.og_image_url,
-        }));
-      }
-      return res.status(404).send(buildHTML({ title: "Essay Not Found", description: "This essay was not found.", url: pageUrl, noindex: true }));
+      res.setHeader("Location", "https://www.ompathstudy.com/blog");
+      return res.status(301).send(buildHTML({ title: "Medical Study Notes | OmpathStudy Kenya", description: "Browse medical study notes on OmpathStudy.", url: "https://www.ompathstudy.com/blog", noindex: true }));
     }
 
     if (story) {
@@ -181,7 +170,6 @@ export default async function handler(req, res) {
       blog: "Medical Study Notes & Articles | OmpathStudy Kenya",
       mcqs: "Medical MCQ Practice Quizzes | OmpathStudy Kenya",
       flashcards: "Medical Study Flashcards | OmpathStudy Kenya",
-      essays: "Medical Essay Questions | OmpathStudy Kenya",
       stories: "Medical School Stories | OmpathStudy Kenya",
       exams: "Timed Medical Exams | OmpathStudy Kenya",
     };
@@ -189,7 +177,6 @@ export default async function handler(req, res) {
       blog: "Browse medical study notes covering Pathology, Pharmacology, Anatomy and more for Kenyan MBChB students.",
       mcqs: "Practice interactive medical MCQs with answers and explanations. Built for Kenyan medical students.",
       flashcards: "Active recall medical flashcards for Pathology, Pharmacology and Physiology revision.",
-      essays: "Structured medical essay questions (SAQs & LAQs) for Kenyan medical school exams.",
       stories: "Personal stories and experiences from medical students and doctors in Kenya.",
       exams: "Timed medical examinations for students at Kenyan medical schools.",
     };
@@ -204,7 +191,7 @@ export default async function handler(req, res) {
     if (year) {
       return res.status(200).send(buildHTML({
         title: `Year ${year} Study Materials | OmpathStudy Kenya`,
-        description: `Browse Year ${year} medical study notes, flashcards, MCQs, and essays on OmpathStudy for Kenyan health students.`,
+        description: `Browse Year ${year} medical study notes, flashcards, MCQs, and exams on OmpathStudy for Kenyan health students.`,
         url: `https://www.ompathstudy.com/year/${year}`,
       }));
     }
@@ -217,7 +204,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error("OG Proxy Error:", error);
-    return res.status(500).send(buildHTML({
+    return res.status(200).send(buildHTML({
       title: "Ompath Study",
       description: "Medical study platform for Kenyan students",
     }));

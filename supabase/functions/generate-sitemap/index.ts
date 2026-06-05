@@ -203,9 +203,23 @@ serve(async (req) => {
     });
   } catch (error: unknown) {
     console.error("Sitemap error:", error);
-    return new Response(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`, {
-      status: 500,
-      headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "no-cache", ...corsHeaders },
+    return new Response(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>${DEFAULT_BASE_URL}/</loc><priority>1.0</priority><changefreq>daily</changefreq></url>
+  <url><loc>${DEFAULT_BASE_URL}/blog</loc><priority>0.9</priority><changefreq>daily</changefreq></url>
+  <url><loc>${DEFAULT_BASE_URL}/mcqs</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
+  <url><loc>${DEFAULT_BASE_URL}/flashcards</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
+  <url><loc>${DEFAULT_BASE_URL}/exams</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
+  <url><loc>${DEFAULT_BASE_URL}/stories</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
+  <url><loc>${DEFAULT_BASE_URL}/year/1</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
+  <url><loc>${DEFAULT_BASE_URL}/year/2</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
+  <url><loc>${DEFAULT_BASE_URL}/year/3</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
+  <url><loc>${DEFAULT_BASE_URL}/year/4</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
+  <url><loc>${DEFAULT_BASE_URL}/year/5</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
+  <url><loc>${DEFAULT_BASE_URL}/year/6</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
+</urlset>`, {
+      status: 200,
+      headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, s-maxage=600, stale-while-revalidate=3600", ...corsHeaders },
     });
   }
 });

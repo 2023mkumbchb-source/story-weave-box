@@ -449,7 +449,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("OG preview error:", error);
-    return new Response("<!DOCTYPE html><html><body><h1>Temporary error</h1></body></html>", { status: 500, headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders } });
+    return new Response("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><title>OmpathStudy</title><meta name=\"description\" content=\"Free medical notes, MCQs, flashcards and timed exams for MBChB and health students.\"><meta name=\"robots\" content=\"index, follow\"></head><body><h1>OmpathStudy</h1><p>Free medical study notes, MCQs, flashcards and timed exams.</p><nav><a href=\"/blog\">Study notes</a> <a href=\"/mcqs\">MCQs</a> <a href=\"/flashcards\">Flashcards</a> <a href=\"/exams\">Exams</a></nav></body></html>", { status: 200, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, s-maxage=300, stale-while-revalidate=3600", ...corsHeaders } });
   }
 });
 
