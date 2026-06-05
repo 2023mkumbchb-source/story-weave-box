@@ -3,6 +3,38 @@ export const config = {
 };
 
 const OG_FALLBACK_IMAGE = "https://www.ompathstudy.com/og-default.png";
+const STATIC_PAGE_META: Record<string, { title: string; description: string; links: string[] }> = {
+  "/": {
+    title: "OmpathStudy | Free Medical Notes, MCQs & Exams",
+    description: "Free medical notes, MCQs, flashcards and timed exams for MBChB and health students across Kenya and East Africa.",
+    links: ["/blog", "/mcqs", "/flashcards", "/exams", "/stories", "/year/1", "/year/2", "/year/3", "/year/4", "/year/5", "/year/6"],
+  },
+  "/blog": {
+    title: "Medical Study Notes | OmpathStudy Kenya",
+    description: "Browse free medical study notes in pathology, pharmacology, anatomy, physiology, microbiology and biochemistry.",
+    links: ["/", "/mcqs", "/flashcards", "/exams", "/stories", "/year/1", "/year/2", "/year/3", "/year/4", "/year/5", "/year/6"],
+  },
+  "/mcqs": {
+    title: "Medical MCQs with Answers | OmpathStudy Kenya",
+    description: "Practice medical MCQs with answers and explanations by year and unit for exam-focused revision.",
+    links: ["/", "/blog", "/flashcards", "/exams", "/year/1", "/year/2", "/year/3", "/year/4", "/year/5", "/year/6"],
+  },
+  "/flashcards": {
+    title: "Medical Flashcards | OmpathStudy Kenya",
+    description: "Study active-recall medical flashcards by year and unit for fast revision across core medical subjects.",
+    links: ["/", "/blog", "/mcqs", "/exams", "/year/1", "/year/2", "/year/3", "/year/4", "/year/5", "/year/6"],
+  },
+  "/exams": {
+    title: "Timed Medical Exams | OmpathStudy Kenya",
+    description: "Take timed medical exams and past-paper style MCQ practice for MBChB revision by year and unit.",
+    links: ["/", "/blog", "/mcqs", "/flashcards", "/year/1", "/year/2", "/year/3", "/year/4", "/year/5", "/year/6"],
+  },
+  "/stories": {
+    title: "Medical School Stories | OmpathStudy Kenya",
+    description: "Read reflective medical school stories and student experiences from Kenya and East Africa.",
+    links: ["/", "/blog", "/mcqs", "/flashcards", "/exams"],
+  },
+};
 
 function isCrawler(userAgent: string | null): boolean {
   const ua = (userAgent || "").toLowerCase();
@@ -462,6 +494,7 @@ function buildHtml(opts: {
     <h1>${title}</h1>
     <p>${desc}</p>
     ${opts.bodyExtra || ""}
+    <nav aria-label="Site links"><a href="/">Home</a> <a href="/blog">Study notes</a> <a href="/mcqs">MCQs</a> <a href="/flashcards">Flashcards</a> <a href="/exams">Exams</a> <a href="/stories">Stories</a></nav>
     <a href="${url}">View on OmpathStudy</a>
   </body>
 </html>`;
