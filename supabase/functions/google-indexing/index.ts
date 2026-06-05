@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const DEFAULT_BASE_URL = "https://ompathstudy.com";
+const DEFAULT_BASE_URL = "https://www.ompathstudy.com";
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -19,7 +19,14 @@ function normalizeBaseUrl(url: string | null | undefined): string {
   const trimmed = String(url || "").trim();
   if (!trimmed) return DEFAULT_BASE_URL;
   const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  return withProtocol.replace(/\/+$/, "");
+  try {
+    const u = new URL(withProtocol.replace(/\/+$/, ""));
+    if (/(^|\.)ompathstudy\.com$/i.test(u.hostname)) u.hostname = "www.ompathstudy.com";
+    u.protocol = "https:";
+    return `${u.protocol}//${u.hostname}`;
+  } catch {
+    return withProtocol.replace(/\/+$/, "");
+  }
 }
 
 function slugFromTitle(title: string): string {
@@ -40,7 +47,7 @@ async function resolveBaseUrl(sb: any, bodySiteUrl?: unknown): Promise<string> {
 
 function buildArticleUrl(base: string, a: { id: string; title: string; slug?: string | null }) {
   const slug = a.slug || slugFromTitle(a.title) || "article";
-  return `${base}/blog/${a.id}-${slug}`;
+  return `${base}/blog/${slug}`;
 }
 
 function buildStoryUrl(base: string, s: { id: string; title: string }) {
@@ -134,14 +141,6 @@ serve(async (req) => {
         (data || []).forEach(f => urls.push({
           type: "flashcard", id: f.id, title: f.title, category: f.category,
           url: `${baseUrl}/flashcards/${f.id}`, has_meta: true,
-        }));
-      }
-
-      if (contentType === "all" || contentType === "essays") {
-        const { data } = await sb.from("essays").select("id, title, category").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false });
-        (data || []).forEach(e => urls.push({
-          type: "essay", id: e.id, title: e.title, category: e.category,
-          url: `${baseUrl}/essays/${e.id}`, has_meta: true,
         }));
       }
 
