@@ -139,13 +139,15 @@ function extractUuidFromParam(value?: string | null): string | null {
 }
 
 function getSupabaseConfig() {
-  const url = process.env.VITE_SUPABASE_URL;
-  const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key) {
-    throw new Error(
-      `Missing Supabase env vars. URL: ${url ? "SET" : "MISSING"}, KEY: ${key ? "SET" : "MISSING"}`
-    );
-  }
+  const url =
+    process.env.VITE_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    "https://lkgfzjwhmfjvntzphbsh.supabase.co";
+  const key =
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxrZ2Z6andobWZqdm50enBoYnNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3Nzk5MjIsImV4cCI6MjA4NzM1NTkyMn0.a2QY6TxzKNM2AhuuoDkgdKifI3XhSGhYRlhpqZpvAwo";
   return { url, key };
 }
 
@@ -732,10 +734,14 @@ ${explanationLine}
       },
     });
   } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    return new Response(
-      `<html><body><h1>Error</h1><pre>${htmlEscape(errMsg)}</pre></body></html>`,
-      { status: 500, headers: { "content-type": "text/html; charset=utf-8" } }
-    );
+    // Never return 5XX to crawlers — soft-redirect to the section root so
+    // pages are removed/consolidated cleanly in Google + Ahrefs reports.
+    const safeSection = (() => {
+      const seg = (new URL(req.url).searchParams.get("path") || "/").split("?")[0].split("/").filter(Boolean)[0] || "";
+      if (["blog", "mcqs", "flashcards", "stories", "exams"].includes(seg)) return `/${seg}`;
+      return "/";
+    })();
+    console.error("og-meta soft-redirect:", err instanceof Error ? err.message : String(err));
+    return permanentRedirect(safeSection);
   }
 }
