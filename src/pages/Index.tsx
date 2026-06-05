@@ -40,8 +40,8 @@ export default function Index() {
 
   useEffect(() => {
     updateMetaTags({
-      title: "Medical Study Notes, MCQs & Past Papers – Kenya",
-      description: "Free medical study notes, flashcards, MCQs and timed exams for medical students across Kenya and East Africa. Pathology, pharmacology, anatomy, microbiology and more.",
+      title: "Medical Notes, MCQs & Exams | OmpathStudy",
+      description: "Free medical study notes, MCQs, flashcards and timed exams for MBChB and health students across Kenya and East Africa.",
     });
 
     // Load categories
