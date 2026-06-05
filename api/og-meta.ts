@@ -542,7 +542,7 @@ export default async function handler(req: Request): Promise<Response> {
       description = page.description;
       keywords = `OmpathStudy, medical notes Kenya, MCQs, flashcards, exams, MBChB revision`;
       type = "website";
-      bodyExtra = `<nav aria-label="Core pages">${page.links.map((path) => `<a href="${path}">${path === "/" ? "Home" : path.replace(/^\//, "")}</a>`).join(" ")}</nav>`;
+      bodyExtra = `<section><h2>Study resources</h2><p>OmpathStudy provides structured medical learning resources for MBChB and health students across Kenya and East Africa. The public study library includes concise clinical notes, pathology guides, pharmacology revision, anatomy summaries, physiology explanations, microbiology material, active-recall flashcards, practice MCQs and timed exam-style revision. Content is organised by academic year and unit so students can move directly from a year hub to the relevant articles, question banks, flashcards and exam practice.</p><p>Use these links to navigate to live indexable pages without redirects.</p><nav aria-label="Core pages">${page.links.map((path) => `<a href="${path}">${path === "/" ? "Home" : path.replace(/^\//, "")}</a>`).join(" ")}</nav></section>`;
     } else if (!param && ["blog", "mcqs", "flashcards", "stories", "exams"].includes(section)) {
       const pages: Record<string, { title: string; description: string; keywords: string }> = {
         blog: {
@@ -753,7 +753,7 @@ ${explanationLine}
       title = `Year ${yr} Study Materials | OmpathStudy Kenya`;
       description = `Browse Year ${yr} medical study notes, flashcards, MCQs, and exams on OmpathStudy for Kenyan health students.`;
       keywords = `OmpathStudy, Year ${yr} medical, Kenya medical students, clinical notes Year ${yr}`;
-      bodyExtra = `<nav aria-label="Year ${yr} sections"><a href="/blog?year=Year%20${yr}">Year ${yr} notes</a> <a href="/mcqs?year=Year%20${yr}">Year ${yr} MCQs</a> <a href="/flashcards?year=Year%20${yr}">Year ${yr} flashcards</a> <a href="/exams?year=Year%20${yr}">Year ${yr} exams</a></nav>`;
+      bodyExtra = `<section><h2>Year ${yr} resources</h2><p>Year ${yr} on OmpathStudy brings together medical notes, MCQs, flashcards and timed exam practice for students revising by academic year and unit. The page links directly to study notes, practice questions, active-recall cards and exams so crawlers and students can discover the relevant live sections without passing through redirects.</p><nav aria-label="Year ${yr} sections"><a href="/blog?year=Year%20${yr}">Year ${yr} notes</a> <a href="/mcqs?year=Year%20${yr}">Year ${yr} MCQs</a> <a href="/flashcards?year=Year%20${yr}">Year ${yr} flashcards</a> <a href="/exams?year=Year%20${yr}">Year ${yr} exams</a></nav></section>`;
     }
 
     const html = buildHtml({
