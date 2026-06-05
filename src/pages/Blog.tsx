@@ -293,7 +293,7 @@ export default function Blog() {
             className="w-full bg-transparent px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
           {search && (
-            <button onClick={() => setSearch("")} className="mr-3 text-muted-foreground hover:text-foreground">
+            <button onClick={() => setSearch("")} className="mr-3 text-muted-foreground hover:text-foreground" aria-label="Clear search">
               <X className="h-4 w-4" />
             </button>
           )}

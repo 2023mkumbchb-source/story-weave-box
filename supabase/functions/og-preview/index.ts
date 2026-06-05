@@ -249,7 +249,7 @@ serve(async (req) => {
       if (prerenderParam === "essays") {
         const canonical = `${siteUrl}/blog`;
         const html = buildOgHtml({ title: "Medical Study Notes | OmpathStudy Kenya", description: "Browse study notes on OmpathStudy.", image: "", canonical, isCrawler, noindex: true });
-        return new Response(html, { status: 301, headers: { "Content-Type": "text/html; charset=utf-8", "Location": canonical, ...corsHeaders } });
+        return new Response(html, { status: 301, headers: { ...corsHeaders, "content-type": "text/html; charset=utf-8", "location": canonical } });
       }
       const cfg = configs[prerenderParam];
       if (cfg) {
@@ -381,7 +381,7 @@ serve(async (req) => {
     else if (essayParam) {
       const canonical = `${siteUrl}/blog`;
       const html = buildOgHtml({ title: "OmpathStudy Kenya", description: "Medical study platform for Kenyan students.", image: "", canonical, isCrawler, noindex: true });
-      return new Response(html, { status: 301, headers: { "Content-Type": "text/html; charset=utf-8", "Location": canonical, ...corsHeaders } });
+      return new Response(html, { status: 301, headers: { ...corsHeaders, "content-type": "text/html; charset=utf-8", "location": canonical } });
     }
     // ── Single Article ──
     else if (slugParam) {
@@ -435,8 +435,8 @@ serve(async (req) => {
     }
     // ── Root fallback ──
     else {
-      title = "Medical Study Notes, MCQs & Past Papers – Kenya";
-      description = "Free medical study notes, flashcards, MCQs and timed exams for Kenyan and East African medical schools. Pathology, pharmacology, anatomy, microbiology and more.";
+      title = "OmpathStudy | Medical Notes, MCQs & Exams";
+      description = "Free medical study notes, MCQs, flashcards and timed exams for MBChB and health students across Kenya and East Africa.";
       canonicalPath = "/";
       type = "website";
     }
@@ -445,11 +445,11 @@ serve(async (req) => {
     const html = buildOgHtml({ title, description, image, canonical, isCrawler, bodyText, publishedAt, type });
     return new Response(html, {
       status: 200,
-      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400", ...corsHeaders },
+      headers: { ...corsHeaders, "content-type": "text/html; charset=utf-8", "cache-control": "public, s-maxage=3600, stale-while-revalidate=86400" },
     });
   } catch (error) {
     console.error("OG preview error:", error);
-    return new Response("<!DOCTYPE html><html><body><h1>Temporary error</h1></body></html>", { status: 500, headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders } });
+    return new Response("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><title>OmpathStudy</title><meta name=\"description\" content=\"Free medical notes, MCQs, flashcards and timed exams for MBChB and health students.\"><meta name=\"robots\" content=\"index, follow\"></head><body><h1>OmpathStudy</h1><p>Free medical study notes, MCQs, flashcards and timed exams.</p><nav><a href=\"/blog\">Study notes</a> <a href=\"/mcqs\">MCQs</a> <a href=\"/flashcards\">Flashcards</a> <a href=\"/exams\">Exams</a></nav></body></html>", { status: 200, headers: { ...corsHeaders, "content-type": "text/html; charset=utf-8", "cache-control": "public, s-maxage=300, stale-while-revalidate=3600" } });
   }
 });
 
@@ -457,7 +457,7 @@ function redirectResponse(siteUrl: string, path: string): Response {
   const destination = `${siteUrl}${path}`;
   return new Response(null, {
     status: 301,
-    headers: { "Location": destination, "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400", "Access-Control-Allow-Origin": "*" },
+    headers: { "location": destination, "cache-control": "public, s-maxage=3600, stale-while-revalidate=86400", "Access-Control-Allow-Origin": "*" },
   });
 }
 
@@ -472,6 +472,6 @@ function notFoundResponse(siteUrl: string, path: string, isCrawler: boolean): Re
   });
   return new Response(html, {
     status: 404,
-    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache", "Access-Control-Allow-Origin": "*" },
+    headers: { "Access-Control-Allow-Origin": "*", "content-type": "text/html; charset=utf-8", "cache-control": "no-cache" },
   });
 }

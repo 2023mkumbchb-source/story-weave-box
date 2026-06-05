@@ -85,6 +85,12 @@ function TableBlock({ lines }: { lines: string[] }) {
   const isSep = (l: string) => /^\|[\s\-:|]+\|$/.test(l.trim());
   const parseRow = (l: string) =>
     l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
+  const fallbackHeader = (index: number, total: number) => {
+    if (total === 2) return index === 0 ? "Topic" : "Details";
+    if (total === 3) return ["Topic", "Key point", "Clinical relevance"][index] || `Column ${index + 1}`;
+    if (total === 4) return ["Topic", "Description", "Features", "Notes"][index] || `Column ${index + 1}`;
+    return `Column ${index + 1}`;
+  };
   const dataLines = lines.filter(l => !isSep(l));
   if (dataLines.length < 1) return null;
   // Detect a separator line in the original input — required for a real header.
@@ -97,7 +103,7 @@ function TableBlock({ lines }: { lines: string[] }) {
   const useHeader = (hasSeparator || looksLikeHeader) && !firstIsEmpty;
   const rows = (useHeader ? restLines : dataLines).map(parseRow).filter((row) => row.some(Boolean));
   const colCount = Math.max(firstRow.length, ...rows.map((r) => r.length));
-  const headers = Array.from({ length: colCount }, (_, i) => (useHeader ? firstRow[i] : "") || `Column ${i + 1}`);
+  const headers = Array.from({ length: colCount }, (_, i) => (useHeader ? firstRow[i] : "") || fallbackHeader(i, colCount));
   if (!rows.length) return null;
 
   return (
@@ -125,7 +131,7 @@ function TableBlock({ lines }: { lines: string[] }) {
               {Array.from({ length: colCount }).map((_, ci) => (
                 <td
                   key={ci}
-                  className="px-4 py-3 align-top text-foreground/90 leading-relaxed"
+                  className="px-4 py-3 align-top leading-relaxed text-foreground/90"
                   data-label={headers[ci] || ""}
                 >
                   {row[ci] != null ? <Inline text={row[ci]} /> : null}
