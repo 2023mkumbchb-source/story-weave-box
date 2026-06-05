@@ -526,9 +526,9 @@ export default async function handler(req: Request): Promise<Response> {
     const section = parts[0] || "";
     const param = parts[1] || "";
 
-    let title = "OmpathStudy | Kenyan Medical Education Platform";
+    let title = "OmpathStudy | Medical Notes, MCQs & Exams";
     let description =
-      "OmpathStudy helps medical and health students in Kenya study smarter with notes, flashcards, MCQs, essays and exams by year and unit.";
+      "OmpathStudy helps medical and health students study smarter with notes, flashcards, MCQs and exams by year and unit.";
     let ogImage = OG_FALLBACK_IMAGE;
     let keywords =
       "OmpathStudy, medical students Kenya, nursing students Kenya, clinical notes, MCQs, flashcards, exam preparation, medical education Kenya";
@@ -536,7 +536,14 @@ export default async function handler(req: Request): Promise<Response> {
     let schemaJson = "";
     let bodyExtra = "";
 
-    if (!param && ["blog", "mcqs", "flashcards", "stories", "exams"].includes(section)) {
+    if (STATIC_PAGE_META[originalPath.split("?")[0]]) {
+      const page = STATIC_PAGE_META[originalPath.split("?")[0]];
+      title = page.title;
+      description = page.description;
+      keywords = `OmpathStudy, medical notes Kenya, MCQs, flashcards, exams, MBChB revision`;
+      type = "website";
+      bodyExtra = `<nav aria-label="Core pages">${page.links.map((path) => `<a href="${path}">${path === "/" ? "Home" : path.replace(/^\//, "")}</a>`).join(" ")}</nav>`;
+    } else if (!param && ["blog", "mcqs", "flashcards", "stories", "exams"].includes(section)) {
       const pages: Record<string, { title: string; description: string; keywords: string }> = {
         blog: {
           title: "Medical Study Notes | OmpathStudy Kenya",
@@ -744,8 +751,9 @@ ${explanationLine}
     } else if (section === "year" && param) {
       const yr = param.replace(/[^0-9]/g, "");
       title = `Year ${yr} Study Materials | OmpathStudy Kenya`;
-      description = `Browse Year ${yr} medical study notes, flashcards, MCQs, and essays on OmpathStudy for Kenyan health students.`;
+      description = `Browse Year ${yr} medical study notes, flashcards, MCQs, and exams on OmpathStudy for Kenyan health students.`;
       keywords = `OmpathStudy, Year ${yr} medical, Kenya medical students, clinical notes Year ${yr}`;
+      bodyExtra = `<nav aria-label="Year ${yr} sections"><a href="/blog?year=Year%20${yr}">Year ${yr} notes</a> <a href="/mcqs?year=Year%20${yr}">Year ${yr} MCQs</a> <a href="/flashcards?year=Year%20${yr}">Year ${yr} flashcards</a> <a href="/exams?year=Year%20${yr}">Year ${yr} exams</a></nav>`;
     }
 
     const html = buildHtml({
