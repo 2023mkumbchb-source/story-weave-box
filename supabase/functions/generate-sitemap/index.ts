@@ -199,7 +199,7 @@ serve(async (req) => {
 
     return new Response(xml, {
       status: 200,
-      headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400", ...corsHeaders },
+      headers: { ...corsHeaders, "content-type": "application/xml; charset=utf-8", "cache-control": "public, s-maxage=3600, stale-while-revalidate=86400" },
     });
   } catch (error: unknown) {
     console.error("Sitemap error:", error);
@@ -219,7 +219,7 @@ serve(async (req) => {
   <url><loc>${DEFAULT_BASE_URL}/year/6</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
 </urlset>`, {
       status: 200,
-      headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, s-maxage=600, stale-while-revalidate=3600", ...corsHeaders },
+      headers: { ...corsHeaders, "content-type": "application/xml; charset=utf-8", "cache-control": "public, s-maxage=600, stale-while-revalidate=3600" },
     });
   }
 });
