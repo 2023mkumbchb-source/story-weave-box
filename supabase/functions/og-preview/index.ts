@@ -457,7 +457,7 @@ function redirectResponse(siteUrl: string, path: string): Response {
   const destination = `${siteUrl}${path}`;
   return new Response(null, {
     status: 301,
-    headers: { "Location": destination, "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400", "Access-Control-Allow-Origin": "*" },
+    headers: { "location": destination, "cache-control": "public, s-maxage=3600, stale-while-revalidate=86400", "Access-Control-Allow-Origin": "*" },
   });
 }
 
