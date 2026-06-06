@@ -509,7 +509,7 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
     generatedDescription ||
     providedDescription ||
     `${article.title} — clinical study notes${cat ? " on " + cat : ""} for medical students.`
-  ).slice(0, 160);
+  ).slice(0, 155);
   const normalizedOgImage = article.og_image_url?.trim() || extractFirstImageFromContent(article.content || "") || null;
 
   const payload = {
