@@ -168,6 +168,7 @@ serve(async (req) => {
 
     // Articles
     for (const a of (articles || []) as any[]) {
+      if (!includeBlog || !matchesYear(a.category, filter.year)) continue;
       const articleSlug = cleanPublicSlug(a.slug, a.title, "article");
       const path = `/blog/${articleSlug}`;
       if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
@@ -185,6 +186,7 @@ serve(async (req) => {
 
     // Stories
     for (const s of (stories || []) as any[]) {
+      if (!includeStories) continue;
       const storySlug = cleanPublicSlug(s.slug, s.title, "story");
       const path = `/stories/${s.id}-${storySlug}`;
       if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
@@ -202,6 +204,7 @@ serve(async (req) => {
 
     // MCQs
     for (const m of (mcqs || []) as any[]) {
+      if (!includeMcqs || !matchesYear(m.category, filter.year)) continue;
       const mcqSlug = cleanPublicSlug(m.slug, m.title, "quiz");
       const path = `/mcqs/${mcqSlug}`;
       if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
@@ -218,6 +221,7 @@ serve(async (req) => {
 
     // Flashcards
     for (const f of (flashcards || []) as any[]) {
+      if (!includeFlashcards || !matchesYear(f.category, filter.year)) continue;
       const flashcardSlug = cleanPublicSlug(f.slug, f.title, "flashcards");
       const path = `/flashcards/${flashcardSlug}`;
       if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
