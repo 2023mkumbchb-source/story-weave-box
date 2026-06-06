@@ -275,7 +275,7 @@ async function fetchArticleBySlug(slug: string) {
 }
 
 async function fetchMcqSetBySlugOrId(param: string) {
-  const cols = "id,title,category,questions,slug,created_at";
+  const cols = "id,title,category,questions,slug,created_at,meta_title,meta_description,og_image_url";
   const decoded = decodeURIComponent(param).trim();
 
   const bySlug = await sbFetch(
@@ -597,7 +597,7 @@ export default async function handler(req: Request): Promise<Response> {
       const rawDesc = article.meta_description || article.content || "";
       const cleanDesc = toMetaDescription(
         rawDesc,
-        `Study ${article.title} with OmpathStudy — medical notes and practice questions for students in Kenya.`;
+        `Study ${article.title} with OmpathStudy — medical notes and practice questions for students in Kenya.`
       );
 
       title = toMetaTitle(rawTitle, article.title);
