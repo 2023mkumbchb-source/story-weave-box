@@ -66,8 +66,26 @@ function extractFirstImage(content: string | null): string | null {
 
 const EXCLUDED_PATHS = new Set<string>([
   "/sitemap.xml",
+  "/sitemap-dynamic.xml",
   "/blog/victory-school-club-membership-system-project-guide",
 ]);
+
+function sitemapFilterFromFile(file: string | null) {
+  const f = String(file || "all.xml").toLowerCase();
+  const year = f.match(/year-([1-6])/)?.[1] || null;
+  const section = f.includes("blog") ? "blog"
+    : f.includes("mcqs") ? "mcqs"
+    : f.includes("flashcards") ? "flashcards"
+    : f.includes("stories") ? "stories"
+    : f.includes("pages") ? "pages"
+    : "all";
+  return { section, year };
+}
+
+function matchesYear(category: string | null | undefined, year: string | null) {
+  if (!year) return true;
+  return new RegExp(`^Year\\s+${year}\\s*:`, "i").test(String(category || ""));
+}
 
 async function fetchAllPublished(sb: any, table: string, select: string, orderColumn = "updated_at") {
   const rows: any[] = [];
@@ -93,6 +111,8 @@ serve(async (req) => {
   }
 
   try {
+    const requestUrl = new URL(req.url);
+    const filter = sitemapFilterFromFile(requestUrl.searchParams.get("file"));
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) throw new Error("Missing config");
@@ -114,19 +134,33 @@ serve(async (req) => {
       if (m) years.add(parseInt(m[1]));
     });
 
-    const emittedPaths = new Set<string>(["/", "/blog", "/stories", "/flashcards", "/mcqs", "/exams"]);
+    const includePages = filter.section === "all" || filter.section === "pages";
+    const includeBlog = filter.section === "all" || filter.section === "blog";
+    const includeStories = filter.section === "all" || filter.section === "stories";
+    const includeMcqs = filter.section === "all" || filter.section === "mcqs";
+    const includeFlashcards = filter.section === "all" || filter.section === "flashcards";
+    const emittedPaths = new Set<string>();
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
-  <url><loc>${baseUrl}/</loc><priority>1.0</priority><changefreq>daily</changefreq></url>
-  <url><loc>${baseUrl}/blog</loc><priority>0.9</priority><changefreq>daily</changefreq></url>
-  <url><loc>${baseUrl}/stories</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
-  <url><loc>${baseUrl}/flashcards</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
-  <url><loc>${baseUrl}/mcqs</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
-  <url><loc>${baseUrl}/exams</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
 `;
 
+    if (includePages) {
+      [
+        ["/", "1.0", "daily"],
+        ["/blog", "0.9", "daily"],
+        ["/stories", "0.8", "daily"],
+        ["/flashcards", "0.8", "daily"],
+        ["/mcqs", "0.8", "daily"],
+        ["/exams", "0.8", "weekly"],
+      ].forEach(([path, priority, changefreq]) => {
+        emittedPaths.add(path);
+        xml += `  <url><loc>${baseUrl}${path}</loc><priority>${priority}</priority><changefreq>${changefreq}</changefreq></url>\n`;
+      });
+    }
+
     for (const y of Array.from(years).sort()) {
+      if (!includePages && filter.section !== "all") continue;
       const path = `/year/${y}`;
       emittedPaths.add(path);
       xml += `  <url><loc>${baseUrl}${path}</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>\n`;
