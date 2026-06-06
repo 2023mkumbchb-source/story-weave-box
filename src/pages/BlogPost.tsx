@@ -1397,16 +1397,8 @@ export default function BlogPost() {
 
   useEffect(() => {
     if (!article) return;
-    const cat = article.category ? article.category.replace(/^Year\s*\d+:\s*/i, "").trim() : "";
-    const baseTitle = article.meta_title?.trim() || article.title;
-    const metaTitle = baseTitle.length > 70
-      ? baseTitle.slice(0, 70)
-      : `${baseTitle}${cat ? ` – ${cat} Notes & MCQs` : ""} | Kenya Medical Students`;
-    const fallbackDesc = stripRichText(article.content || "", 155)
-      || `${article.title} study notes for medical students across Kenya and East Africa. ${cat ? cat + " revision." : ""}`.trim();
-    const metaDesc = article.meta_description?.trim()
-      ? stripRichText(article.meta_description, 155)
-      : fallbackDesc.slice(0, 160);
+    const metaTitle = cleanMetaTitle(article);
+    const metaDesc = cleanMetaDescription(article);
     const ogImage = article.og_image_url || extractFirstImageFromContent(article.content || "") || `${SITE_URL}/og-default.png`;
     const canonicalUrl = `${SITE_URL}${buildBlogPath(article)}`;
 
@@ -1593,12 +1585,12 @@ export default function BlogPost() {
 
           <article id="section-top" className="min-w-0">
             <ClassicHero
-              title={(article.meta_title?.trim() || article.title).replace(/^#+\s*/, "")}
+              title={cleanMetaTitle(article)}
               image={article.og_image_url || extractFirstImageFromContent(article.content || "") || ""}
               date={date}
               unit={unitName && unitName !== "Uncategorized" ? unitName : ""}
               shareUrl={`${SITE_URL}${buildBlogPath(article)}`}
-              description={article.meta_description || ""}
+              description={cleanMetaDescription(article)}
               category={article.category}
             />
 
@@ -1611,8 +1603,8 @@ export default function BlogPost() {
             <div className="mt-10 pt-6 border-t border-border">
               <ShareButtons
                 url={`${SITE_URL}${buildBlogPath(article)}`}
-                title={article.title}
-                description={article.meta_description || ""}
+                title={cleanMetaTitle(article)}
+                description={cleanMetaDescription(article)}
                 variant="full"
               />
             </div>
