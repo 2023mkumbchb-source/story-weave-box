@@ -413,6 +413,24 @@ function pickReviewer(seed: string): string {
   for (let i = 0; i < seed.length; i++) h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
   return REVIEWERS[Math.abs(h) % REVIEWERS.length];
 }
+
+function cleanMetaTitle(article: Article): string {
+  const raw = (article.meta_title?.trim() || article.title || "Study Notes").replace(/^#+\s*/, "").replace(/\s+/g, " ").trim();
+  return raw.length <= 60 ? raw : `${raw.slice(0, 57).trimEnd()}...`;
+}
+
+function cleanMetaDescription(article: Article): string {
+  const title = stripRichText(article.title || "").replace(/\s+/g, " ").trim();
+  let provided = stripRichText(article.meta_description || "", 170).replace(/\s*[-–—]{2,}\s*/g, " — ").trim();
+  if (title && provided.toLowerCase().startsWith(title.toLowerCase())) {
+    provided = provided.slice(title.length).replace(/^\s*[|:;,.–—-]+\s*/, "").trim();
+  }
+  const cat = article.category ? article.category.replace(/^Year\s*\d+:\s*/i, "").trim() : "";
+  const fallback = stripRichText(article.content || "", 155)
+    || `${article.title} study notes${cat ? ` on ${cat}` : ""} with clinical points and exam-focused revision for medical students.`;
+  const desc = provided.length >= 50 ? provided : fallback;
+  return desc.length <= 155 ? desc : `${desc.slice(0, 152).trimEnd()}...`;
+}
 function ReviewedBadge({ reviewer, date, onDark }: { reviewer: string; date: string; onDark?: boolean }) {
   const text = onDark ? "text-white/90" : "text-foreground";
   const sub = onDark ? "text-white/70" : "text-muted-foreground";
