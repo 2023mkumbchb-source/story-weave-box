@@ -80,6 +80,10 @@
       "destination": "/api/sitemap"
     },
     {
+      "source": "/sitemap/:file",
+      "destination": "/api/sitemap?file=:file"
+    },
+    {
       "source": "/blog/:slug",
       "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
       "destination": "/api/og-meta?path=/blog/:slug"
