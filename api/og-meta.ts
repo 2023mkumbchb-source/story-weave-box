@@ -638,7 +638,9 @@ export default async function handler(req: Request): Promise<Response> {
       if (!article) {
         return permanentRedirect(await closestLivePath("articles", param, "/blog", "article"));
       }
-      const rawTitle = article.meta_title || article.title;
+      const rawTitle = article.meta_title && !(article.meta_title.length >= 58 && String(article.title || "").startsWith(article.meta_title))
+        ? article.meta_title
+        : article.title;
       const cleanDesc = articleDescription(article);
 
       title = toMetaTitle(rawTitle, article.title);
