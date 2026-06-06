@@ -595,11 +595,12 @@ export default async function handler(req: Request): Promise<Response> {
       }
       const rawTitle = article.meta_title || article.title;
       const rawDesc = article.meta_description || article.content || "";
-      const cleanDesc =
-        to160(rawDesc) ||
+      const cleanDesc = toMetaDescription(
+        rawDesc,
         `Study ${article.title} with OmpathStudy — medical notes and practice questions for students in Kenya.`;
+      );
 
-      title = cleanForMetaSnippet(rawTitle) + " | OmpathStudy Kenya";
+      title = toMetaTitle(rawTitle, article.title);
       description = cleanDesc;
       ogImage = article.og_image_url || OG_FALLBACK_IMAGE;
       keywords = `OmpathStudy, study notes Kenya, medical notes, ${article.category || ""}, clinical revision, exam prep, medical education Kenya`;
@@ -607,14 +608,14 @@ export default async function handler(req: Request): Promise<Response> {
       schemaJson = JSON.stringify({
         "@context": "https://schema.org",
         "@type": "Article",
-        headline: cleanForMetaSnippet(rawTitle),
+        headline: title,
         description,
         image: ogImage,
         url: absoluteUrl,
         datePublished: article.created_at,
         dateModified: article.updated_at || article.created_at,
         author: { "@type": "Organization", name: "OmpathStudy" },
-        publisher: { "@type": "Organization", name: "OmpathStudy" },
+        publisher: { "@type": "Organization", name: "OmpathStudy", logo: { "@type": "ImageObject", url: OG_FALLBACK_IMAGE } },
       });
       if (article.content) {
         bodyExtra = `<div>${htmlEscape(cleanForMetaSnippet(article.content).slice(0, 5000))}</div>`;
@@ -629,9 +630,10 @@ export default async function handler(req: Request): Promise<Response> {
       const parsed = rawQuestions.map(parseQuestion).filter((p): p is ParsedQuestion => p !== null);
       const qCount = rawQuestions.length;
 
-      title = `${mcq.title} | MCQ Quiz | OmpathStudy Kenya`;
-      description = to160(
-        `Practice ${qCount > 0 ? qCount + " " : ""}MCQs on ${mcq.title} with OmpathStudy. Built for Kenyan medical and health students to revise key concepts and prepare for exams.`
+      title = toMetaTitle(mcq.meta_title || `${mcq.title} MCQs`, mcq.title);
+      description = toMetaDescription(
+        mcq.meta_description || `Practice ${qCount > 0 ? qCount + " " : ""}MCQs on ${mcq.title}. Review answers, explanations and exam-focused clinical concepts.`,
+        `Practice ${qCount > 0 ? qCount + " " : ""}MCQs on ${mcq.title}. Review answers, explanations and exam-focused clinical concepts.`
       );
       ogImage = OG_FALLBACK_IMAGE;
       keywords = `OmpathStudy, MCQs Kenya, ${mcq.category || ""}, medical quizzes, nursing quizzes, exam practice, medical education Kenya`;
