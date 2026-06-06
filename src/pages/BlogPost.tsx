@@ -104,6 +104,7 @@ function TableBlock({ lines }: { lines: string[] }) {
   const rows = (useHeader ? restLines : dataLines).map(parseRow).filter((row) => row.some(Boolean));
   const colCount = Math.max(firstRow.length, ...rows.map((r) => r.length));
   const headers = Array.from({ length: colCount }, (_, i) => (useHeader ? firstRow[i] : "") || fallbackHeader(i, colCount));
+  const hasMeaningfulHeader = useHeader && headers.some((h) => h && !/^Column\s+\d+$/i.test(h));
   if (!rows.length) return null;
 
   return (
@@ -132,7 +133,7 @@ function TableBlock({ lines }: { lines: string[] }) {
                 <td
                   key={ci}
                   className="px-4 py-3 align-top leading-relaxed text-foreground/90"
-                  data-label={headers[ci] || ""}
+                  data-label={hasMeaningfulHeader ? headers[ci] || "" : undefined}
                 >
                   {row[ci] != null ? <Inline text={row[ci]} /> : null}
                 </td>
