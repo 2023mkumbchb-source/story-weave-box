@@ -32,9 +32,11 @@ export default async function handler(req, res) {
       return body.replace(new RegExp(`\\s*<url>\\s*<loc>${escaped}<\\/loc>[\\s\\S]*?<\\/url>`, "g"), "");
     }, rawXml);
 
+    const isSectionFile = file !== "all.xml";
+
     res.setHeader("Content-Type", "application/xml; charset=utf-8");
     res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
-    return res.status(200).send(upstream.ok && xml.includes("<url>") ? xml : fallbackXml);
+    return res.status(200).send(upstream.ok && (isSectionFile || xml.includes("<url>")) ? xml : fallbackXml);
   } catch {
     const fallbackXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
