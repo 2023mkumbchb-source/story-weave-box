@@ -128,7 +128,7 @@ serve(async (req) => {
       fetchAllPublished(supabase, "stories", "id, title, slug, created_at, category, cover_image_url", "created_at"),
     ]);
 
-    const years = new Set<number>();
+    const years = new Set<number>([1, 2, 3, 4, 5, 6]);
     [...(articles || []), ...(mcqs || []), ...(flashcards || [])].forEach((item: any) => {
       const m = (item.category || "").match(/^Year (\d)/);
       if (m) years.add(parseInt(m[1]));
@@ -237,7 +237,7 @@ serve(async (req) => {
 
     return new Response(xml, {
       status: 200,
-      headers: { ...corsHeaders, "content-type": "application/xml; charset=utf-8", "cache-control": "public, s-maxage=3600, stale-while-revalidate=86400" },
+      headers: { ...corsHeaders, "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" },
     });
   } catch (error: unknown) {
     console.error("Sitemap error:", error);
@@ -257,7 +257,7 @@ serve(async (req) => {
   <url><loc>${DEFAULT_BASE_URL}/year/6</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
 </urlset>`, {
       status: 200,
-      headers: { ...corsHeaders, "content-type": "application/xml; charset=utf-8", "cache-control": "public, s-maxage=600, stale-while-revalidate=3600" },
+      headers: { ...corsHeaders, "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, s-maxage=600, stale-while-revalidate=3600" },
     });
   }
 });
