@@ -99,6 +99,20 @@ function to160(input: string): string {
   return s.length <= 160 ? s : s.slice(0, 157).trimEnd() + "...";
 }
 
+function toMetaTitle(input: string, fallback = "Medical Study Resource"): string {
+  const clean = cleanForMetaSnippet(input || fallback)
+    .replace(/\s*[|–-]\s*OmpathStudy\s*(Kenya)?\s*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim() || fallback;
+  return clean.length <= 60 ? clean : clean.slice(0, 57).trimEnd() + "...";
+}
+
+function toMetaDescription(input: string, fallback: string): string {
+  const clean = cleanForMetaSnippet(input || fallback).replace(/\s+/g, " ").trim();
+  const value = clean.length >= 50 ? clean : fallback;
+  return value.length <= 155 ? value : value.slice(0, 152).trimEnd() + "...";
+}
+
 function htmlEscape(s: string): string {
   return (s || "")
     .replace(/&/g, "&amp;")
