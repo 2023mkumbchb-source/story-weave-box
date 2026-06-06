@@ -1,6 +1,7 @@
 export default async function handler(req, res) {
   try {
-    const upstream = await fetch("https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/generate-sitemap", {
+    const file = typeof req.query?.file === "string" ? req.query.file : "all.xml";
+    const upstream = await fetch(`https://lkgfzjwhmfjvntzphbsh.supabase.co/functions/v1/generate-sitemap?file=${encodeURIComponent(file)}`, {
       method: "GET",
       headers: { Accept: "application/xml,text/xml;q=0.9,*/*;q=0.8" },
     });
@@ -23,6 +24,7 @@ export default async function handler(req, res) {
 </urlset>`;
     const excluded = [
       "https://www.ompathstudy.com/sitemap.xml",
+      "https://www.ompathstudy.com/sitemap-dynamic.xml",
       "https://www.ompathstudy.com/blog/victory-school-club-membership-system-project-guide",
     ];
     const xml = excluded.reduce((body, loc) => {
