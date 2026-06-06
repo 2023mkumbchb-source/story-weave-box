@@ -348,6 +348,35 @@ async function fetchFlashcardSetBySlugOrId(param: string) {
   return byClean && byClean.length > 0 ? byClean[0] : null;
 }
 
+async function buildLiveIndexLinks(section: string, year?: string): Promise<string> {
+  const yearPrefix = year && /^[1-6]$/.test(year) ? `Year ${year}:` : "";
+  const filterYear = (row: Record<string, string>) => !yearPrefix || String(row.category || "").startsWith(yearPrefix);
+  const link = (href: string, label: string, category?: string) =>
+    `<li><a href="${htmlEscape(href)}">${htmlEscape(label)}</a>${category ? ` <small>${htmlEscape(category.replace(/^Year\s*\d+:\s*/i, ""))}</small>` : ""}</li>`;
+
+  if (section === "blog" || section === "year") {
+    const rows = (await sbFetch("articles", "select=id,title,slug,category&published=eq.true&deleted_at=is.null&order=updated_at.desc&limit=1000")) || [];
+    const links = rows.filter(filterYear).map((row: Record<string, string>) => link(`/blog/${cleanPublicSlug(row.slug, row.title, "article")}`, row.title, row.category));
+    return links.length ? `<section><h2>Live study notes</h2><ul>${links.join("\n")}</ul></section>` : "";
+  }
+  if (section === "mcqs") {
+    const rows = (await sbFetch("mcq_sets", "select=id,title,slug,category&published=eq.true&deleted_at=is.null&order=updated_at.desc&limit=1000")) || [];
+    const links = rows.filter(filterYear).map((row: Record<string, string>) => link(`/mcqs/${cleanPublicSlug(row.slug, row.title, "quiz")}`, row.title, row.category));
+    return links.length ? `<section><h2>Live MCQ quizzes</h2><ul>${links.join("\n")}</ul></section>` : "";
+  }
+  if (section === "flashcards") {
+    const rows = (await sbFetch("flashcard_sets", "select=id,title,slug,category&published=eq.true&deleted_at=is.null&order=updated_at.desc&limit=1000")) || [];
+    const links = rows.filter(filterYear).map((row: Record<string, string>) => link(`/flashcards/${cleanPublicSlug(row.slug, row.title, "flashcards")}`, row.title, row.category));
+    return links.length ? `<section><h2>Live flashcards</h2><ul>${links.join("\n")}</ul></section>` : "";
+  }
+  if (section === "stories") {
+    const rows = (await sbFetch("stories", "select=id,title,slug,category&published=eq.true&deleted_at=is.null&order=created_at.desc&limit=1000")) || [];
+    const links = rows.map((row: Record<string, string>) => link(`/stories/${row.id}-${cleanPublicSlug(row.slug, row.title, "story")}`, row.title, row.category));
+    return links.length ? `<section><h2>Live stories</h2><ul>${links.join("\n")}</ul></section>` : "";
+  }
+  return "";
+}
+
 async function fetchEssayByIdOrSlug(param: string) {
   const cols = "id,slug,title,category,created_at";
   const decoded = decodeURIComponent(param).trim();
