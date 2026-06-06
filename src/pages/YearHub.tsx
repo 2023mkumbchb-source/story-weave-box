@@ -139,9 +139,9 @@ export default function YearHub() {
         </div>
         <div className="flex flex-wrap gap-2">
           {units.map((unit) => (
-            <span key={unit} className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground">
+            <Link key={unit} to={`/blog?year=${encodeURIComponent(yearLabel)}&unit=${encodeURIComponent(`${yearLabel}: ${unit}`)}`} className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary">
               {unit}
-            </span>
+            </Link>
           ))}
         </div>
       </div>

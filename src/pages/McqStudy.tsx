@@ -100,9 +100,12 @@ export default function McqStudy() {
         markMcqVisited(s.id);
         const canonical = buildMcqPath(s);
         if (location.pathname !== canonical) navigate(canonical, { replace: true });
+        const metaTitle = (s.meta_title?.trim() || `${s.title} MCQs`).slice(0, 60);
+        const firstQuestion = stripRichText(((s.questions as any[])?.[0]?.question || (s.questions as any[])?.[0]?.text || ""), 80);
+        const metaDescription = (s.meta_description?.trim() || `Practice ${s.questions.length} ${s.title} MCQs with answers and explanations. ${firstQuestion}`).slice(0, 155);
         updateMetaTags({
-          title: `${s.title} – MCQs`,
-          description: s.description ? stripRichText(s.description, 155) : `Practice ${s.title} MCQs here. Interactive medical study quiz with answers and explanations.`,
+          title: metaTitle,
+          description: metaDescription,
         });
       }
       if (s && (!s.access_password || s.access_password === "")) setPasswordUnlocked(true);

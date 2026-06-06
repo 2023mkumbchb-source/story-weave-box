@@ -501,13 +501,15 @@ export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | 
 export async function saveArticle(article: Omit<Article, "id"> & { id?: string }): Promise<Article> {
   const normalizedSlug = (article.slug || slugifyTitle(article.title)).trim();
   const cat = article.category ? article.category.replace(/^Year\s*\d+:\s*/i, "").trim() : "";
-  const normalizedMetaTitle = (article.title || "Study Notes").slice(0, 80);
-  const generatedDescription = stripRichText(article.content || article.original_notes || "", 160);
+  const normalizedMetaTitle = (article.meta_title?.trim() || article.title || "Study Notes").slice(0, 60);
+  const generatedDescription = stripRichText(article.content || article.original_notes || "", 155);
+  const providedDescription = article.meta_description?.trim() || "";
   const normalizedMetaDescription = (
+    (providedDescription.length >= 50 ? providedDescription : "") ||
     generatedDescription ||
-    article.meta_description?.trim() ||
+    providedDescription ||
     `${article.title} — clinical study notes${cat ? " on " + cat : ""} for medical students.`
-  ).slice(0, 160);
+  ).slice(0, 155);
   const normalizedOgImage = article.og_image_url?.trim() || extractFirstImageFromContent(article.content || "") || null;
 
   const payload = {
@@ -725,11 +727,11 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
   const cat = set.category ? set.category.replace(/^Year\s*\d+:\s*/i, "").trim() : "";
   const qCount = balancedQuestions.length;
   const firstQ = stripRichText(((balancedQuestions[0] as any)?.question) || "", 90);
-  const autoMetaTitle = (set.title || "MCQ Practice").slice(0, 80);
+  const autoMetaTitle = (set.meta_title?.trim() || set.title || "MCQ Practice").slice(0, 60);
   const autoMetaDesc = (
     set.meta_description?.trim() ||
     `${qCount} clinical MCQs${cat ? " in " + cat : ""}. ${firstQ}`
-  ).slice(0, 160);
+  ).slice(0, 155);
   const payload = {
     title: set.title,
     questions: balancedQuestions as any,

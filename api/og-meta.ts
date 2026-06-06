@@ -99,6 +99,34 @@ function to160(input: string): string {
   return s.length <= 160 ? s : s.slice(0, 157).trimEnd() + "...";
 }
 
+function toMetaTitle(input: string, fallback = "Medical Study Resource"): string {
+  const clean = cleanForMetaSnippet(input || fallback)
+    .replace(/\s*[|–-]\s*OmpathStudy\s*(Kenya)?\s*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim() || fallback;
+  return clean.length <= 60 ? clean : clean.slice(0, 57).trimEnd() + "...";
+}
+
+function toMetaDescription(input: string, fallback: string): string {
+  const clean = cleanForMetaSnippet(input || fallback)
+    .replace(/\s*[-–—]{2,}\s*/g, " — ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const value = clean.length >= 50 ? clean : fallback;
+  return value.length <= 155 ? value : value.slice(0, 152).trimEnd() + "...";
+}
+
+function articleDescription(article: Record<string, string>): string {
+  const title = cleanForMetaSnippet(article.title || "");
+  const fallback = `${title} study notes with key clinical points, exam-focused explanations and revision support for medical students.`;
+  let provided = cleanForMetaSnippet(article.meta_description || "").replace(/\s*[-–—]{2,}\s*/g, " — ").trim();
+  if (title && provided.toLowerCase().startsWith(title.toLowerCase())) {
+    provided = provided.slice(title.length).replace(/^\s*[|:;,.–—-]+\s*/, "").trim();
+  }
+  const fromContent = cleanForMetaSnippet(article.content || "");
+  return toMetaDescription(provided || fromContent, fallback);
+}
+
 function htmlEscape(s: string): string {
   return (s || "")
     .replace(/&/g, "&amp;")
@@ -261,7 +289,7 @@ async function fetchArticleBySlug(slug: string) {
 }
 
 async function fetchMcqSetBySlugOrId(param: string) {
-  const cols = "id,title,category,questions,slug,created_at";
+  const cols = "id,title,category,questions,slug,created_at,meta_title,meta_description,og_image_url";
   const decoded = decodeURIComponent(param).trim();
 
   const bySlug = await sbFetch(
@@ -332,6 +360,35 @@ async function fetchFlashcardSetBySlugOrId(param: string) {
     `select=${cols}&id=eq.${encodeURIComponent(match.id)}&published=eq.true&deleted_at=is.null&limit=1`
   );
   return byClean && byClean.length > 0 ? byClean[0] : null;
+}
+
+async function buildLiveIndexLinks(section: string, year?: string): Promise<string> {
+  const yearPrefix = year && /^[1-6]$/.test(year) ? `Year ${year}:` : "";
+  const filterYear = (row: Record<string, string>) => !yearPrefix || String(row.category || "").startsWith(yearPrefix);
+  const link = (href: string, label: string, category?: string) =>
+    `<li><a href="${htmlEscape(href)}">${htmlEscape(label)}</a>${category ? ` <small>${htmlEscape(category.replace(/^Year\s*\d+:\s*/i, ""))}</small>` : ""}</li>`;
+
+  if (section === "blog" || section === "year") {
+    const rows = (await sbFetch("articles", "select=id,title,slug,category&published=eq.true&deleted_at=is.null&order=updated_at.desc&limit=1000")) || [];
+    const links = rows.filter(filterYear).map((row: Record<string, string>) => link(`/blog/${cleanPublicSlug(row.slug, row.title, "article")}`, row.title, row.category));
+    return links.length ? `<section><h2>Live study notes</h2><ul>${links.join("\n")}</ul></section>` : "";
+  }
+  if (section === "mcqs") {
+    const rows = (await sbFetch("mcq_sets", "select=id,title,slug,category&published=eq.true&deleted_at=is.null&order=updated_at.desc&limit=1000")) || [];
+    const links = rows.filter(filterYear).map((row: Record<string, string>) => link(`/mcqs/${cleanPublicSlug(row.slug, row.title, "quiz")}`, row.title, row.category));
+    return links.length ? `<section><h2>Live MCQ quizzes</h2><ul>${links.join("\n")}</ul></section>` : "";
+  }
+  if (section === "flashcards") {
+    const rows = (await sbFetch("flashcard_sets", "select=id,title,slug,category&published=eq.true&deleted_at=is.null&order=updated_at.desc&limit=1000")) || [];
+    const links = rows.filter(filterYear).map((row: Record<string, string>) => link(`/flashcards/${cleanPublicSlug(row.slug, row.title, "flashcards")}`, row.title, row.category));
+    return links.length ? `<section><h2>Live flashcards</h2><ul>${links.join("\n")}</ul></section>` : "";
+  }
+  if (section === "stories") {
+    const rows = (await sbFetch("stories", "select=id,title,slug,category&published=eq.true&deleted_at=is.null&order=created_at.desc&limit=1000")) || [];
+    const links = rows.map((row: Record<string, string>) => link(`/stories/${row.id}-${cleanPublicSlug(row.slug, row.title, "story")}`, row.title, row.category));
+    return links.length ? `<section><h2>Live stories</h2><ul>${links.join("\n")}</ul></section>` : "";
+  }
+  return "";
 }
 
 async function fetchEssayByIdOrSlug(param: string) {
@@ -469,6 +526,7 @@ function buildHtml(opts: {
   const keywords = opts.keywords ? htmlEscape(opts.keywords) : "";
   const type = opts.type || "website";
 
+  const bodyExtra = opts.bodyExtra ? opts.bodyExtra.slice(0, 120000) : "";
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -493,7 +551,7 @@ function buildHtml(opts: {
   <body>
     <h1>${title}</h1>
     <p>${desc}</p>
-    ${opts.bodyExtra || ""}
+    ${bodyExtra}
     <nav aria-label="Site links"><a href="/">Home</a> <a href="/blog">Study notes</a> <a href="/mcqs">MCQs</a> <a href="/flashcards">Flashcards</a> <a href="/exams">Exams</a> <a href="/stories">Stories</a></nav>
     <a href="${url}">View on OmpathStudy</a>
   </body>
@@ -574,18 +632,18 @@ export default async function handler(req: Request): Promise<Response> {
       title = pages[section].title;
       description = pages[section].description;
       keywords = pages[section].keywords;
+      bodyExtra = await buildLiveIndexLinks(section);
     } else if (section === "blog" && param) {
       const article = await fetchArticleBySlug(param);
       if (!article) {
         return permanentRedirect(await closestLivePath("articles", param, "/blog", "article"));
       }
-      const rawTitle = article.meta_title || article.title;
-      const rawDesc = article.meta_description || article.content || "";
-      const cleanDesc =
-        to160(rawDesc) ||
-        `Study ${article.title} with OmpathStudy — medical notes and practice questions for students in Kenya.`;
+      const rawTitle = article.meta_title && !(article.meta_title.length >= 58 && String(article.title || "").startsWith(article.meta_title))
+        ? article.meta_title
+        : article.title;
+      const cleanDesc = articleDescription(article);
 
-      title = cleanForMetaSnippet(rawTitle) + " | OmpathStudy Kenya";
+      title = toMetaTitle(rawTitle, article.title);
       description = cleanDesc;
       ogImage = article.og_image_url || OG_FALLBACK_IMAGE;
       keywords = `OmpathStudy, study notes Kenya, medical notes, ${article.category || ""}, clinical revision, exam prep, medical education Kenya`;
@@ -593,14 +651,14 @@ export default async function handler(req: Request): Promise<Response> {
       schemaJson = JSON.stringify({
         "@context": "https://schema.org",
         "@type": "Article",
-        headline: cleanForMetaSnippet(rawTitle),
+        headline: title,
         description,
         image: ogImage,
         url: absoluteUrl,
         datePublished: article.created_at,
         dateModified: article.updated_at || article.created_at,
         author: { "@type": "Organization", name: "OmpathStudy" },
-        publisher: { "@type": "Organization", name: "OmpathStudy" },
+        publisher: { "@type": "Organization", name: "OmpathStudy", logo: { "@type": "ImageObject", url: OG_FALLBACK_IMAGE } },
       });
       if (article.content) {
         bodyExtra = `<div>${htmlEscape(cleanForMetaSnippet(article.content).slice(0, 5000))}</div>`;
@@ -615,9 +673,10 @@ export default async function handler(req: Request): Promise<Response> {
       const parsed = rawQuestions.map(parseQuestion).filter((p): p is ParsedQuestion => p !== null);
       const qCount = rawQuestions.length;
 
-      title = `${mcq.title} | MCQ Quiz | OmpathStudy Kenya`;
-      description = to160(
-        `Practice ${qCount > 0 ? qCount + " " : ""}MCQs on ${mcq.title} with OmpathStudy. Built for Kenyan medical and health students to revise key concepts and prepare for exams.`
+      title = toMetaTitle(mcq.meta_title || `${mcq.title} MCQs`, mcq.title);
+      description = toMetaDescription(
+        mcq.meta_description || `Practice ${qCount > 0 ? qCount + " " : ""}MCQs on ${mcq.title}. Review answers, explanations and exam-focused clinical concepts.`,
+        `Practice ${qCount > 0 ? qCount + " " : ""}MCQs on ${mcq.title}. Review answers, explanations and exam-focused clinical concepts.`
       );
       ogImage = OG_FALLBACK_IMAGE;
       keywords = `OmpathStudy, MCQs Kenya, ${mcq.category || ""}, medical quizzes, nursing quizzes, exam practice, medical education Kenya`;
@@ -740,7 +799,7 @@ ${explanationLine}
       title = `Year ${yr} Study Materials | OmpathStudy Kenya`;
       description = `Browse Year ${yr} medical study notes, flashcards, MCQs, and exams on OmpathStudy for Kenyan health students.`;
       keywords = `OmpathStudy, Year ${yr} medical, Kenya medical students, clinical notes Year ${yr}`;
-      bodyExtra = `<section><h2>Year ${yr} resources</h2><p>Year ${yr} on OmpathStudy brings together medical notes, MCQs, flashcards and timed exam practice for students revising by academic year and unit. The page links directly to study notes, practice questions, active-recall cards and exams so crawlers and students can discover the relevant live sections without passing through redirects.</p><nav aria-label="Year ${yr} sections"><a href="/blog?year=Year%20${yr}">Year ${yr} notes</a> <a href="/mcqs?year=Year%20${yr}">Year ${yr} MCQs</a> <a href="/flashcards?year=Year%20${yr}">Year ${yr} flashcards</a> <a href="/exams?year=Year%20${yr}">Year ${yr} exams</a></nav></section>`;
+      bodyExtra = `<section><h2>Year ${yr} resources</h2><p>Year ${yr} on OmpathStudy brings together medical notes, MCQs, flashcards and timed exam practice for students revising by academic year and unit. The page links directly to study notes, practice questions, active-recall cards and exams so crawlers and students can discover the relevant live sections without passing through redirects.</p><nav aria-label="Year ${yr} sections"><a href="/blog?year=Year%20${yr}">Year ${yr} notes</a> <a href="/mcqs?year=Year%20${yr}">Year ${yr} MCQs</a> <a href="/flashcards?year=Year%20${yr}">Year ${yr} flashcards</a> <a href="/exams?year=Year%20${yr}">Year ${yr} exams</a></nav></section>${await buildLiveIndexLinks("year", yr)}`;
     }
 
     const html = buildHtml({
