@@ -483,6 +483,7 @@ function buildHtml(opts: {
   const keywords = opts.keywords ? htmlEscape(opts.keywords) : "";
   const type = opts.type || "website";
 
+  const bodyExtra = opts.bodyExtra ? opts.bodyExtra.slice(0, 120000) : "";
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -507,7 +508,7 @@ function buildHtml(opts: {
   <body>
     <h1>${title}</h1>
     <p>${desc}</p>
-    ${opts.bodyExtra || ""}
+    ${bodyExtra}
     <nav aria-label="Site links"><a href="/">Home</a> <a href="/blog">Study notes</a> <a href="/mcqs">MCQs</a> <a href="/flashcards">Flashcards</a> <a href="/exams">Exams</a> <a href="/stories">Stories</a></nav>
     <a href="${url}">View on OmpathStudy</a>
   </body>
