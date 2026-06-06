@@ -108,9 +108,23 @@ function toMetaTitle(input: string, fallback = "Medical Study Resource"): string
 }
 
 function toMetaDescription(input: string, fallback: string): string {
-  const clean = cleanForMetaSnippet(input || fallback).replace(/\s+/g, " ").trim();
+  const clean = cleanForMetaSnippet(input || fallback)
+    .replace(/\s*[-–—]{2,}\s*/g, " — ")
+    .replace(/\s+/g, " ")
+    .trim();
   const value = clean.length >= 50 ? clean : fallback;
   return value.length <= 155 ? value : value.slice(0, 152).trimEnd() + "...";
+}
+
+function articleDescription(article: Record<string, string>): string {
+  const title = cleanForMetaSnippet(article.title || "");
+  const fallback = `${title} study notes with key clinical points, exam-focused explanations and revision support for medical students.`;
+  let provided = cleanForMetaSnippet(article.meta_description || "").replace(/\s*[-–—]{2,}\s*/g, " — ").trim();
+  if (title && provided.toLowerCase().startsWith(title.toLowerCase())) {
+    provided = provided.slice(title.length).replace(/^\s*[|:;,.–—-]+\s*/, "").trim();
+  }
+  const fromContent = cleanForMetaSnippet(article.content || "");
+  return toMetaDescription(provided || fromContent, fallback);
 }
 
 function htmlEscape(s: string): string {
