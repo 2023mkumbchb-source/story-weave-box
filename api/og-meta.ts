@@ -639,11 +639,7 @@ export default async function handler(req: Request): Promise<Response> {
         return permanentRedirect(await closestLivePath("articles", param, "/blog", "article"));
       }
       const rawTitle = article.meta_title || article.title;
-      const rawDesc = article.meta_description || article.content || "";
-      const cleanDesc = toMetaDescription(
-        rawDesc,
-        `Study ${article.title} with OmpathStudy — medical notes and practice questions for students in Kenya.`
-      );
+      const cleanDesc = articleDescription(article);
 
       title = toMetaTitle(rawTitle, article.title);
       description = cleanDesc;
