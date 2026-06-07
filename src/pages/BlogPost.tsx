@@ -417,7 +417,8 @@ function pickReviewer(seed: string): string {
 }
 
 function cleanMetaTitle(article: Article): string {
-  const raw = (article.meta_title?.trim() || article.title || "Study Notes").replace(/^#+\s*/, "").replace(/\s+/g, " ").trim();
+  // Default to the article title — keeps SEO titles aligned with what readers see.
+  const raw = (article.title?.trim() || article.meta_title?.trim() || "Study Notes").replace(/^#+\s*/, "").replace(/\s+/g, " ").trim();
   return raw.length <= 60 ? raw : `${raw.slice(0, 57).trimEnd()}...`;
 }
 
