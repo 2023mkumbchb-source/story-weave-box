@@ -132,54 +132,41 @@
 
   .article-reader th,
   .article-reader td {
-    overflow-wrap: normal;
+    overflow-wrap: anywhere;
     word-break: normal;
+    hyphens: auto;
   }
 
   @media (max-width: 640px) {
     .article-reader .article-data-table {
-      min-width: 0;
+      min-width: 100%;
+      table-layout: fixed;
+      font-size: 0.9rem;
     }
-    .article-reader .article-data-table thead {
-      @apply sr-only;
-    }
-    .article-reader .article-data-table,
-    .article-reader .article-data-table tbody,
-    .article-reader .article-data-table tr,
+    .article-reader .article-data-table th,
     .article-reader .article-data-table td {
-      display: block;
-      width: 100%;
-    }
-    .article-reader .article-data-table tr {
-      border-bottom: 1px solid hsl(var(--border));
-      padding: 0.5rem 0;
-    }
-    .article-reader .article-data-table td {
-      display: block;
-      gap: 0.75rem;
-      padding: 0.625rem 1rem;
+      padding: 0.72rem 0.7rem;
       overflow-wrap: anywhere;
       word-break: break-word;
+      line-height: 1.45;
     }
-    .article-reader .article-data-table td[data-label] {
-      display: grid;
-      grid-template-columns: minmax(5.25rem, 32%) minmax(0, 1fr);
-      align-items: start;
-      gap: 0.6rem;
+    .article-reader .article-data-table th {
+      font-size: 0.78rem;
+      line-height: 1.25;
+      white-space: normal;
     }
-    .article-reader .article-data-table td::before {
-      content: "";
-      display: none;
+    .article-reader .article-data-table[data-columns="2"] col {
+      width: 50%;
     }
-    .article-reader .article-data-table td[data-label]::before {
-      content: attr(data-label);
-      display: block;
-      color: hsl(var(--muted-foreground));
-      font-size: 0.68rem;
-      font-weight: 700;
-      line-height: 1.35;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+    .article-reader .article-data-table[data-columns="3"] {
+      min-width: 560px;
+      table-layout: auto;
+    }
+    .article-reader .article-data-table[data-columns="4"],
+    .article-reader .article-data-table[data-columns="5"],
+    .article-reader .article-data-table[data-columns="6"] {
+      min-width: 720px;
+      table-layout: auto;
     }
   }
 }
