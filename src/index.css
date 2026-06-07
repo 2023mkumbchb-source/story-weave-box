@@ -163,7 +163,9 @@
     }
     .article-reader .article-data-table td[data-label] {
       display: grid;
-      grid-template-columns: minmax(7.5rem, 38%) minmax(0, 1fr);
+      grid-template-columns: minmax(5.25rem, 32%) minmax(0, 1fr);
+      align-items: start;
+      gap: 0.6rem;
     }
     .article-reader .article-data-table td::before {
       content: "";
@@ -173,10 +175,11 @@
       content: attr(data-label);
       display: block;
       color: hsl(var(--muted-foreground));
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       font-weight: 700;
       line-height: 1.35;
       text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
   }
 }
