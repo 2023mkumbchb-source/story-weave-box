@@ -93,24 +93,25 @@ function TableBlock({ lines }: { lines: string[] }) {
   };
   const dataLines = lines.filter(l => !isSep(l));
   if (dataLines.length < 1) return null;
-  // Detect a separator line in the original input — required for a real header.
+  // Only treat first row as header if a real markdown separator (|---|---|) exists.
+  // Without a separator, authors often put data in row 1 — using it as a header
+  // makes mobile labels useless ("HEMIPLEGIC GAIT" repeated on every row).
   const hasSeparator = lines.some(isSep);
   const [firstLine, ...restLines] = dataLines;
   const firstRow = parseRow(firstLine);
   const firstIsEmpty = firstRow.every((c) => !c || /^[\s-:]*$/.test(c));
-  const looksLikeHeader = firstRow.length > 1 && restLines.length > 0 && firstRow.every((c) => c.length > 0 && c.length <= 48) && !firstRow.some((c) => /[.!?]$/.test(c));
-  // If no separator OR header row is empty, treat every row as body and skip thead.
-  const useHeader = (hasSeparator || looksLikeHeader) && !firstIsEmpty;
+  const useHeader = hasSeparator && !firstIsEmpty;
   const rows = (useHeader ? restLines : dataLines).map(parseRow).filter((row) => row.some(Boolean));
   const colCount = Math.max(firstRow.length, ...rows.map((r) => r.length));
   const headers = Array.from({ length: colCount }, (_, i) => (useHeader ? firstRow[i] : "") || fallbackHeader(i, colCount));
-  const hasMeaningfulHeader = useHeader && headers.some((h) => h && !/^Column\s+\d+$/i.test(h));
+  // Always render mobile labels — either real headers, or generic Topic/Details fallbacks.
+  const hasMeaningfulHeader = true;
   if (!rows.length) return null;
 
   return (
-    <div className="not-prose my-6 -mx-5 overflow-hidden border-y border-border bg-card sm:mx-0 sm:rounded-lg sm:border">
+    <div className="not-prose my-6 -mx-4 overflow-hidden border-y border-border bg-card sm:mx-0 sm:rounded-lg sm:border">
       <div className="overflow-x-auto">
-      <table className="article-data-table w-full min-w-[560px] border-collapse text-sm">
+      <table className="article-data-table w-full min-w-[480px] border-collapse text-sm">
         {useHeader && (
           <thead>
             <tr className="border-b border-border bg-muted/60">
@@ -416,7 +417,8 @@ function pickReviewer(seed: string): string {
 }
 
 function cleanMetaTitle(article: Article): string {
-  const raw = (article.meta_title?.trim() || article.title || "Study Notes").replace(/^#+\s*/, "").replace(/\s+/g, " ").trim();
+  // Default to the article title — keeps SEO titles aligned with what readers see.
+  const raw = (article.title?.trim() || article.meta_title?.trim() || "Study Notes").replace(/^#+\s*/, "").replace(/\s+/g, " ").trim();
   return raw.length <= 60 ? raw : `${raw.slice(0, 57).trimEnd()}...`;
 }
 
