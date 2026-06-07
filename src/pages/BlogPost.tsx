@@ -104,29 +104,28 @@ function TableBlock({ lines }: { lines: string[] }) {
   const rows = (useHeader ? restLines : dataLines).map(parseRow).filter((row) => row.some(Boolean));
   const colCount = Math.max(firstRow.length, ...rows.map((r) => r.length));
   const headers = Array.from({ length: colCount }, (_, i) => (useHeader ? firstRow[i] : "") || fallbackHeader(i, colCount));
-  // Always render mobile labels — either real headers, or generic Topic/Details fallbacks.
-  const hasMeaningfulHeader = true;
   if (!rows.length) return null;
 
   return (
-    <div className="not-prose my-6 -mx-4 overflow-hidden border-y border-border bg-card sm:mx-0 sm:rounded-lg sm:border">
+    <div className="not-prose my-6 overflow-hidden border-y border-border bg-card sm:rounded-lg sm:border">
       <div className="overflow-x-auto">
-      <table className="article-data-table w-full min-w-[480px] border-collapse text-sm">
-        {useHeader && (
-          <thead>
-            <tr className="border-b border-border bg-muted/60">
-              {Array.from({ length: colCount }).map((_, i) => (
-                <th
-                  key={i}
-                  scope="col"
-                  className="whitespace-nowrap px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-foreground"
-                >
-                  <Inline text={headers[i] || ""} />
-                </th>
-              ))}
-            </tr>
-          </thead>
-        )}
+      <table className="article-data-table w-full border-collapse text-sm" data-columns={colCount}>
+        <colgroup>
+          {Array.from({ length: colCount }).map((_, i) => <col key={i} />)}
+        </colgroup>
+        <thead>
+          <tr className="border-b border-border bg-muted/60">
+            {Array.from({ length: colCount }).map((_, i) => (
+              <th
+                key={i}
+                scope="col"
+                className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-foreground"
+              >
+                <Inline text={headers[i] || ""} />
+              </th>
+            ))}
+          </tr>
+        </thead>
         <tbody>
           {rows.map((row, ri) => (
             <tr key={ri} className="border-b border-border/50 last:border-0 even:bg-muted/20">
@@ -134,7 +133,6 @@ function TableBlock({ lines }: { lines: string[] }) {
                 <td
                   key={ci}
                   className="px-4 py-3 align-top leading-relaxed text-foreground/90"
-                  data-label={hasMeaningfulHeader ? headers[ci] || "" : undefined}
                 >
                   {row[ci] != null ? <Inline text={row[ci]} /> : null}
                 </td>
@@ -144,7 +142,6 @@ function TableBlock({ lines }: { lines: string[] }) {
         </tbody>
       </table>
       </div>
-      <div className="px-4 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground sm:hidden">← Scroll →</div>
     </div>
   );
 }
