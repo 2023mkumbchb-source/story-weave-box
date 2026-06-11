@@ -93,9 +93,6 @@ function TableBlock({ lines }: { lines: string[] }) {
   };
   const dataLines = lines.filter(l => !isSep(l));
   if (dataLines.length < 1) return null;
-  // Only treat first row as header if a real markdown separator (|---|---|) exists.
-  // Without a separator, authors often put data in row 1 — using it as a header
-  // makes mobile labels useless ("HEMIPLEGIC GAIT" repeated on every row).
   const hasSeparator = lines.some(isSep);
   const [firstLine, ...restLines] = dataLines;
   const firstRow = parseRow(firstLine);
@@ -198,7 +195,6 @@ function PracticeQuestion({ number, question, answer }: { number: string; questi
 /* ─── MCQ answer + explanation collapsible (used inside articles) ─── */
 function McqAnswerBlock({ raw }: { raw: string }) {
   const [open, setOpen] = useState(false);
-  // raw begins with the answer line; subsequent lines are the explanation.
   const lines = raw.split("\n");
   const answerLine = (lines.shift() || "").replace(/^✅\s*/, "").replace(/^Answer\s*[:：]\s*/i, "");
   const explanation = lines.join("\n").trim();
@@ -322,7 +318,6 @@ async function findClosestArticle(slugOrParam: string): Promise<{ id: string; ti
 function ClassicHeroInner({
   title, image, date, unit, shareUrl, description, category,
 }: { title: string; image: string; date: string; unit: string; shareUrl: string; description: string; category?: string }) {
-  // Topic-aware fallback so every article has a meaningful cover even without og_image_url
   const topicThumb = useTopicThumbnail(title, category, !image);
   const heroImage = image || topicThumb || "";
   const reviewer = pickReviewer(title);
@@ -332,20 +327,17 @@ function ClassicHeroInner({
       <div className="relative overflow-hidden sm:rounded-2xl bg-neutral-900 shadow-lg ring-1 ring-black/5">
         {heroImage ? (
           <div className="group relative aspect-[4/5] sm:aspect-[16/10] lg:aspect-[21/9] w-full">
-            {/* Blurred backdrop so the real image is never letterboxed awkwardly */}
             <div
               aria-hidden
               className="absolute inset-0 scale-110 bg-cover bg-center blur-2xl opacity-70"
               style={{ backgroundImage: `url(${heroImage})` }}
             />
-            {/* Foreground image with continuous Ken-Burns pan + zoom */}
             <img
               src={heroImage}
               alt={title}
               className="absolute inset-0 h-full w-full object-cover object-center animate-hero-fade animate-hero-kenburns will-change-transform"
               loading="eager"
             />
-            {/* Layered gradients for depth + text legibility */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/10" />
             <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-transparent to-transparent mix-blend-overlay" />
             <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8 lg:p-12 animate-hero-rise">
@@ -415,7 +407,6 @@ function pickReviewer(seed: string): string {
 }
 
 function cleanMetaTitle(article: Article): string {
-  // Default to the article title — keeps SEO titles aligned with what readers see.
   const raw = (article.title?.trim() || article.meta_title?.trim() || "Study Notes").replace(/^#+\s*/, "").replace(/\s+/g, " ").trim();
   return raw.length <= 60 ? raw : `${raw.slice(0, 57).trimEnd()}...`;
 }
@@ -432,6 +423,7 @@ function cleanMetaDescription(article: Article): string {
   const desc = provided.length >= 50 ? provided : fallback;
   return desc.length <= 155 ? desc : `${desc.slice(0, 152).trimEnd()}...`;
 }
+
 function ReviewedBadge({ reviewer, date, onDark }: { reviewer: string; date: string; onDark?: boolean }) {
   const text = onDark ? "text-white/90" : "text-foreground";
   const sub = onDark ? "text-white/70" : "text-muted-foreground";
@@ -450,13 +442,12 @@ function ReviewedBadge({ reviewer, date, onDark }: { reviewer: string; date: str
 
 /* ─── Helpers ─── */
 function splitInlineTable(s: string): string[] {
-  if (!s.includes("|---") && !s.includes("| ---")) return [];
-  return s.replace(/\|\s*\|/g, "|\n|").split("\n").map(r => r.trim()).filter(r => r.startsWith("|") && r.endsWith("|"));
+  if (!s.includes("|---") && !s.includes("| ---") && !s.includes("|:--") && !s.includes("| :--")) return [];
+  return s.replace(/\|\s*\|/g, "|\n|").split("\n").map(r => r.trim()).filter(r => r.startsWith("|"));
 }
 
 const META_HEADING = /^(key points|detailed notes|summary)$/i;
 
-/* Decode common HTML entities so pasted-from-Word content doesn't show "&nbsp;" literally */
 function decodeEntities(s: string): string {
   if (!s) return s;
   let text = s;
@@ -481,7 +472,6 @@ function decodeEntities(s: string): string {
   return text;
 }
 
-/* Strip generic university/course-code branding so it never reaches the reader */
 function stripBranding(s: string): string {
   if (!s) return s;
   return s
@@ -546,19 +536,22 @@ function splitMalformedHeading(raw: string): { heading: string; extras: string[]
   return { heading: text.replace(/^\d+\.\s*/, "").trim(), extras };
 }
 
+/* ─── Helper: is this line a markdown table row? ─── */
+function isTableRow(s: string): boolean {
+  const t = s.trim();
+  return t.startsWith("|") && t.includes("|", 1);
+}
+
 function preprocessContent(raw: string): string {
   const out: string[] = [];
   let inKeyPoints = false;
   let inFence = false;
 
-  // Decode HTML entities up-front so "&nbsp;" / "&amp;" don't survive into the reader.
   const decoded = decodeEntities(raw);
-
   const sourceLines = decoded.replace(/\r\n?/g, "\n").split("\n");
 
   for (let idx = 0; idx < sourceLines.length; idx++) {
     const rawLine = sourceLines[idx];
-    // Preserve fenced code blocks verbatim — these hold ASCII flowcharts and tables.
     const fenceTrim = rawLine.trim();
     if (/^```/.test(fenceTrim)) {
       out.push("```");
@@ -566,8 +559,14 @@ function preprocessContent(raw: string): string {
       continue;
     }
     if (inFence) {
-      // Keep raw spacing so flowcharts line up.
       out.push(rawLine.replace(/\u00A0/g, " ").replace(/&nbsp;/gi, " ").replace(/\s+$/g, ""));
+      continue;
+    }
+
+    // ── FIX: pass table rows through completely raw (no transforms) ──
+    const trimmedRaw = rawLine.trim().replace(/&nbsp;/gi, " ").replace(/\u00A0/g, " ");
+    if (isTableRow(trimmedRaw)) {
+      out.push(trimmedRaw);
       continue;
     }
 
@@ -580,7 +579,7 @@ function preprocessContent(raw: string): string {
       .replace(/^say\s*:?>\s*"?/i, "")
       .replace(/([:.;!?])(?=\S)/g, "$1 ")
       .replace(/([a-z])(?=(?:Think of|The most|Every reaction|Almost always|This is why|If someone|There are|ABO incompatibility)\b)/g, "$1 ");
-    // Drop branding lines like "MBML 3223 | Semester 3 | Mount Kenya University"
+
     if (isCourseBrandingLine(t)) {
       out.push("");
       continue;
@@ -590,7 +589,6 @@ function preprocessContent(raw: string): string {
     }
     if (!t) { out.push(""); continue; }
 
-    // Common raw paste: a heading marker followed by a real title on the next line.
     if (/^#{1,6}$/.test(t) && sourceLines[idx + 1]?.trim()) {
       const next = cleanHeadingText(decodeEntities(sourceLines[idx + 1].trim()));
       if (next && !META_HEADING.test(next)) {
@@ -600,11 +598,10 @@ function preprocessContent(raw: string): string {
       }
     }
 
-    // Remove orphan fence markers from bad pasted snippets, while preserving actual multi-line code fences above.
     if (/^```+$/.test(t)) { out.push(""); continue; }
 
-    // Convert simple ASCII arrows/flowchart rows into compact flow lines instead of huge raw paragraphs.
-    if (/^(\|+|v+|↓+|[-+|\s]+|\s*\+[-+]+\+\s*)$/i.test(t)) {
+    // ── FIX: exclude lines that look like table separators from the flowchart regex ──
+    if (!isTableRow(t) && /^(\|+|v+|↓+|[-+|\s]+|\s*\+[-+]+\+\s*)$/i.test(t)) {
       out.push(t.includes("+") ? t.replace(/\s+/g, " ") : "↓");
       continue;
     }
@@ -790,7 +787,6 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     const line = lines[i];
     const t = line.trim();
 
-    // Fenced code block: collect verbatim lines, render as <pre>
     if (/^```/.test(t)) {
       if (codeBuf == null) {
         flushList(); flushTable(); flushFlow(); flushPractice(); underSubheading = false;
@@ -804,7 +800,6 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
     if (codeBuf) { codeBuf.push(line); continue; }
 
-    // MCQ answer + explanation → collapse until next MCQ / Question / heading boundary
     if (/^\*{0,2}\s*(✅\s*)?Answer\s*[:：]/i.test(t)) {
       flushList(); flushFlow(); underSubheading = false;
       const buf: string[] = [t.replace(/^\*+/, "").replace(/\*+$/g, "")];
@@ -812,35 +807,29 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       let sawExp = false;
       while (j < lines.length) {
         const nt = lines[j].trim();
-        // Stop at the next question (any of these patterns)
         if (/^(MCQ|Question|Q)\s*\d+/i.test(nt)) break;
         if (/^#{1,6}\s/.test(nt)) break;
         if (/^\*{0,2}\s*(✅\s*)?Answer\s*[:：]/i.test(nt)) break;
-        // Bold-numbered question like **2. Some question:** — common MCQ format
         if (/^\*{1,2}\d+\.\s/.test(nt)) break;
-        // Plain numbered question line ending with ? or :
         if (/^\d+\.\s.{4,}[?:]\s*\*{0,2}$/.test(nt)) break;
-        // Blank line AFTER we've already captured the explanation = end of this MCQ
         if (!nt) {
           if (sawExp) break;
           buf.push(lines[j]);
           j++;
           continue;
         }
-        // Option bullet ("- A. Foo") that isn't the explanation: signals next question's options
         if (sawExp && /^-\s+[A-E][\.\)]\s/.test(nt)) break;
         buf.push(lines[j]);
         if (/^\*{0,2}\s*Explanation\s*[:：]/i.test(nt)) sawExp = true;
         j++;
       }
-      // trim trailing blank lines
       while (buf.length && !buf[buf.length - 1].trim()) buf.pop();
       els.push(<McqAnswerBlock key={`mcq-${i}`} raw={buf.join("\n")} />);
       skipUntil = j;
       continue;
     }
 
-    const flowLike = /^(↓|v|\||\+[-+]+\+|[-+|\s]{3,})$/i.test(t) || (/^[A-Za-z0-9()\/,.'’\-\s]+$/.test(t) && /^(STEP\s+\d+|[A-Z][A-Z\s\-]{4,}|Compatible\s+Incompatible|AHR\s+FNHR|Packed\s+Platelet|Hypothermia\s+Dilutional)/.test(t));
+    const flowLike = /^(↓|v|\+[-+]+\+|[-+|\s]{3,})$/i.test(t) || (/^[A-Za-z0-9()\/,.''\-\s]+$/.test(t) && /^(STEP\s+\d+|[A-Z][A-Z\s\-]{4,}|Compatible\s+Incompatible|AHR\s+FNHR|Packed\s+Platelet|Hypothermia\s+Dilutional)/.test(t));
     if (t.startsWith("|")) { flushList(); flushFlow(); tableBuf.push(t); underSubheading = false; continue; }
     else if (tableBuf.length) { flushTable(); }
 
@@ -1016,7 +1005,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
 
     els.push(<p key={`p-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
   }
-  // Flush dangling code block (if author forgot closing fence)
+
   if (codeBuf && codeBuf.length) {
     els.push(<FlowBlock key="code-tail-flow" lines={codeBuf} />);
   }
@@ -1061,7 +1050,7 @@ export default function BlogPost() {
   useHashFlash();
 
   const [article, setArticle] = useState<Article | null>(null);
-  const [notFound, setNotFound] = useState(false); // ✅ track not-found separately
+  const [notFound, setNotFound] = useState(false);
   const [isOffline, setIsOffline] = useState(typeof navigator !== "undefined" ? !navigator.onLine : false);
   const [suggestion, setSuggestion] = useState<{ id: string; title: string; path: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1085,7 +1074,6 @@ export default function BlogPost() {
   };
 
   useLayoutEffect(() => {
-    // If this is a page reload, restore the saved scroll position for this article instead of resetting to top.
     let isReload = false;
     try {
       const navEntry = (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined);
@@ -1129,7 +1117,6 @@ export default function BlogPost() {
     };
   }, [slug, location.key, article?.id]);
 
-  // Continuously persist scroll position so a refresh can restore it.
   useEffect(() => {
     if (!slug) return;
     const key = `blog_scroll_${slug}`;
@@ -1221,7 +1208,11 @@ export default function BlogPost() {
 
       const contentWithoutTopImage = article.content.replace(/^!\[[^\]]*\]\([^)]+\)\s*\n*/m, "").trimStart();
       const imageAlt = article.title.replace(/\s+/g, " ").trim() || "Medical illustration";
-      const newContent = `![${imageAlt}](${imageDataUrl})\n\n${contentWithoutTopImage}`;
+      const newContent = `
+
+![${imageAlt}](${imageDataUrl})
+
+\n\n${contentWithoutTopImage}`;
 
       const { error: applyError } = await supabase.functions.invoke("content-upgrade", {
         body: { action: "apply", id: article.id, title: article.title, content: newContent },
@@ -1329,10 +1320,8 @@ export default function BlogPost() {
       .then((a) => {
         if (!a) {
           setNotFound(true);
-          // Try to redirect to the closest published article by token overlap.
           findClosestArticle(slug).then((match) => {
             if (!match) return;
-            // Strong match → redirect immediately. Weak match → just suggest.
             if (match.score >= 0.6) {
               navigate(match.path, { replace: true });
             } else {
@@ -1352,7 +1341,6 @@ export default function BlogPost() {
           return;
         }
 
-        // Remove noindex if article found
         const noindex = document.querySelector('meta[name="robots"]');
         if (noindex) noindex.remove();
 
@@ -1365,7 +1353,6 @@ export default function BlogPost() {
       .finally(() => setLoading(false));
   }, [slug, navigate, location.pathname]);
 
-  // Track offline/online so we can show a clearer message instead of "Not found".
   useEffect(() => {
     const goOffline = () => setIsOffline(true);
     const goOnline = () => setIsOffline(false);
@@ -1442,7 +1429,6 @@ export default function BlogPost() {
     return <div className="flex min-h-[65vh] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
 
-  // ✅ FIXED: clean not-found page, no debug info, noindex already set above
   if (notFound || !article) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-20 text-center">
