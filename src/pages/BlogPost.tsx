@@ -82,7 +82,7 @@ function ReadingProgress() {
 
 /* ─── Markdown table ─── */
 function TableBlock({ lines }: { lines: string[] }) {
-  const isSep = (l: string) => /^\|[\s\-:|]+\|$/.test(l.trim());
+  const isSep = (l: string) => /^\|[\s\-:|]+(\|[\s\-:|]+)+\|?$/.test(l.trim());
   const parseRow = (l: string) =>
     l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
   const fallbackHeader = (index: number, total: number) => {
@@ -109,7 +109,8 @@ function TableBlock({ lines }: { lines: string[] }) {
   return (
     <div className="not-prose my-6 overflow-hidden border-y border-border bg-card sm:rounded-lg sm:border">
       <div className="overflow-x-auto">
-      <table className="article-data-table w-full border-collapse text-sm" data-columns={colCount}>
+      <table className="article-data-table min-w-full border-collapse text-sm"
+style={{ minWidth: colCount <= 2 ? "420px" : "560px" }} data-columns={colCount}>
         <colgroup>
           {Array.from({ length: colCount }).map((_, i) => <col key={i} />)}
         </colgroup>
