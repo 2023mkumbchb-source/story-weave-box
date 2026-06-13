@@ -154,8 +154,7 @@ export default function ExamStart() {
       }
       const unlockedRaw = localStorage.getItem(UNLOCKED_KEY);
       const unlocked = new Set<string>(unlockedRaw ? JSON.parse(unlockedRaw) : []);
-      if (!resolvedId || !unlocked.has(resolvedId)) { navigate("/exams"); return; }
-      if (!data) { navigate("/exams"); return; }
+      if (!resolvedId || !data) { navigate("/exams"); return; }
       setExamId(resolvedId);
       setExam(data as unknown as ExamSet);
       setLoading(false);
