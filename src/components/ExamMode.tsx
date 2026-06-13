@@ -573,8 +573,14 @@ export default function ExamMode({
       <div className="mx-auto max-w-2xl px-3 sm:px-6 py-4 pb-28 space-y-3">
         {questions.map((q, qi) => {
           const selected = answers.get(qi);
+          const lockedByPaywall = freeLimit > 0 && !isPaid && qi >= freeLimit;
           return (
-            <div key={qi} className={`rounded-xl border p-3 transition-colors ${selected !== undefined ? "border-primary/30 bg-primary/5" : "border-border bg-card"}`}>
+            <div key={qi} className={`relative rounded-xl border p-3 transition-colors ${
+              selected !== undefined ? "border-primary/30 bg-primary/5" : "border-border bg-card"
+            } ${lockedByPaywall ? "select-none" : ""}`}
+              style={lockedByPaywall ? { filter: "blur(6px)", opacity: 0.55, pointerEvents: "none" } : undefined}
+              aria-hidden={lockedByPaywall || undefined}
+            >
               <div className="flex items-start gap-2 mb-2">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">{qi + 1}</span>
                 <p className="text-xs sm:text-sm font-medium text-foreground leading-relaxed break-words">{q.question}</p>
@@ -582,6 +588,7 @@ export default function ExamMode({
               <div className="space-y-1 ml-8">
                 {q.options.map((opt, oi) => (
                   <button key={oi} onClick={() => selectAnswer(qi, oi)}
+                    disabled={lockedByPaywall}
                     className={`w-full flex items-start gap-1.5 rounded-lg border p-2 text-xs sm:text-sm text-left transition-colors ${
                       selected === oi ? "border-primary bg-primary/10 text-primary font-medium" : "border-border bg-card hover:border-primary/40 hover:bg-primary/5"
                     }`}>
@@ -595,6 +602,59 @@ export default function ExamMode({
             </div>
           );
         })}
+
+        {/* Mid-exam paywall — fixed sticky card while paywalled */}
+        {isPaywalled && (
+          <div className="fixed inset-0 z-40 flex items-start justify-center bg-background/40 backdrop-blur-sm px-3 py-16 overflow-y-auto">
+            <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
+              className="w-full max-w-md rounded-3xl border border-primary/30 bg-card p-6 shadow-2xl text-center">
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-lg">
+                <Lock className="h-6 w-6" />
+              </div>
+              <h3 className="mb-1 font-serif text-xl font-bold text-foreground">Unlock the full exam</h3>
+              <p className="mb-1 text-sm text-muted-foreground">
+                You've answered <strong className="text-foreground">{freeLimit}</strong> free questions.
+              </p>
+              <p className="mb-1 text-sm text-muted-foreground">
+                Pay <strong className="text-foreground">KES {examPrice}</strong> via M-Pesa to continue.
+              </p>
+              <p className="mb-5 text-[11px] text-amber-600 dark:text-amber-400">⏸ Timer is paused while you pay.</p>
+
+              {paymentStatus === "pending" ? (
+                <div className="w-full rounded-2xl border border-primary/30 bg-primary/10 p-4">
+                  <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
+                  <p className="mt-2 text-sm font-medium text-foreground">Check your phone</p>
+                  <p className="text-xs text-muted-foreground">Enter your M-Pesa PIN to complete.</p>
+                </div>
+              ) : paymentStatus === "failed" ? (
+                <div className="w-full rounded-2xl border border-destructive/30 bg-destructive/10 p-4">
+                  <p className="text-sm font-medium text-foreground">Payment failed</p>
+                  <Button size="sm" variant="outline" className="mt-2" onClick={onRetryPay}>Try again</Button>
+                </div>
+              ) : paymentStatus === "completed" ? (
+                <div className="w-full rounded-2xl border border-primary/30 bg-primary/10 p-4">
+                  <CheckCircle className="mx-auto h-5 w-5 text-primary" />
+                  <p className="mt-2 text-sm font-medium text-foreground">Unlocked! Continue your exam.</p>
+                </div>
+              ) : (
+                <div className="w-full space-y-3">
+                  <Input
+                    type="tel"
+                    placeholder="Safaricom number e.g. 0712 345 678"
+                    value={phoneInput}
+                    onChange={(e) => onPhoneChange?.(e.target.value)}
+                    className="text-center h-11"
+                  />
+                  <Button onClick={onPay} disabled={!phoneInput.trim()} size="lg"
+                    className="w-full gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
+                    <Phone className="h-4 w-4" /> Pay KES {examPrice} via M-Pesa
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground">Your answers and timer are saved.</p>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
       </div>
 
       {/* Bottom bar — NO blinking, NO animate-pulse */}
