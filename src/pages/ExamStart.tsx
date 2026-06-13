@@ -7,7 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import ExamMode from "@/components/ExamMode";
 import { Helmet } from "react-helmet-async";
 import { extractIdFromParam, getSetting } from "@/lib/store";
-import { supabase } from "@/integrations/supabase/client";
 
 interface ExamSet {
   id: string;
