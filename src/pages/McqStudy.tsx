@@ -70,7 +70,7 @@ export default function McqStudy() {
   const [examMode, setExamMode] = useState(false);
 
   // Paywall state
-  const [mcqFreeLimit, setMcqFreeLimit] = useState(10);
+  const [mcqFreeLimit, setMcqFreeLimit] = useState(15);
   const [mcqPrice, setMcqPrice] = useState(10);
   const [isPaid, setIsPaid] = useState(false);
   const [phoneInput, setPhoneInput] = useState("");
@@ -340,8 +340,7 @@ export default function McqStudy() {
         </div>
       )}
 
-      <KeywordLinkProvider>
-        <McqViewer
+      <McqViewer
           questions={set.questions}
           title={set.title}
           setId={set.id}
@@ -356,7 +355,6 @@ export default function McqStudy() {
           onPay={handlePay}
           onRetryPay={() => setPaymentStatus("idle")}
         />
-      </KeywordLinkProvider>
     </div>
   );
 }

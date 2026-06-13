@@ -74,6 +74,8 @@ function cleanQuestionText(text: string | undefined): string {
     .replace(/^#{1,6}\s+/gm, "")
     .replace(/^Question\s*\d+\s*/i, "")
     .replace(/\s*Choices:\s*$/i, "")
+    .replace(/\*+/g, "")
+    .replace(/_{2,}/g, "")
     .replace(/\s{2,}/g, " ")
     .trim();
 }
@@ -82,12 +84,21 @@ function cleanMcqOption(text: string | undefined): string {
   return String(text || "")
     .replace(/&amp;nbsp;|&nbsp;|\u00A0/gi, " ")
     .replace(/^\s*[A-E][.)]\s*/i, "")
+    .replace(/\*+/g, "")
+    .replace(/_{2,}/g, "")
     .replace(/\s{2,}/g, " ")
     .trim();
 }
 
 function isMcqQuestion(q: McqQuestion | undefined): q is McqQuestion & { options: string[]; correct_answer: number } {
-  return !!q && Array.isArray(q.options) && q.options.length >= 2 && typeof q.correct_answer === "number";
+  return (
+    !!q &&
+    Array.isArray(q.options) &&
+    q.options.length >= 2 &&
+    typeof q.correct_answer === "number" &&
+    q.correct_answer >= 0 &&
+    q.correct_answer < q.options.length
+  );
 }
 
 
