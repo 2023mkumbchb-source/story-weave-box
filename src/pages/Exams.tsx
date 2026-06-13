@@ -250,53 +250,17 @@ export default function Exams() {
                     </p>
                   </div>
                   <span className="rounded-full border border-border bg-secondary px-3 py-1 text-[10px] font-semibold text-foreground">
-                    {isSample ? "FREE SAMPLE" : unlocked ? "UNLOCKED" : `KES ${examPrice}`}
+                    {isSample ? "FREE SAMPLE" : unlocked ? "UNLOCKED" : `15 FREE · KES ${examPrice}`}
                   </span>
                 </div>
 
-                {/* ── All payment/unlock logic is IDENTICAL to original ── */}
-                {unlocked ? (
-                  <Button onClick={() => navigate(isSample ? `/exams/${exam.id}/start` : buildExamPath(exam))} className="w-full gap-2">
-                    <Shield className="h-4 w-4" /> Start Exam <ArrowRight className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <div className="space-y-3">
-                    {isCurrentPayment && paymentStatus === "pending" ? (
-                      <div className="rounded-xl border border-primary/30 bg-primary/10 p-4 text-center">
-                        <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
-                        <p className="mt-2 text-sm font-medium text-foreground">Waiting for M-Pesa confirmation…</p>
-                        <p className="text-xs text-muted-foreground">Complete STK prompt on your phone.</p>
-                      </div>
-                    ) : isCurrentPayment && paymentStatus === "failed" ? (
-                      <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-center">
-                        <p className="text-sm font-medium text-foreground">Payment failed</p>
-                        <Button size="sm" variant="outline" className="mt-2" onClick={() => setPaymentStatus("idle")}>Try again</Button>
-                      </div>
-                    ) : isCurrentPayment && paymentStatus === "completed" ? (
-                      <div className="rounded-xl border border-primary/30 bg-primary/10 p-4 text-center">
-                        <CheckCircle className="mx-auto h-5 w-5 text-primary" />
-                        <p className="mt-2 text-sm font-medium text-foreground">Payment confirmed.</p>
-                        <Button onClick={() => navigate(isSample ? `/exams/${exam.id}/start` : buildExamPath(exam))} className="mt-2 gap-2">
-                          <Sparkles className="h-4 w-4" /> Continue to Start Page
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                        <Input
-                          type="tel"
-                          placeholder="07XX XXX XXX"
-                          value={phoneByExamId[exam.id] || ""}
-                          onChange={(e) => setPhoneByExamId((prev) => ({ ...prev, [exam.id]: e.target.value }))}
-                        />
-                        <Button onClick={() => handlePay(exam)} disabled={paying || !(phoneByExamId[exam.id] || "").trim()} className="gap-2">
-                          <Phone className="h-4 w-4" /> Pay KES {examPrice}
-                        </Button>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5" />
-                      Unlock is saved on this device after successful payment.
-                    </div>
+                <Button onClick={() => navigate(isSample ? `/exams/${exam.id}/start` : buildExamPath(exam))} className="w-full gap-2">
+                  <Shield className="h-4 w-4" /> Start Exam <ArrowRight className="h-4 w-4" />
+                </Button>
+                {!isSample && !unlocked && (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" />
+                    First 15 questions are free. Pay KES {examPrice} inside the exam to unlock the rest.
                   </div>
                 )}
               </motion.div>
