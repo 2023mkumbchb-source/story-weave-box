@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import McqViewer from "@/components/McqViewer";
 import ExamMode from "@/components/ExamMode";
-import { KeywordLinkProvider } from "@/lib/keyword-link";
 import { useHashFlash } from "@/lib/deep-link";
 import { markMcqVisited } from "@/lib/progress-store";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,7 +69,7 @@ export default function McqStudy() {
   const [examMode, setExamMode] = useState(false);
 
   // Paywall state
-  const [mcqFreeLimit, setMcqFreeLimit] = useState(10);
+  const [mcqFreeLimit, setMcqFreeLimit] = useState(15);
   const [mcqPrice, setMcqPrice] = useState(10);
   const [isPaid, setIsPaid] = useState(false);
   const [phoneInput, setPhoneInput] = useState("");
@@ -340,8 +339,7 @@ export default function McqStudy() {
         </div>
       )}
 
-      <KeywordLinkProvider>
-        <McqViewer
+      <McqViewer
           questions={set.questions}
           title={set.title}
           setId={set.id}
@@ -356,7 +354,6 @@ export default function McqStudy() {
           onPay={handlePay}
           onRetryPay={() => setPaymentStatus("idle")}
         />
-      </KeywordLinkProvider>
     </div>
   );
 }

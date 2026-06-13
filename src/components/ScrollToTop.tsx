@@ -85,11 +85,25 @@ export default function ScrollToTop() {
     const savedPos = getScrollPosition(pathname + search);
     
     if (isPopState && savedPos > 0) {
-      // Restore scroll position on back/forward
-      const restore = () => window.scrollTo({ top: savedPos, left: 0, behavior: "auto" });
-      const raf = requestAnimationFrame(restore);
-      const t = window.setTimeout(restore, 100);
-      return () => { cancelAnimationFrame(raf); clearTimeout(t); };
+      // Restore scroll position on back/forward — retry as content loads
+      const timers: number[] = [];
+      const rafs: number[] = [];
+      const restore = () => {
+        const max = Math.max(
+          document.documentElement.scrollHeight,
+          document.body.scrollHeight,
+        ) - window.innerHeight;
+        const target = Math.min(savedPos, Math.max(0, max));
+        window.scrollTo({ top: target, left: 0, behavior: "auto" });
+      };
+      rafs.push(requestAnimationFrame(restore));
+      [50, 150, 350, 700, 1200, 2000].forEach((d) => {
+        timers.push(window.setTimeout(restore, d));
+      });
+      return () => {
+        rafs.forEach(cancelAnimationFrame);
+        timers.forEach(clearTimeout);
+      };
     }
 
     // New navigation - scroll to top
