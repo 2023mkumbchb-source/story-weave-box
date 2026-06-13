@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import ExamMode from "@/components/ExamMode";
 import { Helmet } from "react-helmet-async";
-import { extractIdFromParam } from "@/lib/store";
+import { extractIdFromParam, getSetting } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ExamSet {
   id: string;
@@ -23,6 +24,7 @@ interface StudentInfo {
 
 const UNLOCKED_KEY = "unlocked_exams";
 const STUDENT_CREDS_KEY = "student_credentials";
+const EXAM_FREE_LIMIT = 15;
 
 // ── credential helpers ───────────────────────────────────────
 function loadCreds(): StudentInfo | null {
@@ -125,6 +127,76 @@ export default function ExamStart() {
   const [customCourseInput, setCustomCourseInput] = useState("");
   const [submittingUni, setSubmittingUni] = useState(false);
   const [submittingCourse, setSubmittingCourse] = useState(false);
+
+  // Payment state — exam is free to start; paywall triggers at Q15 inside ExamMode
+  const [examPrice, setExamPrice] = useState(5);
+  const [isPaid, setIsPaid] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState<"idle" | "pending" | "completed" | "failed">("idle");
+
+  // Load price + restore unlock status
+  useEffect(() => {
+    getSetting("exam_price").then((p) => {
+      if (p && !isNaN(Number(p))) setExamPrice(Number(p));
+    });
+  }, []);
+  useEffect(() => {
+    if (!examId) return;
+    try {
+      const raw = localStorage.getItem(UNLOCKED_KEY);
+      const set = new Set<string>(raw ? JSON.parse(raw) : []);
+      if (set.has(examId)) setIsPaid(true);
+    } catch {}
+  }, [examId]);
+
+  const persistUnlocked = (id: string) => {
+    try {
+      const raw = localStorage.getItem(UNLOCKED_KEY);
+      const set = new Set<string>(raw ? JSON.parse(raw) : []);
+      set.add(id);
+      localStorage.setItem(UNLOCKED_KEY, JSON.stringify([...set]));
+    } catch {}
+  };
+
+  const pollPayment = (txnId: string) => {
+    let attempts = 0;
+    const pollId = setInterval(async () => {
+      attempts++;
+      if (attempts > 60) { clearInterval(pollId); setPaymentStatus("failed"); return; }
+      try {
+        const resp = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-payment?transaction_id=${encodeURIComponent(txnId)}`,
+          { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" } },
+        );
+        const result = await resp.json();
+        if (!resp.ok) return;
+        if (result.status === "completed") {
+          clearInterval(pollId);
+          setPaymentStatus("completed");
+          setIsPaid(true);
+          if (examId) persistUnlocked(examId);
+        } else if (result.status === "failed") {
+          clearInterval(pollId);
+          setPaymentStatus("failed");
+        }
+      } catch {}
+    }, 2000);
+  };
+
+  const handlePay = async () => {
+    const phone = phoneInput.trim();
+    if (!phone || !examId) return;
+    setPaymentStatus("pending");
+    try {
+      const { data, error } = await supabase.functions.invoke("initiate-payment", {
+        body: { phone, amount: examPrice, package_type: `exam:${examId}` },
+      });
+      if (error || !data?.success) throw new Error(data?.error || error?.message || "Payment failed");
+      pollPayment(data.transaction_id);
+    } catch {
+      setPaymentStatus("failed");
+    }
+  };
 
   // Load exam
   useEffect(() => {
@@ -291,6 +363,14 @@ export default function ExamStart() {
           studentInfo={studentInfo}
           unitName={unitName}
           onExit={() => setStarted(false)}
+          freeLimit={exam.id === "sample-exam" ? 0 : EXAM_FREE_LIMIT}
+          examPrice={examPrice}
+          isPaid={isPaid || exam.id === "sample-exam"}
+          paymentStatus={paymentStatus}
+          phoneInput={phoneInput}
+          onPhoneChange={setPhoneInput}
+          onPay={handlePay}
+          onRetryPay={() => setPaymentStatus("idle")}
         />
       </>
     );
