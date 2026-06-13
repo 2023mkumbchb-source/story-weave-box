@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import McqViewer from "@/components/McqViewer";
 import ExamMode from "@/components/ExamMode";
-import { KeywordLinkProvider } from "@/lib/keyword-link";
 import { useHashFlash } from "@/lib/deep-link";
 import { markMcqVisited } from "@/lib/progress-store";
 import { supabase } from "@/integrations/supabase/client";
