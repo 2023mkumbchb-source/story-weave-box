@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, X, Lightbulb, Clock, AlertTriangle, Shield, LogOut, Lock, CheckCircle } from "lucide-react";
+import { Check, X, Lightbulb, Clock, AlertTriangle, Shield, LogOut, Lock, CheckCircle, Phone, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { trackAnswer } from "@/lib/answer-tracker";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -26,6 +27,14 @@ interface Props {
   studentInfo?: StudentInfo;
   unitName?: string;
   onExit: () => void;
+  freeLimit?: number;
+  examPrice?: number;
+  isPaid?: boolean;
+  paymentStatus?: "idle" | "pending" | "completed" | "failed";
+  phoneInput?: string;
+  onPhoneChange?: (v: string) => void;
+  onPay?: () => void;
+  onRetryPay?: () => void;
 }
 
 // ── Persistence ──────────────────────────────────────────────────────────────
@@ -102,6 +111,14 @@ export default function ExamMode({
   questions, title, setId,
   timeLimitMinutes, studentInfo, unitName,
   onExit,
+  freeLimit = 0,
+  examPrice = 5,
+  isPaid = true,
+  paymentStatus = "idle",
+  phoneInput = "",
+  onPhoneChange,
+  onPay,
+  onRetryPay,
 }: Props) {
   const [answers, setAnswers] = useState<Map<number, number>>(new Map());
   const [submitted, setSubmitted] = useState(false);
@@ -118,6 +135,21 @@ export default function ExamMode({
 
   const timeLimit = timeLimitMinutes ? timeLimitMinutes * 60 : undefined;
   const remaining = timeLimit ? Math.max(0, timeLimit - elapsed) : undefined;
+
+  // Paywall — exam free up to freeLimit MCQs, then paused until isPaid
+  const isPaywalled = freeLimit > 0 && !isPaid && answers.size >= freeLimit;
+  const [pausedMs, setPausedMs] = useState(0);
+  const pauseStartRef = useRef<number | null>(null);
+
+  // Track time spent in paywall so the timer pauses
+  useEffect(() => {
+    if (isPaywalled && pauseStartRef.current === null) {
+      pauseStartRef.current = Date.now();
+    } else if (!isPaywalled && pauseStartRef.current !== null) {
+      setPausedMs((p) => p + (Date.now() - (pauseStartRef.current as number)));
+      pauseStartRef.current = null;
+    }
+  }, [isPaywalled]);
 
   // ── On mount: restore submitted result or in-progress session ──
   useEffect(() => {
@@ -147,9 +179,12 @@ export default function ExamMode({
   // ── Timer ──
   useEffect(() => {
     if (submitted) return;
-    const id = setInterval(() => setElapsed(Math.floor((Date.now() - startTime) / 1000)), 1000);
+    const id = setInterval(() => {
+      const pauseAdj = pausedMs + (pauseStartRef.current ? Date.now() - pauseStartRef.current : 0);
+      setElapsed(Math.max(0, Math.floor((Date.now() - startTime - pauseAdj) / 1000)));
+    }, 1000);
     return () => clearInterval(id);
-  }, [startTime, submitted]);
+  }, [startTime, submitted, pausedMs, isPaywalled]);
 
   // ── Persist in-progress session ──
   useEffect(() => {
