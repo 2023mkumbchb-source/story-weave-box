@@ -1694,3 +1694,28 @@ export default function BlogPost() {
     </>
   );
 }
+
+function RelatedMarquee({ articles }: { articles: any[] }) {
+  const [paused, setPaused] = useState(false);
+  const list = [...articles.slice(0, 12), ...articles.slice(0, 12)];
+  return (
+    <div
+      className="group relative -mx-5 overflow-x-auto overflow-y-hidden"
+      onTouchStart={() => setPaused(true)}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onClick={() => setPaused((p) => !p)}
+    >
+      <div
+        className="flex w-max gap-3 px-5 animate-marquee-slow"
+        style={{ animationPlayState: paused ? "paused" : "running" }}
+      >
+        {list.map((a: any, i: number) => (
+          <RelatedArticleCard key={`${a.id}-${i}`} article={a} compact />
+        ))}
+      </div>
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-background to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent" />
+    </div>
+  );
+}
