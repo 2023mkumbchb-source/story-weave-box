@@ -4,7 +4,6 @@ import {
   BookOpen, GraduationCap, ListChecks, Loader2,
   ArrowRight, Trophy, BookMarked, Phone, MessageCircle, Clock, Sparkles, Globe2,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import { getAllCategories, getCategoryDisplayName, getYearFromCategory, YEAR_CATEGORIES, buildBlogPath, buildMcqPath, buildFlashcardPath } from "@/lib/store";
 import { buildStoryPath, updateMetaTags } from "@/lib/seo";
 import { supabase } from "@/integrations/supabase/client";
@@ -109,7 +108,7 @@ export default function Index() {
         <div className="absolute -bottom-32 -left-16 h-72 w-72 rounded-full border border-white/10 pointer-events-none" />
 
         <div className="relative mx-auto max-w-6xl px-5 pt-12 pb-20 sm:pt-16 sm:pb-28">
-          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <div>
             <div className="mb-5 inline-flex items-center gap-2 text-primary-foreground/80">
               <span className="h-px w-8 bg-primary-foreground/40" />
               <Globe2 className="h-3.5 w-3.5" />
@@ -129,7 +128,7 @@ export default function Index() {
                 Practice MCQs
               </Link>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -137,7 +136,7 @@ export default function Index() {
       <section className="mx-auto max-w-6xl px-5 -mt-12 sm:-mt-14 relative z-10">
         <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           {QUICK_ACCESS.map((q, i) => (
-            <motion.div key={q.to} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+            <div key={q.to}>
               <Link to={q.to}
                 className="group block rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
                 <div className={`mb-3 flex h-11 w-11 items-center justify-center rounded-xl ${q.tint}`}>
@@ -146,7 +145,7 @@ export default function Index() {
                 <h3 className="font-bold text-foreground text-sm sm:text-base">{q.label}</h3>
                 <p className="mt-0.5 text-[11px] sm:text-xs text-muted-foreground">{q.desc}</p>
               </Link>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>
@@ -207,7 +206,7 @@ export default function Index() {
               </div>
               <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {yearGroups.map((group, i) => (
-                  <motion.div key={group.year} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                  <div key={group.year}>
                     <Link to={`/blog?year=${encodeURIComponent(group.year)}`}
                       className="group block h-full rounded-2xl border border-border bg-card p-5 hover:shadow-md hover:border-primary/30 transition-all">
                       <div className="flex items-center justify-between mb-3">
@@ -223,7 +222,7 @@ export default function Index() {
                         )}
                       </div>
                     </Link>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             </>
