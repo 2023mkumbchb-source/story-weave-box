@@ -86,7 +86,7 @@ function cleanTerm(raw: string): string {
     .replace(/\b(year|unit|chapter|overview|introduction|definition|summary|clinical notes|study notes)\b/gi, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .replace(/^[\-–—:;,.]+|[\-–—:;,.]+$/g, "");
+    .replace(/^[-–—:;,.]+|[-–—:;,.]+$/g, "");
 }
 
 function isUsefulTerm(term: string): boolean {
