@@ -213,6 +213,14 @@ export default function McqStudy() {
           questions={mcqQuestions}
           title={set.title}
           setId={set.id}
+          freeLimit={mcqFreeLimit}
+          examPrice={mcqPrice}
+          isPaid={isPaid}
+          paymentStatus={paymentStatus}
+          phoneInput={phoneInput}
+          onPhoneChange={setPhoneInput}
+          onPay={handlePay}
+          onRetryPay={() => setPaymentStatus("idle")}
           onExit={() => setExamMode(false)}
         />
       </div>
@@ -229,14 +237,7 @@ export default function McqStudy() {
           variant="outline"
           size="sm"
           className="gap-2"
-          onClick={() => {
-            if (needsPayForExam) {
-              // Scroll down — the paywall in McqViewer will show
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            } else {
-              setExamMode(true);
-            }
-          }}
+          onClick={() => setExamMode(true)}
         >
           <ListChecks className="h-4 w-4" /> Exam Mode {needsPayForExam && "🔒"}
         </Button>
@@ -303,13 +304,7 @@ export default function McqStudy() {
         </div>
       </div>
 
-      {/* Exam mode paywall notice */}
-      {needsPayForExam && (
-        <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5 flex items-center gap-2 text-xs text-primary">
-          <Lock className="h-3.5 w-3.5 shrink-0" />
-          <span>Exam Mode requires unlocking all questions first (KES {mcqPrice})</span>
-        </div>
-      )}
+      {/* Exam mode now starts free and locks inline after the free questions, matching MCQs. */}
 
       {isLocked && (
         <div className="mb-6 rounded-2xl border-2 border-amber-500/30 bg-amber-50 p-6 text-center dark:bg-amber-950/20">
