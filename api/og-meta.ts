@@ -76,7 +76,7 @@ function cleanQuestionStem(raw: string): string {
   if (!raw) return "";
   return raw
     .replace(/^#{1,6}\s*/gm, "")
-    .replace(/^Question\s+\d+[\s:\-]*/i, "")
+    .replace(/^Question\s+\d+[\s:-]*/i, "")
     .replace(/\s*-\s*\(\s*$/, "")
     .replace(/[*_`>|]/g, " ")
     .replace(/\s+/g, " ")
