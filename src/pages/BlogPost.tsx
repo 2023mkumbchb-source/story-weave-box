@@ -347,7 +347,7 @@ function ClassicHeroInner({
                   {unit}
                 </span>
               )}
-              <h1 className="font-serif text-3xl font-bold leading-[1.1] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] sm:text-5xl lg:text-6xl">
+              <h1 id={slugify(title)} className="scroll-mt-20 font-serif text-3xl font-bold leading-[1.1] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] sm:text-5xl lg:text-6xl">
                 {title}
               </h1>
               {description && (
@@ -365,7 +365,7 @@ function ClassicHeroInner({
                 {unit}
               </span>
             )}
-            <h1 className="font-serif text-3xl font-bold leading-tight text-foreground sm:text-5xl animate-hero-rise">
+            <h1 id={slugify(title)} className="scroll-mt-20 font-serif text-3xl font-bold leading-tight text-foreground sm:text-5xl animate-hero-rise">
               {title}
             </h1>
             {description && (
@@ -421,7 +421,10 @@ function cleanMetaDescription(article: Article): string {
   const fallback = stripRichText(article.content || "", 155)
     || `${article.title} study notes${cat ? ` on ${cat}` : ""} with clinical points and exam-focused revision for medical students.`;
   const desc = provided.length >= 50 ? provided : fallback;
-  return desc.length <= 155 ? desc : `${desc.slice(0, 152).trimEnd()}...`;
+  const enriched = /\b(Kenya|Africa|MBChB|medical students)\b/i.test(desc)
+    ? desc
+    : `${desc.replace(/[.\s]+$/, "")}. For MBChB and health students in Kenya and beyond.`;
+  return enriched.length <= 155 ? enriched : `${enriched.slice(0, 152).trimEnd()}...`;
 }
 
 function ReviewedBadge({ reviewer, date, onDark }: { reviewer: string; date: string; onDark?: boolean }) {
@@ -714,7 +717,7 @@ function extractToc(content: string): TocItem[] {
       const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").replace(/^\d+\.\s*/, "").trim();
       if (META_HEADING.test(heading)) continue;
       secNum++;
-      items.push({ id: `section-${secNum}`, text: heading, level: 2 });
+      items.push({ id: slugify(heading) || `section-${secNum}`, text: heading, level: 2 });
     }
     const qMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)/i);
     if (qMatch) {
