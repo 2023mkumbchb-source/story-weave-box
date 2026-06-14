@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { GraduationCap, Calendar, Layers, ChevronDown, RotateCcw } from "lucide-react";
-import { motion } from "framer-motion";
 import { getPublishedFlashcardSets, getCategoryDisplayName, getYearFromCategory, buildFlashcardPath, type FlashcardSet } from "@/lib/store";
 import { getVisitedFlashcardIds } from "@/lib/progress-store";
 import { updateMetaTags } from "@/lib/seo";
@@ -97,8 +96,8 @@ export default function Flashcards() {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.slice(0, visibleCount).map((s, i) => (
-              <motion.div key={s.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.05 }}>
+            {filtered.slice(0, visibleCount).map((s) => (
+              <div key={s.id}>
                 <Link
                   to={buildFlashcardPath(s)}
                   className="group relative block h-full rounded-xl border border-border bg-card p-5 sm:p-6 transition-shadow hover:[box-shadow:var(--shadow-card-hover)]"
@@ -128,7 +127,7 @@ export default function Flashcards() {
                     <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(s.created_at).toLocaleDateString()}</span>
                   </div>
                 </Link>
-              </motion.div>
+              </div>
             ))}
           </div>
           {filtered.length > visibleCount && (
