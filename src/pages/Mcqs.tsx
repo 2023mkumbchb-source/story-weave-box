@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ListChecks, Calendar, Layers, Loader2, Search, X, RotateCcw, ChevronDown } from "lucide-react";
-import { motion } from "framer-motion";
-import { getPublishedMcqSets, getCategoryDisplayName, getYearFromCategory, buildMcqPath, type McqSet } from "@/lib/store";
+import { getPublishedMcqSetSummaries, getCategoryDisplayName, getYearFromCategory, buildMcqPath, type McqSet } from "@/lib/store";
 import { getVisitedMcqIds } from "@/lib/progress-store";
 import { updateMetaTags } from "@/lib/seo";
 import CategoryTabs from "@/components/CategoryTabs";
@@ -29,7 +28,7 @@ export default function Mcqs() {
   const selectedYear = searchParams.get("year") || "All";
 
   useEffect(() => {
-    getPublishedMcqSets().then((all) => {
+    getPublishedMcqSetSummaries().then((all) => {
       setSets(all.filter((s) => !s.category?.toLowerCase().startsWith("weekly exam")));
     }).finally(() => setLoading(false));
     setVisitedIds(getVisitedMcqIds());
@@ -65,7 +64,7 @@ export default function Mcqs() {
         set.title.toLowerCase().includes(q) ||
         getCategoryDisplayName(set.category).toLowerCase().includes(q);
 
-      const matchingQuestions = (set.questions as any[])
+        const matchingQuestions = (set.questions as any[] || [])
         .filter((qn) =>
           (qn.question ?? qn.text ?? "").toLowerCase().includes(q) ||
           (qn.options ?? []).some((o: string) => o.toLowerCase().includes(q)) ||
@@ -172,8 +171,7 @@ export default function Mcqs() {
           ) : (
             <div className="flex flex-col gap-4">
               {searchResults!.map(({ set, matchingQuestions, titleMatch }, i) => (
-                <motion.div key={set.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-                  className="overflow-hidden rounded-xl border border-border bg-card">
+                <div key={set.id} className="overflow-hidden rounded-xl border border-border bg-card">
                   <Link to={buildMcqPath(set)} className="group flex items-start gap-3 px-5 py-4 transition-colors hover:bg-muted/30">
                     <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/20 text-accent">
                       <ListChecks className="h-4 w-4" />
@@ -213,7 +211,7 @@ export default function Mcqs() {
                       )}
                     </div>
                   )}
-                </motion.div>
+                </div>
               ))}
             </div>
           )}
@@ -238,7 +236,7 @@ export default function Mcqs() {
                     : null;
 
                   return (
-                    <motion.div key={s.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.05 }}>
+                    <div key={s.id}>
                       <Link
                         to={buildMcqPath(s)}
                         className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:[box-shadow:var(--shadow-card-hover)]"
@@ -270,7 +268,7 @@ export default function Mcqs() {
                         </div>
                         </div>
                       </Link>
-                    </motion.div>
+                    </div>
                   );
                 })}
               </div>
