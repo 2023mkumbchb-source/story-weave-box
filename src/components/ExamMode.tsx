@@ -603,11 +603,11 @@ export default function ExamMode({
           );
         })}
 
-        {/* Mid-exam paywall — fixed sticky card while paywalled */}
+        {/* Mid-exam paywall — inline lock card, MCQ-style (no popup) */}
         {isPaywalled && (
-          <div className="fixed inset-0 z-40 flex items-start justify-center bg-background/40 backdrop-blur-sm px-3 py-16 overflow-y-auto">
-            <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
-              className="w-full max-w-md rounded-3xl border border-primary/30 bg-card p-6 shadow-2xl text-center">
+          <div className="relative -mt-2">
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              className="mx-auto w-full max-w-md rounded-3xl border border-primary/30 bg-card p-6 shadow-xl text-center">
               <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-lg">
                 <Lock className="h-6 w-6" />
               </div>
