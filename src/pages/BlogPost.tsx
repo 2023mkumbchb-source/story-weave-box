@@ -1064,9 +1064,6 @@ export default function BlogPost() {
   const [activeSection, setActiveSection] = useState("");
 
   const handleBack = () => {
-    const shouldConfirm = window.scrollY > 220;
-    if (shouldConfirm && !window.confirm("Leave this article and go back?")) return;
-
     const fromPath = (location.state as { from?: string } | null)?.from;
     if (fromPath && fromPath.startsWith("/blog")) {
       navigate(fromPath);
@@ -1104,22 +1101,7 @@ export default function BlogPost() {
       if (scrollingEl) scrollingEl.scrollTop = 0;
     };
 
-    resetToTop();
-    let raf2 = 0;
-    const raf1 = requestAnimationFrame(() => {
-      resetToTop();
-      raf2 = requestAnimationFrame(resetToTop);
-    });
-
-    const t1 = window.setTimeout(resetToTop, 80);
-    const t2 = window.setTimeout(resetToTop, 220);
-
-    return () => {
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
+    if (!location.hash) resetToTop();
   }, [slug, location.key, article?.id]);
 
   useEffect(() => {
