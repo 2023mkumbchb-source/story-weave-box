@@ -6,7 +6,6 @@ import anatomyThumb from "@/assets/thumb-anatomy.jpg";
 import physiologyThumb from "@/assets/thumb-physiology.jpg";
 import pharmacologyThumb from "@/assets/thumb-pharmacology.jpg";
 import pathologyThumb from "@/assets/thumb-pathology.jpg";
-import { useTopicThumbnail } from "@/lib/topicThumbnail";
 
 function getCategoryFallback(text: string): string {
   if (text.includes("anatom") || text.includes("histology") || text.includes("embryology")) return anatomyThumb;
@@ -27,17 +26,14 @@ export default function ArticleCard({ article }: { article: Article }) {
   const preview = (article.meta_description || article.content || "")
     .replace(/!\[[^\]]*\]\((.*?)\)/g, "")
     .replace(/^#+\s.+$/gm, "")
-    .replace(/[#*_`|>\-]/g, "")
+    .replace(/[#*_`|>-]/g, "")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 160);
 
   const unit = getCategoryDisplayName(article.category);
   const year = getYearFromCategory(article.category);
-  const staticCover = getArticleStaticThumb(article);
-  const hasOwnImage = !!(article.og_image_url || (article.content || "").match(/!\[/));
-  const wikiThumb = useTopicThumbnail(article.title, article.category, !hasOwnImage);
-  const cover = hasOwnImage ? staticCover : (wikiThumb || staticCover);
+  const cover = getArticleStaticThumb(article);
   const displayDate = new Date(article.updated_at || article.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const location = useLocation();
   const fromPath = `${location.pathname}${location.search}`;

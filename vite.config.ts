@@ -21,7 +21,9 @@ export default defineConfig(() => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom', 'lucide-react', 'framer-motion'],
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          icons: ['lucide-react'],
+          motion: ['framer-motion'],
           ui: ['@radix-ui/react-accordion', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-popover', '@radix-ui/react-toast'],
           utils: ['date-fns', 'clsx', 'tailwind-merge'],
         },

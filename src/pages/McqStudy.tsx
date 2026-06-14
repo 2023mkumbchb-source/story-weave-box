@@ -10,6 +10,7 @@ import { useHashFlash } from "@/lib/deep-link";
 import { markMcqVisited } from "@/lib/progress-store";
 import { supabase } from "@/integrations/supabase/client";
 import { updateMetaTags, stripRichText } from "@/lib/seo";
+import { SITE_URL } from "@/lib/seo";
 
 const MCQ_UNLOCKED_KEY = "unlocked_mcqs";
 
@@ -105,6 +106,30 @@ export default function McqStudy() {
         updateMetaTags({
           title: metaTitle,
           description: metaDescription,
+          image: s.og_image_url || `${SITE_URL}/og-default.png`,
+          url: `${SITE_URL}${buildMcqPath(s)}`,
+          type: "article",
+        });
+        const ldId = "mcq-quiz-ld";
+        let ldScript = document.querySelector(`script[data-${ldId}]`) as HTMLScriptElement | null;
+        if (!ldScript) {
+          ldScript = document.createElement("script");
+          ldScript.type = "application/ld+json";
+          ldScript.setAttribute(`data-${ldId}`, "true");
+          document.head.appendChild(ldScript);
+        }
+        ldScript.textContent = JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Quiz",
+          "name": s.title,
+          "description": metaDescription,
+          "educationalLevel": s.category,
+          "url": `${SITE_URL}${buildMcqPath(s)}`,
+          "hasPart": (s.questions as any[]).slice(0, 20).filter(isMcqItem).map((q: any) => ({
+            "@type": "Question",
+            "name": stripRichText(q.question || q.text || "", 140),
+            "acceptedAnswer": q.options?.[q.correct_answer] ? { "@type": "Answer", "text": stripRichText(q.options[q.correct_answer], 140) } : undefined,
+          })),
         });
       }
       if (s && (!s.access_password || s.access_password === "")) setPasswordUnlocked(true);
@@ -112,6 +137,7 @@ export default function McqStudy() {
       if (priceStr && !isNaN(Number(priceStr))) setMcqPrice(Number(priceStr));
       if (s && unlocked.has(s.id)) setIsPaid(true);
     }).finally(() => setLoading(false));
+    return () => { document.querySelector('script[data-mcq-quiz-ld="true"]')?.remove(); };
   }, [param]);
 
   // Payment polling
@@ -213,6 +239,14 @@ export default function McqStudy() {
           questions={mcqQuestions}
           title={set.title}
           setId={set.id}
+          freeLimit={mcqFreeLimit}
+          examPrice={mcqPrice}
+          isPaid={isPaid}
+          paymentStatus={paymentStatus}
+          phoneInput={phoneInput}
+          onPhoneChange={setPhoneInput}
+          onPay={handlePay}
+          onRetryPay={() => setPaymentStatus("idle")}
           onExit={() => setExamMode(false)}
         />
       </div>
@@ -229,14 +263,7 @@ export default function McqStudy() {
           variant="outline"
           size="sm"
           className="gap-2"
-          onClick={() => {
-            if (needsPayForExam) {
-              // Scroll down — the paywall in McqViewer will show
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            } else {
-              setExamMode(true);
-            }
-          }}
+          onClick={() => setExamMode(true)}
         >
           <ListChecks className="h-4 w-4" /> Exam Mode {needsPayForExam && "🔒"}
         </Button>
@@ -303,13 +330,7 @@ export default function McqStudy() {
         </div>
       </div>
 
-      {/* Exam mode paywall notice */}
-      {needsPayForExam && (
-        <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5 flex items-center gap-2 text-xs text-primary">
-          <Lock className="h-3.5 w-3.5 shrink-0" />
-          <span>Exam Mode requires unlocking all questions first (KES {mcqPrice})</span>
-        </div>
-      )}
+      {/* Exam mode now starts free and locks inline after the free questions, matching MCQs. */}
 
       {isLocked && (
         <div className="mb-6 rounded-2xl border-2 border-amber-500/30 bg-amber-50 p-6 text-center dark:bg-amber-950/20">

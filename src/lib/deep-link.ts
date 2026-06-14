@@ -6,6 +6,7 @@ export function slugify(text: string): string {
   return String(text || "")
     .toLowerCase()
     .replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, "")
+    .replace(/\b(mcqs?|quiz|questions?|answers?|exam(?:ination)?|study notes?|flashcards?)\b/g, " ")
     .replace(/[^a-z0-9\s-]/g, "")
     .trim()
     .replace(/\s+/g, "-")
@@ -18,14 +19,26 @@ function resolveTarget(slug: string): HTMLElement | null {
   const direct = document.getElementById(slug);
   if (direct) return direct;
   const decoded = decodeURIComponent(slug).toLowerCase();
+  const wantedWords = decoded.replace(/-/g, " ").split(/\s+/).filter(Boolean);
   const headings = Array.from(
-    document.querySelectorAll<HTMLElement>("h1, h2, h3, h4, strong, dt")
+    document.querySelectorAll<HTMLElement>("h1, h2, h3, h4, [data-anchor-term], strong, dt")
   );
   for (const h of headings) {
     const txt = (h.textContent || "").toLowerCase();
     if (txt && (slugify(txt) === decoded || txt.includes(decoded.replace(/-/g, " ")))) {
       return h;
     }
+  }
+  if (wantedWords.length) {
+    const blocks = Array.from(document.querySelectorAll<HTMLElement>("h1, h2, h3, h4, p, li"));
+    let best: { el: HTMLElement; score: number } | null = null;
+    for (const el of blocks) {
+      const txt = (el.textContent || "").toLowerCase();
+      if (!txt) continue;
+      const score = wantedWords.reduce((n, w) => n + (txt.includes(w) ? 1 : 0), 0);
+      if (score > 0 && (!best || score > best.score)) best = { el, score };
+    }
+    if (best) return best.el;
   }
   return null;
 }

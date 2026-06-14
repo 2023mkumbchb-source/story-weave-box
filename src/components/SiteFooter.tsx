@@ -25,7 +25,7 @@ export default function SiteFooter() {
   if (/^\/exams\/[^/]+\/start/.test(location.pathname)) return null;
 
   return (
-    <footer className="mt-16 border-t border-border bg-gradient-to-b from-card/40 to-card/80">
+    <footer className="mt-16 min-h-[380px] border-t border-border bg-gradient-to-b from-card/40 to-card/80">
       <div className="mx-auto max-w-6xl px-6 py-12">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}

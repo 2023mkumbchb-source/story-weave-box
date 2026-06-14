@@ -1,12 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ListChecks, Calendar, Layers, Loader2, Search, X, RotateCcw, ChevronDown } from "lucide-react";
-import { motion } from "framer-motion";
-import { getPublishedMcqSets, getCategoryDisplayName, getYearFromCategory, buildMcqPath, type McqSet } from "@/lib/store";
+import { getPublishedMcqSetSummaries, getCategoryDisplayName, getYearFromCategory, buildMcqPath, type McqSet } from "@/lib/store";
 import { getVisitedMcqIds } from "@/lib/progress-store";
 import { updateMetaTags } from "@/lib/seo";
 import CategoryTabs from "@/components/CategoryTabs";
-import { useTopicThumbnail } from "@/lib/topicThumbnail";
+import anatomyThumb from "@/assets/thumb-anatomy.jpg";
+import physiologyThumb from "@/assets/thumb-physiology.jpg";
+import pharmacologyThumb from "@/assets/thumb-pharmacology.jpg";
+import pathologyThumb from "@/assets/thumb-pathology.jpg";
 
 const INITIAL_VISIBLE = 12;
 const LOAD_MORE_STEP = 12;
@@ -29,7 +31,7 @@ export default function Mcqs() {
   const selectedYear = searchParams.get("year") || "All";
 
   useEffect(() => {
-    getPublishedMcqSets().then((all) => {
+    getPublishedMcqSetSummaries().then((all) => {
       setSets(all.filter((s) => !s.category?.toLowerCase().startsWith("weekly exam")));
     }).finally(() => setLoading(false));
     setVisitedIds(getVisitedMcqIds());
@@ -65,7 +67,7 @@ export default function Mcqs() {
         set.title.toLowerCase().includes(q) ||
         getCategoryDisplayName(set.category).toLowerCase().includes(q);
 
-      const matchingQuestions = (set.questions as any[])
+        const matchingQuestions = (set.questions as any[] || [])
         .filter((qn) =>
           (qn.question ?? qn.text ?? "").toLowerCase().includes(q) ||
           (qn.options ?? []).some((o: string) => o.toLowerCase().includes(q)) ||
@@ -171,9 +173,8 @@ export default function Mcqs() {
             </div>
           ) : (
             <div className="flex flex-col gap-4">
-              {searchResults!.map(({ set, matchingQuestions, titleMatch }, i) => (
-                <motion.div key={set.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-                  className="overflow-hidden rounded-xl border border-border bg-card">
+              {searchResults!.map(({ set, matchingQuestions, titleMatch }) => (
+                <div key={set.id} className="overflow-hidden rounded-xl border border-border bg-card">
                   <Link to={buildMcqPath(set)} className="group flex items-start gap-3 px-5 py-4 transition-colors hover:bg-muted/30">
                     <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/20 text-accent">
                       <ListChecks className="h-4 w-4" />
@@ -189,7 +190,7 @@ export default function Mcqs() {
                         {titleMatch ? <Highlight text={set.title} query={query} /> : set.title}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {set.questions.length} questions total
+                        {set.questions.length ? `${set.questions.length} questions total` : "Open quiz to view questions"}
                         {matchingQuestions.length > 0 && (
                           <> · <span className="font-medium text-primary">{matchingQuestions.length} question{matchingQuestions.length !== 1 ? "s" : ""} match</span></>
                         )}
@@ -213,7 +214,7 @@ export default function Mcqs() {
                       )}
                     </div>
                   )}
-                </motion.div>
+                </div>
               ))}
             </div>
           )}
@@ -230,7 +231,7 @@ export default function Mcqs() {
           ) : (
             <>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {filtered.slice(0, visibleCount).map((s, i) => {
+                {filtered.slice(0, visibleCount).map((s) => {
                   const firstQ = (s.questions as any[])[0];
                   const rawSnippet = firstQ?.question ?? firstQ?.text ?? null;
                   const snippet = rawSnippet
@@ -238,7 +239,7 @@ export default function Mcqs() {
                     : null;
 
                   return (
-                    <motion.div key={s.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.05 }}>
+                    <div key={s.id}>
                       <Link
                         to={buildMcqPath(s)}
                         className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:[box-shadow:var(--shadow-card-hover)]"
@@ -265,12 +266,12 @@ export default function Mcqs() {
                         )}
 
                         <div className="mt-auto flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1"><Layers className="h-3 w-3" /> {s.questions.length} Qs</span>
+                          <span className="flex items-center gap-1"><Layers className="h-3 w-3" /> {s.questions.length ? `${s.questions.length} Qs` : "Quiz"}</span>
                           <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(s.created_at).toLocaleDateString()}</span>
                         </div>
                         </div>
                       </Link>
-                    </motion.div>
+                    </div>
                   );
                 })}
               </div>
@@ -302,8 +303,15 @@ function ContinueBadge() {
 
 function McqCover({ set }: { set: McqSet }) {
   const og = (set.og_image_url || "").trim();
-  const wiki = useTopicThumbnail(set.title, set.category, !og);
-  const src = og || wiki;
+  const text = `${set.title} ${set.category}`.toLowerCase();
+  const fallback = text.includes("anatom") || text.includes("histology") || text.includes("embryology")
+    ? anatomyThumb
+    : text.includes("physiology") || text.includes("cardio") || text.includes("respirat")
+    ? physiologyThumb
+    : text.includes("pharmac") || text.includes("drug")
+    ? pharmacologyThumb
+    : pathologyThumb;
+  const src = og || fallback;
   if (!src) {
     return (
       <div className="flex aspect-[16/9] w-full items-center justify-center bg-gradient-to-br from-primary/15 via-accent/15 to-primary/5 text-primary">
