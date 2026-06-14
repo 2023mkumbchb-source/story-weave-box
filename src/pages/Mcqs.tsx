@@ -5,7 +5,10 @@ import { getPublishedMcqSetSummaries, getCategoryDisplayName, getYearFromCategor
 import { getVisitedMcqIds } from "@/lib/progress-store";
 import { updateMetaTags } from "@/lib/seo";
 import CategoryTabs from "@/components/CategoryTabs";
-import { useTopicThumbnail } from "@/lib/topicThumbnail";
+import anatomyThumb from "@/assets/thumb-anatomy.jpg";
+import physiologyThumb from "@/assets/thumb-physiology.jpg";
+import pharmacologyThumb from "@/assets/thumb-pharmacology.jpg";
+import pathologyThumb from "@/assets/thumb-pathology.jpg";
 
 const INITIAL_VISIBLE = 12;
 const LOAD_MORE_STEP = 12;
@@ -170,7 +173,7 @@ export default function Mcqs() {
             </div>
           ) : (
             <div className="flex flex-col gap-4">
-              {searchResults!.map(({ set, matchingQuestions, titleMatch }, i) => (
+              {searchResults!.map(({ set, matchingQuestions, titleMatch }) => (
                 <div key={set.id} className="overflow-hidden rounded-xl border border-border bg-card">
                   <Link to={buildMcqPath(set)} className="group flex items-start gap-3 px-5 py-4 transition-colors hover:bg-muted/30">
                     <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/20 text-accent">
@@ -228,7 +231,7 @@ export default function Mcqs() {
           ) : (
             <>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {filtered.slice(0, visibleCount).map((s, i) => {
+                {filtered.slice(0, visibleCount).map((s) => {
                   const firstQ = (s.questions as any[])[0];
                   const rawSnippet = firstQ?.question ?? firstQ?.text ?? null;
                   const snippet = rawSnippet
@@ -263,7 +266,7 @@ export default function Mcqs() {
                         )}
 
                         <div className="mt-auto flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1"><Layers className="h-3 w-3" /> {s.questions.length} Qs</span>
+                          <span className="flex items-center gap-1"><Layers className="h-3 w-3" /> {s.questions.length ? `${s.questions.length} Qs` : "Quiz"}</span>
                           <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(s.created_at).toLocaleDateString()}</span>
                         </div>
                         </div>
@@ -300,8 +303,15 @@ function ContinueBadge() {
 
 function McqCover({ set }: { set: McqSet }) {
   const og = (set.og_image_url || "").trim();
-  const wiki = useTopicThumbnail(set.title, set.category, !og);
-  const src = og || wiki;
+  const text = `${set.title} ${set.category}`.toLowerCase();
+  const fallback = text.includes("anatom") || text.includes("histology") || text.includes("embryology")
+    ? anatomyThumb
+    : text.includes("physiology") || text.includes("cardio") || text.includes("respirat")
+    ? physiologyThumb
+    : text.includes("pharmac") || text.includes("drug")
+    ? pharmacologyThumb
+    : pathologyThumb;
+  const src = og || fallback;
   if (!src) {
     return (
       <div className="flex aspect-[16/9] w-full items-center justify-center bg-gradient-to-br from-primary/15 via-accent/15 to-primary/5 text-primary">
