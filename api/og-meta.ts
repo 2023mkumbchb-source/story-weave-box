@@ -3,10 +3,11 @@ export const config = {
 };
 
 const OG_FALLBACK_IMAGE = "https://www.ompathstudy.com/og-default.png";
+const GEO_KEYWORDS = "Kenya, Africa, global medical students, MBChB, clinical medicine, nursing, University of Nairobi, Kenyatta University, Moi University, Kabarak University, Aga Khan University";
 const STATIC_PAGE_META: Record<string, { title: string; description: string; links: string[] }> = {
   "/": {
     title: "OmpathStudy | Free Medical Notes, MCQs & Exams",
-    description: "Free medical notes, MCQs, flashcards and timed exams for MBChB and health students across Kenya and East Africa.",
+    description: "Free medical notes, MCQs, flashcards and timed exams for MBChB, clinical medicine and health students in Kenya, Africa and worldwide.",
     links: ["/blog", "/mcqs", "/flashcards", "/exams", "/stories", "/year/1", "/year/2", "/year/3", "/year/4", "/year/5", "/year/6"],
   },
   "/blog": {
@@ -113,7 +114,8 @@ function toMetaDescription(input: string, fallback: string): string {
     .replace(/\s+/g, " ")
     .trim();
   const value = clean.length >= 50 ? clean : fallback;
-  return value.length <= 155 ? value : value.slice(0, 152).trimEnd() + "...";
+  const enriched = /\b(Kenya|Africa|MBChB|medical students)\b/i.test(value) ? value : `${value.replace(/[.\s]+$/, "")}. Kenya, Africa and global revision.`;
+  return enriched.length <= 155 ? enriched : enriched.slice(0, 152).trimEnd() + "...";
 }
 
 function articleDescription(article: Record<string, string>): string {
@@ -646,7 +648,7 @@ export default async function handler(req: Request): Promise<Response> {
       title = toMetaTitle(rawTitle, article.title);
       description = cleanDesc;
       ogImage = article.og_image_url || OG_FALLBACK_IMAGE;
-      keywords = `OmpathStudy, study notes Kenya, medical notes, ${article.category || ""}, clinical revision, exam prep, medical education Kenya`;
+      keywords = `OmpathStudy, study notes Kenya, medical notes, ${article.title || ""}, ${article.category || ""}, clinical revision, exam prep, ${GEO_KEYWORDS}`;
       type = "article";
       schemaJson = JSON.stringify({
         "@context": "https://schema.org",
@@ -679,7 +681,7 @@ export default async function handler(req: Request): Promise<Response> {
         `Practice ${qCount > 0 ? qCount + " " : ""}MCQs on ${mcq.title}. Review answers, explanations and exam-focused clinical concepts.`
       );
       ogImage = OG_FALLBACK_IMAGE;
-      keywords = `OmpathStudy, MCQs Kenya, ${mcq.category || ""}, medical quizzes, nursing quizzes, exam practice, medical education Kenya`;
+      keywords = `OmpathStudy, MCQs Kenya, ${mcq.title || ""}, ${mcq.category || ""}, oncology MCQs, pathology MCQs, medical quizzes, exam practice, ${GEO_KEYWORDS}`;
       type = "article";
 
       if (parsed.length > 0) {
