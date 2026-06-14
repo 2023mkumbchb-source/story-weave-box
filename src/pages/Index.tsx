@@ -135,7 +135,7 @@ export default function Index() {
       {/* Quick Access Grid — overlapping cards */}
       <section className="mx-auto max-w-6xl px-5 -mt-12 sm:-mt-14 relative z-10">
         <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-          {QUICK_ACCESS.map((q, i) => (
+          {QUICK_ACCESS.map((q) => (
             <div key={q.to}>
               <Link to={q.to}
                 className="group block rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
@@ -205,7 +205,7 @@ export default function Index() {
                 ))}
               </div>
               <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {yearGroups.map((group, i) => (
+                {yearGroups.map((group) => (
                   <div key={group.year}>
                     <Link to={`/blog?year=${encodeURIComponent(group.year)}`}
                       className="group block h-full rounded-2xl border border-border bg-card p-5 hover:shadow-md hover:border-primary/30 transition-all">
