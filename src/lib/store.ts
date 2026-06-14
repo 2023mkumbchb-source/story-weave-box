@@ -319,7 +319,7 @@ function toArticlePreview(row: any): Article {
 
 // ─── Cache ────────────────────────────────────────────────────────────────────
 const SUMMARY_CACHE_KEY = "article_summaries_cache_v2";
-const SUMMARY_CACHE_TTL = 30 * 1000; // 30 seconds — short enough to feel live
+const SUMMARY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes — avoids repeated full-list reloads on a large site
 
 let memorySummaryCache: { data: Article[]; ts: number } | null = null;
 
@@ -404,6 +404,42 @@ export async function getPublishedArticleSummaries(year?: string): Promise<Artic
   const result = (data || []).map((row) => toArticlePreview(row));
 
   if (!year) setCachedSummaries(result);
+  return result;
+}
+
+const MCQ_SUMMARY_CACHE_KEY = "mcq_summaries_cache_v1";
+let memoryMcqSummaryCache: { data: McqSet[]; ts: number } | null = null;
+
+function readTimedCache<T>(key: string): { data: T; ts: number } | null {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.ts && Date.now() - parsed.ts < SUMMARY_CACHE_TTL ? parsed : null;
+  } catch { return null; }
+}
+
+function writeTimedCache<T>(key: string, data: T) {
+  try { sessionStorage.setItem(key, JSON.stringify({ data, ts: Date.now() })); } catch {}
+}
+
+export async function getPublishedMcqSetSummaries(): Promise<McqSet[]> {
+  if (memoryMcqSummaryCache && Date.now() - memoryMcqSummaryCache.ts < SUMMARY_CACHE_TTL) return memoryMcqSummaryCache.data;
+  const cached = readTimedCache<McqSet[]>(MCQ_SUMMARY_CACHE_KEY);
+  if (cached) {
+    memoryMcqSummaryCache = cached;
+    return cached.data;
+  }
+  const { data, error } = await supabase
+    .from("mcq_sets")
+    .select("id, title, category, slug, meta_title, meta_description, og_image_url, created_at, updated_at, published")
+    .eq("published", true)
+    .is("deleted_at", null)
+    .order("updated_at", { ascending: false });
+  if (error) throw error;
+  const result = (data || []).map((row: any) => ({ ...row, questions: [] })) as McqSet[];
+  memoryMcqSummaryCache = { data: result, ts: Date.now() };
+  writeTimedCache(MCQ_SUMMARY_CACHE_KEY, result);
   return result;
 }
 
