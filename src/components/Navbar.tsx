@@ -1,7 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { BookOpen, FileText, GraduationCap, Home, LayoutDashboard, ListChecks, Menu, BookOpenCheck, Trophy, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import ThemeToggle from "./ThemeToggle";
 import ompathLogo from "@/assets/ompath-logo.png";
@@ -199,15 +198,8 @@ export default function Navbar() {
                             />
                           </button>
 
-                          <AnimatePresence>
-                            {isExpanded && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.15 }}
-                                className="overflow-hidden"
-                              >
+                          {isExpanded && (
+                              <div className="overflow-hidden">
                                 <div className="ml-3 border-l border-white/10 pl-3 py-1">
                                   {YEAR_SECTIONS.map((s) => {
                                     const to = `/${s.path}?year=${encodeURIComponent(`Year ${yr}`)}`;
@@ -229,9 +221,8 @@ export default function Navbar() {
                                     );
                                   })}
                                 </div>
-                              </motion.div>
+                              </div>
                             )}
-                          </AnimatePresence>
                         </div>
                       );
                     })}
@@ -243,15 +234,8 @@ export default function Navbar() {
         </div>
 
         {/* ── Secondary bar: desktop only ── */}
-        <AnimatePresence>
-          {activeYear && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="hidden md:block overflow-hidden border-t border-white/10 bg-[hsl(174,62%,18%)]"
-            >
+        {activeYear && (
+            <div className="hidden md:block overflow-hidden border-t border-white/10 bg-[hsl(174,62%,18%)]">
               <div className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 py-1.5 sm:px-6" style={{ scrollbarWidth: "none" }}>
                 <span className="mr-2 shrink-0 text-xs font-bold text-white/50">Year {activeYear}</span>
                 {YEAR_SECTIONS.map((s) => {
@@ -273,9 +257,8 @@ export default function Navbar() {
                   );
                 })}
               </div>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
       </nav>
     </>
   );
