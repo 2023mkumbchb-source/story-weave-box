@@ -10,12 +10,20 @@ type LinkEntry = { term: string; path: string; lower: string; target: string };
 interface Ctx {
   entries: LinkEntry[];
   used: Set<string>;
+  usedTargets: Set<string>;
   currentPath: string | null;
 }
 const KeywordLinkContext = createContext<Ctx | null>(null);
 
 let cache: LinkEntry[] | null = null;
 let cachePromise: Promise<LinkEntry[]> | null = null;
+const HIGH_VALUE_TERMS = [
+  "general pathology", "clinical pathology", "clinical techniques", "oncopathology", "oncology",
+  "osteochondroma", "bone tumour", "bone tumor", "parasitology", "entomology", "bacteriology",
+  "microbiology", "hematopathology", "neuropathology", "inflammation", "neoplasia", "necrosis",
+  "thrombosis", "embolism", "granuloma", "tuberculosis", "malaria", "schistosomiasis",
+  "university of nairobi", "uon", "kenyatta university", "moi university", "kabarak university", "aga khan",
+];
 
 async function loadEntries(): Promise<LinkEntry[]> {
   if (cache) return cache;
@@ -39,14 +47,23 @@ async function loadEntries(): Promise<LinkEntry[]> {
         seen.add(key);
         entries.push({ term: clean, path, lower, target: slugify(clean) });
       };
-      const addAliases = (title: string | undefined | null, desc: string | undefined | null, content: string | undefined | null, path: string) => {
+      const addTitleVariants = (raw: string | undefined | null, path: string) => {
+        const title = stripRichText(raw || "");
         addTerm(title, path);
+        addTerm(title.replace(/\b(MCQs?|Quiz|Questions?|Answers?|Exam(?:ination)?|Study Notes?|Flashcards?)\b/gi, " "), path);
+      };
+      const addAliases = (title: string | undefined | null, desc: string | undefined | null, content: string | undefined | null, path: string) => {
+        addTitleVariants(title, path);
         addTerm(desc, path);
         const withoutParen = (title || "").replace(/\([^)]{2,80}\)/g, " ");
         addTerm(withoutParen, path);
         (title || "").match(/\(([^)]{3,80})\)/g)?.forEach((m) => addTerm(m.slice(1, -1), path));
         (title || "").split(/[:–—-]/).forEach((part) => addTerm(part, path));
         extractDefinedTerms(content || "").forEach((term) => addTerm(term, path));
+        HIGH_VALUE_TERMS.forEach((term) => {
+          const haystack = `${title || ""} ${desc || ""} ${content || ""}`.toLowerCase();
+          if (haystack.includes(term)) addTerm(term, path);
+        });
       };
       (articles as Partial<Article>[] || []).forEach((a) => addAliases(a.meta_title || a.title, a.meta_description, a.content, buildBlogPath(a as Article)));
       (flashcards as Partial<FlashcardSet>[] || []).forEach((f) => addAliases(f.meta_title || f.title, f.meta_description, JSON.stringify(f.cards || []), buildFlashcardPath(f as FlashcardSet)));
