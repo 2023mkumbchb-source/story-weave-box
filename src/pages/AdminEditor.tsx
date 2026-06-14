@@ -506,6 +506,7 @@ export default function AdminEditor() {
     setEditCategory(currentMcqSummary.category || "");
     setEditPublished(!!currentMcqSummary.published);
     setEditSlug(currentMcqSummary.slug || "");
+    setEditOgImage((currentMcqSummary as any).og_image_url || "");
     setEditMcqPassword((currentMcqSummary as any).access_password || "");
     setEditMcqQuestions(Array.isArray(currentMcqSummary.questions) ? JSON.parse(JSON.stringify(currentMcqSummary.questions)) : []);
   }, [currentMcqSummary?.id, editorMode, isAddMode]);
@@ -524,6 +525,7 @@ export default function AdminEditor() {
         category: editCategory || currentMcqSummary.category || `Year ${selectedYear}: General`,
         access_password: editMcqPassword || "",
         slug: editSlug || slugifyText(editTitle || currentMcqSummary.title) || "",
+        og_image_url: editOgImage || "",
         is_raw: false,
       } as any);
       toast({ title: "MCQ set saved!" });
@@ -533,6 +535,7 @@ export default function AdminEditor() {
         category: editCategory || m.category,
         published: editPublished,
         slug: editSlug || m.slug,
+        og_image_url: editOgImage || (m as any).og_image_url,
         access_password: editMcqPassword,
       } as any : m));
     } catch (err: any) {
