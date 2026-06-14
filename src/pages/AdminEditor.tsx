@@ -1072,6 +1072,22 @@ export default function AdminEditor() {
                     <Input value={editMcqPassword} onChange={(e) => setEditMcqPassword(e.target.value)} placeholder="Leave empty for public" className="text-xs h-7" />
                   </div>
                 </div>
+                <div>
+                  <label className="text-[10px] font-medium text-muted-foreground mb-0.5 block">Thumbnail / OG Image URL</label>
+                  <Input value={editOgImage} onChange={(e) => setEditOgImage(e.target.value)} placeholder="https://..." className="text-xs h-7" />
+                </div>
+                <div className="rounded-lg border border-border bg-muted/30 p-2 flex items-center gap-3">
+                  {editOgImage ? (
+                    <img src={editOgImage} alt="MCQ thumbnail" className="h-12 w-20 rounded-md border border-border object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                  ) : (
+                    <div className="flex h-12 w-20 items-center justify-center rounded-md border border-dashed border-border text-center text-[10px] text-muted-foreground">Default thumbnail</div>
+                  )}
+                  <div className="min-w-0 flex-1 text-[10px] text-muted-foreground">
+                    <p>Created: <span className="font-medium text-foreground">{new Date(currentMcqSummary.created_at).toLocaleString()}</span></p>
+                    {currentMcqSummary.updated_at && <p>Updated: <span className="font-medium text-foreground">{new Date(currentMcqSummary.updated_at).toLocaleString()}</span></p>}
+                    <p>Status: <span className={editPublished ? "font-semibold text-primary" : "font-semibold text-amber-500"}>{editPublished ? "Published" : "Draft"}</span></p>
+                  </div>
+                </div>
                 <div className="flex items-center justify-between pt-1">
                   <label className="flex items-center gap-1.5 text-xs cursor-pointer">
                     <input type="checkbox" checked={editPublished} onChange={(e) => setEditPublished(e.target.checked)} className="rounded" />
