@@ -134,7 +134,7 @@ function FlashcardStudyInner({ set }: { set: FlashcardSet }) {
         <ShareButtons url={shareUrl} title={heroTitle} description={heroDesc} variant="full" className="mt-5 px-5 sm:px-0" />
       </header>
 
-      <KeywordLinkProvider>
+      <KeywordLinkProvider currentPath={buildFlashcardPath(set)}>
         <FlashcardViewer cards={set.cards} title={set.title} setId={set.id} />
       </KeywordLinkProvider>
     </div>
