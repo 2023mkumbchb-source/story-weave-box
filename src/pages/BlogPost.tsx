@@ -1093,15 +1093,7 @@ export default function BlogPost() {
       }
     }
 
-    const resetToTop = () => {
-      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      const scrollingEl = document.scrollingElement as HTMLElement | null;
-      if (scrollingEl) scrollingEl.scrollTop = 0;
-    };
-
-    if (!location.hash) resetToTop();
+    // New-route and back/forward scroll are handled centrally by ScrollToTop.
   }, [slug, location.key, article?.id]);
 
   useEffect(() => {
