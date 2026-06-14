@@ -110,15 +110,15 @@ function extractDefinedTerms(content: string): string[] {
 export function KeywordLinkProvider({ currentPath, children }: { currentPath?: string; children: ReactNode }) {
   const [entries, setEntries] = useState<LinkEntry[]>(cache || []);
   useEffect(() => { loadEntries().then(setEntries); }, []);
-  const ctx = useMemo<Ctx>(() => ({ entries, used: new Set<string>(), currentPath: currentPath || null }), [entries, currentPath]);
+  const ctx = useMemo<Ctx>(() => ({ entries, used: new Set<string>(), usedTargets: new Set<string>(), currentPath: currentPath || null }), [entries, currentPath]);
   return <KeywordLinkContext.Provider value={ctx}>{children}</KeywordLinkContext.Provider>;
 }
 
 /** Wrap a plain string with <Link> for the first occurrence of any known article title. */
 export function linkifyText(text: string, ctx: Ctx | null, keyPrefix = "k"): ReactNode {
   if (!ctx || !ctx.entries.length || !text) return text;
-  const { entries, used, currentPath } = ctx;
-  const pool = entries.filter((e) => !used.has(e.lower) && e.path !== currentPath).slice(0, 4000);
+  const { entries, used, usedTargets, currentPath } = ctx;
+  const pool = entries.filter((e) => !used.has(e.lower) && e.path !== currentPath).slice(0, 5000);
   const out: ReactNode[] = [];
   let rest = text;
   let i = 0;
@@ -129,6 +129,7 @@ export function linkifyText(text: string, ctx: Ctx | null, keyPrefix = "k"): Rea
     const before = rest.slice(0, index);
     if (!entry) { out.push(rest); break; }
     used.add(entry.lower);
+    usedTargets.add(entry.path);
     if (before) out.push(<span key={`${keyPrefix}-b-${i}`}>{before}</span>);
     out.push(
       <Link
