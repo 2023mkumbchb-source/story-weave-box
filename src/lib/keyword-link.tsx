@@ -31,10 +31,10 @@ async function loadEntries(): Promise<LinkEntry[]> {
   cachePromise = (async () => {
     try {
       const [{ data: articles }, { data: flashcards }, { data: mcqs }, { data: stories }] = await Promise.all([
-        supabase.from("articles").select("id,title,slug,meta_title,meta_description,content").eq("published", true).is("deleted_at", null).limit(1000),
-        supabase.from("flashcard_sets").select("id,title,slug,meta_title,meta_description,cards").eq("published", true).is("deleted_at", null).limit(1000),
-        supabase.from("mcq_sets").select("id,title,slug,meta_title,meta_description,questions").eq("published", true).is("deleted_at", null).limit(1000),
-        supabase.from("stories").select("id,title,meta_title,meta_description,content").eq("published", true).limit(1000),
+        supabase.from("articles").select("id,title,slug,meta_title,meta_description").eq("published", true).is("deleted_at", null).limit(1500),
+        supabase.from("flashcard_sets").select("id,title,slug,meta_title,meta_description").eq("published", true).is("deleted_at", null).limit(1200),
+        supabase.from("mcq_sets").select("id,title,slug,meta_title,meta_description").eq("published", true).is("deleted_at", null).limit(1200),
+        supabase.from("stories").select("id,title,meta_title,meta_description").eq("published", true).limit(500),
       ]);
       const entries: LinkEntry[] = [];
       const seen = new Set<string>();
@@ -65,10 +65,10 @@ async function loadEntries(): Promise<LinkEntry[]> {
           if (haystack.includes(term)) addTerm(term, path);
         });
       };
-      (articles as Partial<Article>[] || []).forEach((a) => addAliases(a.meta_title || a.title, a.meta_description, a.content, buildBlogPath(a as Article)));
-      (flashcards as Partial<FlashcardSet>[] || []).forEach((f) => addAliases(f.meta_title || f.title, f.meta_description, JSON.stringify(f.cards || []), buildFlashcardPath(f as FlashcardSet)));
-      (mcqs as Partial<McqSet>[] || []).forEach((m) => addAliases(m.meta_title || m.title, m.meta_description, JSON.stringify(m.questions || []), buildMcqPath(m as McqSet)));
-      (stories as Partial<Story>[] || []).forEach((s) => addAliases(s.meta_title || s.title, s.meta_description, s.content, buildStoryPath(s as Story)));
+      (articles as Partial<Article>[] || []).forEach((a) => addAliases(a.meta_title || a.title, a.meta_description, null, buildBlogPath(a as Article)));
+      (flashcards as Partial<FlashcardSet>[] || []).forEach((f) => addAliases(f.meta_title || f.title, f.meta_description, null, buildFlashcardPath(f as FlashcardSet)));
+      (mcqs as Partial<McqSet>[] || []).forEach((m) => addAliases(m.meta_title || m.title, m.meta_description, null, buildMcqPath(m as McqSet)));
+      (stories as Partial<Story>[] || []).forEach((s) => addAliases(s.meta_title || s.title, s.meta_description, null, buildStoryPath(s as Story)));
       // longer terms first so they match before shorter substrings
       entries.sort((a, b) => b.term.length - a.term.length);
       cache = entries;
