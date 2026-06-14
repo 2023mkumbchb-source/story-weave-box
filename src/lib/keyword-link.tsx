@@ -101,7 +101,7 @@ export function KeywordLinkProvider({ currentPath, children }: { currentPath?: s
 export function linkifyText(text: string, ctx: Ctx | null, keyPrefix = "k"): ReactNode {
   if (!ctx || !ctx.entries.length || !text) return text;
   const { entries, used, currentPath } = ctx;
-  const pool = entries.filter((e) => !used.has(e.lower) && e.path !== currentPath).slice(0, 900);
+  const pool = entries.filter((e) => !used.has(e.lower) && e.path !== currentPath).slice(0, 4000);
   const out: ReactNode[] = [];
   let rest = text;
   let i = 0;

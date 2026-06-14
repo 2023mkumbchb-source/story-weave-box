@@ -1265,8 +1265,33 @@ export default function AdminEditor() {
                   <Input value={editSlug} onChange={(e) => setEditSlug(e.target.value)} placeholder={slugifyText(editTitle)} className="text-xs h-7" />
                 </div>
                 <div>
-                  <label className="text-[10px] font-medium text-muted-foreground mb-0.5 block">OG Image</label>
+                  <label className="text-[10px] font-medium text-muted-foreground mb-0.5 block">Thumbnail / OG Image URL</label>
                   <Input value={editOgImage} onChange={(e) => setEditOgImage(e.target.value)} placeholder="https://..." className="text-xs h-7" />
+                </div>
+              </div>
+
+              {/* Thumbnail preview + publish time */}
+              <div className="rounded-lg border border-border bg-muted/30 p-2 flex items-center gap-3">
+                {(editOgImage || (fullArticle && extractFirstImageFromContent(fullArticle.content || ""))) ? (
+                  <img
+                    src={editOgImage || extractFirstImageFromContent(fullArticle?.content || "") || ""}
+                    alt="Thumbnail"
+                    className="h-14 w-20 rounded-md object-cover border border-border"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                  />
+                ) : (
+                  <div className="h-14 w-20 rounded-md border border-dashed border-border flex items-center justify-center text-[10px] text-muted-foreground text-center px-1">
+                    No thumbnail
+                  </div>
+                )}
+                <div className="flex-1 text-[10px] text-muted-foreground space-y-0.5">
+                  {fullArticle?.created_at && (
+                    <p>Created: <span className="text-foreground font-medium">{new Date(fullArticle.created_at).toLocaleString()}</span></p>
+                  )}
+                  {fullArticle?.updated_at && (
+                    <p>Updated: <span className="text-foreground font-medium">{new Date(fullArticle.updated_at).toLocaleString()}</span></p>
+                  )}
+                  <p>Status: <span className={editPublished ? "text-primary font-semibold" : "text-amber-500 font-semibold"}>{editPublished ? "Published" : "Draft"}</span></p>
                 </div>
               </div>
 

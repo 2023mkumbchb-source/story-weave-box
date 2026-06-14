@@ -962,7 +962,8 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     const boldLabelMatch = t.match(/^\*\*([^*]+)\*\*:?$/);
     if (boldLabelMatch) {
       flushList();
-      els.push(<h3 key={`bl-${i}`} className="mt-6 mb-2 font-semibold text-base text-foreground">{boldLabelMatch[1].replace(/:$/, "").trim()}</h3>);
+      const blText = boldLabelMatch[1].replace(/:$/, "").trim();
+      els.push(<h3 key={`bl-${i}`} id={slugify(blText)} className="mt-6 mb-2 scroll-mt-20 font-semibold text-base text-foreground">{blText}</h3>);
       underSubheading = false;
       continue;
     }
@@ -970,7 +971,8 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     const isSubLabel = /^[A-Za-z*\s()–-]{2,60}:$/.test(t);
     if (isSubLabel) {
       flushList();
-      els.push(<h3 key={`sl-${i}`} className="mt-6 mb-2 font-semibold text-lg text-foreground"><Inline text={t.slice(0, -1)} /></h3>);
+      const slText = t.slice(0, -1).replace(/\*+/g, "").trim();
+      els.push(<h3 key={`sl-${i}`} id={slugify(slText)} className="mt-6 mb-2 scroll-mt-20 font-semibold text-lg text-foreground"><Inline text={t.slice(0, -1)} /></h3>);
       underSubheading = false;
       continue;
     }
