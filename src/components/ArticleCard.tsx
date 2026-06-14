@@ -26,7 +26,7 @@ export default function ArticleCard({ article }: { article: Article }) {
   const preview = (article.meta_description || article.content || "")
     .replace(/!\[[^\]]*\]\((.*?)\)/g, "")
     .replace(/^#+\s.+$/gm, "")
-    .replace(/[#*_`|>\-]/g, "")
+    .replace(/[#*_`|>-]/g, "")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 160);
