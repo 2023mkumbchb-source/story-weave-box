@@ -768,6 +768,7 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
     set.meta_description?.trim() ||
     `${qCount} clinical MCQs${cat ? " in " + cat : ""}. ${firstQ}`
   ).slice(0, 155);
+  const defaultMcqThumb = `${SITE_URL}/og-default.png`;
   const payload = {
     title: set.title,
     questions: balancedQuestions as any,
@@ -779,6 +780,7 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
     slug: (set.slug && set.slug.trim()) || slugifyTitle(set.title) || null,
     meta_title: autoMetaTitle,
     meta_description: autoMetaDesc,
+    og_image_url: set.og_image_url?.trim() || defaultMcqThumb,
   } as any;
 
   if (set.id) {
@@ -789,6 +791,8 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
       .select()
       .single();
     if (error) throw error;
+    memoryMcqSummaryCache = null;
+    try { sessionStorage.removeItem(MCQ_SUMMARY_CACHE_KEY); } catch {}
     return data as unknown as McqSet;
   } else {
     const { data, error } = await supabase
@@ -797,6 +801,8 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
       .select()
       .single();
     if (error) throw error;
+    memoryMcqSummaryCache = null;
+    try { sessionStorage.removeItem(MCQ_SUMMARY_CACHE_KEY); } catch {}
     return data as unknown as McqSet;
   }
 }
