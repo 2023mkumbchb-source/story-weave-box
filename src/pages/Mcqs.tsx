@@ -190,7 +190,7 @@ export default function Mcqs() {
                         {titleMatch ? <Highlight text={set.title} query={query} /> : set.title}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {set.questions.length} questions total
+                        {set.questions.length ? `${set.questions.length} questions total` : "Open quiz to view questions"}
                         {matchingQuestions.length > 0 && (
                           <> · <span className="font-medium text-primary">{matchingQuestions.length} question{matchingQuestions.length !== 1 ? "s" : ""} match</span></>
                         )}
