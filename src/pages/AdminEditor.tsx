@@ -1355,6 +1355,12 @@ export default function AdminEditor() {
                 <span className="font-medium">Published</span>
               </label>
 
+              <PublishingSettingsPanel
+                value={extras}
+                onChange={setExtras}
+                content={editor ? htmlToMd(editor.getHTML()) : ""}
+              />
+
               {/* WYSIWYG Toolbar + Editor */}
               {editor && (
                 <div className="rounded-xl border border-border bg-background overflow-hidden">
