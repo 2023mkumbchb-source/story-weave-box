@@ -578,7 +578,18 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
     meta_title: normalizedMetaTitle,
     meta_description: normalizedMetaDescription,
     og_image_url: normalizedOgImage,
-  };
+  } as any;
+  // Pass-through extra publishing settings if provided
+  if (article.countdown !== undefined) payload.countdown = article.countdown;
+  if (article.html_embed !== undefined) payload.html_embed = article.html_embed;
+  if (article.password_protected !== undefined) payload.password_protected = article.password_protected;
+  if (article.access_password !== undefined) payload.access_password = article.access_password;
+  if (article.scheduled_at !== undefined) payload.scheduled_at = article.scheduled_at;
+  if (article.tags !== undefined) payload.tags = article.tags;
+  if (article.featured_image !== undefined) payload.featured_image = article.featured_image;
+  if (article.reading_time_minutes !== undefined) payload.reading_time_minutes = article.reading_time_minutes;
+  if (article.toc_enabled !== undefined) payload.toc_enabled = article.toc_enabled;
+  if (article.comments_enabled !== undefined) payload.comments_enabled = article.comments_enabled;
 
   let saved: Article;
 
