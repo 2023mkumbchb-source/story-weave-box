@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import ShareButtons from "@/components/ShareButtons";
 import ArticleComments from "@/components/ArticleComments";
+import { Countdown, HtmlEmbed, PasswordGate, ContentToc, ReadingTimeBadge } from "@/components/ContentExtras";
 import { motion, AnimatePresence } from "framer-motion";
 import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, buildFlashcardPath, type Article } from "@/lib/store";
 import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags, autoIndexUrls } from "@/lib/seo";
