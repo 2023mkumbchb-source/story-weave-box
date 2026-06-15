@@ -1,9 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { buildBlogPath, buildFlashcardPath, buildMcqPath, type Article, type FlashcardSet, type McqSet, type Story } from "@/lib/store";
 import { slugify } from "@/lib/deep-link";
 import { buildStoryPath, stripRichText } from "@/lib/seo";
+import { useDeepLinkPreview } from "@/components/DeepLinkPreview";
 
 type LinkEntry = { term: string; path: string; lower: string; target: string };
 
@@ -132,19 +132,35 @@ export function linkifyText(text: string, ctx: Ctx | null, keyPrefix = "k"): Rea
     usedTargets.add(entry.path);
     if (before) out.push(<span key={`${keyPrefix}-b-${i}`}>{before}</span>);
     out.push(
-      <Link
+      <DeepLinkSpan
         key={`${keyPrefix}-l-${i}`}
-        to={`${entry.path}#${entry.target || slugify(matched)}`}
-        className="deep-link"
-      >
-        {matched}
-      </Link>
+        path={`${entry.path}#${entry.target || slugify(matched)}`}
+        title={entry.term}
+        label={matched}
+      />
     );
     rest = rest.slice(index + matched.length);
     i++;
     if (i > 40) { out.push(rest); break; }
   }
   return <>{out}</>;
+}
+
+function DeepLinkSpan({ path, title, label }: { path: string; title: string; label: string }) {
+  const preview = useDeepLinkPreview();
+  return (
+    <button
+      type="button"
+      className="deep-link"
+      onClick={(e) => {
+        e.preventDefault();
+        if (preview) preview.open(path, title);
+        else window.location.href = path;
+      }}
+    >
+      {label}
+    </button>
+  );
 }
 
 function findBestMatch(text: string, pool: LinkEntry[]) {

@@ -73,16 +73,34 @@ interface MetaConfig {
   image?: string;
   url?: string;
   type?: "website" | "article";
+  keywords?: string[];
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
-export function updateMetaTags({ title, description, image, url, type = "website" }: MetaConfig) {
+const KENYA_BASE_KEYWORDS = [
+  "MKU", "UON", "KU", "Moi", "Aga Khan", "Kabarak",
+  "MKU pathology", "UON pathology", "Mount Kenya University medicine",
+  "clinical pathology Kenya", "past papers Kenya", "MCQs Kenya medical",
+  "pathology notes Africa", "medical school notes Kenya",
+];
+
+export function buildKeywords(topic: string, extra: string[] = []): string {
+  const set = new Set<string>();
+  if (topic) set.add(topic.toLowerCase());
+  [...KENYA_BASE_KEYWORDS, ...extra].forEach(k => k && set.add(k));
+  return Array.from(set).slice(0, 25).join(", ");
+}
+
+export function updateMetaTags({ title, description, image, url, type = "website", keywords, jsonLd }: MetaConfig) {
   document.title = title;
 
   // ✅ Always use www canonical — never fall back to window.location.href
   const canonicalUrl = url || `${SITE_URL}${window.location.pathname}`;
+  const keywordContent = keywords && keywords.length ? keywords.join(", ") : buildKeywords(title);
 
   const tags = [
     { name: "description", content: description },
+    { name: "keywords", content: keywordContent },
     { property: "og:title", content: title },
     { property: "og:description", content: description },
     { property: "og:image", content: image || `${SITE_URL}/og-default.png` },
@@ -115,4 +133,17 @@ export function updateMetaTags({ title, description, image, url, type = "website
     document.head.appendChild(canonical);
   }
   canonical.setAttribute("href", canonicalUrl);
+
+  // JSON-LD structured data (Article / Quiz / etc.)
+  document.querySelectorAll('script[data-managed-ld="1"]').forEach(n => n.remove());
+  if (jsonLd) {
+    const blocks = Array.isArray(jsonLd) ? jsonLd : [jsonLd];
+    blocks.forEach(block => {
+      const s = document.createElement("script");
+      s.setAttribute("type", "application/ld+json");
+      s.setAttribute("data-managed-ld", "1");
+      s.textContent = JSON.stringify(block);
+      document.head.appendChild(s);
+    });
+  }
 }
