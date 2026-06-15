@@ -15,6 +15,16 @@ export interface Article {
   meta_description?: string;
   og_image_url?: string;
   slug?: string;
+  countdown?: any;
+  html_embed?: any;
+  password_protected?: boolean;
+  access_password?: string;
+  scheduled_at?: string | null;
+  tags?: string[];
+  featured_image?: string;
+  reading_time_minutes?: number;
+  toc_enabled?: boolean;
+  comments_enabled?: boolean;
 }
 
 export interface ArticleCategory {
@@ -55,6 +65,15 @@ export interface McqSet {
   og_image_url?: string;
   slug?: string;
   description?: string;
+  countdown?: any;
+  html_embed?: any;
+  password_protected?: boolean;
+  scheduled_at?: string | null;
+  tags?: string[];
+  featured_image?: string;
+  reading_time_minutes?: number;
+  toc_enabled?: boolean;
+  comments_enabled?: boolean;
 }
 
 export interface Story {
