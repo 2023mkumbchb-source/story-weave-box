@@ -812,6 +812,15 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
     meta_description: autoMetaDesc,
     og_image_url: set.og_image_url?.trim() || defaultMcqThumb,
   } as any;
+  if (set.countdown !== undefined) payload.countdown = set.countdown;
+  if (set.html_embed !== undefined) payload.html_embed = set.html_embed;
+  if (set.password_protected !== undefined) payload.password_protected = set.password_protected;
+  if (set.scheduled_at !== undefined) payload.scheduled_at = set.scheduled_at;
+  if (set.tags !== undefined) payload.tags = set.tags;
+  if (set.featured_image !== undefined) payload.featured_image = set.featured_image;
+  if (set.reading_time_minutes !== undefined) payload.reading_time_minutes = set.reading_time_minutes;
+  if (set.toc_enabled !== undefined) payload.toc_enabled = set.toc_enabled;
+  if (set.comments_enabled !== undefined) payload.comments_enabled = set.comments_enabled;
 
   if (set.id) {
     const { data, error } = await supabase
