@@ -90,51 +90,81 @@ export type Database = {
       }
       articles: {
         Row: {
+          access_password: string | null
           category: string
+          comments_enabled: boolean
           content: string
+          countdown: Json | null
           created_at: string
           deleted_at: string | null
+          featured_image: string | null
+          html_embed: Json | null
           id: string
           is_raw: boolean | null
           meta_description: string | null
           meta_title: string | null
           og_image_url: string | null
           original_notes: string
+          password_protected: boolean
           published: boolean
+          reading_time_minutes: number | null
+          scheduled_at: string | null
           slug: string | null
+          tags: string[]
           title: string
+          toc_enabled: boolean
           updated_at: string
         }
         Insert: {
+          access_password?: string | null
           category?: string
+          comments_enabled?: boolean
           content?: string
+          countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
+          featured_image?: string | null
+          html_embed?: Json | null
           id?: string
           is_raw?: boolean | null
           meta_description?: string | null
           meta_title?: string | null
           og_image_url?: string | null
           original_notes?: string
+          password_protected?: boolean
           published?: boolean
+          reading_time_minutes?: number | null
+          scheduled_at?: string | null
           slug?: string | null
+          tags?: string[]
           title: string
+          toc_enabled?: boolean
           updated_at?: string
         }
         Update: {
+          access_password?: string | null
           category?: string
+          comments_enabled?: boolean
           content?: string
+          countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
+          featured_image?: string | null
+          html_embed?: Json | null
           id?: string
           is_raw?: boolean | null
           meta_description?: string | null
           meta_title?: string | null
           og_image_url?: string | null
           original_notes?: string
+          password_protected?: boolean
           published?: boolean
+          reading_time_minutes?: number | null
+          scheduled_at?: string | null
           slug?: string | null
+          tags?: string[]
           title?: string
+          toc_enabled?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -245,42 +275,72 @@ export type Database = {
       }
       flashcard_sets: {
         Row: {
+          access_password: string | null
           cards: Json
           category: string
+          comments_enabled: boolean
+          countdown: Json | null
           created_at: string
           deleted_at: string | null
+          featured_image: string | null
+          html_embed: Json | null
           id: string
           is_raw: boolean | null
           original_notes: string
+          password_protected: boolean
           published: boolean
+          reading_time_minutes: number | null
+          scheduled_at: string | null
           slug: string | null
+          tags: string[]
           title: string
+          toc_enabled: boolean
           updated_at: string
         }
         Insert: {
+          access_password?: string | null
           cards?: Json
           category?: string
+          comments_enabled?: boolean
+          countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
+          featured_image?: string | null
+          html_embed?: Json | null
           id?: string
           is_raw?: boolean | null
           original_notes?: string
+          password_protected?: boolean
           published?: boolean
+          reading_time_minutes?: number | null
+          scheduled_at?: string | null
           slug?: string | null
+          tags?: string[]
           title: string
+          toc_enabled?: boolean
           updated_at?: string
         }
         Update: {
+          access_password?: string | null
           cards?: Json
           category?: string
+          comments_enabled?: boolean
+          countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
+          featured_image?: string | null
+          html_embed?: Json | null
           id?: string
           is_raw?: boolean | null
           original_notes?: string
+          password_protected?: boolean
           published?: boolean
+          reading_time_minutes?: number | null
+          scheduled_at?: string | null
           slug?: string | null
+          tags?: string[]
           title?: string
+          toc_enabled?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -289,52 +349,79 @@ export type Database = {
         Row: {
           access_password: string
           category: string
+          comments_enabled: boolean
+          countdown: Json | null
           created_at: string
           deleted_at: string | null
+          featured_image: string | null
+          html_embed: Json | null
           id: string
           is_raw: boolean | null
           meta_description: string | null
           meta_title: string | null
           og_image_url: string | null
           original_notes: string
+          password_protected: boolean
           published: boolean
           questions: Json
+          reading_time_minutes: number | null
+          scheduled_at: string | null
           slug: string | null
+          tags: string[]
           title: string
+          toc_enabled: boolean
           updated_at: string
         }
         Insert: {
           access_password?: string
           category?: string
+          comments_enabled?: boolean
+          countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
+          featured_image?: string | null
+          html_embed?: Json | null
           id?: string
           is_raw?: boolean | null
           meta_description?: string | null
           meta_title?: string | null
           og_image_url?: string | null
           original_notes?: string
+          password_protected?: boolean
           published?: boolean
           questions?: Json
+          reading_time_minutes?: number | null
+          scheduled_at?: string | null
           slug?: string | null
+          tags?: string[]
           title: string
+          toc_enabled?: boolean
           updated_at?: string
         }
         Update: {
           access_password?: string
           category?: string
+          comments_enabled?: boolean
+          countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
+          featured_image?: string | null
+          html_embed?: Json | null
           id?: string
           is_raw?: boolean | null
           meta_description?: string | null
           meta_title?: string | null
           og_image_url?: string | null
           original_notes?: string
+          password_protected?: boolean
           published?: boolean
           questions?: Json
+          reading_time_minutes?: number | null
+          scheduled_at?: string | null
           slug?: string | null
+          tags?: string[]
           title?: string
+          toc_enabled?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -437,46 +524,76 @@ export type Database = {
       }
       stories: {
         Row: {
+          access_password: string | null
           category: string
+          comments_enabled: boolean
           content: string
+          countdown: Json | null
           cover_image_url: string | null
           created_at: string
           deleted_at: string | null
+          featured_image: string | null
+          html_embed: Json | null
           id: string
           meta_description: string | null
           meta_title: string | null
           og_image_url: string | null
+          password_protected: boolean
           published: boolean
+          reading_time_minutes: number | null
+          scheduled_at: string | null
           slug: string | null
+          tags: string[]
           title: string
+          toc_enabled: boolean
         }
         Insert: {
+          access_password?: string | null
           category?: string
+          comments_enabled?: boolean
           content?: string
+          countdown?: Json | null
           cover_image_url?: string | null
           created_at?: string
           deleted_at?: string | null
+          featured_image?: string | null
+          html_embed?: Json | null
           id?: string
           meta_description?: string | null
           meta_title?: string | null
           og_image_url?: string | null
+          password_protected?: boolean
           published?: boolean
+          reading_time_minutes?: number | null
+          scheduled_at?: string | null
           slug?: string | null
+          tags?: string[]
           title: string
+          toc_enabled?: boolean
         }
         Update: {
+          access_password?: string | null
           category?: string
+          comments_enabled?: boolean
           content?: string
+          countdown?: Json | null
           cover_image_url?: string | null
           created_at?: string
           deleted_at?: string | null
+          featured_image?: string | null
+          html_embed?: Json | null
           id?: string
           meta_description?: string | null
           meta_title?: string | null
           og_image_url?: string | null
+          password_protected?: boolean
           published?: boolean
+          reading_time_minutes?: number | null
+          scheduled_at?: string | null
           slug?: string | null
+          tags?: string[]
           title?: string
+          toc_enabled?: boolean
         }
         Relationships: []
       }
