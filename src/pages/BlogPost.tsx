@@ -1551,6 +1551,12 @@ export default function BlogPost() {
           )}
 
           <article id="section-top" className="min-w-0">
+            <Countdown data={(article as any).countdown} />
+            <PasswordGate
+              enabled={(article as any).password_protected}
+              password={(article as any).access_password}
+              storageKey={article.slug || article.id}
+            >
             <ClassicHero
               title={cleanMetaTitle(article)}
               image={article.og_image_url || extractFirstImageFromContent(article.content || "") || ""}
@@ -1561,11 +1567,21 @@ export default function BlogPost() {
               category={article.category}
             />
 
+            {(article as any).reading_time_minutes ? (
+              <div className="mb-2"><ReadingTimeBadge minutes={(article as any).reading_time_minutes} /></div>
+            ) : null}
+
+            <HtmlEmbed data={(article as any).html_embed} position="top" />
+
+            {(article as any).toc_enabled && <ContentToc content={article.content} />}
+
             <div className="prose-custom article-reader">
               <KeywordLinkProvider currentPath={buildBlogPath(article)}>
                 <ArticleContent content={article.content} inlineRelated={related.articles || []} />
               </KeywordLinkProvider>
             </div>
+
+            <HtmlEmbed data={(article as any).html_embed} position="bottom" />
 
             <div className="mt-10 pt-6 border-t border-border">
               <ShareButtons
@@ -1667,7 +1683,8 @@ export default function BlogPost() {
               </section>
             )}
 
-            <ArticleComments articleId={article.id} />
+            {(article as any).comments_enabled !== false && <ArticleComments articleId={article.id} />}
+            </PasswordGate>
           </article>
         </div>
       </div>
