@@ -1128,6 +1128,12 @@ export default function AdminEditor() {
                 </div>
               </div>
 
+              <PublishingSettingsPanel
+                value={extras}
+                onChange={setExtras}
+                content={(currentMcqSummary as any).original_notes || ""}
+              />
+
               <div className="rounded-xl border border-border bg-card p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
                   <div className="min-w-0 flex-1">
