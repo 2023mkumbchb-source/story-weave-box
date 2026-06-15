@@ -25,6 +25,7 @@ import { slugifyText, SITE_URL, extractFirstImageFromContent, stripRichText } fr
 import { cn } from "@/lib/utils";
 import { Helmet } from "react-helmet-async";
 import { saveDraft, getDrafts, syncDrafts, deleteDraft, type OfflineDraft } from "@/lib/offline-drafts";
+import PublishingSettingsPanel, { type PublishingExtras, computeReadingTime } from "@/components/PublishingSettings";
 
 type EditorMode = "articles" | "mcqs" | "stories";
 
@@ -335,6 +336,7 @@ export default function AdminEditor() {
   const [editMcqPassword, setEditMcqPassword] = useState("");
   const [editMcqQuestions, setEditMcqQuestions] = useState<any[]>([]);
   const [savingMcq, setSavingMcq] = useState(false);
+  const [extras, setExtras] = useState<PublishingExtras>({});
 
   // Load content based on mode
   const loadContent = useCallback(async () => {
@@ -497,6 +499,18 @@ export default function AdminEditor() {
     setEditCategory(fullArticle.category || "");
     setEditOgImage(fullArticle.og_image_url || "");
     setEditPublished(fullArticle.published);
+    setExtras({
+      countdown: (fullArticle as any).countdown || null,
+      html_embed: (fullArticle as any).html_embed || null,
+      password_protected: (fullArticle as any).password_protected || false,
+      access_password: (fullArticle as any).access_password || "",
+      scheduled_at: (fullArticle as any).scheduled_at || null,
+      tags: (fullArticle as any).tags || [],
+      featured_image: (fullArticle as any).featured_image || "",
+      reading_time_minutes: (fullArticle as any).reading_time_minutes || computeReadingTime(fullArticle.content || ""),
+      toc_enabled: (fullArticle as any).toc_enabled || false,
+      comments_enabled: (fullArticle as any).comments_enabled !== false,
+    });
   }, [fullArticle, editor, isAddMode]);
 
   // Initialise edit fields when an MCQ set is selected
@@ -509,6 +523,19 @@ export default function AdminEditor() {
     setEditOgImage((currentMcqSummary as any).og_image_url || "");
     setEditMcqPassword((currentMcqSummary as any).access_password || "");
     setEditMcqQuestions(Array.isArray(currentMcqSummary.questions) ? JSON.parse(JSON.stringify(currentMcqSummary.questions)) : []);
+    const m: any = currentMcqSummary;
+    setExtras({
+      countdown: m.countdown || null,
+      html_embed: m.html_embed || null,
+      password_protected: m.password_protected || false,
+      access_password: m.access_password || "",
+      scheduled_at: m.scheduled_at || null,
+      tags: m.tags || [],
+      featured_image: m.featured_image || "",
+      reading_time_minutes: m.reading_time_minutes || 0,
+      toc_enabled: m.toc_enabled || false,
+      comments_enabled: m.comments_enabled !== false,
+    });
   }, [currentMcqSummary?.id, editorMode, isAddMode]);
 
   // Save edited MCQ set metadata
@@ -527,6 +554,7 @@ export default function AdminEditor() {
         slug: editSlug || slugifyText(editTitle || currentMcqSummary.title) || "",
         og_image_url: editOgImage || "",
         is_raw: false,
+        ...extras,
       } as any);
       toast({ title: "MCQ set saved!" });
       setAllMcqSets(prev => prev.map(m => m.id === currentMcqSummary.id ? {
@@ -581,6 +609,7 @@ export default function AdminEditor() {
         meta_description: editMetaDesc,
         slug: editSlug || slugifyText(editTitle),
         og_image_url: editOgImage || extractFirstImageFromContent(mdContent) || "",
+        ...extras,
       };
       if (isAddMode) {
         await saveArticle(payload);
@@ -1099,6 +1128,12 @@ export default function AdminEditor() {
                 </div>
               </div>
 
+              <PublishingSettingsPanel
+                value={extras}
+                onChange={setExtras}
+                content={(currentMcqSummary as any).original_notes || ""}
+              />
+
               <div className="rounded-xl border border-border bg-card p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
                   <div className="min-w-0 flex-1">
@@ -1319,6 +1354,12 @@ export default function AdminEditor() {
                 <input type="checkbox" checked={editPublished} onChange={(e) => setEditPublished(e.target.checked)} className="rounded" />
                 <span className="font-medium">Published</span>
               </label>
+
+              <PublishingSettingsPanel
+                value={extras}
+                onChange={setExtras}
+                content={editor ? htmlToMd(editor.getHTML()) : ""}
+              />
 
               {/* WYSIWYG Toolbar + Editor */}
               {editor && (

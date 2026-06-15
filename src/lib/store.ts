@@ -15,6 +15,16 @@ export interface Article {
   meta_description?: string;
   og_image_url?: string;
   slug?: string;
+  countdown?: any;
+  html_embed?: any;
+  password_protected?: boolean;
+  access_password?: string;
+  scheduled_at?: string | null;
+  tags?: string[];
+  featured_image?: string;
+  reading_time_minutes?: number;
+  toc_enabled?: boolean;
+  comments_enabled?: boolean;
 }
 
 export interface ArticleCategory {
@@ -55,6 +65,15 @@ export interface McqSet {
   og_image_url?: string;
   slug?: string;
   description?: string;
+  countdown?: any;
+  html_embed?: any;
+  password_protected?: boolean;
+  scheduled_at?: string | null;
+  tags?: string[];
+  featured_image?: string;
+  reading_time_minutes?: number;
+  toc_enabled?: boolean;
+  comments_enabled?: boolean;
 }
 
 export interface Story {
@@ -559,7 +578,18 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
     meta_title: normalizedMetaTitle,
     meta_description: normalizedMetaDescription,
     og_image_url: normalizedOgImage,
-  };
+  } as any;
+  // Pass-through extra publishing settings if provided
+  if (article.countdown !== undefined) payload.countdown = article.countdown;
+  if (article.html_embed !== undefined) payload.html_embed = article.html_embed;
+  if (article.password_protected !== undefined) payload.password_protected = article.password_protected;
+  if (article.access_password !== undefined) payload.access_password = article.access_password;
+  if (article.scheduled_at !== undefined) payload.scheduled_at = article.scheduled_at;
+  if (article.tags !== undefined) payload.tags = article.tags;
+  if (article.featured_image !== undefined) payload.featured_image = article.featured_image;
+  if (article.reading_time_minutes !== undefined) payload.reading_time_minutes = article.reading_time_minutes;
+  if (article.toc_enabled !== undefined) payload.toc_enabled = article.toc_enabled;
+  if (article.comments_enabled !== undefined) payload.comments_enabled = article.comments_enabled;
 
   let saved: Article;
 
@@ -782,6 +812,15 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
     meta_description: autoMetaDesc,
     og_image_url: set.og_image_url?.trim() || defaultMcqThumb,
   } as any;
+  if (set.countdown !== undefined) payload.countdown = set.countdown;
+  if (set.html_embed !== undefined) payload.html_embed = set.html_embed;
+  if (set.password_protected !== undefined) payload.password_protected = set.password_protected;
+  if (set.scheduled_at !== undefined) payload.scheduled_at = set.scheduled_at;
+  if (set.tags !== undefined) payload.tags = set.tags;
+  if (set.featured_image !== undefined) payload.featured_image = set.featured_image;
+  if (set.reading_time_minutes !== undefined) payload.reading_time_minutes = set.reading_time_minutes;
+  if (set.toc_enabled !== undefined) payload.toc_enabled = set.toc_enabled;
+  if (set.comments_enabled !== undefined) payload.comments_enabled = set.comments_enabled;
 
   if (set.id) {
     const { data, error } = await supabase
