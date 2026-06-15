@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { HelmetProvider } from "react-helmet-async";
+import { DeepLinkPreviewProvider } from "@/components/DeepLinkPreview";
 
 // Auto-recover from stale chunk loads after a deploy. When the cached
 // index.html refers to chunk hashes that no longer exist (or the cached
@@ -70,6 +71,8 @@ if ("serviceWorker" in navigator) {
 
 createRoot(document.getElementById("root")!).render(
   <HelmetProvider>
-    <App />
+    <DeepLinkPreviewProvider>
+      <App />
+    </DeepLinkPreviewProvider>
   </HelmetProvider>
 );
