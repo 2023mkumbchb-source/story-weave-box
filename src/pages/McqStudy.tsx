@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Loader2, Lock, Unlock, ListChecks, Phone, CheckCircle, GraduationCap, Calendar, Clock, Users } from "lucide-react";
 import { getMcqSetBySlugOrId, getPublishedMcqSets, getCategoryDisplayName, getSetting, buildMcqPath, type McqSet } from "@/lib/store";
@@ -24,6 +24,49 @@ function persistUnlockedMcqs(set: Set<string>) {
 
 function isMcqItem(q: any) {
   return Array.isArray(q?.options) && q.options.length >= 2;
+}
+
+// Per-set deterministic option shuffler: shuffles option order for each MCQ
+// question and re-maps correct_answer accordingly. Guarantees that no two
+// consecutive MCQ questions share the same correct-answer letter, so the
+// answer pattern isn't predictable (A,B,B,B... etc).
+function shuffleMcqOptions<T extends { options?: string[]; correct_answer?: number }>(
+  questions: T[],
+  setId: string,
+): T[] {
+  // Stable seeded RNG so a given set always produces the same shuffle for a user.
+  let seed = 0;
+  for (let i = 0; i < setId.length; i++) seed = (seed * 31 + setId.charCodeAt(i)) >>> 0;
+  const rand = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 0x100000000;
+  };
+
+  let lastLetter = -1;
+  return questions.map((q) => {
+    if (!Array.isArray(q.options) || q.options.length < 2 || typeof q.correct_answer !== "number") {
+      return q;
+    }
+    const n = q.options.length;
+    // Try a few permutations to avoid consecutive duplicate correct letters.
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const perm = Array.from({ length: n }, (_, i) => i);
+      for (let i = n - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [perm[i], perm[j]] = [perm[j], perm[i]];
+      }
+      const newCorrect = perm.indexOf(q.correct_answer);
+      if (newCorrect !== lastLetter || attempt === 7) {
+        lastLetter = newCorrect;
+        return {
+          ...q,
+          options: perm.map((idx) => q.options![idx]),
+          correct_answer: newCorrect,
+        };
+      }
+    }
+    return q;
+  });
 }
 
 function inferPaperSource(title: string) {
@@ -220,10 +263,22 @@ export default function McqStudy() {
   const unitName = getCategoryDisplayName(set.category);
   const isLocked = set.access_password && set.access_password !== "" && !passwordUnlocked;
   const hideAnswers = !!(set.access_password && set.access_password !== "" && !passwordUnlocked);
-  const needsPayForExam = mcqFreeLimit > 0 && !isPaid && set.questions.length > mcqFreeLimit;
+  // Enforce: paywall ONLY kicks in after question 15 (or higher, if configured),
+  // and is fully disabled when the set has 15 or fewer questions.
+  const effectiveFreeLimit = Math.max(15, mcqFreeLimit || 0);
+  const needsPayForExam =
+    !isPaid && set.questions.length > effectiveFreeLimit;
 
-  const mcqQuestions = set.questions.filter(isMcqItem) as any[];
-  const writtenQuestions = set.questions.filter((q: any) => !isMcqItem(q));
+  // Shuffle each question's options once per set (deterministic per setId) so
+  // answers can't be guessed by length or position, and consecutive correct
+  // letters don't repeat.
+  const shuffledQuestions = useMemo(
+    () => shuffleMcqOptions(set.questions as any[], set.id),
+    [set.id, set.questions],
+  );
+
+  const mcqQuestions = shuffledQuestions.filter(isMcqItem) as any[];
+  const writtenQuestions = shuffledQuestions.filter((q: any) => !isMcqItem(q));
   const saqCount = writtenQuestions.filter((q: any) => q.type === "saq" || !/essay|laq|long/i.test(q.type || q.question || "")).length;
   const essayCount = writtenQuestions.length - saqCount;
   const qCount = set.questions.length;
@@ -239,9 +294,9 @@ export default function McqStudy() {
           questions={mcqQuestions}
           title={set.title}
           setId={set.id}
-          freeLimit={mcqFreeLimit}
+          freeLimit={effectiveFreeLimit}
           examPrice={mcqPrice}
-          isPaid={isPaid}
+          isPaid={needsPayForExam ? isPaid : true}
           paymentStatus={paymentStatus}
           phoneInput={phoneInput}
           onPhoneChange={setPhoneInput}
@@ -361,14 +416,14 @@ export default function McqStudy() {
       )}
 
       <McqViewer
-          questions={set.questions}
+          questions={shuffledQuestions}
           title={set.title}
           setId={set.id}
           category={set.category}
           hideAnswers={hideAnswers}
-          freeLimit={mcqFreeLimit}
+          freeLimit={effectiveFreeLimit}
           mcqPrice={mcqPrice}
-          isPaid={isPaid}
+          isPaid={needsPayForExam ? isPaid : true}
           paymentStatus={paymentStatus}
           phoneInput={phoneInput}
           onPhoneChange={setPhoneInput}
