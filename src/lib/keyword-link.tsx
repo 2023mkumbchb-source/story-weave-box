@@ -90,12 +90,15 @@ function cleanTerm(raw: string): string {
 }
 
 function isUsefulTerm(term: string): boolean {
-  if (term.length < 4 || term.length > 80) return false;
+  if (term.length < 5 || term.length > 80) return false;
   if (!/[a-z]/i.test(term)) return false;
   if (/^\d+$/.test(term)) return false;
-  if (term.split(/\s+/).length > 8) return false;
-  const banned = /^(the|and|with|from|into|this|that|these|those|causes|features|management|treatment|diagnosis|classification)$/i;
-  return !banned.test(term);
+  const words = term.split(/\s+/);
+  if (words.length > 8) return false;
+  // Reject single-word generic / connector terms — they create noisy highlights.
+  const banned = /^(the|and|but|with|from|into|onto|over|under|this|that|these|those|also|then|than|when|where|while|because|therefore|however|thus|hence|other|another|first|second|third|final|note|notes|definition|overview|introduction|summary|causes|cause|features|feature|management|treatment|diagnosis|classification|types|type|examples|example|important|various|common|general|specific|clinical|notes?|study|chapter|section|topic|topics|article|articles|page|pages|year|years|unit|units|method|methods|process|processes|effect|effects|symptom|symptoms|sign|signs|drug|drugs|disease|diseases|patient|patients|test|tests|level|levels|stage|stages|step|steps|number|numbers|name|names|group|groups|case|cases|tissue|tissues|body|organ|organs|cell|cells|blood|fluid|fluids|system|systems|function|functions|structure|structures|action|actions|table|tables|figure|figures|image|images|review)$/i;
+  if (words.length === 1 && banned.test(term)) return false;
+  return true;
 }
 
 function extractDefinedTerms(content: string): string[] {
