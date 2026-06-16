@@ -31,7 +31,8 @@ export function computeReadingTime(content: string): number {
 }
 
 function Panel({ icon, title, badge, defaultOpen, children }: { icon: ReactNode; title: string; badge?: string; defaultOpen?: boolean; children: ReactNode }) {
-  const [open, setOpen] = useState(!!defaultOpen);
+  // Default every panel open so editors immediately see all publishing settings.
+  const [open, setOpen] = useState(defaultOpen === undefined ? true : !!defaultOpen);
   return (
     <div className="rounded-lg border border-border bg-card">
       <button
