@@ -410,6 +410,8 @@ Output ONLY valid JSON array:
 Rules:
 - exactly 4 options each
 - convert answers to 0-based index
+- all options must be comparable length; no correct answer should be obviously longest or most detailed
+- keep explanations separate, never inside options
 - preserve meaning
 - return up to ${cardCount} questions`,
         },
