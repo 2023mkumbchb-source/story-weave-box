@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import DOMPurify from "dompurify";
 
 export interface PublishingExtras {
-  countdown?: { enabled: boolean; label: string; target_datetime: string; display_style: "banner" | "inline" | "floating" } | null;
+  countdown?: { enabled: boolean; label?: string; start_datetime?: string; end_datetime?: string; target_datetime?: string; display_style: "banner" | "inline" | "floating" } | null;
   html_embed?: { position: "top" | "bottom" | "both"; code: string } | null;
   password_protected?: boolean;
   access_password?: string;
@@ -28,6 +28,17 @@ export function sanitizeEmbed(html: string): string {
 export function computeReadingTime(content: string): number {
   const words = String(content || "").trim().split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.ceil(words / 200));
+}
+
+function normalizeTags(input: string | string[] | undefined): string[] {
+  const raw = Array.isArray(input) ? input : String(input || "").split(",");
+  const seen = new Set<string>();
+  return raw.map((t) => t.trim()).filter((t) => {
+    const key = t.toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 8);
 }
 
 function Panel({ icon, title, badge, defaultOpen, children }: { icon: ReactNode; title: string; badge?: string; defaultOpen?: boolean; children: ReactNode }) {
@@ -79,7 +90,7 @@ export default function PublishingSettingsPanel({ value, onChange, content }: Pr
     return out;
   }, [content]);
 
-  const countdown = v.countdown || { enabled: false, label: "Exam starts in", target_datetime: "", display_style: "banner" as const };
+  const countdown = v.countdown || { enabled: false, label: "Exam starts in", start_datetime: "", end_datetime: "", display_style: "banner" as const };
   const embed = v.html_embed || { position: "bottom" as const, code: "" };
 
   return (
@@ -113,10 +124,11 @@ export default function PublishingSettingsPanel({ value, onChange, content }: Pr
       <Panel icon={<Tag className="h-3.5 w-3.5" />} title="Tags">
         <Input
           value={(v.tags || []).join(", ")}
-          onChange={(e) => set("tags", e.target.value.split(",").map((t) => t.trim()).filter(Boolean))}
+          onChange={(e) => set("tags", normalizeTags(e.target.value))}
           placeholder="pathology, mku, year 3"
           className="h-7 text-xs"
         />
+        <p className="text-[10px] text-muted-foreground">Maximum 8 tags. They appear under the article and open Google searches.</p>
         {(v.tags || []).length > 0 && (
           <div className="flex flex-wrap gap-1 pt-1">
             {(v.tags || []).map((t, i) => (
@@ -133,11 +145,19 @@ export default function PublishingSettingsPanel({ value, onChange, content }: Pr
         </label>
         {countdown.enabled && (
           <>
-            <Input value={countdown.label} onChange={(e) => set("countdown", { ...countdown, label: e.target.value })} placeholder="Exam starts in" className="h-7 text-xs" />
+            <Input value={countdown.label || ""} onChange={(e) => set("countdown", { ...countdown, label: e.target.value })} placeholder="Exam starts in" className="h-7 text-xs" />
+            <label className="text-[10px] font-medium text-muted-foreground block">Start time</label>
             <Input
               type="datetime-local"
-              value={countdown.target_datetime ? countdown.target_datetime.slice(0, 16) : ""}
-              onChange={(e) => set("countdown", { ...countdown, target_datetime: e.target.value ? new Date(e.target.value).toISOString() : "" })}
+              value={(countdown.start_datetime || countdown.target_datetime || "").slice(0, 16)}
+              onChange={(e) => set("countdown", { ...countdown, start_datetime: e.target.value ? new Date(e.target.value).toISOString() : "", target_datetime: e.target.value ? new Date(e.target.value).toISOString() : "" })}
+              className="h-7 text-xs"
+            />
+            <label className="text-[10px] font-medium text-muted-foreground block">Stop / end time</label>
+            <Input
+              type="datetime-local"
+              value={countdown.end_datetime ? countdown.end_datetime.slice(0, 16) : ""}
+              onChange={(e) => set("countdown", { ...countdown, end_datetime: e.target.value ? new Date(e.target.value).toISOString() : "" })}
               className="h-7 text-xs"
             />
             <select
