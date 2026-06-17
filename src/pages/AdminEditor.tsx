@@ -1158,7 +1158,7 @@ export default function AdminEditor() {
                 <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
                   <div className="min-w-0 flex-1">
                     <h3 className="font-serif text-sm font-bold text-foreground truncate">{currentMcqSummary.title}</h3>
-                    <p className="text-[10px] text-muted-foreground">{currentMcqSummary.category} · {(currentMcqSummary.questions as any[]).length} Qs</p>
+                    <p className="text-[10px] text-muted-foreground">{currentMcqSummary.category} · {editMcqQuestions.length} Qs</p>
                   </div>
                   <div className="flex gap-1 flex-wrap shrink-0">
                     <Button size="sm" variant="outline" onClick={() => {
