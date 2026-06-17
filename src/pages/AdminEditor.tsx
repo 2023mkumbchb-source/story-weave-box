@@ -337,6 +337,18 @@ export default function AdminEditor() {
   const [editMcqQuestions, setEditMcqQuestions] = useState<any[]>([]);
   const [savingMcq, setSavingMcq] = useState(false);
   const [extras, setExtras] = useState<PublishingExtras>({});
+  const articleImageInputRef = useRef<HTMLInputElement | null>(null);
+  const storyImageInputRef = useRef<HTMLInputElement | null>(null);
+
+  const insertImageFile = (file?: File | null) => {
+    if (!file || !editor) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const src = e.target?.result as string;
+      if (src) editor.chain().focus().setImage({ src }).run();
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Load content based on mode
   const loadContent = useCallback(async () => {
