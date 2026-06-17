@@ -891,6 +891,23 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
+    const combinedOpts = Array.from(t.matchAll(/(?:^|\s)([A-E])\s*[\.)]\s*([\s\S]*?)(?=\s+[A-E]\s*[\.)]\s*|$)/gi));
+    if (combinedOpts.length >= 2 && !inPractice) {
+      flushList(); underSubheading = false;
+      combinedOpts.forEach((m, n) => {
+        const label = m[1].toUpperCase();
+        const optText = (m[2] || "").replace(/^\*+|\*+$/g, "").trim();
+        if (!optText) return;
+        els.push(
+          <div key={`mcqopt-combo-${i}-${n}`} className="my-1.5 flex items-start gap-2.5 pl-1">
+            <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
+            <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
+          </div>
+        );
+      });
+      continue;
+    }
+
     const subQMatch = t.match(/^(\(?[a-z]\)|[ivx]+\)|\([ivx]+\))\s*(.+)/i);
     // MCQ choice line (A–E) — render uniformly even when wrapped in stray **
     // Handles: "A) text", "**A) text**", "E)** text", "**A.** text", etc.
