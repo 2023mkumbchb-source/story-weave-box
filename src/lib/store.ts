@@ -161,6 +161,57 @@ export function rebalanceMcqAnswerLetters<T extends { question?: string; options
   return out;
 }
 
+function splitCombinedOptions(options: string[]): string[] {
+  const joined = (options || []).join(" ").replace(/\s+/g, " ").trim();
+  if (!joined) return [];
+  const matches = Array.from(joined.matchAll(/(?:^|\s)([A-F])[.)]\s*([\s\S]*?)(?=\s+[A-F][.)]\s*|$)/gi));
+  if (matches.length >= 2) return matches.map((m) => String(m[2] || "").trim()).filter(Boolean);
+  return options.map((o) => String(o || "").replace(/^\s*[A-F][.)]\s*/i, "").trim()).filter(Boolean);
+}
+
+function balanceOptionLengths(options: string[], correctAnswer: number): string[] {
+  const clean = splitCombinedOptions(options).slice(0, 5);
+  if (clean.length < 2) return clean;
+  const correct = clean[correctAnswer] || clean[0];
+  const avg = clean.reduce((n, o) => n + o.length, 0) / clean.length;
+  const minLen = Math.max(10, Math.floor(avg * 0.45));
+  return clean.map((opt, i) => {
+    let out = opt.replace(/\s+/g, " ").trim();
+    if (i !== correctAnswer && out.length < minLen) out = `${out} — ${correct.includes(" ") ? "related finding" : "related option"}`;
+    if (out.length > 130) out = out.slice(0, 127).replace(/\s+\S*$/, "") + "…";
+    return out;
+  });
+}
+
+function normalizeMcqQuestions<T extends { question?: string; options?: string[]; correct_answer?: number; explanation?: string; type?: string }>(items: T[]): T[] {
+  if (!Array.isArray(items)) return [];
+  const normalized = items.map((item) => {
+    const q: any = { ...item };
+    if (!Array.isArray(q.options)) return q;
+    let correct = typeof q.correct_answer === "number" ? q.correct_answer : 0;
+    const split = splitCombinedOptions(q.options);
+    if (q.options.length === 1 && split.length > 1) {
+      const marker = String(q.options[0]).match(/(?:^|\s)([A-F])[.)]\s*/i)?.[1]?.toUpperCase();
+      if (marker) correct = Math.max(0, marker.charCodeAt(0) - 65);
+    }
+    const options = balanceOptionLengths(split, Math.min(Math.max(correct, 0), Math.max(0, split.length - 1)));
+    q.options = options;
+    q.correct_answer = Math.min(Math.max(correct, 0), Math.max(0, options.length - 1));
+    return q;
+  });
+  return rebalanceMcqAnswerLetters(normalized as any[]) as T[];
+}
+
+function normalizeTags(tags: string[] | undefined): string[] {
+  const seen = new Set<string>();
+  return (tags || []).map((t) => String(t).trim()).filter((t) => {
+    const key = t.toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 8);
+}
+
 // Medical unit categories organized by year (based on actual timetable)
 export const YEAR_CATEGORIES: Record<string, string[]> = {
   "Year 1": [
