@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Loader2, Lock, Unlock, ListChecks, Phone, CheckCircle, GraduationCap, Calendar, Clock, Users } from "lucide-react";
-import { getMcqSetBySlugOrId, getPublishedMcqSets, getCategoryDisplayName, getSetting, buildMcqPath, type McqSet } from "@/lib/store";
+import { getMcqSetBySlugOrId, getPublishedMcqSets, getCategoryDisplayName, getSetting, buildMcqPath, normalizeMcqQuestions, type McqSet } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import McqViewer from "@/components/McqViewer";
@@ -241,6 +241,11 @@ export default function McqStudy() {
     }
   };
 
+  const shuffledQuestions = useMemo(
+    () => set ? shuffleMcqOptions(normalizeMcqQuestions(set.questions as any[]), set.id) : [],
+    [set?.id, set?.questions],
+  );
+
   if (loading) {
     return (
       <div className="flex min-h-[65vh] items-center justify-center py-20">
@@ -272,11 +277,6 @@ export default function McqStudy() {
   // Shuffle each question's options once per set (deterministic per setId) so
   // answers can't be guessed by length or position, and consecutive correct
   // letters don't repeat.
-  const shuffledQuestions = useMemo(
-    () => shuffleMcqOptions(set.questions as any[], set.id),
-    [set.id, set.questions],
-  );
-
   const mcqQuestions = shuffledQuestions.filter(isMcqItem) as any[];
   const writtenQuestions = shuffledQuestions.filter((q: any) => !isMcqItem(q));
   const saqCount = writtenQuestions.filter((q: any) => q.type === "saq" || !/essay|laq|long/i.test(q.type || q.question || "")).length;

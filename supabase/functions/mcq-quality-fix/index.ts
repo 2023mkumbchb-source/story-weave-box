@@ -26,6 +26,15 @@ function fixQuestion(q: McqQuestion): { fixed: McqQuestion; issues: string[] } |
 
   if (!question || options.length < 2) return null;
 
+  const combined = options.join(" ").replace(/\s+/g, " ").trim();
+  const splitMatches = Array.from(combined.matchAll(/(?:^|\s)([A-F])[.)]\s*([\s\S]*?)(?=\s+[A-F][.)]\s*|$)/gi));
+  if (options.length === 1 && splitMatches.length >= 2) {
+    const firstLetter = combined.match(/(?:^|\s)([A-F])[.)]\s*/i)?.[1]?.toUpperCase();
+    options = splitMatches.map((m) => String(m[2] || "").trim()).filter(Boolean);
+    correct = firstLetter ? Math.max(0, firstLetter.charCodeAt(0) - 65) : correct;
+    issues.push("Split combined A-E options into separate choices");
+  }
+
   // Strip markdown headers from question
   question = question.replace(/^#{1,6}\s+/gm, "").replace(/^Question\s*\d+\s*/i, "").replace(/\s*Choices:\s*$/i, "").trim();
 
@@ -88,6 +97,13 @@ function fixQuestion(q: McqQuestion): { fixed: McqQuestion; issues: string[] } |
 
   // Ensure correct_answer is in bounds
   correct = Math.min(Math.max(correct, 0), options.length - 1);
+
+  options = options.map((opt, i) => {
+    let out = opt.replace(/\s+—\s+related\s+(?:option|finding)$/i, "").replace(/\s+/g, " ").trim();
+    if (out !== opt) issues.push("Removed visible padding text from option");
+    if (out.length > 140) { out = out.slice(0, 137).replace(/\s+\S*$/, "") + "…"; issues.push("Trimmed overlong option"); }
+    return out;
+  });
 
   if (issues.length === 0) return null; // No fixes needed
 

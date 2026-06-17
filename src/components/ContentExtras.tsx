@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { sanitizeEmbed } from "@/components/PublishingSettings";
 
 export interface ExtrasData {
-  countdown?: { enabled: boolean; label: string; target_datetime: string; display_style: "banner" | "inline" | "floating" } | null;
+  countdown?: { enabled: boolean; label?: string; start_datetime?: string; end_datetime?: string; target_datetime?: string; display_style: "banner" | "inline" | "floating" } | null;
   html_embed?: { position: "top" | "bottom" | "both"; code: string } | null;
   password_protected?: boolean;
   access_password?: string;
@@ -13,31 +13,38 @@ export interface ExtrasData {
   reading_time_minutes?: number;
 }
 
-function useCountdown(target?: string) {
+function useCountdown(start?: string, end?: string) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    if (!target) return;
+    if (!start && !end) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [target]);
-  if (!target) return null;
-  const diff = Math.max(0, new Date(target).getTime() - now);
+  }, [start, end]);
+  const startMs = start ? new Date(start).getTime() : NaN;
+  const endMs = end ? new Date(end).getTime() : NaN;
+  const target = Number.isFinite(startMs) && now < startMs ? startMs : Number.isFinite(endMs) ? endMs : startMs;
+  if (!Number.isFinite(target)) return null;
+  const diff = Math.max(0, target - now);
   const days = Math.floor(diff / 86_400_000);
   const hours = Math.floor((diff % 86_400_000) / 3_600_000);
   const minutes = Math.floor((diff % 3_600_000) / 60_000);
   const seconds = Math.floor((diff % 60_000) / 1000);
-  return { days, hours, minutes, seconds, expired: diff <= 0 };
+  const phase = Number.isFinite(startMs) && now < startMs ? "before" : Number.isFinite(endMs) && now <= endMs ? "active" : "ended";
+  return { days, hours, minutes, seconds, phase, expired: phase === "ended" };
 }
 
 export function Countdown({ data }: { data: ExtrasData["countdown"] }) {
   const c = data;
-  const cd = useCountdown(c?.target_datetime);
-  if (!c?.enabled || !c.target_datetime || !cd || cd.expired) return null;
+  const start = c?.start_datetime || c?.target_datetime;
+  const end = c?.end_datetime;
+  const cd = useCountdown(start, end);
+  if (!c?.enabled || !cd || cd.expired) return null;
   const style = c.display_style || "banner";
+  const label = cd.phase === "before" ? (c.label || "Starts in") : "Ends in";
   const inner = (
     <span className="inline-flex items-center gap-2 text-sm font-semibold">
       <Timer className="h-4 w-4" />
-      {c.label || "Starts in"}: {cd.days}d {cd.hours}h {cd.minutes}m {cd.seconds}s
+      {label}: {cd.days}d {cd.hours}h {cd.minutes}m {cd.seconds}s
     </span>
   );
   if (style === "floating") {

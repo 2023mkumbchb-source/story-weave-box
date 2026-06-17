@@ -161,6 +161,53 @@ export function rebalanceMcqAnswerLetters<T extends { question?: string; options
   return out;
 }
 
+function splitCombinedOptions(options: string[]): string[] {
+  const joined = (options || []).join(" ").replace(/\s+/g, " ").trim();
+  if (!joined) return [];
+  const matches = Array.from(joined.matchAll(/(?:^|\s)([A-F])[.)]\s*([\s\S]*?)(?=\s+[A-F][.)]\s*|$)/gi));
+  if (matches.length >= 2) return matches.map((m) => String(m[2] || "").trim()).filter(Boolean);
+  return options.map((o) => String(o || "").replace(/^\s*[A-F][.)]\s*/i, "").trim()).filter(Boolean);
+}
+
+function balanceOptionLengths(options: string[], correctAnswer: number): string[] {
+  const clean = splitCombinedOptions(options).slice(0, 5);
+  if (clean.length < 2) return clean;
+  return clean.map((opt, i) => {
+    let out = opt.replace(/\s+—\s+related\s+(?:option|finding)$/i, "").replace(/\s+/g, " ").trim();
+    if (out.length > 140) out = out.slice(0, 137).replace(/\s+\S*$/, "") + "…";
+    return out;
+  });
+}
+
+export function normalizeMcqQuestions<T extends { question?: string; options?: string[]; correct_answer?: number; explanation?: string; type?: string }>(items: T[]): T[] {
+  if (!Array.isArray(items)) return [];
+  const normalized = items.map((item) => {
+    const q: any = { ...item };
+    if (!Array.isArray(q.options)) return q;
+    let correct = typeof q.correct_answer === "number" ? q.correct_answer : 0;
+    const split = splitCombinedOptions(q.options);
+    if (q.options.length === 1 && split.length > 1) {
+      const marker = String(q.options[0]).match(/(?:^|\s)([A-F])[.)]\s*/i)?.[1]?.toUpperCase();
+      if (marker) correct = Math.max(0, marker.charCodeAt(0) - 65);
+    }
+    const options = balanceOptionLengths(split, Math.min(Math.max(correct, 0), Math.max(0, split.length - 1)));
+    q.options = options;
+    q.correct_answer = Math.min(Math.max(correct, 0), Math.max(0, options.length - 1));
+    return q;
+  });
+  return rebalanceMcqAnswerLetters(normalized as any[]) as T[];
+}
+
+function normalizeTags(tags: string[] | undefined): string[] {
+  const seen = new Set<string>();
+  return (tags || []).map((t) => String(t).trim()).filter((t) => {
+    const key = t.toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 8);
+}
+
 // Medical unit categories organized by year (based on actual timetable)
 export const YEAR_CATEGORIES: Record<string, string[]> = {
   "Year 1": [
@@ -333,6 +380,8 @@ function toArticlePreview(row: any): Article {
     slug: row.slug ?? undefined,
     meta_description: row.meta_description ?? undefined,
     og_image_url: row.og_image_url ?? undefined,
+    tags: row.tags ?? [],
+    featured_image: row.featured_image ?? undefined,
   };
 }
 
@@ -409,7 +458,7 @@ export async function getPublishedArticleSummaries(year?: string): Promise<Artic
 
   let query = supabase
     .from("articles")
-    .select("id, title, category, created_at, updated_at, published, slug, meta_description, og_image_url")
+    .select("id, title, category, created_at, updated_at, published, slug, meta_description, og_image_url, tags, featured_image")
     .eq("published", true)
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
@@ -462,17 +511,37 @@ export async function getPublishedMcqSetSummaries(): Promise<McqSet[]> {
   return result;
 }
 
+export async function searchPublishedMcqSets(queryText: string, year?: string): Promise<McqSet[]> {
+  const q = queryText.trim().toLowerCase();
+  if (!q) return [];
+  let query = supabase
+    .from("mcq_sets")
+    .select("id, title, category, slug, meta_title, meta_description, og_image_url, created_at, updated_at, published, questions")
+    .eq("published", true)
+    .is("deleted_at", null)
+    .order("updated_at", { ascending: false })
+    .limit(300);
+  if (year && /^Year [1-6]$/.test(year)) query = query.like("category", `${year}:%`);
+  const { data, error } = await query;
+  if (error) throw error;
+  return ((data || []) as any[]).filter((set) => {
+    const hay = `${set.title || ""} ${set.category || ""} ${JSON.stringify(set.questions || [])}`.toLowerCase();
+    return hay.includes(q);
+  }) as McqSet[];
+}
+
 export async function searchPublishedArticles(queryText: string, year?: string, unit?: string): Promise<Article[]> {
   const q = queryText.trim();
   if (!q) return [];
 
   const safeQ = q.replace(/[,%]/g, " ").slice(0, 80);
+  const tsQuery = safeQ.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((w) => w.length > 1).slice(0, 6).join(" & ");
   let query = supabase
     .from("articles")
-    .select("id, title, category, created_at, updated_at, published, slug, meta_description, og_image_url")
+    .select("id, title, category, created_at, updated_at, published, slug, meta_description, og_image_url, tags, featured_image")
     .eq("published", true)
     .is("deleted_at", null)
-    .or(`title.ilike.%${safeQ}%,category.ilike.%${safeQ}%,content.ilike.%${safeQ}%`)
+    .or(`title.ilike.%${safeQ}%,category.ilike.%${safeQ}%,meta_description.ilike.%${safeQ}%,content_fts.fts.${tsQuery || safeQ}`)
     .order("updated_at", { ascending: false })
     .limit(80);
 
@@ -565,7 +634,7 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
     providedDescription ||
     `${article.title} — clinical study notes${cat ? " on " + cat : ""} for medical students.`
   ).slice(0, 155);
-  const normalizedOgImage = article.og_image_url?.trim() || extractFirstImageFromContent(article.content || "") || null;
+  const normalizedOgImage = article.og_image_url?.trim() || article.featured_image?.trim() || extractFirstImageFromContent(article.content || "") || null;
 
   const payload = {
     title: article.title,
@@ -585,7 +654,7 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
   if (article.password_protected !== undefined) payload.password_protected = article.password_protected;
   if (article.access_password !== undefined) payload.access_password = article.access_password;
   if (article.scheduled_at !== undefined) payload.scheduled_at = article.scheduled_at;
-  if (article.tags !== undefined) payload.tags = article.tags;
+  if (article.tags !== undefined) payload.tags = normalizeTags(article.tags);
   if (article.featured_image !== undefined) payload.featured_image = article.featured_image;
   if (article.reading_time_minutes !== undefined) payload.reading_time_minutes = article.reading_time_minutes;
   if (article.toc_enabled !== undefined) payload.toc_enabled = article.toc_enabled;
@@ -789,7 +858,7 @@ export async function getMcqSetBySlugOrId(param: string): Promise<McqSet | null>
 }
 
 export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Promise<McqSet> {
-  const balancedQuestions = rebalanceMcqAnswerLetters((set.questions || []) as any[]);
+  const balancedQuestions = normalizeMcqQuestions((set.questions || []) as any[]);
   const cat = set.category ? set.category.replace(/^Year\s*\d+:\s*/i, "").trim() : "";
   const qCount = balancedQuestions.length;
   const firstQ = stripRichText(((balancedQuestions[0] as any)?.question) || "", 90);
@@ -810,13 +879,13 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
     slug: (set.slug && set.slug.trim()) || slugifyTitle(set.title) || null,
     meta_title: autoMetaTitle,
     meta_description: autoMetaDesc,
-    og_image_url: set.og_image_url?.trim() || defaultMcqThumb,
+    og_image_url: set.og_image_url?.trim() || set.featured_image?.trim() || defaultMcqThumb,
   } as any;
   if (set.countdown !== undefined) payload.countdown = set.countdown;
   if (set.html_embed !== undefined) payload.html_embed = set.html_embed;
   if (set.password_protected !== undefined) payload.password_protected = set.password_protected;
   if (set.scheduled_at !== undefined) payload.scheduled_at = set.scheduled_at;
-  if (set.tags !== undefined) payload.tags = set.tags;
+  if (set.tags !== undefined) payload.tags = normalizeTags(set.tags);
   if (set.featured_image !== undefined) payload.featured_image = set.featured_image;
   if (set.reading_time_minutes !== undefined) payload.reading_time_minutes = set.reading_time_minutes;
   if (set.toc_enabled !== undefined) payload.toc_enabled = set.toc_enabled;

@@ -144,7 +144,8 @@ function parseAndNormalizeMcqs(raw: string, expectedCount: number) {
       const correct_answer = Number.isInteger(item.correct_answer) ? Math.min(Math.max(item.correct_answer, 0), options.length - 1) : 0;
       const explanation = item.explanation ? compactWhitespace(String(item.explanation)) : "";
       if (!question) return null;
-      return { question, options, correct_answer, explanation };
+      const balanced = options.map((opt: string) => opt.replace(/\s+—\s+related\s+(?:option|finding)$/i, "").slice(0, 140));
+      return { question, options: balanced, correct_answer, explanation };
     })
     .filter(Boolean);
 
@@ -410,6 +411,8 @@ Output ONLY valid JSON array:
 Rules:
 - exactly 4 options each
 - convert answers to 0-based index
+- all options must be comparable length; no correct answer should be obviously longest or most detailed
+- keep explanations separate, never inside options
 - preserve meaning
 - return up to ${cardCount} questions`,
         },

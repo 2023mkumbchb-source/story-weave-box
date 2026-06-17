@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
+import { flashAnchor } from "@/lib/deep-link";
 
 const SCROLL_KEY = "ompath_scroll_positions";
 
@@ -74,17 +75,15 @@ export default function ScrollToTop() {
     if (hash) {
       const hashRaf = requestAnimationFrame(() => {
         const id = hash.replace("#", "");
-        const el = document.getElementById(id);
-        if (el) el.scrollIntoView({ block: "start", behavior: "auto" });
+        flashAnchor(id);
       });
       return () => cancelAnimationFrame(hashRaf);
     }
 
-    // Check if we have a saved position for this page (back/forward navigation)
-    const isPopState = isHistoryTraversal();
+    // Restore exact saved position for back/forward, reload, and returning to a note.
     const savedPos = getScrollPosition(pathname + search);
     
-    if (isPopState && savedPos > 0) {
+    if (savedPos > 0) {
       // Restore scroll position on back/forward — retry as content loads
       const timers: number[] = [];
       const rafs: number[] = [];

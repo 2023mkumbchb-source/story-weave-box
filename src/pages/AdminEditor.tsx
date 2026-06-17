@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -337,6 +337,8 @@ export default function AdminEditor() {
   const [editMcqQuestions, setEditMcqQuestions] = useState<any[]>([]);
   const [savingMcq, setSavingMcq] = useState(false);
   const [extras, setExtras] = useState<PublishingExtras>({});
+  const articleImageInputRef = useRef<HTMLInputElement | null>(null);
+  const storyImageInputRef = useRef<HTMLInputElement | null>(null);
 
   // Load content based on mode
   const loadContent = useCallback(async () => {
@@ -350,16 +352,16 @@ export default function AdminEditor() {
           .select("id, title, category, created_at, updated_at, published, slug, meta_title, meta_description, og_image_url, is_raw")
           .is("deleted_at", null)
           .order("updated_at", { ascending: false })
-          .limit(500);
+          .limit(2000);
         if (error) throw error;
         setAllArticles((data || []) as Article[]);
       } else if (editorMode === "mcqs") {
         const { data, error } = await supabase
           .from("mcq_sets")
-          .select("id, title, category, created_at, updated_at, published, slug, questions, original_notes, access_password")
+          .select("id, title, category, created_at, updated_at, published, slug, access_password, meta_title, meta_description, og_image_url, countdown, html_embed, password_protected, scheduled_at, tags, featured_image, reading_time_minutes, toc_enabled, comments_enabled")
           .is("deleted_at", null)
           .order("updated_at", { ascending: false })
-          .limit(500);
+          .limit(1200);
         if (error) throw error;
         setAllMcqSets((data || []) as McqSet[]);
       } else if (editorMode === "stories") {
@@ -487,13 +489,23 @@ export default function AdminEditor() {
     },
   });
 
+  const insertImageFile = (file?: File | null) => {
+    if (!file || !editor) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const src = e.target?.result as string;
+      if (src) editor.chain().focus().setImage({ src }).run();
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Load article into editor
   useEffect(() => {
     if (!fullArticle || !editor || isAddMode) return;
     const html = mdToHtml(fullArticle.content || "");
     editor.commands.setContent(html);
     setEditTitle(fullArticle.title || "");
-    setEditMetaTitle(fullArticle.meta_title || "");
+    setEditMetaTitle(fullArticle.meta_title || fullArticle.title || "");
     setEditMetaDesc(fullArticle.meta_description || "");
     setEditSlug(fullArticle.slug || "");
     setEditCategory(fullArticle.category || "");
@@ -522,7 +534,14 @@ export default function AdminEditor() {
     setEditSlug(currentMcqSummary.slug || "");
     setEditOgImage((currentMcqSummary as any).og_image_url || "");
     setEditMcqPassword((currentMcqSummary as any).access_password || "");
-    setEditMcqQuestions(Array.isArray(currentMcqSummary.questions) ? JSON.parse(JSON.stringify(currentMcqSummary.questions)) : []);
+    setEditMcqQuestions([]);
+    (async () => {
+      try {
+        const { data } = await supabase.from("mcq_sets").select("questions,original_notes").eq("id", currentMcqSummary.id).single();
+        setEditMcqQuestions(Array.isArray((data as any)?.questions) ? JSON.parse(JSON.stringify((data as any).questions)) : []);
+        setAllMcqSets(prev => prev.map(m => m.id === currentMcqSummary.id ? { ...m, questions: (data as any)?.questions || [], original_notes: (data as any)?.original_notes || "" } as any : m));
+      } catch {}
+    })();
     const m: any = currentMcqSummary;
     setExtras({
       countdown: m.countdown || null,
@@ -605,7 +624,7 @@ export default function AdminEditor() {
         published: editPublished,
         original_notes: fullArticle?.original_notes || "",
         category: editCategory || `Year ${selectedYear}: General`,
-        meta_title: editMetaTitle,
+        meta_title: editMetaTitle || editTitle,
         meta_description: editMetaDesc,
         slug: editSlug || slugifyText(editTitle),
         og_image_url: editOgImage || extractFirstImageFromContent(mdContent) || "",
@@ -710,9 +729,10 @@ export default function AdminEditor() {
   const startAdd = (method: "direct" | "gemini") => {
     setIsAddMode(true);
     setAddMethod(editorMode === "mcqs" ? "gemini" : method);
-    setEditTitle(""); setEditMetaTitle(""); setEditMetaDesc(""); setEditSlug("");
+      setEditTitle(""); setEditMetaTitle(""); setEditMetaDesc(""); setEditSlug("");
     setEditCategory(selectedUnit || `Year ${selectedYear}: General`);
     setEditOgImage(""); setEditPublished(false); setGeminiNotes("");
+      setExtras({ comments_enabled: true, toc_enabled: true, tags: [] });
     if (editor) editor.commands.setContent("<p></p>");
   };
 
@@ -1138,7 +1158,7 @@ export default function AdminEditor() {
                 <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
                   <div className="min-w-0 flex-1">
                     <h3 className="font-serif text-sm font-bold text-foreground truncate">{currentMcqSummary.title}</h3>
-                    <p className="text-[10px] text-muted-foreground">{currentMcqSummary.category} · {(currentMcqSummary.questions as any[]).length} Qs</p>
+                    <p className="text-[10px] text-muted-foreground">{currentMcqSummary.category} · {editMcqQuestions.length} Qs</p>
                   </div>
                   <div className="flex gap-1 flex-wrap shrink-0">
                     <Button size="sm" variant="outline" onClick={() => {
@@ -1231,7 +1251,9 @@ export default function AdminEditor() {
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive("heading", { level: 3 })} title="H3"><Heading3 className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullets"><List className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive("blockquote")} title="Quote"><Quote className={iconSize} /></ToolbarBtn>
-                    <ToolbarBtn onClick={() => { const url = prompt("Image URL:"); if (url) editor.chain().focus().setImage({ src: url }).run(); }} title="Image"><ImagePlus className={iconSize} /></ToolbarBtn>
+                    <input ref={storyImageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => insertImageFile(e.target.files?.[0])} />
+                    <ToolbarBtn onClick={() => storyImageInputRef.current?.click()} title="Upload image"><Upload className={iconSize} /></ToolbarBtn>
+                    <ToolbarBtn onClick={() => { const url = prompt("Image URL:"); if (url) editor.chain().focus().setImage({ src: url }).run(); }} title="Image URL"><ImagePlus className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().undo().run()} title="Undo"><Undo className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().redo().run()} title="Redo"><Redo className={iconSize} /></ToolbarBtn>
                     <div className="mx-0.5 h-4 w-px bg-border" />
@@ -1261,7 +1283,7 @@ export default function AdminEditor() {
           {editorMode === "articles" && ((fullArticle && !loadingContent) || isAddMode) && (
             <div className="space-y-2">
               {/* Title & Category */}
-              <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="text-sm h-8" placeholder="Article title" />
+                <Input value={editTitle} onChange={(e) => { const next = e.target.value; setEditMetaTitle((prev) => (!prev || prev === editTitle ? next : prev)); setEditTitle(next); }} className="text-sm h-8" placeholder="Article title" />
               
               <div className="flex gap-1.5">
                 <select value={editCategory} onChange={(e) => setEditCategory(e.target.value)}
@@ -1375,7 +1397,9 @@ export default function AdminEditor() {
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Numbered"><ListOrdered className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive("blockquote")} title="Quote"><Quote className={iconSize} /></ToolbarBtn>
                     <div className="mx-0.5 h-4 w-px bg-border" />
-                    <ToolbarBtn onClick={() => { const url = prompt("Image URL:"); if (url) editor.chain().focus().setImage({ src: url }).run(); }} title="Image"><ImagePlus className={iconSize} /></ToolbarBtn>
+                    <input ref={articleImageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => insertImageFile(e.target.files?.[0])} />
+                    <ToolbarBtn onClick={() => articleImageInputRef.current?.click()} title="Upload image"><Upload className={iconSize} /></ToolbarBtn>
+                    <ToolbarBtn onClick={() => { const url = prompt("Image URL:"); if (url) editor.chain().focus().setImage({ src: url }).run(); }} title="Image URL"><ImagePlus className={iconSize} /></ToolbarBtn>
                     <div className="mx-0.5 h-4 w-px bg-border" />
                     <ToolbarBtn onClick={() => editor.chain().focus().undo().run()} title="Undo"><Undo className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().redo().run()} title="Redo"><Redo className={iconSize} /></ToolbarBtn>

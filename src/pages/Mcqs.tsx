@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ListChecks, Calendar, Layers, Loader2, Search, X, RotateCcw, ChevronDown } from "lucide-react";
-import { getPublishedMcqSetSummaries, getCategoryDisplayName, getYearFromCategory, buildMcqPath, type McqSet } from "@/lib/store";
+import { getPublishedMcqSetSummaries, searchPublishedMcqSets, getCategoryDisplayName, getYearFromCategory, buildMcqPath, type McqSet } from "@/lib/store";
 import { getVisitedMcqIds } from "@/lib/progress-store";
 import { updateMetaTags } from "@/lib/seo";
 import CategoryTabs from "@/components/CategoryTabs";
@@ -25,6 +25,8 @@ export default function Mcqs() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [remoteMatches, setRemoteMatches] = useState<McqSet[] | null>(null);
   const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
   const [searchParams] = useSearchParams();
@@ -57,12 +59,25 @@ export default function Mcqs() {
     [categories, yearScopedSets],
   );
 
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) { setRemoteMatches(null); setSearchLoading(false); return; }
+    setSearchLoading(true);
+    const t = window.setTimeout(() => {
+      searchPublishedMcqSets(q, selectedYear === "All" ? undefined : selectedYear)
+        .then(setRemoteMatches)
+        .finally(() => setSearchLoading(false));
+    }, 180);
+    return () => window.clearTimeout(t);
+  }, [query, selectedYear]);
+
   const searchResults = useMemo(() => {
     if (!query.trim()) return null;
     const q = query.toLowerCase();
+    const source = remoteMatches || yearScopedSets;
     const matched: { set: McqSet; matchingQuestions: { question: string; correct: string }[]; titleMatch: boolean }[] = [];
 
-    for (const set of yearScopedSets) {
+    for (const set of source) {
       const titleMatch =
         set.title.toLowerCase().includes(q) ||
         getCategoryDisplayName(set.category).toLowerCase().includes(q);
@@ -84,7 +99,7 @@ export default function Mcqs() {
     }
 
     return matched;
-  }, [query, yearScopedSets]);
+  }, [query, yearScopedSets, remoteMatches]);
 
   const filtered = useMemo(() => {
     if (searchResults !== null) return [];
@@ -145,7 +160,7 @@ export default function Mcqs() {
         </div>
         {isSearching && (
           <p className="mt-2 px-1 text-sm text-muted-foreground">
-            {searchResults!.length === 0
+            {searchLoading ? "Searching…" : searchResults!.length === 0
               ? <span className="text-destructive">No results for "<strong>{query}</strong>"</span>
               : <><strong className="text-foreground">{searchResults!.length}</strong> quizzes · <strong className="text-foreground">{totalQMatches}</strong> matching questions</>
             }
