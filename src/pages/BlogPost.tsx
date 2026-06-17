@@ -1356,14 +1356,15 @@ export default function BlogPost() {
         const noindex = document.querySelector('meta[name="robots"]');
         if (noindex) noindex.remove();
 
+        setNotFound(false);
         setArticle(a);
         const canonicalPath = buildBlogPath(a);
-        if (location.pathname !== canonicalPath) navigate(canonicalPath, { replace: true });
+        if (location.pathname !== canonicalPath) navigate(`${canonicalPath}${location.hash || ""}`, { replace: true });
         markArticleVisited({ id: a.id, title: a.title, category: a.category, visitedAt: Date.now() });
         if (a.category) getRelatedContent(a.category, a.id).then(setRelated);
       })
       .finally(() => setLoading(false));
-  }, [slug, navigate, location.pathname]);
+  }, [slug, navigate, location.pathname, location.hash]);
 
   useEffect(() => {
     const goOffline = () => setIsOffline(true);
