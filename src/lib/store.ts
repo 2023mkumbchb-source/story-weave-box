@@ -616,7 +616,7 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
     providedDescription ||
     `${article.title} — clinical study notes${cat ? " on " + cat : ""} for medical students.`
   ).slice(0, 155);
-  const normalizedOgImage = article.og_image_url?.trim() || extractFirstImageFromContent(article.content || "") || null;
+  const normalizedOgImage = article.og_image_url?.trim() || article.featured_image?.trim() || extractFirstImageFromContent(article.content || "") || null;
 
   const payload = {
     title: article.title,
@@ -861,7 +861,7 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
     slug: (set.slug && set.slug.trim()) || slugifyTitle(set.title) || null,
     meta_title: autoMetaTitle,
     meta_description: autoMetaDesc,
-    og_image_url: set.og_image_url?.trim() || defaultMcqThumb,
+    og_image_url: set.og_image_url?.trim() || set.featured_image?.trim() || defaultMcqThumb,
   } as any;
   if (set.countdown !== undefined) payload.countdown = set.countdown;
   if (set.html_embed !== undefined) payload.html_embed = set.html_embed;
