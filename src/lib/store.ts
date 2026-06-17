@@ -172,13 +172,9 @@ function splitCombinedOptions(options: string[]): string[] {
 function balanceOptionLengths(options: string[], correctAnswer: number): string[] {
   const clean = splitCombinedOptions(options).slice(0, 5);
   if (clean.length < 2) return clean;
-  const correct = clean[correctAnswer] || clean[0];
-  const avg = clean.reduce((n, o) => n + o.length, 0) / clean.length;
-  const minLen = Math.max(10, Math.floor(avg * 0.45));
   return clean.map((opt, i) => {
-    let out = opt.replace(/\s+/g, " ").trim();
-    if (i !== correctAnswer && out.length < minLen) out = `${out} — ${correct.includes(" ") ? "related finding" : "related option"}`;
-    if (out.length > 130) out = out.slice(0, 127).replace(/\s+\S*$/, "") + "…";
+    let out = opt.replace(/\s+—\s+related\s+(?:option|finding)$/i, "").replace(/\s+/g, " ").trim();
+    if (out.length > 140) out = out.slice(0, 137).replace(/\s+\S*$/, "") + "…";
     return out;
   });
 }
