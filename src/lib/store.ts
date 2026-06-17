@@ -545,7 +545,7 @@ export async function searchPublishedArticles(queryText: string, year?: string, 
     .select("id, title, category, created_at, updated_at, published, slug, meta_description, og_image_url, tags, featured_image")
     .eq("published", true)
     .is("deleted_at", null)
-    .or(`title.ilike.%${safeQ}%,category.ilike.%${safeQ}%,meta_description.ilike.%${safeQ}%,tags.cs.{${safeQ}},content_fts.fts.${tsQuery || safeQ}`)
+    .or(`title.ilike.%${safeQ}%,category.ilike.%${safeQ}%,meta_description.ilike.%${safeQ}%,content_fts.fts.${tsQuery || safeQ}`)
     .order("updated_at", { ascending: false })
     .limit(80);
 
