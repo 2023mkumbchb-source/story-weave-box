@@ -352,16 +352,16 @@ export default function AdminEditor() {
           .select("id, title, category, created_at, updated_at, published, slug, meta_title, meta_description, og_image_url, is_raw")
           .is("deleted_at", null)
           .order("updated_at", { ascending: false })
-          .limit(500);
+          .limit(2000);
         if (error) throw error;
         setAllArticles((data || []) as Article[]);
       } else if (editorMode === "mcqs") {
         const { data, error } = await supabase
           .from("mcq_sets")
-          .select("id, title, category, created_at, updated_at, published, slug, questions, original_notes, access_password")
+          .select("id, title, category, created_at, updated_at, published, slug, questions, original_notes, access_password, meta_title, meta_description, og_image_url, countdown, html_embed, password_protected, scheduled_at, tags, featured_image, reading_time_minutes, toc_enabled, comments_enabled")
           .is("deleted_at", null)
           .order("updated_at", { ascending: false })
-          .limit(500);
+          .limit(1200);
         if (error) throw error;
         setAllMcqSets((data || []) as McqSet[]);
       } else if (editorMode === "stories") {
