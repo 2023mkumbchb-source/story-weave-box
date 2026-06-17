@@ -358,7 +358,7 @@ export default function AdminEditor() {
       } else if (editorMode === "mcqs") {
         const { data, error } = await supabase
           .from("mcq_sets")
-          .select("id, title, category, created_at, updated_at, published, slug, questions, original_notes, access_password, meta_title, meta_description, og_image_url, countdown, html_embed, password_protected, scheduled_at, tags, featured_image, reading_time_minutes, toc_enabled, comments_enabled")
+          .select("id, title, category, created_at, updated_at, published, slug, access_password, meta_title, meta_description, og_image_url, countdown, html_embed, password_protected, scheduled_at, tags, featured_image, reading_time_minutes, toc_enabled, comments_enabled")
           .is("deleted_at", null)
           .order("updated_at", { ascending: false })
           .limit(1200);
@@ -534,7 +534,11 @@ export default function AdminEditor() {
     setEditSlug(currentMcqSummary.slug || "");
     setEditOgImage((currentMcqSummary as any).og_image_url || "");
     setEditMcqPassword((currentMcqSummary as any).access_password || "");
-    setEditMcqQuestions(Array.isArray(currentMcqSummary.questions) ? JSON.parse(JSON.stringify(currentMcqSummary.questions)) : []);
+    setEditMcqQuestions([]);
+    supabase.from("mcq_sets").select("questions,original_notes").eq("id", currentMcqSummary.id).single().then(({ data }) => {
+      setEditMcqQuestions(Array.isArray((data as any)?.questions) ? JSON.parse(JSON.stringify((data as any).questions)) : []);
+      setAllMcqSets(prev => prev.map(m => m.id === currentMcqSummary.id ? { ...m, questions: (data as any)?.questions || [], original_notes: (data as any)?.original_notes || "" } as any : m));
+    }).catch(() => {});
     const m: any = currentMcqSummary;
     setExtras({
       countdown: m.countdown || null,
