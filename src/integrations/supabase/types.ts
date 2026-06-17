@@ -94,6 +94,7 @@ export type Database = {
           category: string
           comments_enabled: boolean
           content: string
+          content_fts: unknown
           countdown: Json | null
           created_at: string
           deleted_at: string | null
@@ -120,6 +121,7 @@ export type Database = {
           category?: string
           comments_enabled?: boolean
           content?: string
+          content_fts?: unknown
           countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
@@ -146,6 +148,7 @@ export type Database = {
           category?: string
           comments_enabled?: boolean
           content?: string
+          content_fts?: unknown
           countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
