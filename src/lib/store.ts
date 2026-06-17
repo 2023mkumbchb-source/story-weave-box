@@ -183,7 +183,7 @@ function balanceOptionLengths(options: string[], correctAnswer: number): string[
   });
 }
 
-function normalizeMcqQuestions<T extends { question?: string; options?: string[]; correct_answer?: number; explanation?: string; type?: string }>(items: T[]): T[] {
+export function normalizeMcqQuestions<T extends { question?: string; options?: string[]; correct_answer?: number; explanation?: string; type?: string }>(items: T[]): T[] {
   if (!Array.isArray(items)) return [];
   const normalized = items.map((item) => {
     const q: any = { ...item };
