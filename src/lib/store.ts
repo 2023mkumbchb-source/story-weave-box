@@ -384,6 +384,8 @@ function toArticlePreview(row: any): Article {
     slug: row.slug ?? undefined,
     meta_description: row.meta_description ?? undefined,
     og_image_url: row.og_image_url ?? undefined,
+    tags: row.tags ?? [],
+    featured_image: row.featured_image ?? undefined,
   };
 }
 
@@ -460,7 +462,7 @@ export async function getPublishedArticleSummaries(year?: string): Promise<Artic
 
   let query = supabase
     .from("articles")
-    .select("id, title, category, created_at, updated_at, published, slug, meta_description, og_image_url")
+    .select("id, title, category, created_at, updated_at, published, slug, meta_description, og_image_url, tags, featured_image")
     .eq("published", true)
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
@@ -537,12 +539,13 @@ export async function searchPublishedArticles(queryText: string, year?: string, 
   if (!q) return [];
 
   const safeQ = q.replace(/[,%]/g, " ").slice(0, 80);
+  const tsQuery = safeQ.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((w) => w.length > 1).slice(0, 6).join(" & ");
   let query = supabase
     .from("articles")
-    .select("id, title, category, created_at, updated_at, published, slug, meta_description, og_image_url")
+    .select("id, title, category, created_at, updated_at, published, slug, meta_description, og_image_url, tags, featured_image")
     .eq("published", true)
     .is("deleted_at", null)
-    .or(`title.ilike.%${safeQ}%,category.ilike.%${safeQ}%,content.ilike.%${safeQ}%`)
+    .or(`title.ilike.%${safeQ}%,category.ilike.%${safeQ}%,meta_description.ilike.%${safeQ}%,tags.cs.{${safeQ}},content_fts.fts.${tsQuery || safeQ}`)
     .order("updated_at", { ascending: false })
     .limit(80);
 
