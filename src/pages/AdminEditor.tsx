@@ -1244,7 +1244,9 @@ export default function AdminEditor() {
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive("heading", { level: 3 })} title="H3"><Heading3 className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullets"><List className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive("blockquote")} title="Quote"><Quote className={iconSize} /></ToolbarBtn>
-                    <ToolbarBtn onClick={() => { const url = prompt("Image URL:"); if (url) editor.chain().focus().setImage({ src: url }).run(); }} title="Image"><ImagePlus className={iconSize} /></ToolbarBtn>
+                    <input ref={storyImageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => insertImageFile(e.target.files?.[0])} />
+                    <ToolbarBtn onClick={() => storyImageInputRef.current?.click()} title="Upload image"><Upload className={iconSize} /></ToolbarBtn>
+                    <ToolbarBtn onClick={() => { const url = prompt("Image URL:"); if (url) editor.chain().focus().setImage({ src: url }).run(); }} title="Image URL"><ImagePlus className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().undo().run()} title="Undo"><Undo className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().redo().run()} title="Redo"><Redo className={iconSize} /></ToolbarBtn>
                     <div className="mx-0.5 h-4 w-px bg-border" />
