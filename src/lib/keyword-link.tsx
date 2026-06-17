@@ -152,16 +152,17 @@ export function linkifyText(text: string, ctx: Ctx | null, keyPrefix = "k"): Rea
 }
 
 function DeepLinkSpan({ path, title, label }: { path: string; title: string; label: string }) {
-  const preview = useDeepLinkPreview();
+  const navigate = useNavigate();
   return (
     <button
       type="button"
       className="deep-link"
       onClick={(e) => {
         e.preventDefault();
-        if (preview) preview.open(path, title);
-        else window.location.href = path;
+        try { sessionStorage.setItem("deep_link_return", `${window.location.pathname}${window.location.search}${window.location.hash}|${window.scrollY}`); } catch {}
+        navigate(path);
       }}
+      title={`Open ${title}`}
     >
       {label}
     </button>
