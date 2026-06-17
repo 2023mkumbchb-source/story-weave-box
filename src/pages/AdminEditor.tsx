@@ -1274,7 +1274,7 @@ export default function AdminEditor() {
           {editorMode === "articles" && ((fullArticle && !loadingContent) || isAddMode) && (
             <div className="space-y-2">
               {/* Title & Category */}
-              <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="text-sm h-8" placeholder="Article title" />
+                <Input value={editTitle} onChange={(e) => { const next = e.target.value; setEditMetaTitle((prev) => (!prev || prev === editTitle ? next : prev)); setEditTitle(next); }} className="text-sm h-8" placeholder="Article title" />
               
               <div className="flex gap-1.5">
                 <select value={editCategory} onChange={(e) => setEditCategory(e.target.value)}
@@ -1388,7 +1388,9 @@ export default function AdminEditor() {
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Numbered"><ListOrdered className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive("blockquote")} title="Quote"><Quote className={iconSize} /></ToolbarBtn>
                     <div className="mx-0.5 h-4 w-px bg-border" />
-                    <ToolbarBtn onClick={() => { const url = prompt("Image URL:"); if (url) editor.chain().focus().setImage({ src: url }).run(); }} title="Image"><ImagePlus className={iconSize} /></ToolbarBtn>
+                    <input ref={articleImageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => insertImageFile(e.target.files?.[0])} />
+                    <ToolbarBtn onClick={() => articleImageInputRef.current?.click()} title="Upload image"><Upload className={iconSize} /></ToolbarBtn>
+                    <ToolbarBtn onClick={() => { const url = prompt("Image URL:"); if (url) editor.chain().focus().setImage({ src: url }).run(); }} title="Image URL"><ImagePlus className={iconSize} /></ToolbarBtn>
                     <div className="mx-0.5 h-4 w-px bg-border" />
                     <ToolbarBtn onClick={() => editor.chain().focus().undo().run()} title="Undo"><Undo className={iconSize} /></ToolbarBtn>
                     <ToolbarBtn onClick={() => editor.chain().focus().redo().run()} title="Redo"><Redo className={iconSize} /></ToolbarBtn>
