@@ -513,6 +513,25 @@ export async function getPublishedMcqSetSummaries(): Promise<McqSet[]> {
   return result;
 }
 
+export async function searchPublishedMcqSets(queryText: string, year?: string): Promise<McqSet[]> {
+  const q = queryText.trim().toLowerCase();
+  if (!q) return [];
+  let query = supabase
+    .from("mcq_sets")
+    .select("id, title, category, slug, meta_title, meta_description, og_image_url, created_at, updated_at, published, questions")
+    .eq("published", true)
+    .is("deleted_at", null)
+    .order("updated_at", { ascending: false })
+    .limit(300);
+  if (year && /^Year [1-6]$/.test(year)) query = query.like("category", `${year}:%`);
+  const { data, error } = await query;
+  if (error) throw error;
+  return ((data || []) as any[]).filter((set) => {
+    const hay = `${set.title || ""} ${set.category || ""} ${JSON.stringify(set.questions || [])}`.toLowerCase();
+    return hay.includes(q);
+  }) as McqSet[];
+}
+
 export async function searchPublishedArticles(queryText: string, year?: string, unit?: string): Promise<Article[]> {
   const q = queryText.trim();
   if (!q) return [];
