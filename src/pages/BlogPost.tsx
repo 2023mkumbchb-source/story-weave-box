@@ -1616,6 +1616,22 @@ export default function BlogPost() {
 
             <HtmlEmbed data={(article as any).html_embed} position="bottom" />
 
+            {Array.isArray((article as any).tags) && (article as any).tags.length > 0 && (
+              <div className="mt-8 flex flex-wrap gap-2 border-t border-border pt-5">
+                {(article as any).tags.slice(0, 8).map((tag: string) => (
+                  <a
+                    key={tag}
+                    href={`https://www.google.com/search?q=${encodeURIComponent(`${tag} site:ompathstudy.com`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
+                  >
+                    #{tag}
+                  </a>
+                ))}
+              </div>
+            )}
+
             <div className="mt-10 pt-6 border-t border-border">
               <ShareButtons
                 url={`${SITE_URL}${buildBlogPath(article)}`}
