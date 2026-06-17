@@ -505,7 +505,7 @@ export default function AdminEditor() {
     const html = mdToHtml(fullArticle.content || "");
     editor.commands.setContent(html);
     setEditTitle(fullArticle.title || "");
-    setEditMetaTitle(fullArticle.meta_title || "");
+    setEditMetaTitle(fullArticle.meta_title || fullArticle.title || "");
     setEditMetaDesc(fullArticle.meta_description || "");
     setEditSlug(fullArticle.slug || "");
     setEditCategory(fullArticle.category || "");
@@ -617,7 +617,7 @@ export default function AdminEditor() {
         published: editPublished,
         original_notes: fullArticle?.original_notes || "",
         category: editCategory || `Year ${selectedYear}: General`,
-        meta_title: editMetaTitle,
+        meta_title: editMetaTitle || editTitle,
         meta_description: editMetaDesc,
         slug: editSlug || slugifyText(editTitle),
         og_image_url: editOgImage || extractFirstImageFromContent(mdContent) || "",
@@ -722,9 +722,10 @@ export default function AdminEditor() {
   const startAdd = (method: "direct" | "gemini") => {
     setIsAddMode(true);
     setAddMethod(editorMode === "mcqs" ? "gemini" : method);
-    setEditTitle(""); setEditMetaTitle(""); setEditMetaDesc(""); setEditSlug("");
+      setEditTitle(""); setEditMetaTitle(""); setEditMetaDesc(""); setEditSlug("");
     setEditCategory(selectedUnit || `Year ${selectedYear}: General`);
     setEditOgImage(""); setEditPublished(false); setGeminiNotes("");
+      setExtras({ comments_enabled: true, toc_enabled: true, tags: [] });
     if (editor) editor.commands.setContent("<p></p>");
   };
 
