@@ -26,6 +26,15 @@ function fixQuestion(q: McqQuestion): { fixed: McqQuestion; issues: string[] } |
 
   if (!question || options.length < 2) return null;
 
+  const combined = options.join(" ").replace(/\s+/g, " ").trim();
+  const splitMatches = Array.from(combined.matchAll(/(?:^|\s)([A-F])[.)]\s*([\s\S]*?)(?=\s+[A-F][.)]\s*|$)/gi));
+  if (options.length === 1 && splitMatches.length >= 2) {
+    const firstLetter = combined.match(/(?:^|\s)([A-F])[.)]\s*/i)?.[1]?.toUpperCase();
+    options = splitMatches.map((m) => String(m[2] || "").trim()).filter(Boolean);
+    correct = firstLetter ? Math.max(0, firstLetter.charCodeAt(0) - 65) : correct;
+    issues.push("Split combined A-E options into separate choices");
+  }
+
   // Strip markdown headers from question
   question = question.replace(/^#{1,6}\s+/gm, "").replace(/^Question\s*\d+\s*/i, "").replace(/\s*Choices:\s*$/i, "").trim();
 
@@ -88,6 +97,15 @@ function fixQuestion(q: McqQuestion): { fixed: McqQuestion; issues: string[] } |
 
   // Ensure correct_answer is in bounds
   correct = Math.min(Math.max(correct, 0), options.length - 1);
+
+  const avg = options.reduce((n, o) => n + o.length, 0) / Math.max(1, options.length);
+  const minLen = Math.max(10, Math.floor(avg * 0.45));
+  options = options.map((opt, i) => {
+    let out = opt.replace(/\s+/g, " ").trim();
+    if (i !== correct && out.length < minLen) { out = `${out} — related option`; issues.push("Balanced short distractor length"); }
+    if (out.length > 130) { out = out.slice(0, 127).replace(/\s+\S*$/, "") + "…"; issues.push("Trimmed overlong option"); }
+    return out;
+  });
 
   if (issues.length === 0) return null; // No fixes needed
 
