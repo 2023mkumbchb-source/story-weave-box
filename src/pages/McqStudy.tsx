@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Loader2, Lock, Unlock, ListChecks, Phone, CheckCircle, GraduationCap, Calendar, Clock, Users } from "lucide-react";
-import { getMcqSetBySlugOrId, getPublishedMcqSets, getCategoryDisplayName, getSetting, buildMcqPath, type McqSet } from "@/lib/store";
+import { getMcqSetBySlugOrId, getPublishedMcqSets, getCategoryDisplayName, getSetting, buildMcqPath, normalizeMcqQuestions, type McqSet } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import McqViewer from "@/components/McqViewer";
@@ -273,7 +273,7 @@ export default function McqStudy() {
   // answers can't be guessed by length or position, and consecutive correct
   // letters don't repeat.
   const shuffledQuestions = useMemo(
-    () => shuffleMcqOptions(set.questions as any[], set.id),
+    () => shuffleMcqOptions(normalizeMcqQuestions(set.questions as any[]), set.id),
     [set.id, set.questions],
   );
 
