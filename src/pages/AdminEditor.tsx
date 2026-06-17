@@ -535,10 +535,13 @@ export default function AdminEditor() {
     setEditOgImage((currentMcqSummary as any).og_image_url || "");
     setEditMcqPassword((currentMcqSummary as any).access_password || "");
     setEditMcqQuestions([]);
-    supabase.from("mcq_sets").select("questions,original_notes").eq("id", currentMcqSummary.id).single().then(({ data }) => {
-      setEditMcqQuestions(Array.isArray((data as any)?.questions) ? JSON.parse(JSON.stringify((data as any).questions)) : []);
-      setAllMcqSets(prev => prev.map(m => m.id === currentMcqSummary.id ? { ...m, questions: (data as any)?.questions || [], original_notes: (data as any)?.original_notes || "" } as any : m));
-    }).catch(() => {});
+    (async () => {
+      try {
+        const { data } = await supabase.from("mcq_sets").select("questions,original_notes").eq("id", currentMcqSummary.id).single();
+        setEditMcqQuestions(Array.isArray((data as any)?.questions) ? JSON.parse(JSON.stringify((data as any).questions)) : []);
+        setAllMcqSets(prev => prev.map(m => m.id === currentMcqSummary.id ? { ...m, questions: (data as any)?.questions || [], original_notes: (data as any)?.original_notes || "" } as any : m));
+      } catch {}
+    })();
     const m: any = currentMcqSummary;
     setExtras({
       countdown: m.countdown || null,
