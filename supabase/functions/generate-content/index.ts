@@ -144,7 +144,10 @@ function parseAndNormalizeMcqs(raw: string, expectedCount: number) {
       const correct_answer = Number.isInteger(item.correct_answer) ? Math.min(Math.max(item.correct_answer, 0), options.length - 1) : 0;
       const explanation = item.explanation ? compactWhitespace(String(item.explanation)) : "";
       if (!question) return null;
-      return { question, options, correct_answer, explanation };
+      const avg = options.reduce((n: number, o: string) => n + o.length, 0) / Math.max(1, options.length);
+      const minLen = Math.max(10, Math.floor(avg * 0.45));
+      const balanced = options.map((opt: string, i: number) => i !== correct_answer && opt.length < minLen ? `${opt} — related option` : opt.slice(0, 130));
+      return { question, options: balanced, correct_answer, explanation };
     })
     .filter(Boolean);
 
