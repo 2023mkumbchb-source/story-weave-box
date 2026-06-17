@@ -636,7 +636,7 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
   if (article.password_protected !== undefined) payload.password_protected = article.password_protected;
   if (article.access_password !== undefined) payload.access_password = article.access_password;
   if (article.scheduled_at !== undefined) payload.scheduled_at = article.scheduled_at;
-  if (article.tags !== undefined) payload.tags = article.tags;
+  if (article.tags !== undefined) payload.tags = normalizeTags(article.tags);
   if (article.featured_image !== undefined) payload.featured_image = article.featured_image;
   if (article.reading_time_minutes !== undefined) payload.reading_time_minutes = article.reading_time_minutes;
   if (article.toc_enabled !== undefined) payload.toc_enabled = article.toc_enabled;
@@ -840,7 +840,7 @@ export async function getMcqSetBySlugOrId(param: string): Promise<McqSet | null>
 }
 
 export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Promise<McqSet> {
-  const balancedQuestions = rebalanceMcqAnswerLetters((set.questions || []) as any[]);
+  const balancedQuestions = normalizeMcqQuestions((set.questions || []) as any[]);
   const cat = set.category ? set.category.replace(/^Year\s*\d+:\s*/i, "").trim() : "";
   const qCount = balancedQuestions.length;
   const firstQ = stripRichText(((balancedQuestions[0] as any)?.question) || "", 90);
@@ -867,7 +867,7 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
   if (set.html_embed !== undefined) payload.html_embed = set.html_embed;
   if (set.password_protected !== undefined) payload.password_protected = set.password_protected;
   if (set.scheduled_at !== undefined) payload.scheduled_at = set.scheduled_at;
-  if (set.tags !== undefined) payload.tags = set.tags;
+  if (set.tags !== undefined) payload.tags = normalizeTags(set.tags);
   if (set.featured_image !== undefined) payload.featured_image = set.featured_image;
   if (set.reading_time_minutes !== undefined) payload.reading_time_minutes = set.reading_time_minutes;
   if (set.toc_enabled !== undefined) payload.toc_enabled = set.toc_enabled;
