@@ -687,6 +687,84 @@ serve(async (req) => {
     const sb = createClient(supabaseUrl, supabaseKey);
     const startedAt = Date.now();
 
+    if (action === "year2_cleanup") {
+      const { data: mcqSets, error: mcqErr } = await sb
+        .from("mcq_sets")
+        .select("id,title,category,questions,og_image_url,meta_description")
+        .is("deleted_at", null)
+        .ilike("category", "Year 2:%");
+      if (mcqErr) throw mcqErr;
+
+      let mcqFixed = 0;
+      for (const set of mcqSets || []) {
+        const category = inferYearTwoCategory(set.title, set.category);
+        const questions = normalizeStoredMcqQuestions(set.questions || []);
+        if (questions.length < 1) continue;
+        const image = topicCover(set.title, category);
+        const unit = category.replace(/^Year\s*\d+\s*:\s*/i, "");
+        const firstQuestion = plainText(questions[0]?.question || "").slice(0, 70);
+        const meta = `${questions.length} exam-style MCQs in ${unit}. Practice concise options with answers and explanations for medical revision. ${firstQuestion}`.slice(0, 155);
+        const { error: updateErr } = await sb.from("mcq_sets").update({
+          questions,
+          category,
+          og_image_url: image,
+          featured_image: image,
+          meta_title: String(set.title || "MCQ Practice").slice(0, 60),
+          meta_description: meta,
+          updated_at: new Date().toISOString(),
+        }).eq("id", set.id);
+        if (updateErr) throw updateErr;
+        mcqFixed++;
+      }
+
+      const { data: articles, error: articleErr } = await sb
+        .from("articles")
+        .select("id,title,category,content,og_image_url,meta_description")
+        .is("deleted_at", null)
+        .ilike("category", "Year 2:%");
+      if (articleErr) throw articleErr;
+
+      let articlesFixed = 0;
+      let articlesRemoved = 0;
+      for (const article of articles || []) {
+        const title = String(article.title || "").trim();
+        const content = String(article.content || "");
+        const withoutDataImages = content.replace(/!\[[^\]]*\]\(data:image\/[^)]+\)\s*/gi, "").trim();
+        const shouldRemove = /^(test|untitled|sample)$/i.test(title) || withoutDataImages.replace(/\s+/g, "").length < 80;
+        if (shouldRemove) {
+          const { error: delErr } = await sb.from("articles").update({
+            published: false,
+            is_raw: true,
+            deleted_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }).eq("id", article.id);
+          if (delErr) throw delErr;
+          articlesRemoved++;
+          continue;
+        }
+
+        const category = inferYearTwoCategory(title, article.category);
+        const clean = cleanContent(content);
+        const image = topicCover(title, category);
+        const meta = (plainText(clean).slice(0, 155) || `${title} Year 2 medical revision notes.`).slice(0, 155);
+        const { error: updateErr } = await sb.from("articles").update({
+          content: clean,
+          category,
+          og_image_url: image,
+          featured_image: image,
+          meta_title: title.slice(0, 60),
+          meta_description: meta,
+          updated_at: new Date().toISOString(),
+        }).eq("id", article.id);
+        if (updateErr) throw updateErr;
+        articlesFixed++;
+      }
+
+      return new Response(JSON.stringify({ success: true, mcq_fixed: mcqFixed, articles_fixed: articlesFixed, articles_removed: articlesRemoved }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "scan") {
       const articles = await fetchArticleBatch(sb, batchSize, cursor, yearFilter, includeUnpublished);
       if (articles.length === 0) {
