@@ -371,13 +371,100 @@ function extractEssayQuestions(content: string): { saqs: any[]; laqs: any[] } {
 
 function cleanContent(content: string): string {
   let cleaned = content || "";
+  cleaned = cleaned.replace(/!\[[^\]]*\]\(data:image\/[^)]+\)\s*/gi, "");
   cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2702}-\u{27B0}]|[\u{FE00}-\u{FE0F}]|[\u{1F900}-\u{1F9FF}]|[\u{200D}]|[\u{20E3}]|[\u{FE0F}]/gu, "");
   cleaned = cleaned.replace(/Mount Kenya University/gi, "");
   cleaned = cleaned.replace(/\bMKU\b\s*/gi, "");
+  cleaned = cleaned.replace(/\b(?:as an ai|ai-generated|chatgpt|how can i help|how do you want us to help you)\b[^\n.]*[\n.]?/gi, "");
   cleaned = cleaned.replace(/([A-E]\))\s*([^\n]{3,}?)(?=\s*[B-E]\))/g, "$1 $2\n");
   cleaned = cleaned.replace(/\n{4,}/g, "\n\n\n");
   cleaned = cleaned.replace(/[ \t]+$/gm, "");
   return cleaned.trim();
+}
+
+const COVER_BASE = "https://lkgfzjwhmfjvntzphbsh.supabase.co/storage/v1/object/public/story-covers/articles";
+function topicCover(title = "", category = ""): string {
+  const s = `${title} ${category}`.toLowerCase();
+  if (/genetic|cytogen/.test(s)) return `${COVER_BASE}/genetics.jpg`;
+  if (/molecular/.test(s)) return `${COVER_BASE}/molecular-biology.jpg`;
+  if (/microbiolog|bacteriolog|bacteria/.test(s)) return `${COVER_BASE}/microbiology.jpg`;
+  if (/parasitol|entomolog|helminth|protozo/.test(s)) return `${COVER_BASE}/parasitology.jpg`;
+  if (/immun|complement|antibody/.test(s)) return `${COVER_BASE}/immunology.jpg`;
+  if (/pharm|drug/.test(s)) return `${COVER_BASE}/pharmacology.jpg`;
+  if (/git|gastro/.test(s)) return `${COVER_BASE}/git-physiology.jpg`;
+  if (/physio|cns|neuro/.test(s)) return `${COVER_BASE}/physiology.jpg`;
+  if (/biochem/.test(s)) return `${COVER_BASE}/clinical-biochem.jpg`;
+  if (/epidemiolog|statistic/.test(s)) return `${COVER_BASE}/epidemiology.jpg`;
+  return `${COVER_BASE}/molecular-biology.jpg`;
+}
+
+function inferYearTwoCategory(title = "", category = ""): string {
+  const s = `${title} ${category}`.toLowerCase();
+  if (/pharm|drug/.test(s)) return "Year 3: Basic Pharmacology II";
+  if (/parasitol|entomolog|helminth|protozo/.test(s)) return "Year 2: Parasitology";
+  if (/microbiolog|bacteriolog|bacteria/.test(s)) return "Year 2: Microbiology";
+  if (/immun|complement|antibody|cellular/.test(s)) return "Year 2: Cellular Immunology";
+  if (/genetic|cytogen|mutation/.test(s)) return "Year 2: Molecular Genetics and Cytogenetics";
+  if (/molecular/.test(s)) return "Year 2: Molecular Biology";
+  if (/git|gastro/.test(s)) return "Year 2: GIT Physiology";
+  if (/biochem/.test(s)) return "Year 2: Clinical Biochemistry";
+  if (/epidemiolog|statistic/.test(s)) return "Year 2: Epidemiology and Statistics";
+  return /^Year\s*2:/i.test(category) ? category : "Year 2: Physiology";
+}
+
+function plainText(value: unknown): string {
+  return String(value || "")
+    .replace(/&amp;nbsp;|&nbsp;|\u00A0/gi, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\*+/g, "")
+    .replace(/[_`]+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanOption(value: unknown): string {
+  let out = plainText(value)
+    .replace(/^\s*(?:option\s*)?[A-F][.)]\s*/i, "")
+    .replace(/\s*(?:Answer|Correct\s*answer)\s*[:：]\s*[A-F]?.*$/i, "")
+    .replace(/\s*(?:Explanation|Rationale)\s*[:：].*$/i, "")
+    .trim();
+  if (out.length > 150) {
+    const concise = out.split(/\b(?:because|which|therefore|hence|as it|due to)\b/i)[0]?.trim();
+    if (concise && concise.length >= 8) out = concise;
+  }
+  return out.slice(0, 170).replace(/[\s,;:-]+$/, "");
+}
+
+function splitOptions(question: string, options: unknown[]): string[] {
+  const joined = `${question || ""} ${(options || []).join(" ")}`.replace(/\s+/g, " ").trim();
+  const firstA = joined.search(/(?:^|\s)A\s*[.)]\s*/i);
+  const source = firstA >= 0 ? joined.slice(firstA) : joined;
+  const matches = Array.from(source.matchAll(/(?:^|\s)([A-F])\s*[.)]\s*([\s\S]*?)(?=\s*[B-F]\s*[.)]\s*|\s*(?:Answer|Correct\s*answer|Explanation)\s*[:：]|$)/gi));
+  const raw = matches.length >= 2 ? matches.map((m) => m[2]) : options;
+  const seen = new Set<string>();
+  return raw.map(cleanOption).filter((opt) => {
+    const key = opt.toLowerCase();
+    if (!opt || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 5);
+}
+
+function normalizeStoredMcqQuestions(items: any[]): any[] {
+  if (!Array.isArray(items)) return [];
+  return items.map((item) => {
+    const rawAll = `${item?.question || item?.text || ""} ${(item?.options || []).join(" ")} ${item?.explanation || ""}`;
+    const answerLetter = rawAll.match(/(?:Answer|Correct\s*answer)\s*[:：]\s*([A-F])/i)?.[1]?.toUpperCase();
+    let correct = answerLetter ? answerLetter.charCodeAt(0) - 65 : Number.isFinite(item?.correct_answer) ? Number(item.correct_answer) : 0;
+    const opts = splitOptions(item?.question || item?.text || "", Array.isArray(item?.options) ? item.options : []);
+    if (opts.length < 2) return null;
+    let question = plainText(item?.question || item?.text || "").replace(/\s*Choices:\s*$/i, "");
+    const firstOption = question.search(/\sA\s*[.)]\s*/i);
+    if (firstOption > 8) question = question.slice(0, firstOption).trim();
+    correct = Math.max(0, Math.min(correct, opts.length - 1));
+    const explanation = plainText(item?.explanation || item?.answer || item?.model_answer || "").replace(/\s*---\s*$/, "");
+    return { question, options: opts, correct_answer: correct, ...(explanation.length > 8 ? { explanation: explanation.slice(0, 650) } : {}) };
+  }).filter(Boolean);
 }
 
 function extractFirstJsonObject(text: string): any | null {
