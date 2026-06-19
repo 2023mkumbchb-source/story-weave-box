@@ -858,7 +858,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       underSubheading = false;
       const alt = imageMatch[1]?.trim() || "Medical illustration";
       const src = imageMatch[2]?.trim();
-      if (src) {
+      if (src && !src.startsWith("data:image/")) {
         els.push(
           <figure key={`img-${i}`} className="my-7 overflow-hidden rounded-lg border border-border bg-muted/20">
             <img src={src} alt={alt} loading="lazy" className="w-full object-cover" />

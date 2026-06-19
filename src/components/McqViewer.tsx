@@ -66,8 +66,9 @@ interface RelatedResult {
 // Strip markdown headers and "Choices:" suffix from question text
 function cleanQuestionText(text: string | undefined): string {
   if (!text) return "";
-  return text
+  const cleaned = text
     .replace(/&amp;nbsp;|&nbsp;|\u00A0/gi, " ")
+    .replace(/<[^>]*>/g, " ")
     .replace(/Mount\s+Kenya\s+University\s*\|?\s*/gi, "")
     .replace(/\b[A-Z]{2,5}\s*\d{3,4}\b\s*\|?\s*/g, "")
     .replace(/^SECTION\s+\d+\s*[:\-–—].*$/gim, "")
@@ -78,16 +79,26 @@ function cleanQuestionText(text: string | undefined): string {
     .replace(/_{2,}/g, "")
     .replace(/\s{2,}/g, " ")
     .trim();
+  const firstOption = cleaned.search(/\sA\s*[.)]\s*/i);
+  return firstOption > 8 ? cleaned.slice(0, firstOption).trim() : cleaned;
 }
 
 function cleanMcqOption(text: string | undefined): string {
-  return String(text || "")
+  let out = String(text || "")
     .replace(/&amp;nbsp;|&nbsp;|\u00A0/gi, " ")
+    .replace(/<[^>]*>/g, " ")
     .replace(/^\s*[A-E][.)]\s*/i, "")
+    .replace(/\s*(?:Answer|Correct\s*answer)\s*[:：]\s*[A-E]?.*$/i, "")
+    .replace(/\s*(?:Explanation|Rationale)\s*[:：].*$/i, "")
     .replace(/\*+/g, "")
     .replace(/_{2,}/g, "")
     .replace(/\s{2,}/g, " ")
     .trim();
+  if (out.length > 150) {
+    const concise = out.split(/\b(?:because|which|therefore|hence|as it|due to)\b/i)[0]?.trim();
+    if (concise && concise.length >= 8) out = concise;
+  }
+  return out.slice(0, 170).replace(/[\s,;:-]+$/, "");
 }
 
 function isMcqQuestion(q: McqQuestion | undefined): q is McqQuestion & { options: string[]; correct_answer: number } {
