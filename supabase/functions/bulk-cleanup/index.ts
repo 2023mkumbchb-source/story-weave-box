@@ -371,13 +371,111 @@ function extractEssayQuestions(content: string): { saqs: any[]; laqs: any[] } {
 
 function cleanContent(content: string): string {
   let cleaned = content || "";
+  cleaned = cleaned.replace(/!\[[^\]]*\]\(data:image\/[^)]+\)\s*/gi, "");
   cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2702}-\u{27B0}]|[\u{FE00}-\u{FE0F}]|[\u{1F900}-\u{1F9FF}]|[\u{200D}]|[\u{20E3}]|[\u{FE0F}]/gu, "");
   cleaned = cleaned.replace(/Mount Kenya University/gi, "");
   cleaned = cleaned.replace(/\bMKU\b\s*/gi, "");
+  cleaned = cleaned.replace(/\b(?:as an ai|ai-generated|chatgpt|how can i help|how do you want us to help you)\b[^\n.]*[\n.]?/gi, "");
   cleaned = cleaned.replace(/([A-E]\))\s*([^\n]{3,}?)(?=\s*[B-E]\))/g, "$1 $2\n");
   cleaned = cleaned.replace(/\n{4,}/g, "\n\n\n");
   cleaned = cleaned.replace(/[ \t]+$/gm, "");
   return cleaned.trim();
+}
+
+const COVER_BASE = "https://lkgfzjwhmfjvntzphbsh.supabase.co/storage/v1/object/public/story-covers/articles";
+function topicCover(title = "", category = ""): string {
+  const s = `${title} ${category}`.toLowerCase();
+  if (/genetic|cytogen/.test(s)) return `${COVER_BASE}/genetics.jpg`;
+  if (/molecular/.test(s)) return `${COVER_BASE}/molecular-biology.jpg`;
+  if (/microbiolog|bacteriolog|bacteria/.test(s)) return `${COVER_BASE}/microbiology.jpg`;
+  if (/parasitol|entomolog|helminth|protozo/.test(s)) return `${COVER_BASE}/parasitology.jpg`;
+  if (/immun|complement|antibody/.test(s)) return `${COVER_BASE}/immunology.jpg`;
+  if (/pharm|drug/.test(s)) return `${COVER_BASE}/pharmacology.jpg`;
+  if (/git|gastro/.test(s)) return `${COVER_BASE}/git-physiology.jpg`;
+  if (/physio|cns|neuro/.test(s)) return `${COVER_BASE}/physiology.jpg`;
+  if (/biochem/.test(s)) return `${COVER_BASE}/clinical-biochem.jpg`;
+  if (/epidemiolog|statistic/.test(s)) return `${COVER_BASE}/epidemiology.jpg`;
+  return `${COVER_BASE}/molecular-biology.jpg`;
+}
+
+function inferYearTwoCategory(title = "", category = ""): string {
+  const s = `${title} ${category}`.toLowerCase();
+  if (/pharm|drug/.test(s)) return "Year 3: Basic Pharmacology II";
+  if (/bacteriolog|microbiolog|bacteria/.test(s)) return "Year 2: Microbiology";
+  if (/parasitol|entomolog|helminth|protozo/.test(s)) return "Year 2: Parasitology";
+  if (/immun|complement|antibody|cellular/.test(s)) return "Year 2: Cellular Immunology";
+  if (/genetic|cytogen|mutation/.test(s)) return "Year 2: Molecular Genetics and Cytogenetics";
+  if (/molecular/.test(s)) return "Year 2: Molecular Biology";
+  if (/git|gastro/.test(s)) return "Year 2: GIT Physiology";
+  if (/biochem/.test(s)) return "Year 2: Clinical Biochemistry";
+  if (/epidemiolog|statistic/.test(s)) return "Year 2: Epidemiology and Statistics";
+  return /^Year\s*2:/i.test(category) ? category : "Year 2: Physiology";
+}
+
+function plainText(value: unknown): string {
+  return String(value || "")
+    .replace(/&amp;nbsp;|&nbsp;|\u00A0/gi, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\*+/g, "")
+    .replace(/[_`]+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanOption(value: unknown): string {
+  let out = plainText(value)
+    .replace(/^\s*(?:option\s*)?[A-F][.)]\s*/i, "")
+    .replace(/\s*(?:Answer|Correct\s*answer)\s*[:：]\s*[A-F]?.*$/i, "")
+    .replace(/\s*(?:Explanation|Rationale)\s*[:：].*$/i, "")
+    .trim();
+  if (out.length > 150) {
+    const concise = out.split(/\b(?:because|which|therefore|hence|as it|due to)\b/i)[0]?.trim();
+    if (concise && concise.length >= 8) out = concise;
+  }
+  return out.slice(0, 170).replace(/[\s,;:-]+$/, "");
+}
+
+function splitOptions(question: string, options: unknown[]): string[] {
+  const joined = `${question || ""} ${(options || []).join(" ")}`.replace(/\s+/g, " ").trim();
+  const firstA = joined.search(/(?:^|\s)A\s*[.)]\s*/i);
+  const source = firstA >= 0 ? joined.slice(firstA) : joined;
+  const matches = Array.from(source.matchAll(/(?:^|\s)([A-F])\s*[.)]\s*([\s\S]*?)(?=\s*[B-F]\s*[.)]\s*|\s*(?:Answer|Correct\s*answer|Explanation)\s*[:：]|$)/gi));
+  const raw = matches.length >= 2 ? matches.map((m) => m[2]) : options;
+  const seen = new Set<string>();
+  return raw.map(cleanOption).filter((opt) => {
+    const key = opt.toLowerCase();
+    if (!opt || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 5);
+}
+
+function normalizeStoredMcqQuestions(items: any[]): any[] {
+  if (!Array.isArray(items)) return [];
+  return items.map((item) => {
+    const rawAll = `${item?.question || item?.text || ""} ${(item?.options || []).join(" ")} ${item?.explanation || ""}`;
+    const answerLetter = rawAll.match(/(?:Answer|Correct\s*answer)\s*[:：]\s*([A-F])/i)?.[1]?.toUpperCase();
+    let correct = answerLetter ? answerLetter.charCodeAt(0) - 65 : Number.isFinite(item?.correct_answer) ? Number(item.correct_answer) : 0;
+    const opts = splitOptions(item?.question || item?.text || "", Array.isArray(item?.options) ? item.options : []);
+    if (opts.length < 2) return null;
+    let question = plainText(item?.question || item?.text || "").replace(/\s*Choices:\s*$/i, "");
+    const firstOption = question.search(/\sA\s*[.)]\s*/i);
+    if (firstOption > 8) question = question.slice(0, firstOption).trim();
+    const explanation = plainText(item?.explanation || item?.answer || item?.model_answer || "").replace(/\s*---\s*$/, "");
+    const expLower = explanation.toLowerCase();
+    const optionHit = opts
+      .map((opt, index) => ({ index, opt, hit: opt.length > 2 && expLower.includes(opt.toLowerCase()) }))
+      .find((row) => row.hit);
+    if (!answerLetter && optionHit) correct = optionHit.index;
+    correct = Math.max(0, Math.min(correct, opts.length - 1));
+    if (explanation && opts[correct] && !expLower.includes(opts[correct].toLowerCase())) {
+      const lead = explanation.match(/^([A-Z][A-Za-z0-9+\-.]*(?:\s+[a-zA-Z0-9+\-.]+){0,3})\s+(?:is|are|was|were|causes|requires|uses|cleaves|produces)\b/)?.[1]?.trim();
+      if (lead && lead.length >= 4 && lead.length <= 60 && !opts.some((opt) => expLower.includes(opt.toLowerCase()))) {
+        opts[correct] = lead;
+      }
+    }
+    return { question, options: opts, correct_answer: correct, ...(explanation.length > 8 ? { explanation: explanation.slice(0, 650) } : {}) };
+  }).filter(Boolean);
 }
 
 function extractFirstJsonObject(text: string): any | null {
@@ -599,6 +697,84 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, supabaseKey);
     const startedAt = Date.now();
+
+    if (action === "year2_cleanup") {
+      const { data: mcqSets, error: mcqErr } = await sb
+        .from("mcq_sets")
+        .select("id,title,category,questions,og_image_url,meta_description")
+        .is("deleted_at", null)
+        .ilike("category", "Year 2:%");
+      if (mcqErr) throw mcqErr;
+
+      let mcqFixed = 0;
+      for (const set of mcqSets || []) {
+        const category = inferYearTwoCategory(set.title, set.category);
+        const questions = normalizeStoredMcqQuestions(set.questions || []);
+        if (questions.length < 1) continue;
+        const image = topicCover(set.title, category);
+        const unit = category.replace(/^Year\s*\d+\s*:\s*/i, "");
+        const firstQuestion = plainText(questions[0]?.question || "").slice(0, 70);
+        const meta = `${questions.length} exam-style MCQs in ${unit}. Practice concise options with answers and explanations for medical revision. ${firstQuestion}`.slice(0, 155);
+        const { error: updateErr } = await sb.from("mcq_sets").update({
+          questions,
+          category,
+          og_image_url: image,
+          featured_image: image,
+          meta_title: String(set.title || "MCQ Practice").slice(0, 60),
+          meta_description: meta,
+          updated_at: new Date().toISOString(),
+        }).eq("id", set.id);
+        if (updateErr) throw updateErr;
+        mcqFixed++;
+      }
+
+      const { data: articles, error: articleErr } = await sb
+        .from("articles")
+        .select("id,title,category,content,og_image_url,meta_description")
+        .is("deleted_at", null)
+        .ilike("category", "Year 2:%");
+      if (articleErr) throw articleErr;
+
+      let articlesFixed = 0;
+      let articlesRemoved = 0;
+      for (const article of articles || []) {
+        const title = String(article.title || "").trim();
+        const content = String(article.content || "");
+        const withoutDataImages = content.replace(/!\[[^\]]*\]\(data:image\/[^)]+\)\s*/gi, "").trim();
+        const shouldRemove = /^(test|untitled|sample)$/i.test(title) || withoutDataImages.replace(/\s+/g, "").length < 80;
+        if (shouldRemove) {
+          const { error: delErr } = await sb.from("articles").update({
+            published: false,
+            is_raw: true,
+            deleted_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }).eq("id", article.id);
+          if (delErr) throw delErr;
+          articlesRemoved++;
+          continue;
+        }
+
+        const category = inferYearTwoCategory(title, article.category);
+        const clean = cleanContent(content);
+        const image = topicCover(title, category);
+        const meta = (plainText(clean).slice(0, 155) || `${title} Year 2 medical revision notes.`).slice(0, 155);
+        const { error: updateErr } = await sb.from("articles").update({
+          content: clean,
+          category,
+          og_image_url: image,
+          featured_image: image,
+          meta_title: title.slice(0, 60),
+          meta_description: meta,
+          updated_at: new Date().toISOString(),
+        }).eq("id", article.id);
+        if (updateErr) throw updateErr;
+        articlesFixed++;
+      }
+
+      return new Response(JSON.stringify({ success: true, mcq_fixed: mcqFixed, articles_fixed: articlesFixed, articles_removed: articlesRemoved }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (action === "scan") {
       const articles = await fetchArticleBatch(sb, batchSize, cursor, yearFilter, includeUnpublished);

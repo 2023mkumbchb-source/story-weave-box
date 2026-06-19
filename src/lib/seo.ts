@@ -36,11 +36,11 @@ export function stripRichText(input: string, maxLength?: number): string {
 export function extractFirstImageFromContent(content: string): string | null {
   if (!content) return null;
 
-  const markdownImage = content.match(/!\[[^\]]*\]\((https?:\/\/[^\s)]+|data:image\/[^\s)]+)\)/i)?.[1];
+  const markdownImage = content.match(/!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/i)?.[1];
   if (markdownImage) return markdownImage;
 
   const htmlImage = content.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i)?.[1];
-  return htmlImage || null;
+  return htmlImage && !htmlImage.startsWith("data:image/") ? htmlImage : null;
 }
 
 export function buildStoryPath(story: { id: string; title: string }): string {

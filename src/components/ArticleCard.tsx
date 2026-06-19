@@ -16,9 +16,9 @@ function getCategoryFallback(text: string): string {
 
 function getArticleStaticThumb(article: Article): string {
   const og = (article.og_image_url || "").trim();
-  if (og) return og;
+  if (og && !og.includes("/og-default") && !og.startsWith("data:image/")) return og;
   const contentImage = (article.content || "").match(/!\[[^\]]*\]\((.*?)\)/)?.[1]?.trim();
-  if (contentImage) return contentImage;
+  if (contentImage && !contentImage.startsWith("data:image/")) return contentImage;
   return getCategoryFallback(`${article.category} ${article.title}`.toLowerCase());
 }
 

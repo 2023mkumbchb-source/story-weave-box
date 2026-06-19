@@ -11,6 +11,7 @@ import { markMcqVisited } from "@/lib/progress-store";
 import { supabase } from "@/integrations/supabase/client";
 import { updateMetaTags, stripRichText } from "@/lib/seo";
 import { SITE_URL } from "@/lib/seo";
+import { useTopicThumbnail } from "@/lib/topicThumbnail";
 
 const MCQ_UNLOCKED_KEY = "unlocked_mcqs";
 
@@ -119,6 +120,7 @@ export default function McqStudy() {
   const [phoneInput, setPhoneInput] = useState("");
   const [paying, setPaying] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "pending" | "completed" | "failed">("idle");
+  const fallbackCover = useTopicThumbnail(set?.title || "", set?.category || "", !!set);
 
   const handleBack = () => {
     if (window.history.length > 1) navigate(-1);
@@ -149,7 +151,7 @@ export default function McqStudy() {
         updateMetaTags({
           title: metaTitle,
           description: metaDescription,
-          image: s.og_image_url || `${SITE_URL}/og-default.png`,
+          image: s.og_image_url && !s.og_image_url.includes("/og-default") ? s.og_image_url : `${SITE_URL}/og-default.jpg`,
           url: `${SITE_URL}${buildMcqPath(s)}`,
           type: "article",
         });
@@ -285,6 +287,9 @@ export default function McqStudy() {
   const estMinutes = Math.max(5, Math.round(mcqQuestions.length * 1.2 + saqCount * 5 + essayCount * 20));
   const examDate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   const paperSource = inferPaperSource(set.title);
+  const coverImage = set.og_image_url && !set.og_image_url.includes("/og-default") && !set.og_image_url.startsWith("data:image/")
+    ? set.og_image_url
+    : fallbackCover;
 
   // Exam mode — if paid or no paywall needed
   if (examMode) {
@@ -334,10 +339,10 @@ export default function McqStudy() {
 
       {/* Exam-style cover card */}
       <div className="mb-6 rounded-2xl border-2 border-primary/30 bg-card overflow-hidden shadow-sm">
-        {(set as any).og_image_url && (
+        {coverImage && (
           <div className="relative aspect-[21/9] w-full overflow-hidden bg-muted">
             <img
-              src={(set as any).og_image_url}
+              src={coverImage}
               alt={set.title}
               className="absolute inset-0 h-full w-full object-cover animate-hero-fade"
               loading="eager"
