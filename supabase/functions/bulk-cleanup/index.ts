@@ -401,8 +401,8 @@ function topicCover(title = "", category = ""): string {
 function inferYearTwoCategory(title = "", category = ""): string {
   const s = `${title} ${category}`.toLowerCase();
   if (/pharm|drug/.test(s)) return "Year 3: Basic Pharmacology II";
+  if (/bacteriolog|microbiolog|bacteria/.test(s)) return "Year 2: Microbiology";
   if (/parasitol|entomolog|helminth|protozo/.test(s)) return "Year 2: Parasitology";
-  if (/microbiolog|bacteriolog|bacteria/.test(s)) return "Year 2: Microbiology";
   if (/immun|complement|antibody|cellular/.test(s)) return "Year 2: Cellular Immunology";
   if (/genetic|cytogen|mutation/.test(s)) return "Year 2: Molecular Genetics and Cytogenetics";
   if (/molecular/.test(s)) return "Year 2: Molecular Biology";
@@ -461,8 +461,19 @@ function normalizeStoredMcqQuestions(items: any[]): any[] {
     let question = plainText(item?.question || item?.text || "").replace(/\s*Choices:\s*$/i, "");
     const firstOption = question.search(/\sA\s*[.)]\s*/i);
     if (firstOption > 8) question = question.slice(0, firstOption).trim();
-    correct = Math.max(0, Math.min(correct, opts.length - 1));
     const explanation = plainText(item?.explanation || item?.answer || item?.model_answer || "").replace(/\s*---\s*$/, "");
+    const expLower = explanation.toLowerCase();
+    const optionHit = opts
+      .map((opt, index) => ({ index, opt, hit: opt.length > 2 && expLower.includes(opt.toLowerCase()) }))
+      .find((row) => row.hit);
+    if (!answerLetter && optionHit) correct = optionHit.index;
+    correct = Math.max(0, Math.min(correct, opts.length - 1));
+    if (explanation && opts[correct] && !expLower.includes(opts[correct].toLowerCase())) {
+      const lead = explanation.match(/^([A-Z][A-Za-z0-9+\-.]*(?:\s+[a-zA-Z0-9+\-.]+){0,3})\s+(?:is|are|was|were|causes|requires|uses|cleaves|produces)\b/)?.[1]?.trim();
+      if (lead && lead.length >= 4 && lead.length <= 60 && !opts.some((opt) => expLower.includes(opt.toLowerCase()))) {
+        opts[correct] = lead;
+      }
+    }
     return { question, options: opts, correct_answer: correct, ...(explanation.length > 8 ? { explanation: explanation.slice(0, 650) } : {}) };
   }).filter(Boolean);
 }
