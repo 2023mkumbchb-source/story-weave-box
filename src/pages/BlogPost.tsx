@@ -891,7 +891,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
-    const combinedOpts = Array.from(t.matchAll(/(?:^|\s)([A-E])\s*[\.)]\s*([\s\S]*?)(?=\s+[A-E]\s*[\.)]\s*|$)/gi));
+    const combinedOpts = Array.from(t.matchAll(/(?:^|\s)([A-E])\s*[\.)]\s*([\s\S]*?)(?=\s*[B-E]\s*[\.)]\s*|$)/gi));
     if (combinedOpts.length >= 2 && !inPractice) {
       flushList(); underSubheading = false;
       combinedOpts.forEach((m, n) => {
