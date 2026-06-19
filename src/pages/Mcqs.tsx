@@ -326,7 +326,7 @@ function McqCover({ set }: { set: McqSet }) {
     : text.includes("pharmac") || text.includes("drug")
     ? pharmacologyThumb
     : pathologyThumb;
-  const src = og || fallback;
+  const src = og && !og.includes("/og-default") && !og.startsWith("data:image/") ? og : fallback;
   if (!src) {
     return (
       <div className="flex aspect-[16/9] w-full items-center justify-center bg-gradient-to-br from-primary/15 via-accent/15 to-primary/5 text-primary">
