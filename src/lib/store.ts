@@ -161,21 +161,42 @@ export function rebalanceMcqAnswerLetters<T extends { question?: string; options
   return out;
 }
 
-function splitCombinedOptions(options: string[]): string[] {
-  const joined = (options || []).join(" ").replace(/\s+/g, " ").trim();
-  if (!joined) return [];
-  const matches = Array.from(joined.matchAll(/(?:^|\s)([A-F])[.)]\s*([\s\S]*?)(?=\s+[A-F][.)]\s*|$)/gi));
-  if (matches.length >= 2) return matches.map((m) => String(m[2] || "").trim()).filter(Boolean);
-  return options.map((o) => String(o || "").replace(/^\s*[A-F][.)]\s*/i, "").trim()).filter(Boolean);
+function cleanMcqOptionText(value: string): string {
+  let out = String(value || "")
+    .replace(/&amp;nbsp;|&nbsp;|\u00A0/gi, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\*+/g, "")
+    .replace(/^\s*(?:option\s*)?[A-F][.)]\s*/i, "")
+    .replace(/\s*(?:Answer|Correct\s*answer)\s*[:：]\s*[A-F]?.*$/i, "")
+    .replace(/\s*(?:Explanation|Rationale)\s*[:：].*$/i, "")
+    .replace(/\s+—\s+related\s+(?:option|finding)$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (out.length > 150) {
+    const concise = out.split(/\b(?:because|which|therefore|hence|as it|due to)\b/i)[0]?.trim();
+    if (concise && concise.length >= 8) out = concise;
+  }
+  return out.slice(0, 170).replace(/[\s,;:-]+$/, "");
 }
 
-function balanceOptionLengths(options: string[], correctAnswer: number): string[] {
-  const clean = splitCombinedOptions(options).slice(0, 5);
-  if (clean.length < 2) return clean;
-  return clean.map((opt, i) => {
-    let out = opt.replace(/\s+—\s+related\s+(?:option|finding)$/i, "").replace(/\s+/g, " ").trim();
-    if (out.length > 140) out = out.slice(0, 137).replace(/\s+\S*$/, "") + "…";
-    return out;
+function splitCombinedOptions(options: string[], questionText = ""): string[] {
+  const joined = `${questionText || ""} ${(options || []).join(" ")}`.replace(/\s+/g, " ").trim();
+  if (!joined) return [];
+  const firstA = joined.search(/(?:^|\s)A\s*[.)]\s*/i);
+  const source = firstA >= 0 ? joined.slice(firstA) : joined;
+  const matches = Array.from(source.matchAll(/(?:^|\s)([A-F])\s*[.)]\s*([\s\S]*?)(?=\s*[B-F]\s*[.)]\s*|\s*(?:Answer|Correct\s*answer|Explanation)\s*[:：]|$)/gi));
+  if (matches.length >= 2) return matches.map((m) => cleanMcqOptionText(String(m[2] || ""))).filter(Boolean);
+  return options.map((o) => cleanMcqOptionText(o)).filter(Boolean);
+}
+
+function balanceOptionLengths(options: string[], _correctAnswer: number): string[] {
+  const clean = options.map(cleanMcqOptionText).filter(Boolean).slice(0, 5);
+  const seen = new Set<string>();
+  return clean.filter((opt) => {
+    const key = opt.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }
 
@@ -185,11 +206,18 @@ export function normalizeMcqQuestions<T extends { question?: string; options?: s
     const q: any = { ...item };
     if (!Array.isArray(q.options)) return q;
     let correct = typeof q.correct_answer === "number" ? q.correct_answer : 0;
-    const split = splitCombinedOptions(q.options);
-    if (q.options.length === 1 && split.length > 1) {
+    const rawAll = `${q.question || ""} ${q.options.join(" ")} ${q.explanation || ""}`;
+    const answerMarker = rawAll.match(/(?:Answer|Correct\s*answer)\s*[:：]\s*([A-F])/i)?.[1]?.toUpperCase();
+    const split = splitCombinedOptions(q.options, q.question || "");
+    if (answerMarker) {
+      correct = Math.max(0, answerMarker.charCodeAt(0) - 65);
+    } else if (q.options.length === 1 && split.length > 1) {
       const marker = String(q.options[0]).match(/(?:^|\s)([A-F])[.)]\s*/i)?.[1]?.toUpperCase();
       if (marker) correct = Math.max(0, marker.charCodeAt(0) - 65);
     }
+    const firstOptionInQuestion = String(q.question || "").search(/\sA\s*[.)]\s*/i);
+    if (firstOptionInQuestion > 6 && split.length >= 2) q.question = String(q.question).slice(0, firstOptionInQuestion).trim();
+    q.question = String(q.question || "").replace(/\*+/g, "").replace(/\s*Choices:\s*$/i, "").replace(/\s+/g, " ").trim();
     const options = balanceOptionLengths(split, Math.min(Math.max(correct, 0), Math.max(0, split.length - 1)));
     q.options = options;
     q.correct_answer = Math.min(Math.max(correct, 0), Math.max(0, options.length - 1));
