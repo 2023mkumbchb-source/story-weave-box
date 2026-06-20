@@ -304,6 +304,69 @@ Return ONLY the improved content.`;
       });
     }
 
+    if (action === "year2_article_pass") {
+      if (!geminiKey) throw new Error("GEMINI_API_KEY not set");
+      const batchSize = Math.min(Math.max(Number(body?.batch_size || 4), 1), 8);
+      const cursor = typeof body?.cursor === "string" && body.cursor ? body.cursor : null;
+      let query = sb
+        .from("articles")
+        .select("id,title,category,content,slug")
+        .eq("published", true)
+        .is("deleted_at", null)
+        .ilike("category", "Year 2:%")
+        .order("id", { ascending: true })
+        .limit(batchSize);
+      if (cursor) query = query.gt("id", cursor);
+      const { data: articles, error } = await query;
+      if (error) throw error;
+      if (!articles?.length) return json({ success: true, updated: 0, done: true, next_cursor: null, processed_articles: [] });
+
+      const processed: any[] = [];
+      for (const article of articles) {
+        try {
+          const prompt = `You are editing Year 2 MBChB study notes for a clean TeachMeAnatomy-style website.
+
+Return ONLY valid JSON:
+{"title":"clean concise title","meta_title":"max 60 chars","meta_description":"150-155 chars","content":"markdown article"}
+
+Strict rules:
+- Keep factual accuracy and preserve all useful existing facts.
+- Remove university names, emojis, exam headers, duplicated blank lines, and noisy answer-key formatting.
+- If the article is short, add high-yield Year 2 detail: definition, mechanism/life cycle/pathogenesis, clinical relevance, diagnosis, treatment/prevention, and exam pearls.
+- Format with one H1-style opening title line using ##, then clear ### subsections, paragraphs, concise bullets, and at least one markdown table where useful.
+- Do not include MCQ option blocks as article content; convert them into explanatory notes.
+- Target 900-1400 words unless the source is already complete.
+
+Current title: ${article.title}
+Category: ${article.category}
+
+Current content:
+${String(article.content || "").slice(0, 22000)}`;
+          const text = await callGemini(geminiKey, prompt, 14000);
+          const result = extractJsonFromResponse(text);
+          const nextTitle = String(result?.title || article.title || "Year 2 Study Note").replace(/\s+/g, " ").trim().slice(0, 90);
+          const content = cleanStudyMarkdown(String(result?.content || article.content || ""));
+          const metaTitle = String(result?.meta_title || nextTitle).replace(/\s+/g, " ").trim().slice(0, 60);
+          const metaDescription = String(result?.meta_description || content.replace(/[#*_`>\-]/g, " ").replace(/\s+/g, " ").trim()).slice(0, 155);
+          const image = topicImage(nextTitle, article.category);
+          await sb.from("articles").update({
+            title: nextTitle,
+            content,
+            meta_title: metaTitle,
+            meta_description: metaDescription,
+            featured_image: image,
+            og_image_url: image,
+            tags: tagsForYearTwo(nextTitle, article.category),
+            updated_at: new Date().toISOString(),
+          }).eq("id", article.id);
+          processed.push({ id: article.id, title: nextTitle, action: "updated", length: content.length });
+        } catch (e: any) {
+          processed.push({ id: article.id, title: article.title, action: "failed", error: e?.message || String(e) });
+        }
+      }
+      return json({ success: true, updated: processed.filter((p) => p.action === "updated").length, done: articles.length < batchSize, next_cursor: articles[articles.length - 1]?.id || null, processed_articles: processed });
+    }
+
     if (action === "generate_image") {
       const id = body?.id;
       if (!id) throw new Error("Missing article id");
