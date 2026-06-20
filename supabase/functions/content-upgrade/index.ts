@@ -147,6 +147,37 @@ function extractFirstImageUrl(markdown: string): string | null {
   const htmlImage = markdown.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i)?.[1];
   return htmlImage || null;
 }
+
+function cleanStudyMarkdown(value: string): string {
+  return String(value || "")
+    .replace(/```markdown\s*/gi, "")
+    .replace(/```\s*$/g, "")
+    .replace(/Mount Kenya University/gi, "")
+    .replace(/\bMKU\b\s*/gi, "")
+    .replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{27BF}]|[\u{FE00}-\u{FE0F}]/gu, "")
+    .replace(/\n{4,}/g, "\n\n")
+    .trim();
+}
+
+function topicImage(title = "", category = ""): string {
+  const base = "https://lkgfzjwhmfjvntzphbsh.supabase.co/storage/v1/object/public/story-covers/articles";
+  const s = `${title} ${category}`.toLowerCase();
+  if (/communication|skills|patient|interview/.test(s)) return `${base}/communication.jpg`;
+  if (/genetic|cytogen|mutation/.test(s)) return `${base}/genetics.jpg`;
+  if (/molecular|dna|rna|transcription|translation/.test(s)) return `${base}/molecular-biology.jpg`;
+  if (/biochem|enzyme|metabolism|steroid|hormone|blood|heme|liver|protein/.test(s)) return `${base}/clinical-biochem.jpg`;
+  if (/micro|bacter|strept|aseptic|gene transfer/.test(s)) return `${base}/microbiology.jpg`;
+  if (/parasite|amoeb|ameb|giardia|malaria|leishmania|trypanosoma|trichomonas|entomology|vector|cestode|pinworm/.test(s)) return `${base}/parasitology.jpg`;
+  if (/immun|antibody|complement/.test(s)) return `${base}/immunology.jpg`;
+  if (/git|gastric|intestinal|digestion|absorption/.test(s)) return `${base}/git-physiology.jpg`;
+  if (/epidemiology|statistics|population|demography/.test(s)) return `${base}/epidemiology.jpg`;
+  return `${base}/physiology.jpg`;
+}
+
+function tagsForYearTwo(title = "", category = ""): string[] {
+  const unit = category.replace(/^Year\s*\d+\s*:\s*/i, "");
+  return ["Year 2", unit, ...title.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 5).slice(0, 4)].slice(0, 8);
+}
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
