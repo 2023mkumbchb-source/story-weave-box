@@ -387,6 +387,8 @@ function topicCover(title = "", category = ""): string {
   const s = `${title} ${category}`.toLowerCase();
   if (/genetic|cytogen/.test(s)) return `${COVER_BASE}/genetics.jpg`;
   if (/molecular/.test(s)) return `${COVER_BASE}/molecular-biology.jpg`;
+  if (/biochem|bilirubin|enzyme|metabolism|protein|steroid|hormone|blood/.test(s)) return `${COVER_BASE}/clinical-biochem.jpg`;
+  if (/communication|skills|counselling|patient|interview/.test(s)) return `${COVER_BASE}/communication.jpg`;
   if (/microbiolog|bacteriolog|bacteria/.test(s)) return `${COVER_BASE}/microbiology.jpg`;
   if (/parasitol|entomolog|helminth|protozo/.test(s)) return `${COVER_BASE}/parasitology.jpg`;
   if (/immun|complement|antibody/.test(s)) return `${COVER_BASE}/immunology.jpg`;
@@ -399,17 +401,53 @@ function topicCover(title = "", category = ""): string {
 }
 
 function inferYearTwoCategory(title = "", category = ""): string {
+  const titleOnly = `${title}`.toLowerCase();
   const s = `${title} ${category}`.toLowerCase();
-  if (/pharm|drug/.test(s)) return "Year 3: Basic Pharmacology II";
+  if (/pharm|drug|antifungal|antiviral|antihelminthic|antiprotozoal|chemotherapy|antibiotic/.test(titleOnly)) return "Year 3: Basic Pharmacology II";
+  if (/lymphoma|leukemia|anaemia|anemia|neoplasm|tumou?r|patholog/.test(titleOnly)) return "Year 3: Hematopathology";
+  if (/biochem|bilirubin|enzyme|metabolism|protein|steroid|hormone|blood|heme|liver|transduction|second messenger/.test(titleOnly)) return "Year 2: Clinical Biochemistry";
   if (/bacteriolog|microbiolog|bacteria/.test(s)) return "Year 2: Microbiology";
-  if (/parasitol|entomolog|helminth|protozo/.test(s)) return "Year 2: Parasitology";
-  if (/immun|complement|antibody|cellular/.test(s)) return "Year 2: Cellular Immunology";
+  if (/parasitol|entomolog|helminth|protozo|amoeb|ameb|giardia|malaria|plasmod|leishmania|trypanosoma|trichomonas|balantidium|cestode|tapeworm|pinworm|vector/.test(titleOnly)) return "Year 2: Parasitology";
+  if (/immun|complement|antibody|cellular/.test(titleOnly) || (/immun|complement|antibody|cellular/.test(s) && !/biochem|metabolism|bilirubin|enzyme/.test(s))) return "Year 2: Cellular Immunology";
   if (/genetic|cytogen|mutation/.test(s)) return "Year 2: Molecular Genetics and Cytogenetics";
   if (/molecular/.test(s)) return "Year 2: Molecular Biology";
   if (/git|gastro/.test(s)) return "Year 2: GIT Physiology";
   if (/biochem/.test(s)) return "Year 2: Clinical Biochemistry";
   if (/epidemiolog|statistic/.test(s)) return "Year 2: Epidemiology and Statistics";
+  if (/communication|skills/.test(s)) return "Year 2: Human Communication Skills";
   return /^Year\s*2:/i.test(category) ? category : "Year 2: Physiology";
+}
+
+function normalizeYearTwoTitle(title = "", category = "", firstQuestion = ""): string {
+  let out = normalizeTitle(plainText(title).replace(/&amp;/g, "&"));
+  out = out
+    .replace(/Cellular I\s+mmunology/gi, "Cellular Immunology")
+    .replace(/\bMCQs?\b/gi, "MCQs")
+    .replace(/\s*[:–-]\s*Complete\s*(?:Study\s*)?Guide$/i, "")
+    .replace(/^Bachelor Of Medicine And Bachelor Of Surgery \(Mbchb\)$/i, "Molecular Biology Exam Review")
+    .replace(/^Untitled$/i, "Medical Microbiology MCQs")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!out || out.length < 5) out = firstQuestion ? `${plainText(firstQuestion).slice(0, 48)} MCQs` : `${category.replace(/^Year\s*\d+\s*:\s*/i, "")} Review`;
+  if (/mcq/i.test(category) || /mcq|quiz|question|exam|paper/i.test(`${out} ${firstQuestion}`)) {
+    if (!/\bMCQs?\b|Quiz|Questions/i.test(out)) out = `${out} MCQs`;
+  }
+  return out.slice(0, 90).replace(/[\s:–-]+$/, "");
+}
+
+function yearTwoTags(title = "", category = ""): string[] {
+  const unit = category.replace(/^Year\s*\d+\s*:\s*/i, "");
+  const source = `${title} ${unit}`.toLowerCase();
+  const tags = new Set<string>(["Year 2", unit]);
+  if (/immun|antibody|complement/.test(source)) tags.add("Immunology");
+  if (/micro|bacter|strept|gene transfer/.test(source)) tags.add("Microbiology");
+  if (/parasite|amoeb|malaria|giardia|leishmania|trypanosoma|entomology/.test(source)) tags.add("Parasitology");
+  if (/genetic|cytogen|mutation/.test(source)) tags.add("Genetics");
+  if (/molecular|dna|rna|transcription|translation/.test(source)) tags.add("Molecular Biology");
+  if (/git|gastric|intestinal|digestion|absorption/.test(source)) tags.add("GIT Physiology");
+  if (/biochem|metabolism|enzyme|hormone|bilirubin|heme/.test(source)) tags.add("Clinical Biochemistry");
+  if (/physiology|renal|cns|growth hormone/.test(source)) tags.add("Physiology");
+  return [...tags].filter(Boolean).slice(0, 8);
 }
 
 function plainText(value: unknown): string {
@@ -427,7 +465,11 @@ function cleanOption(value: unknown): string {
     .replace(/^\s*(?:option\s*)?[A-F][.)]\s*/i, "")
     .replace(/\s*(?:Answer|Correct\s*answer)\s*[:：]\s*[A-F]?.*$/i, "")
     .replace(/\s*(?:Explanation|Rationale)\s*[:：].*$/i, "")
+    .replace(/\s*-\s*\($/, "")
     .trim();
+  if (!out || /^[-()\s]+$/.test(out)) return "";
+  if (/^(?:because|therefore|hence|this helps|this is because|it is because|which helps)\b/i.test(out)) return "";
+  if (/^[a-z]/.test(out) && out.length > 65 && /\b(?:due to|helps|differentiate|therefore|because|while|which)\b/i.test(out)) return "";
   if (out.length > 150) {
     const concise = out.split(/\b(?:because|which|therefore|hence|as it|due to)\b/i)[0]?.trim();
     if (concise && concise.length >= 8) out = concise;
@@ -452,7 +494,16 @@ function splitOptions(question: string, options: unknown[]): string[] {
 
 function normalizeStoredMcqQuestions(items: any[]): any[] {
   if (!Array.isArray(items)) return [];
-  return items.map((item) => {
+  const genericDistractors = [
+    "Mostly unchanged in early disease",
+    "Reduced by routine feedback control",
+    "Occurs only after chronic exposure",
+    "Limited to a single tissue compartment",
+    "Primarily an incidental laboratory finding",
+    "Usually mediated by non-specific mechanisms",
+  ];
+  const usedQuestions = new Set<string>();
+  return items.map((item, itemIndex) => {
     const rawAll = `${item?.question || item?.text || ""} ${(item?.options || []).join(" ")} ${item?.explanation || ""}`;
     const answerLetter = rawAll.match(/(?:Answer|Correct\s*answer)\s*[:：]\s*([A-F])/i)?.[1]?.toUpperCase();
     let correct = answerLetter ? answerLetter.charCodeAt(0) - 65 : Number.isFinite(item?.correct_answer) ? Number(item.correct_answer) : 0;
@@ -461,6 +512,9 @@ function normalizeStoredMcqQuestions(items: any[]): any[] {
     let question = plainText(item?.question || item?.text || "").replace(/\s*Choices:\s*$/i, "");
     const firstOption = question.search(/\sA\s*[.)]\s*/i);
     if (firstOption > 8) question = question.slice(0, firstOption).trim();
+    question = question.replace(/^\d+[.)]\s*/, "").replace(/\s+/g, " ").trim();
+    if (/\b\d+\s*marks?\b|\b(?:describe|discuss|outline|list|explain)\b/i.test(question)) return null;
+    if (question.length < 8 || usedQuestions.has(question.toLowerCase())) return null;
     const explanation = plainText(item?.explanation || item?.answer || item?.model_answer || "").replace(/\s*---\s*$/, "");
     const expLower = explanation.toLowerCase();
     const optionHit = opts
@@ -474,7 +528,16 @@ function normalizeStoredMcqQuestions(items: any[]): any[] {
         opts[correct] = lead;
       }
     }
-    return { question, options: opts, correct_answer: correct, ...(explanation.length > 8 ? { explanation: explanation.slice(0, 650) } : {}) };
+    while (opts.length < 5) {
+      const filler = genericDistractors[(itemIndex + opts.length) % genericDistractors.length];
+      if (!opts.some((opt) => opt.toLowerCase() === filler.toLowerCase())) opts.push(filler);
+      else opts.push(`Alternative related mechanism ${opts.length + 1}`);
+    }
+    const correctText = opts[correct] || opts[0];
+    const maxWrongLength = Math.max(22, correctText.length + 55);
+    const finalOptions = opts.slice(0, 5).map((opt, idx) => idx === correct ? opt : opt.slice(0, maxWrongLength).replace(/[\s,;:-]+$/, ""));
+    usedQuestions.add(question.toLowerCase());
+    return { question, options: finalOptions, correct_answer: correct, ...(explanation.length > 8 ? { explanation: explanation.slice(0, 650) } : {}) };
   }).filter(Boolean);
 }
 
@@ -701,27 +764,45 @@ serve(async (req) => {
     if (action === "year2_cleanup") {
       const { data: mcqSets, error: mcqErr } = await sb
         .from("mcq_sets")
-        .select("id,title,category,questions,og_image_url,meta_description")
+        .select("id,title,category,questions,og_image_url,meta_description,created_at")
         .is("deleted_at", null)
-        .ilike("category", "Year 2:%");
+        .ilike("category", "Year 2:%")
+        .order("created_at", { ascending: true });
       if (mcqErr) throw mcqErr;
 
       let mcqFixed = 0;
+      let mcqRemoved = 0;
+      const seenMcqFingerprints = new Set<string>();
       for (const set of mcqSets || []) {
         const category = inferYearTwoCategory(set.title, set.category);
         const questions = normalizeStoredMcqQuestions(set.questions || []);
-        if (questions.length < 1) continue;
-        const image = topicCover(set.title, category);
+        const firstQuestion = plainText(questions[0]?.question || "");
+        const title = normalizeYearTwoTitle(set.title, category, firstQuestion);
+        const fingerprint = `${category}|${title.toLowerCase()}|${questions.map((q: any) => plainText(q.question).toLowerCase()).join("|")}`.slice(0, 6000);
+        if (questions.length < 5 || seenMcqFingerprints.has(fingerprint)) {
+          const { error: delErr } = await sb.from("mcq_sets").update({
+            published: false,
+            is_raw: true,
+            deleted_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }).eq("id", set.id);
+          if (delErr) throw delErr;
+          mcqRemoved++;
+          continue;
+        }
+        seenMcqFingerprints.add(fingerprint);
+        const image = topicCover(title, category);
         const unit = category.replace(/^Year\s*\d+\s*:\s*/i, "");
-        const firstQuestion = plainText(questions[0]?.question || "").slice(0, 70);
-        const meta = `${questions.length} exam-style MCQs in ${unit}. Practice concise options with answers and explanations for medical revision. ${firstQuestion}`.slice(0, 155);
+        const meta = `${questions.length} exam-style ${unit} MCQs with balanced five-option choices, answers, and concise explanations. ${firstQuestion}`.slice(0, 155);
         const { error: updateErr } = await sb.from("mcq_sets").update({
+          title,
           questions,
           category,
           og_image_url: image,
           featured_image: image,
-          meta_title: String(set.title || "MCQ Practice").slice(0, 60),
+          meta_title: title.slice(0, 60),
           meta_description: meta,
+          tags: yearTwoTags(title, category),
           updated_at: new Date().toISOString(),
         }).eq("id", set.id);
         if (updateErr) throw updateErr;
@@ -755,23 +836,26 @@ serve(async (req) => {
         }
 
         const category = inferYearTwoCategory(title, article.category);
+        const cleanTitle = normalizeYearTwoTitle(title, category, withoutDataImages.slice(0, 120));
         const clean = cleanContent(content);
-        const image = topicCover(title, category);
-        const meta = (plainText(clean).slice(0, 155) || `${title} Year 2 medical revision notes.`).slice(0, 155);
+        const image = topicCover(cleanTitle, category);
+        const meta = (plainText(clean).slice(0, 155) || `${cleanTitle} Year 2 medical revision notes.`).slice(0, 155);
         const { error: updateErr } = await sb.from("articles").update({
+          title: cleanTitle,
           content: clean,
           category,
           og_image_url: image,
           featured_image: image,
-          meta_title: title.slice(0, 60),
+          meta_title: cleanTitle.slice(0, 60),
           meta_description: meta,
+          tags: yearTwoTags(cleanTitle, category),
           updated_at: new Date().toISOString(),
         }).eq("id", article.id);
         if (updateErr) throw updateErr;
         articlesFixed++;
       }
 
-      return new Response(JSON.stringify({ success: true, mcq_fixed: mcqFixed, articles_fixed: articlesFixed, articles_removed: articlesRemoved }), {
+      return new Response(JSON.stringify({ success: true, mcq_fixed: mcqFixed, mcq_removed: mcqRemoved, articles_fixed: articlesFixed, articles_removed: articlesRemoved }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
