@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { ArrowRight, Clock3 } from "lucide-react";
 import type { Article } from "@/lib/store";
 import { buildBlogPath, getCategoryDisplayName, getYearFromCategory } from "@/lib/store";
+import { useTopicThumbnail } from "@/lib/topicThumbnail";
 import anatomyThumb from "@/assets/thumb-anatomy.jpg";
 import physiologyThumb from "@/assets/thumb-physiology.jpg";
 import pharmacologyThumb from "@/assets/thumb-pharmacology.jpg";
@@ -14,12 +15,12 @@ function getCategoryFallback(text: string): string {
   return pathologyThumb;
 }
 
-function getArticleStaticThumb(article: Article): string {
+function getArticleStaticThumb(article: Article): string | null {
   const og = (article.og_image_url || "").trim();
-  if (og && !og.includes("/og-default") && !og.startsWith("data:image/")) return og;
+  if (og && !og.includes("/og-default") && !og.startsWith("data:image/") && og.length < 2000) return og;
   const contentImage = (article.content || "").match(/!\[[^\]]*\]\((.*?)\)/)?.[1]?.trim();
   if (contentImage && !contentImage.startsWith("data:image/")) return contentImage;
-  return getCategoryFallback(`${article.category} ${article.title}`.toLowerCase());
+  return null;
 }
 
 export default function ArticleCard({ article }: { article: Article }) {
@@ -33,7 +34,9 @@ export default function ArticleCard({ article }: { article: Article }) {
 
   const unit = getCategoryDisplayName(article.category);
   const year = getYearFromCategory(article.category);
-  const cover = getArticleStaticThumb(article);
+  const staticCover = getArticleStaticThumb(article);
+  const topicCover = useTopicThumbnail(article.title, article.category, !staticCover);
+  const cover = staticCover || topicCover || getCategoryFallback(`${article.category} ${article.title}`.toLowerCase());
   const displayDate = new Date(article.updated_at || article.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const location = useLocation();
   const fromPath = `${location.pathname}${location.search}`;
