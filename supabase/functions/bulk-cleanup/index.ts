@@ -929,11 +929,7 @@ serve(async (req) => {
           fixes.clean_emojis = true;
         }
 
-        const hasMKU = /Mount Kenya University|\bMKU\b\s/i.test(analysisContent);
-        if (hasMKU) {
-          issues.push("Contains university references");
-          fixes.clean_mku = true;
-        }
+        // University mentions (MKU, Mount Kenya University) are preserved intentionally.
 
         const brokenOptions = (analysisContent.match(/[A-E]\)\s*[^\n]{3,}[B-E]\)/g) || []).length;
         if (brokenOptions > 2) {
