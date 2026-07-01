@@ -478,9 +478,9 @@ function decodeEntities(s: string): string {
 
 function stripBranding(s: string): string {
   if (!s) return s;
+  // Preserve MKU / Mount Kenya University when authors include it (per user request).
+  // Only tidy stray table-cell artefacts left over from imports.
   return s
-    .replace(/Mount\s+Kenya\s+University/gi, "")
-    .replace(/\bMKU\b/g, "")
     .replace(/\|\s*\|/g, "|")
     .replace(/\|\s*$/g, "")
     .replace(/^\s*\|\s*/g, "")
@@ -587,9 +587,6 @@ function preprocessContent(raw: string): string {
     if (isCourseBrandingLine(t)) {
       out.push("");
       continue;
-    } else if (/Mount\s+Kenya\s+University|\bMKU\b/i.test(t)) {
-      t = stripBranding(t);
-      if (!t || t.length < 4) { out.push(""); continue; }
     }
     if (!t) { out.push(""); continue; }
 

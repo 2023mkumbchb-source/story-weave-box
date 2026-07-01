@@ -152,8 +152,6 @@ function cleanStudyMarkdown(value: string): string {
   return String(value || "")
     .replace(/```markdown\s*/gi, "")
     .replace(/```\s*$/g, "")
-    .replace(/Mount Kenya University/gi, "")
-    .replace(/\bMKU\b\s*/gi, "")
     .replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{27BF}]|[\u{FE00}-\u{FE0F}]/gu, "")
     .replace(/\n{4,}/g, "\n\n")
     .trim();

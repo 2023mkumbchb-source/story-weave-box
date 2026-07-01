@@ -12,6 +12,7 @@ import {
 import ArticleCard from "@/components/ArticleCard";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
 import { updateMetaTags } from "@/lib/seo";
+import { getAllCategories } from "@/lib/store";
 
 const YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
 const INITIAL_PER_GROUP = 6;
@@ -56,6 +57,22 @@ export default function Blog() {
   const [recentArticles, setRecentArticles] = useState<RecentArticle[]>([]);
   const [visibleCount, setVisibleCount] = useState(20);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [sidebarCats, setSidebarCats] = useState<{ name: string; articles: number; flashcards: number; mcqs: number }[]>([]);
+
+  useEffect(() => {
+    getAllCategories().then(setSidebarCats).catch(() => {});
+  }, []);
+
+  const sidebarGroups = useMemo(() => {
+    const groups: Record<string, { category: string; name: string; count: number }[]> = {};
+    sidebarCats.forEach(c => {
+      const y = getYearFromCategory(c.name) || "Other";
+      if (!groups[y]) groups[y] = [];
+      groups[y].push({ category: c.name, name: getCategoryDisplayName(c.name), count: c.articles + c.mcqs + c.flashcards });
+    });
+    Object.values(groups).forEach(list => list.sort((a, b) => a.name.localeCompare(b.name)));
+    return groups;
+  }, [sidebarCats]);
 
   const selectedYear =
     normalizeYear(searchParams.get("year")) ||
@@ -241,7 +258,53 @@ export default function Blog() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      <div className="grid gap-8 lg:grid-cols-[260px,1fr]">
+        {/* Desktop-only sidebar (Jaypee-style specialty index) */}
+        <aside className="hidden lg:block">
+          <div className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border border-border bg-card p-4">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Browse</p>
+            <button
+              onClick={() => { setYear("All"); setUnit(null); }}
+              className={`mb-3 block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors ${selectedYear === "All" ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted"}`}
+            >
+              All Years
+            </button>
+            {["Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"].map(y => {
+              const units = sidebarGroups[y] || [];
+              if (units.length === 0) return null;
+              const isOpen = selectedYear === y;
+              return (
+                <div key={y} className="mb-2">
+                  <button
+                    onClick={() => setYear(isOpen ? "All" : y)}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors ${isOpen ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted"}`}
+                  >
+                    <span>{y}</span>
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  {isOpen && (
+                    <ul className="mt-1 space-y-0.5 border-l border-border pl-3">
+                      {units.map(u => (
+                        <li key={u.category}>
+                          <button
+                            onClick={() => setUnit(selectedUnit === u.category ? null : u.category)}
+                            className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs transition-colors ${selectedUnit === u.category ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+                          >
+                            <span className="truncate">{u.name}</span>
+                            <span className="ml-2 shrink-0 text-[10px] text-muted-foreground">{u.count}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </aside>
+
+        <div className="min-w-0">
       {/* Header */}
       <div className="mb-7">
         <h1 className="font-serif text-3xl font-bold leading-tight text-foreground sm:text-4xl">Study Notes</h1>
@@ -411,6 +474,8 @@ export default function Blog() {
           )}
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }
