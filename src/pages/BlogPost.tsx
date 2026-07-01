@@ -478,9 +478,9 @@ function decodeEntities(s: string): string {
 
 function stripBranding(s: string): string {
   if (!s) return s;
+  // Preserve MKU / Mount Kenya University when authors include it (per user request).
+  // Only tidy stray table-cell artefacts left over from imports.
   return s
-    .replace(/Mount\s+Kenya\s+University/gi, "")
-    .replace(/\bMKU\b/g, "")
     .replace(/\|\s*\|/g, "|")
     .replace(/\|\s*$/g, "")
     .replace(/^\s*\|\s*/g, "")
