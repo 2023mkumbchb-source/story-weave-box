@@ -373,8 +373,6 @@ function cleanContent(content: string): string {
   let cleaned = content || "";
   cleaned = cleaned.replace(/!\[[^\]]*\]\(data:image\/[^)]+\)\s*/gi, "");
   cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2702}-\u{27B0}]|[\u{FE00}-\u{FE0F}]|[\u{1F900}-\u{1F9FF}]|[\u{200D}]|[\u{20E3}]|[\u{FE0F}]/gu, "");
-  cleaned = cleaned.replace(/Mount Kenya University/gi, "");
-  cleaned = cleaned.replace(/\bMKU\b\s*/gi, "");
   cleaned = cleaned.replace(/\b(?:as an ai|ai-generated|chatgpt|how can i help|how do you want us to help you)\b[^\n.]*[\n.]?/gi, "");
   cleaned = cleaned.replace(/([A-E]\))\s*([^\n]{3,}?)(?=\s*[B-E]\))/g, "$1 $2\n");
   cleaned = cleaned.replace(/\n{4,}/g, "\n\n\n");
