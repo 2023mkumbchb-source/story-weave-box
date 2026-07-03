@@ -95,13 +95,17 @@ export type Database = {
           comments_enabled: boolean
           content: string
           content_fts: unknown
+          content_kind: string | null
           countdown: Json | null
           created_at: string
           deleted_at: string | null
+          exam_type: string | null
+          exam_year: string | null
           featured_image: string | null
           html_embed: Json | null
           id: string
           is_raw: boolean | null
+          lecturer: string | null
           meta_description: string | null
           meta_title: string | null
           og_image_url: string | null
@@ -110,10 +114,13 @@ export type Database = {
           published: boolean
           reading_time_minutes: number | null
           scheduled_at: string | null
+          school: string | null
           slug: string | null
           tags: string[]
           title: string
           toc_enabled: boolean
+          unit: string | null
+          university: string | null
           updated_at: string
         }
         Insert: {
@@ -122,13 +129,17 @@ export type Database = {
           comments_enabled?: boolean
           content?: string
           content_fts?: unknown
+          content_kind?: string | null
           countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
+          exam_type?: string | null
+          exam_year?: string | null
           featured_image?: string | null
           html_embed?: Json | null
           id?: string
           is_raw?: boolean | null
+          lecturer?: string | null
           meta_description?: string | null
           meta_title?: string | null
           og_image_url?: string | null
@@ -137,10 +148,13 @@ export type Database = {
           published?: boolean
           reading_time_minutes?: number | null
           scheduled_at?: string | null
+          school?: string | null
           slug?: string | null
           tags?: string[]
           title: string
           toc_enabled?: boolean
+          unit?: string | null
+          university?: string | null
           updated_at?: string
         }
         Update: {
@@ -149,13 +163,17 @@ export type Database = {
           comments_enabled?: boolean
           content?: string
           content_fts?: unknown
+          content_kind?: string | null
           countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
+          exam_type?: string | null
+          exam_year?: string | null
           featured_image?: string | null
           html_embed?: Json | null
           id?: string
           is_raw?: boolean | null
+          lecturer?: string | null
           meta_description?: string | null
           meta_title?: string | null
           og_image_url?: string | null
@@ -164,10 +182,13 @@ export type Database = {
           published?: boolean
           reading_time_minutes?: number | null
           scheduled_at?: string | null
+          school?: string | null
           slug?: string | null
           tags?: string[]
           title?: string
           toc_enabled?: boolean
+          unit?: string | null
+          university?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -356,10 +377,13 @@ export type Database = {
           countdown: Json | null
           created_at: string
           deleted_at: string | null
+          exam_type: string | null
+          exam_year: string | null
           featured_image: string | null
           html_embed: Json | null
           id: string
           is_raw: boolean | null
+          lecturer: string | null
           meta_description: string | null
           meta_title: string | null
           og_image_url: string | null
@@ -369,10 +393,13 @@ export type Database = {
           questions: Json
           reading_time_minutes: number | null
           scheduled_at: string | null
+          school: string | null
           slug: string | null
           tags: string[]
           title: string
           toc_enabled: boolean
+          unit: string | null
+          university: string | null
           updated_at: string
         }
         Insert: {
@@ -382,10 +409,13 @@ export type Database = {
           countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
+          exam_type?: string | null
+          exam_year?: string | null
           featured_image?: string | null
           html_embed?: Json | null
           id?: string
           is_raw?: boolean | null
+          lecturer?: string | null
           meta_description?: string | null
           meta_title?: string | null
           og_image_url?: string | null
@@ -395,10 +425,13 @@ export type Database = {
           questions?: Json
           reading_time_minutes?: number | null
           scheduled_at?: string | null
+          school?: string | null
           slug?: string | null
           tags?: string[]
           title: string
           toc_enabled?: boolean
+          unit?: string | null
+          university?: string | null
           updated_at?: string
         }
         Update: {
@@ -408,10 +441,13 @@ export type Database = {
           countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
+          exam_type?: string | null
+          exam_year?: string | null
           featured_image?: string | null
           html_embed?: Json | null
           id?: string
           is_raw?: boolean | null
+          lecturer?: string | null
           meta_description?: string | null
           meta_title?: string | null
           og_image_url?: string | null
@@ -421,10 +457,13 @@ export type Database = {
           questions?: Json
           reading_time_minutes?: number | null
           scheduled_at?: string | null
+          school?: string | null
           slug?: string | null
           tags?: string[]
           title?: string
           toc_enabled?: boolean
+          unit?: string | null
+          university?: string | null
           updated_at?: string
         }
         Relationships: []
