@@ -1607,6 +1607,8 @@ export default function BlogPost() {
               <div className="mb-2"><ReadingTimeBadge minutes={(article as any).reading_time_minutes} /></div>
             ) : null}
 
+            <SourceAttribution article={article} />
+
             <HtmlEmbed data={(article as any).html_embed} position="top" />
 
             {(article as any).toc_enabled && <ContentToc content={article.content} />}
