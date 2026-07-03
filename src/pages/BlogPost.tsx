@@ -808,11 +808,17 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       let sawExp = false;
       while (j < lines.length) {
         const nt = lines[j].trim();
-        if (/^(MCQ|Question|Q)\s*\d+/i.test(nt)) break;
+        // Strip leading markdown emphasis so "**Q2.**", "**MCQ 3**", "*Question 4*" all count.
+        const ntStripped = nt.replace(/^[*_#>\s]+/, "");
+        if (/^(MCQ|Question|Q)\s*\d+/i.test(ntStripped)) break;
         if (/^#{1,6}\s/.test(nt)) break;
         if (/^\*{0,2}\s*(✅\s*)?Answer\s*[:：]/i.test(nt)) break;
         if (/^\*{1,2}\d+\.\s/.test(nt)) break;
         if (/^\d+\.\s.{4,}[?:]\s*\*{0,2}$/.test(nt)) break;
+        // Numbered question stems like "1. Something?" or "1) Something?"
+        if (/^\d+[.\)]\s+.{3,}[?:]\s*\*{0,2}$/.test(ntStripped)) break;
+        // Standalone options like "A) foo" that start a new question's choice list
+        if (/^[A-E][.\)]\s+\S/.test(ntStripped) && sawExp) break;
         if (!nt) {
           if (sawExp) break;
           buf.push(lines[j]);
