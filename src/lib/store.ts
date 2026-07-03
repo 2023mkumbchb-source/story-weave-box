@@ -700,6 +700,12 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
   if (article.reading_time_minutes !== undefined) payload.reading_time_minutes = article.reading_time_minutes;
   if (article.toc_enabled !== undefined) payload.toc_enabled = article.toc_enabled;
   if (article.comments_enabled !== undefined) payload.comments_enabled = article.comments_enabled;
+  if (article.university !== undefined) payload.university = article.university || null;
+  if (article.school !== undefined) payload.school = article.school || null;
+  if (article.lecturer !== undefined) payload.lecturer = article.lecturer || null;
+  if (article.exam_type !== undefined) payload.exam_type = article.exam_type || null;
+  if (article.exam_year !== undefined) payload.exam_year = article.exam_year || null;
+  if (article.unit !== undefined) payload.unit = article.unit || null;
 
   let saved: Article;
 
