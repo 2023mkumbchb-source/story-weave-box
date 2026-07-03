@@ -937,6 +937,12 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
   if (set.reading_time_minutes !== undefined) payload.reading_time_minutes = set.reading_time_minutes;
   if (set.toc_enabled !== undefined) payload.toc_enabled = set.toc_enabled;
   if (set.comments_enabled !== undefined) payload.comments_enabled = set.comments_enabled;
+  if (set.university !== undefined) payload.university = set.university || null;
+  if (set.school !== undefined) payload.school = set.school || null;
+  if (set.lecturer !== undefined) payload.lecturer = set.lecturer || null;
+  if (set.exam_type !== undefined) payload.exam_type = set.exam_type || null;
+  if (set.exam_year !== undefined) payload.exam_year = set.exam_year || null;
+  if (set.unit !== undefined) payload.unit = set.unit || null;
 
   if (set.id) {
     const { data, error } = await supabase
