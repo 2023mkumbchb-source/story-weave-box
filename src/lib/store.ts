@@ -25,6 +25,13 @@ export interface Article {
   reading_time_minutes?: number;
   toc_enabled?: boolean;
   comments_enabled?: boolean;
+  university?: string;
+  school?: string;
+  lecturer?: string;
+  exam_type?: string;
+  exam_year?: string;
+  unit?: string;
+  content_kind?: string;
 }
 
 export interface ArticleCategory {
@@ -74,6 +81,12 @@ export interface McqSet {
   reading_time_minutes?: number;
   toc_enabled?: boolean;
   comments_enabled?: boolean;
+  university?: string;
+  school?: string;
+  lecturer?: string;
+  exam_type?: string;
+  exam_year?: string;
+  unit?: string;
 }
 
 export interface Story {
@@ -687,6 +700,12 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
   if (article.reading_time_minutes !== undefined) payload.reading_time_minutes = article.reading_time_minutes;
   if (article.toc_enabled !== undefined) payload.toc_enabled = article.toc_enabled;
   if (article.comments_enabled !== undefined) payload.comments_enabled = article.comments_enabled;
+  if (article.university !== undefined) payload.university = article.university || null;
+  if (article.school !== undefined) payload.school = article.school || null;
+  if (article.lecturer !== undefined) payload.lecturer = article.lecturer || null;
+  if (article.exam_type !== undefined) payload.exam_type = article.exam_type || null;
+  if (article.exam_year !== undefined) payload.exam_year = article.exam_year || null;
+  if (article.unit !== undefined) payload.unit = article.unit || null;
 
   let saved: Article;
 
@@ -918,6 +937,12 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
   if (set.reading_time_minutes !== undefined) payload.reading_time_minutes = set.reading_time_minutes;
   if (set.toc_enabled !== undefined) payload.toc_enabled = set.toc_enabled;
   if (set.comments_enabled !== undefined) payload.comments_enabled = set.comments_enabled;
+  if (set.university !== undefined) payload.university = set.university || null;
+  if (set.school !== undefined) payload.school = set.school || null;
+  if (set.lecturer !== undefined) payload.lecturer = set.lecturer || null;
+  if (set.exam_type !== undefined) payload.exam_type = set.exam_type || null;
+  if (set.exam_year !== undefined) payload.exam_year = set.exam_year || null;
+  if (set.unit !== undefined) payload.unit = set.unit || null;
 
   if (set.id) {
     const { data, error } = await supabase

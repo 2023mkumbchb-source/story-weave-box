@@ -286,7 +286,13 @@ export default function McqStudy() {
   const qCount = set.questions.length;
   const estMinutes = Math.max(5, Math.round(mcqQuestions.length * 1.2 + saqCount * 5 + essayCount * 20));
   const examDate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-  const paperSource = inferPaperSource(set.title);
+  const explicitUni = ((set as any).university || "").trim();
+  const explicitExamType = ((set as any).exam_type || "").trim();
+  const explicitYear = ((set as any).exam_year || "").trim();
+  const explicitLecturer = ((set as any).lecturer || "").trim();
+  const paperSource = explicitUni
+    ? [explicitExamType, explicitUni, explicitYear].filter(Boolean).join(" · ")
+    : inferPaperSource(set.title);
   const coverImage = set.og_image_url && !set.og_image_url.includes("/og-default") && !set.og_image_url.startsWith("data:image/")
     ? set.og_image_url
     : fallbackCover;
@@ -367,6 +373,13 @@ export default function McqStudy() {
           <h1 className="font-serif text-xl sm:text-2xl font-bold text-foreground leading-tight">
             {set.title}
           </h1>
+          {(explicitLecturer || explicitExamType || explicitUni) && (
+            <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+              {explicitExamType && <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-[10px] font-semibold text-primary">{explicitExamType}{explicitYear ? ` ${explicitYear}` : ""}</span>}
+              {explicitUni && <span className="rounded-full border border-border bg-background px-2.5 py-0.5 text-[10px] font-semibold text-foreground/80">{explicitUni}</span>}
+              {explicitLecturer && <span className="rounded-full border border-border bg-background px-2.5 py-0.5 text-[10px] font-semibold text-foreground/80">{explicitLecturer}</span>}
+            </div>
+          )}
         </div>
         <div className="grid grid-cols-3 border-t border-border bg-muted/30 text-center">
           <div className="px-2 py-2.5 border-r border-border">

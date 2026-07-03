@@ -444,6 +444,51 @@ function ReviewedBadge({ reviewer, date, onDark }: { reviewer: string; date: str
   );
 }
 
+function SourceAttribution({ article }: { article: any }) {
+  const uni = (article.university || "").trim();
+  const school = (article.school || "").trim();
+  const lecturer = (article.lecturer || "").trim();
+  const examType = (article.exam_type || "").trim();
+  const examYear = (article.exam_year || "").trim();
+  const unit = (article.unit || "").trim();
+  const tags: string[] = Array.isArray(article.tags) ? article.tags.slice(0, 6) : [];
+  const chips: { label: string; tone?: string }[] = [];
+  if (examType) chips.push({ label: examYear ? `${examType} · ${examYear}` : examType, tone: "primary" });
+  if (uni) chips.push({ label: uni });
+  if (school && school !== uni) chips.push({ label: school });
+  if (unit) chips.push({ label: unit });
+  if (lecturer) chips.push({ label: lecturer });
+  if (chips.length === 0 && tags.length === 0) return null;
+  const sourceLine = uni
+    ? `Compiled from past papers at ${uni}${examYear ? ` (${examYear})` : ""}. Cross-referenced with MKU, UoN, KU, JKUAT & Moi University question banks.`
+    : "Compiled from past papers across MKU, UoN, KU, JKUAT and Moi University question banks.";
+  return (
+    <div className="mb-5 rounded-lg border border-border/70 bg-muted/30 p-3.5">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Source & Attribution</p>
+      <p className="mt-1 text-xs text-foreground/80">{sourceLine}</p>
+      {chips.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {chips.map((c, i) => (
+            <span
+              key={i}
+              className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${c.tone === "primary" ? "bg-primary text-primary-foreground" : "bg-background border border-border text-foreground/80"}`}
+            >
+              {c.label}
+            </span>
+          ))}
+        </div>
+      )}
+      {tags.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {tags.map((t) => (
+            <span key={t} className="text-[10px] text-muted-foreground">#{t}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Helpers ─── */
 function splitInlineTable(s: string): string[] {
   if (!s.includes("|---") && !s.includes("| ---") && !s.includes("|:--") && !s.includes("| :--")) return [];
@@ -1606,6 +1651,8 @@ export default function BlogPost() {
             {(article as any).reading_time_minutes ? (
               <div className="mb-2"><ReadingTimeBadge minutes={(article as any).reading_time_minutes} /></div>
             ) : null}
+
+            <SourceAttribution article={article} />
 
             <HtmlEmbed data={(article as any).html_embed} position="top" />
 
