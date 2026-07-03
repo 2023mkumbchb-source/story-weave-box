@@ -228,7 +228,7 @@ export default function Exams() {
         ) : (
           allExams.map((exam, index) => {
             const isSample = exam.id === "sample-exam";
-            const unlocked = isSample || unlockedExams.has(exam.id);
+            const unlocked = true;
             const unitName = inferUnit(exam);
             const isCurrentPayment = payingForExamId === exam.id;
 
@@ -250,7 +250,7 @@ export default function Exams() {
                     </p>
                   </div>
                   <span className="rounded-full border border-border bg-secondary px-3 py-1 text-[10px] font-semibold text-foreground">
-                    {isSample ? "FREE SAMPLE" : unlocked ? "UNLOCKED" : `15 FREE · KES ${examPrice}`}
+                    FREE
                   </span>
                 </div>
 
