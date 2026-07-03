@@ -116,7 +116,7 @@ export default function McqStudy() {
   // Paywall state
   const [mcqFreeLimit, setMcqFreeLimit] = useState(15);
   const [mcqPrice, setMcqPrice] = useState(10);
-  const [isPaid, setIsPaid] = useState(false);
+  const [isPaid, setIsPaid] = useState(true);
   const [phoneInput, setPhoneInput] = useState("");
   const [paying, setPaying] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "pending" | "completed" | "failed">("idle");
@@ -301,7 +301,7 @@ export default function McqStudy() {
           setId={set.id}
           freeLimit={effectiveFreeLimit}
           examPrice={mcqPrice}
-          isPaid={needsPayForExam ? isPaid : true}
+          isPaid={true}
           paymentStatus={paymentStatus}
           phoneInput={phoneInput}
           onPhoneChange={setPhoneInput}
