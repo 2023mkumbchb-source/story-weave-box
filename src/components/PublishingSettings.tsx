@@ -115,6 +115,57 @@ export default function PublishingSettingsPanel({ value, onChange, content }: Pr
         <p className="text-[10px] text-muted-foreground">Leave empty to publish immediately when the Published toggle is on.</p>
       </Panel>
 
+      <Panel icon={<GraduationCap className="h-3.5 w-3.5" />} title="Source & Attribution" defaultOpen>
+        <div className="grid grid-cols-2 gap-1.5">
+          <div>
+            <label className="text-[10px] font-medium text-muted-foreground block">University</label>
+            <Input value={v.university || ""} onChange={(e) => set("university", e.target.value)} placeholder="e.g. Mount Kenya University" className="h-7 text-xs" list="lm-uni" />
+            <datalist id="lm-uni">
+              <option value="Mount Kenya University" />
+              <option value="University of Nairobi" />
+              <option value="Kenyatta University" />
+              <option value="JKUAT" />
+              <option value="Moi University" />
+              <option value="Egerton University" />
+              <option value="Maseno University" />
+            </datalist>
+          </div>
+          <div>
+            <label className="text-[10px] font-medium text-muted-foreground block">School / Faculty</label>
+            <Input value={v.school || ""} onChange={(e) => set("school", e.target.value)} placeholder="School of Medicine" className="h-7 text-xs" />
+          </div>
+          <div>
+            <label className="text-[10px] font-medium text-muted-foreground block">Unit</label>
+            <Input value={v.unit || ""} onChange={(e) => set("unit", e.target.value)} placeholder="e.g. Chemical Pathology" className="h-7 text-xs" />
+          </div>
+          <div>
+            <label className="text-[10px] font-medium text-muted-foreground block">Lecturer</label>
+            <Input value={v.lecturer || ""} onChange={(e) => set("lecturer", e.target.value)} placeholder="Dr. J. Mutiso" className="h-7 text-xs" />
+          </div>
+          <div>
+            <label className="text-[10px] font-medium text-muted-foreground block">Exam Type</label>
+            <select
+              value={v.exam_type || ""}
+              onChange={(e) => set("exam_type", e.target.value)}
+              className="h-7 w-full rounded-md border border-input bg-background px-2 text-xs"
+            >
+              <option value="">—</option>
+              <option value="CAT">CAT</option>
+              <option value="Past Paper">Past Paper</option>
+              <option value="Mock Exam">Mock Exam</option>
+              <option value="End of Semester">End of Semester</option>
+              <option value="Revision">Revision</option>
+              <option value="Notes">Notes only</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-[10px] font-medium text-muted-foreground block">Exam Year</label>
+            <Input value={v.exam_year || ""} onChange={(e) => set("exam_year", e.target.value)} placeholder="2024" className="h-7 text-xs" />
+          </div>
+        </div>
+        <p className="text-[10px] text-muted-foreground">Shown as attribution chips on the article / MCQ page. Helps SEO and reader trust.</p>
+      </Panel>
+
       <Panel icon={<ImageIcon className="h-3.5 w-3.5" />} title="Featured Image / Thumbnail">
         <Input
           value={v.featured_image || ""}
