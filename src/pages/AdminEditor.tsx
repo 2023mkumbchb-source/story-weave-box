@@ -358,7 +358,7 @@ export default function AdminEditor() {
       } else if (editorMode === "mcqs") {
         const { data, error } = await supabase
           .from("mcq_sets")
-          .select("id, title, category, created_at, updated_at, published, slug, access_password, meta_title, meta_description, og_image_url, countdown, html_embed, password_protected, scheduled_at, tags, featured_image, reading_time_minutes, toc_enabled, comments_enabled")
+          .select("id, title, category, created_at, updated_at, published, slug, access_password, meta_title, meta_description, og_image_url, countdown, html_embed, password_protected, scheduled_at, tags, featured_image, reading_time_minutes, toc_enabled, comments_enabled, university, school, lecturer, exam_type, exam_year, unit")
           .is("deleted_at", null)
           .order("updated_at", { ascending: false })
           .limit(1200);
@@ -522,6 +522,12 @@ export default function AdminEditor() {
       reading_time_minutes: (fullArticle as any).reading_time_minutes || computeReadingTime(fullArticle.content || ""),
       toc_enabled: (fullArticle as any).toc_enabled || false,
       comments_enabled: (fullArticle as any).comments_enabled !== false,
+      university: (fullArticle as any).university || "",
+      school: (fullArticle as any).school || "",
+      lecturer: (fullArticle as any).lecturer || "",
+      exam_type: (fullArticle as any).exam_type || "",
+      exam_year: (fullArticle as any).exam_year || "",
+      unit: (fullArticle as any).unit || "",
     });
   }, [fullArticle, editor, isAddMode]);
 
@@ -554,6 +560,12 @@ export default function AdminEditor() {
       reading_time_minutes: m.reading_time_minutes || 0,
       toc_enabled: m.toc_enabled || false,
       comments_enabled: m.comments_enabled !== false,
+      university: m.university || "",
+      school: m.school || "",
+      lecturer: m.lecturer || "",
+      exam_type: m.exam_type || "",
+      exam_year: m.exam_year || "",
+      unit: m.unit || "",
     });
   }, [currentMcqSummary?.id, editorMode, isAddMode]);
 
