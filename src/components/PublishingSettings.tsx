@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, type ReactNode } from "react";
-import { ChevronDown, Calendar, Lock, Code2, Tag, Image as ImageIcon, Clock, ListTree, MessageSquare, Timer, Eye } from "lucide-react";
+import { ChevronDown, Calendar, Lock, Code2, Tag, Image as ImageIcon, Clock, ListTree, MessageSquare, Timer, Eye, GraduationCap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import DOMPurify from "dompurify";
@@ -15,6 +15,13 @@ export interface PublishingExtras {
   reading_time_minutes?: number;
   toc_enabled?: boolean;
   comments_enabled?: boolean;
+  // Source & attribution (past-paper origin)
+  university?: string;
+  school?: string;
+  lecturer?: string;
+  exam_type?: string;
+  exam_year?: string;
+  unit?: string;
 }
 
 export function sanitizeEmbed(html: string): string {
