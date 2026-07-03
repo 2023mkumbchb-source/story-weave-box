@@ -129,7 +129,7 @@ export default function ExamStart() {
 
   // Payment state — exam is free to start; paywall triggers at Q15 inside ExamMode
   const [examPrice, setExamPrice] = useState(5);
-  const [isPaid, setIsPaid] = useState(false);
+  const [isPaid, setIsPaid] = useState(true);
   const [phoneInput, setPhoneInput] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "pending" | "completed" | "failed">("idle");
 
@@ -364,7 +364,7 @@ export default function ExamStart() {
           onExit={() => setStarted(false)}
           freeLimit={exam.id === "sample-exam" ? 0 : EXAM_FREE_LIMIT}
           examPrice={examPrice}
-          isPaid={isPaid || exam.id === "sample-exam"}
+          isPaid={true}
           paymentStatus={paymentStatus}
           phoneInput={phoneInput}
           onPhoneChange={setPhoneInput}
