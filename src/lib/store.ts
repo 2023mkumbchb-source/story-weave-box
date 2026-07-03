@@ -25,6 +25,13 @@ export interface Article {
   reading_time_minutes?: number;
   toc_enabled?: boolean;
   comments_enabled?: boolean;
+  university?: string;
+  school?: string;
+  lecturer?: string;
+  exam_type?: string;
+  exam_year?: string;
+  unit?: string;
+  content_kind?: string;
 }
 
 export interface ArticleCategory {
@@ -74,6 +81,12 @@ export interface McqSet {
   reading_time_minutes?: number;
   toc_enabled?: boolean;
   comments_enabled?: boolean;
+  university?: string;
+  school?: string;
+  lecturer?: string;
+  exam_type?: string;
+  exam_year?: string;
+  unit?: string;
 }
 
 export interface Story {
