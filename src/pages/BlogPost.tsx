@@ -741,6 +741,30 @@ function preprocessContent(raw: string): string {
       continue;
     }
 
+    // ── FIX: concatenated MCQ options like "A) foo b) bar c) baz d) qux" → split ──
+    // Also handles "1. Question text?A) foo b) bar c) baz d) qux" by splitting the stem too.
+    {
+      const stripped = t.replace(/^\*+|\*+$/g, "");
+      // Detect a stem+options line: "…?A) foo b) bar c) baz…"
+      const stemSplit = stripped.match(/^(.+?[?:])\s*([Aa][\.\)]\s.+)$/);
+      if (stemSplit && /[Bb][\.\)]\s/.test(stemSplit[2]) && /[Cc][\.\)]\s/.test(stemSplit[2])) {
+        out.push(stemSplit[1].trim());
+        const parts = stemSplit[2].split(/\s*(?=[a-eA-E][\.\)]\s)/);
+        if (parts.length >= 3) {
+          parts.forEach(p => out.push(p.trim().replace(/^([a-e])([\.\)])/, (_, l, s) => `${l.toUpperCase()}${s}`)));
+          continue;
+        }
+      }
+      // Pure options run: "A) foo b) bar c) baz d) qux"
+      if (/^[Aa][\.\)]\s/.test(stripped) && /[Bb][\.\)]\s/.test(stripped) && /[Cc][\.\)]\s/.test(stripped)) {
+        const parts = stripped.split(/\s*(?=[a-eA-E][\.\)]\s)/);
+        if (parts.length >= 3) {
+          parts.forEach(p => out.push(p.trim().replace(/^([a-e])([\.\)])/, (_, l, s) => `${l.toUpperCase()}${s}`)));
+          continue;
+        }
+      }
+    }
+
     out.push(t);
   }
 
