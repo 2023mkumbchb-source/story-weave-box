@@ -1322,6 +1322,7 @@ export default function BlogPost() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; mcqs: any[]; essays: any[] }>({ articles: [], flashcards: [], mcqs: [], essays: [] });
   const [activeSection, setActiveSection] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const handleBack = () => {
     const fromPath = (location.state as { from?: string } | null)?.from;
