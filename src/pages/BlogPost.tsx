@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useLayoutEffect, forwardRef, memo } from 
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft, Loader2, GraduationCap, ListChecks,
-  ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2, ImagePlus,
+  ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2, ImagePlus, Eye, X,
 } from "lucide-react";
 import ShareButtons from "@/components/ShareButtons";
 import ArticleComments from "@/components/ArticleComments";
@@ -408,13 +408,14 @@ function pickReviewer(seed: string): string {
 }
 
 function cleanMetaTitle(article: Article): string {
-  const raw = (article.title?.trim() || article.meta_title?.trim() || "Study Notes").replace(/^#+\s*/, "").replace(/\s+/g, " ").trim();
+  const rawSrc = (article.title?.trim() || article.meta_title?.trim() || "Study Notes");
+  const raw = decodeEntities(rawSrc).replace(/^#+\s*/, "").replace(/\s+/g, " ").trim();
   return raw.length <= 60 ? raw : `${raw.slice(0, 57).trimEnd()}...`;
 }
 
 function cleanMetaDescription(article: Article): string {
-  const title = stripRichText(article.title || "").replace(/\s+/g, " ").trim();
-  let provided = stripRichText(article.meta_description || "", 170).replace(/\s*[-–—]{2,}\s*/g, " — ").trim();
+  const title = decodeEntities(stripRichText(article.title || "")).replace(/\s+/g, " ").trim();
+  let provided = decodeEntities(stripRichText(article.meta_description || "", 170)).replace(/\s*[-–—]{2,}\s*/g, " — ").trim();
   if (title && provided.toLowerCase().startsWith(title.toLowerCase())) {
     provided = provided.slice(title.length).replace(/^\s*[|:;,.–—-]+\s*/, "").trim();
   }
