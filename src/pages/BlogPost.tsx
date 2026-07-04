@@ -1975,6 +1975,7 @@ export default function BlogPost() {
             {(article as any).comments_enabled !== false && <ArticleComments articleId={article.id} />}
             </PasswordGate>
           </article>
+          <ExamPreviewModal article={article} open={previewOpen} onClose={() => setPreviewOpen(false)} />
         </div>
       </div>
     </>
