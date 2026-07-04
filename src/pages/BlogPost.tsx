@@ -490,6 +490,160 @@ function SourceAttribution({ article }: { article: any }) {
   );
 }
 
+/* ─── Exam Preview: questions-only PDF-style modal ─── */
+function extractExamQuestions(rawContent: string): { mcqs: { n: number; stem: string; opts: string[] }[]; essays: { n: number; text: string }[] } {
+  const content = decodeEntities(rawContent || "");
+  const lines = content.replace(/\r\n?/g, "\n").split("\n");
+  const mcqs: { n: number; stem: string; opts: string[] }[] = [];
+  const essays: { n: number; text: string }[] = [];
+  let cur: { n: number; stem: string; opts: string[] } | null = null;
+  let mcqCount = 0;
+  let essayCount = 0;
+
+  const flush = () => { if (cur) { mcqs.push(cur); cur = null; } };
+
+  const optSplit = (line: string) => {
+    const parts = line.split(/\s*(?=[a-eA-E][\.\)]\s)/);
+    return parts.map(p => p.trim().replace(/^\*+|\*+$/g, "")).filter(Boolean);
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    let t = lines[i].trim().replace(/^\*+|\*+$/g, "").replace(/^#+\s*/, "");
+    if (!t) continue;
+    if (/^(answer|explanation|correct answer)\s*[:：]/i.test(t)) continue;
+    if (/^✅/.test(t)) continue;
+
+    // Numbered question stem
+    const qMatch = t.match(/^(?:Q(?:uestion)?\s*)?(\d+)[\.\)]\s+(.+)$/i);
+    if (qMatch) {
+      flush();
+      let stem = qMatch[2].trim();
+      // If stem already has options concatenated (e.g. "…?A) x b) y c) z d) w")
+      const stemOpt = stem.match(/^(.+?[?:])\s*([Aa][\.\)]\s.+)$/);
+      if (stemOpt && /[Bb][\.\)]\s/.test(stemOpt[2]) && /[Cc][\.\)]\s/.test(stemOpt[2])) {
+        mcqCount++;
+        cur = { n: mcqCount, stem: stemOpt[1].trim(), opts: optSplit(stemOpt[2]) };
+        continue;
+      }
+      // Treat as MCQ stem; look ahead for options
+      const stemHasQ = /[?]/.test(stem);
+      if (stemHasQ) {
+        mcqCount++;
+        cur = { n: mcqCount, stem, opts: [] };
+      } else {
+        essayCount++;
+        essays.push({ n: essayCount, text: stem });
+      }
+      continue;
+    }
+
+    // Options line while collecting an MCQ
+    if (cur) {
+      if (/^[a-eA-E][\.\)]\s/.test(t)) {
+        if (/[b-eB-E][\.\)]\s/.test(t.slice(3))) cur.opts.push(...optSplit(t));
+        else cur.opts.push(t.replace(/^([a-e])([\.\)])/, (_, l, s) => `${l.toUpperCase()}${s}`));
+        continue;
+      }
+      if (cur.opts.length === 0) {
+        // continuation of stem
+        cur.stem += " " + t;
+        continue;
+      }
+      flush();
+    }
+  }
+  flush();
+  return { mcqs, essays };
+}
+
+function ExamPreviewModal({ article, open, onClose }: { article: any; open: boolean; onClose: () => void }) {
+  const data = useMemo(() => extractExamQuestions(article?.content || ""), [article?.content]);
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); };
+  }, [open, onClose]);
+  if (!open) return null;
+  const title = decodeEntities(article?.title || "").replace(/^#+\s*/, "").trim();
+  const uni = (article?.university || "").trim();
+  const examType = (article?.exam_type || "").trim();
+  const examYear = (article?.exam_year || "").trim();
+  const unit = (article?.unit || getCategoryDisplayName(article?.category || "")).trim();
+  const lecturer = (article?.lecturer || "").trim();
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/70 backdrop-blur-sm p-2 sm:p-6 overflow-y-auto" onClick={onClose}>
+      <div className="relative w-full max-w-3xl my-4 rounded-xl bg-white text-neutral-900 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={onClose}
+          className="sticky top-2 float-right z-10 mr-2 mt-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-neutral-900 text-white shadow hover:bg-neutral-700"
+          aria-label="Close preview"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <div className="clear-both px-6 sm:px-10 py-8 sm:py-12 font-serif">
+          {/* Cover */}
+          <div className="mb-8 border-b-2 border-neutral-900 pb-6 text-center">
+            {uni && <p className="text-sm font-bold uppercase tracking-[0.2em] text-neutral-800">{uni}</p>}
+            {unit && <p className="mt-1 text-xs uppercase tracking-widest text-neutral-500">Department of {unit}</p>}
+            <h1 className="mt-4 text-2xl sm:text-3xl font-bold leading-tight">{title}</h1>
+            <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-neutral-600">
+              {examType && <span>{examType}{examYear ? ` · ${examYear}` : ""}</span>}
+              {lecturer && <span>Lecturer: {lecturer}</span>}
+              <span>Date: {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</span>
+            </div>
+            <p className="mt-4 text-[11px] italic text-neutral-500">Preview paper — questions only. Answers are hidden.</p>
+          </div>
+
+          {data.mcqs.length > 0 && (
+            <section className="mb-10">
+              <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-neutral-700 border-b border-neutral-300 pb-2">Section A: Multiple Choice</h2>
+              <ol className="space-y-6">
+                {data.mcqs.map((q) => (
+                  <li key={q.n} className="text-[15px] leading-relaxed">
+                    <p className="font-semibold"><span className="mr-2">{q.n}.</span>{q.stem}</p>
+                    {q.opts.length > 0 && (
+                      <ol className="mt-2 space-y-1 pl-6" type="A">
+                        {q.opts.map((o, i) => (
+                          <li key={i} className="text-[14px] text-neutral-800">{o.replace(/^[A-Ea-e][\.\)]\s*/, "")}</li>
+                        ))}
+                      </ol>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
+          {data.essays.length > 0 && (
+            <section>
+              <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-neutral-700 border-b border-neutral-300 pb-2">Section B: Essay Questions</h2>
+              <ol className="space-y-5">
+                {data.essays.map((q) => (
+                  <li key={q.n} className="text-[15px] leading-relaxed">
+                    <p><span className="mr-2 font-semibold">{q.n}.</span>{q.text}</p>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
+          {data.mcqs.length === 0 && data.essays.length === 0 && (
+            <p className="text-center text-sm text-neutral-500">No exam-style questions detected in this article.</p>
+          )}
+
+          <div className="mt-10 border-t border-neutral-300 pt-4 text-center text-[11px] text-neutral-500">
+            Ompath Study · End of preview paper
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Helpers ─── */
 function splitInlineTable(s: string): string[] {
   if (!s.includes("|---") && !s.includes("| ---") && !s.includes("|:--") && !s.includes("| :--")) return [];
