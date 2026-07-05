@@ -36,6 +36,19 @@ function timeAgo(ms: number): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+function getCoreUnitGroup(category: string): string {
+  const unit = getCategoryDisplayName(category || "").toLowerCase();
+  if (/pathology|hematopath|histopath|cytopath|oncopath|neuropath|breast|bone|respiratory system|cardiovascular system|gastrointestinal|endocrine|reproductive|urinary|genetic disorders|head & neck/.test(unit)) return "Pathology";
+  if (/microbiology|bacteriology|virology|mycology|parasitology|immunology|blood transfusion/.test(unit)) return "Microbiology & Immunology";
+  if (/pharmacology|drug|therapeutic/.test(unit)) return "Pharmacology";
+  if (/physiology|git physiology|neurophysiology|communication skills/.test(unit)) return "Physiology";
+  if (/biochemistry|chemistry|metabolism|molecular|genetics|cytogenetics/.test(unit)) return "Biochemistry & Genetics";
+  if (/anatomy|histology|embryology|pelvis|perineum|dissection/.test(unit)) return "Anatomy & Embryology";
+  if (/epidemiology|statistics|community|public health/.test(unit)) return "Community Health";
+  if (/exam|paper|timetable|crash course|revision|spot|practical|tuesday|sunday|final/.test(unit)) return "Exam Papers & Revision";
+  return getCategoryDisplayName(category || "Uncategorized") || "Other";
+}
+
 export default function Blog() {
   useEffect(() => {
     updateMetaTags({
@@ -64,13 +77,24 @@ export default function Blog() {
   }, []);
 
   const sidebarGroups = useMemo(() => {
-    const groups: Record<string, { category: string; name: string; count: number }[]> = {};
+    const groups: Record<string, { group: string; units: { category: string; name: string; count: number }[]; count: number }[]> = {};
     sidebarCats.forEach(c => {
       const y = getYearFromCategory(c.name) || "Other";
       if (!groups[y]) groups[y] = [];
-      groups[y].push({ category: c.name, name: getCategoryDisplayName(c.name), count: c.articles + c.mcqs + c.flashcards });
+      const core = getCoreUnitGroup(c.name);
+      let bucket = groups[y].find((g) => g.group === core);
+      if (!bucket) {
+        bucket = { group: core, units: [], count: 0 };
+        groups[y].push(bucket);
+      }
+      const count = c.articles + c.mcqs + c.flashcards;
+      bucket.units.push({ category: c.name, name: getCategoryDisplayName(c.name), count });
+      bucket.count += count;
     });
-    Object.values(groups).forEach(list => list.sort((a, b) => a.name.localeCompare(b.name)));
+    Object.values(groups).forEach(list => {
+      list.sort((a, b) => b.count - a.count || a.group.localeCompare(b.group));
+      list.forEach((g) => g.units.sort((a, b) => a.name.localeCompare(b.name)));
+    });
     return groups;
   }, [sidebarCats]);
 
@@ -210,13 +234,13 @@ export default function Blog() {
     filtered.forEach(a => {
       const articleYear = normalizeYear(getYearFromCategory(a.category));
       if (selectedYear !== "All" && articleYear !== selectedYear) return;
-      const key = a.category || "Uncategorized";
+      const key = getCoreUnitGroup(a.category || "Uncategorized");
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(a);
     });
     return Array.from(groups.entries())
       .filter(([, arts]) => arts.length > 0)
-      .map(([cat, arts]) => ({ category: cat, name: getCategoryDisplayName(cat), articles: arts }))
+      .map(([cat, arts]) => ({ category: cat, name: cat, articles: arts }))
       .sort((a, b) => latestDate(b.articles) - latestDate(a.articles));
   }, [filtered, selectedUnit, search, selectedYear]);
 
@@ -271,8 +295,8 @@ export default function Blog() {
               All Years
             </button>
             {["Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"].map(y => {
-              const units = sidebarGroups[y] || [];
-              if (units.length === 0) return null;
+              const coreGroups = sidebarGroups[y] || [];
+              if (coreGroups.length === 0) return null;
               const isOpen = selectedYear === y;
               return (
                 <div key={y} className="mb-2">
@@ -285,15 +309,24 @@ export default function Blog() {
                   </button>
                   {isOpen && (
                     <ul className="mt-1 space-y-0.5 border-l border-border pl-3">
-                      {units.map(u => (
-                        <li key={u.category}>
-                          <button
-                            onClick={() => setUnit(selectedUnit === u.category ? null : u.category)}
-                            className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs transition-colors ${selectedUnit === u.category ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
-                          >
-                            <span className="truncate">{u.name}</span>
-                            <span className="ml-2 shrink-0 text-[10px] text-muted-foreground">{u.count}</span>
-                          </button>
+                      {coreGroups.map(group => (
+                        <li key={group.group} className="py-1">
+                          <div className="mb-1 flex items-center justify-between px-2 text-[10px] font-bold uppercase tracking-wider text-foreground/70">
+                            <span className="truncate">{group.group}</span>
+                            <span>{group.count}</span>
+                          </div>
+                          <div className="space-y-0.5 pl-2">
+                            {group.units.map(u => (
+                              <button
+                                key={u.category}
+                                onClick={() => setUnit(selectedUnit === u.category ? null : u.category)}
+                                className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs transition-colors ${selectedUnit === u.category ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+                              >
+                                <span className="truncate">{u.name}</span>
+                                <span className="ml-2 shrink-0 text-[10px] text-muted-foreground">{u.count}</span>
+                              </button>
+                            ))}
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -436,7 +469,10 @@ export default function Blog() {
                 </div>
                 <div className="space-y-3">
                   {group.articles.slice(0, showCount).map(a => (
-                    <ArticleCard key={a.id} article={a} />
+                    <div key={a.id}>
+                      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{getCategoryDisplayName(a.category)}</p>
+                      <ArticleCard article={a} />
+                    </div>
                   ))}
                 </div>
                 {hasMore && (
