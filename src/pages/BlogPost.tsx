@@ -197,8 +197,9 @@ function PracticeQuestion({ number, question, answer }: { number: string; questi
 function McqAnswerBlock({ raw }: { raw: string }) {
   const [open, setOpen] = useState(false);
   const lines = raw.split("\n");
-  const answerLine = (lines.shift() || "").replace(/^✅\s*/, "").replace(/^Answer\s*[:：]\s*/i, "");
-  const explanation = lines.join("\n").trim();
+  const answerLine = cleanDisplayText((lines.shift() || "").replace(/^✅\s*/, "").replace(/^Answer\s*[:：]\s*/i, ""));
+  const explanation = cleanDisplayText(lines.join("\n").trim());
+  if (!answerLine && !explanation) return null;
   return (
     <div className="not-prose my-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
       <button
@@ -229,6 +230,24 @@ function McqAnswerBlock({ raw }: { raw: string }) {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function InlineAnswerBlock({ raw }: { raw: string }) {
+  const cleaned = raw
+    .split("\n")
+    .map((line) => cleanDisplayText(line.replace(/^✅\s*/, "").replace(/^(?:Answer|Model answer|Explanation|Correct answer)\s*[:：]\s*/i, "")))
+    .filter(Boolean);
+  if (!cleaned.length) return null;
+  return (
+    <div className="not-prose my-4 border-l-2 border-primary/50 pl-4">
+      <p className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">Answer</p>
+      <div className="space-y-2">
+        {cleaned.map((line, i) => (
+          <p key={i} className="text-[1.03rem] leading-8 text-foreground/90"><Inline text={line} /></p>
+        ))}
+      </div>
     </div>
   );
 }
@@ -445,13 +464,59 @@ function ReviewedBadge({ reviewer, date, onDark }: { reviewer: string; date: str
   );
 }
 
+function articleHaystack(article: any): string {
+  return `${article?.title || ""}\n${article?.content || ""}\n${article?.meta_description || ""}\n${article?.category || ""}`;
+}
+
+function inferUniversity(article: any): string {
+  const explicit = ((article?.university || "") as string).trim();
+  if (explicit) return explicit;
+  const hay = articleHaystack(article);
+  if (/\b(MKU|Mount\s+Kenya\s+University)\b/i.test(hay)) return "Mount Kenya University (MKU)";
+  if (/\b(UoN|University\s+of\s+Nairobi)\b/i.test(hay)) return "University of Nairobi (UoN)";
+  if (/\b(KU|Kenyatta\s+University)\b/i.test(hay)) return "Kenyatta University (KU)";
+  if (/\bJKUAT\b|Jomo\s+Kenyatta\s+University/i.test(hay)) return "JKUAT";
+  if (/\bMoi\s+University\b/i.test(hay)) return "Moi University";
+  return "";
+}
+
+function inferSchool(article: any): string {
+  const explicit = ((article?.school || "") as string).trim();
+  if (explicit) return explicit;
+  const hay = articleHaystack(article);
+  const match = hay.match(/\b(School\s+of\s+(?:Medicine|Health\s+Sciences|Clinical\s+Medicine|Nursing))\b/i);
+  return match ? match[1].replace(/\s+/g, " ").trim() : "School of Medicine";
+}
+
+function inferExamType(article: any): string {
+  const explicit = ((article?.exam_type || "") as string).trim();
+  if (explicit) return explicit;
+  const hay = articleHaystack(article);
+  if (/\bCAT\b|continuous\s+assessment/i.test(hay)) return "CAT";
+  if (/\bMCQs?\b|multiple\s+choice/i.test(hay)) return "MCQ Paper";
+  if (/\bessay\s+questions?|SAQ|short\s+answer|long\s+answer/i.test(hay)) return "Essay Paper";
+  if (/\bpaper\s*[12]\b|exam/i.test(hay)) return "Exam Paper";
+  return "";
+}
+
+function inferUnit(article: any): string {
+  const explicit = ((article?.unit || "") as string).trim();
+  if (explicit) return explicit;
+  const category = getCategoryDisplayName(article?.category || "");
+  const title = String(article?.title || "");
+  if (/bacteriology/i.test(title)) return "Bacteriology";
+  if (/pathology/i.test(title) && !/general pathology/i.test(category)) return "Pathology";
+  if (category && category !== "Uncategorized") return category;
+  return "Medicine";
+}
+
 function SourceAttribution({ article }: { article: any }) {
-  const uni = (article.university || "").trim();
-  const school = (article.school || "").trim();
-  const lecturer = (article.lecturer || "").trim();
-  const examType = (article.exam_type || "").trim();
+  const uni = inferUniversity(article);
+  const school = inferSchool(article);
+  const lecturer = ((article.lecturer || "") as string).trim();
+  const examType = inferExamType(article);
   const examYear = (article.exam_year || "").trim();
-  const unit = (article.unit || "").trim();
+  const unit = inferUnit(article);
   const tags: string[] = Array.isArray(article.tags) ? article.tags.slice(0, 6) : [];
   const chips: { label: string; tone?: string }[] = [];
   if (examType) chips.push({ label: examYear ? `${examType} · ${examYear}` : examType, tone: "primary" });
@@ -459,10 +524,12 @@ function SourceAttribution({ article }: { article: any }) {
   if (school && school !== uni) chips.push({ label: school });
   if (unit) chips.push({ label: unit });
   if (lecturer) chips.push({ label: lecturer });
-  if (chips.length === 0 && tags.length === 0) return null;
+  const hay = `${article?.title || ""}\n${article?.content || ""}\n${article?.meta_description || ""}`;
+  const looksExamLike = /\b(MKU|Mount\s+Kenya\s+University|past\s*paper|CAT|MCQ|essay|question|exam|paper\s*\d)\b/i.test(hay);
+  if (chips.length === 0 && tags.length === 0 && !looksExamLike) return null;
   const sourceLine = uni
     ? `Compiled from past papers at ${uni}${examYear ? ` (${examYear})` : ""}. Cross-referenced with MKU, UoN, KU, JKUAT & Moi University question banks.`
-    : "Compiled from past papers across MKU, UoN, KU, JKUAT and Moi University question banks.";
+    : "Compiled from past papers across Mount Kenya University (MKU), UoN, KU, JKUAT and Moi University question banks.";
   return (
     <div className="mb-5 rounded-lg border border-border/70 bg-muted/30 p-3.5">
       <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Source & Attribution</p>
@@ -491,72 +558,139 @@ function SourceAttribution({ article }: { article: any }) {
 }
 
 /* ─── Exam Preview: questions-only PDF-style modal ─── */
-function extractExamQuestions(rawContent: string): { mcqs: { n: number; stem: string; opts: string[] }[]; essays: { n: number; text: string }[] } {
-  const content = decodeEntities(rawContent || "");
-  const lines = content.replace(/\r\n?/g, "\n").split("\n");
-  const mcqs: { n: number; stem: string; opts: string[] }[] = [];
-  const essays: { n: number; text: string }[] = [];
-  let cur: { n: number; stem: string; opts: string[] } | null = null;
+type PreviewMcq = { n: string; stem: string; opts: string[] };
+type PreviewEssay = { n: string; text: string };
+
+function cleanDisplayText(value: string): string {
+  return decodeEntities(value || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/^[-•]\s+/, "")
+    .replace(/^#{1,6}\s*/, "")
+    .replace(/\*+/g, "")
+    .replace(/_+/g, "")
+    .replace(/⭐+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const OPTION_MARKER_SOURCE = String.raw`(?:\(?[A-Ea-e]\)|[A-Ea-e][\.)])`;
+const OPTION_MARKER_RE = new RegExp(String.raw`(?:^|\s)(${OPTION_MARKER_SOURCE})\s+`);
+const OPTION_CAPTURE_RE = new RegExp(String.raw`(?:^|\s)(${OPTION_MARKER_SOURCE})\s+([\s\S]*?)(?=\s+${OPTION_MARKER_SOURCE}\s+|$)`, "gi");
+
+function normalizeOptionLine(line: string): string {
+  const cleaned = cleanDisplayText(line);
+  return cleaned.replace(/^\(?([A-Ea-e])\)?[\.)]?\s+/, (_, label) => `${String(label).toUpperCase()}) `);
+}
+
+function splitOptionRun(line: string): string[] {
+  const clean = cleanDisplayText(line);
+  const matches = Array.from(clean.matchAll(OPTION_CAPTURE_RE));
+  if (matches.length >= 2) {
+    return matches.map((m) => cleanDisplayText(m[2] || "")).filter(Boolean);
+  }
+  if (/^\(?[A-Ea-e]\)?[\.)]?\s+/.test(clean)) return [clean.replace(/^\(?[A-Ea-e]\)?[\.)]?\s+/, "").trim()].filter(Boolean);
+  return [];
+}
+
+function splitStemAndOptions(text: string): { stem: string; opts: string[] } | null {
+  const clean = cleanDisplayText(text);
+  const first = clean.search(OPTION_MARKER_RE);
+  if (first < 0) return null;
+  const stem = clean.slice(0, first).trim().replace(/[;,:\s]+$/, "");
+  const optionsText = clean.slice(first).trim();
+  const opts = splitOptionRun(optionsText);
+  return opts.length >= 2 ? { stem, opts } : null;
+}
+
+function isQuestionLike(line: string): boolean {
+  const t = cleanDisplayText(line);
+  return /^(?:Q(?:uestion)?\s*)?\d+[a-z]?[\.)]\s+.{4,}/i.test(t)
+    || /^[A-C]\d+[\.)]?\s+.{4,}/i.test(t)
+    || /^Question\s+\d+[a-z]?\b/i.test(t);
+}
+
+function extractExamQuestions(rawContent: string): { mcqs: PreviewMcq[]; essays: PreviewEssay[] } {
+  const lines = preprocessContent(rawContent || "").replace(/\r\n?/g, "\n").split("\n");
+  const mcqs: PreviewMcq[] = [];
+  const essays: PreviewEssay[] = [];
+  let cur: PreviewMcq | null = null;
   let mcqCount = 0;
   let essayCount = 0;
+  let mode: "mcq" | "essay" | null = null;
+  let skipAnswer = false;
 
   const flush = () => { if (cur) { mcqs.push(cur); cur = null; } };
 
-  const optSplit = (line: string) => {
-    const parts = line.split(/\s*(?=[a-eA-E][\.\)]\s)/);
-    return parts.map(p => p.trim().replace(/^\*+|\*+$/g, "")).filter(Boolean);
-  };
-
   for (let i = 0; i < lines.length; i++) {
-    let t = lines[i].trim()
-      .replace(/^[-•]\s+/, "")           // bullet prefix
-      .replace(/^#+\s*/, "")              // heading hashes
-      .replace(/^\*+/, "").replace(/\*+$/, "");  // bold wrappers
+    let t = cleanDisplayText(lines[i]);
     if (!t) continue;
-    if (/^(answer|explanation|correct answer)\s*[:：]/i.test(t)) continue;
-    if (/^✅/.test(t)) continue;
+
+    if (/\b(section\s+a|multiple\s+choice|\bmcqs?\b)\b/i.test(t)) { flush(); mode = "mcq"; skipAnswer = false; continue; }
+    if (/\b(section\s+b|section\s+c|essay\s+questions?|short\s+answer|long\s+answer|answer\s+any)\b/i.test(t)) { flush(); mode = "essay"; skipAnswer = false; continue; }
+
+    if (/^(?:✅\s*)?(answer|model answer|explanation|correct answer|rationale)\s*[:：]/i.test(t)) {
+      skipAnswer = true;
+      flush();
+      continue;
+    }
+    if (skipAnswer) {
+      if (isQuestionLike(t)) skipAnswer = false;
+      else continue;
+    }
+
+    const split = splitStemAndOptions(t);
 
     // Numbered question stem
-    const qMatch = t.match(/^(?:Q(?:uestion)?\s*)?(\d+)[\.\)]\s*[-–]?\s*(.+)$/i);
+    const qMatch = t.match(/^(?:Q(?:uestion)?\s*)?(\d+[a-z]?)[\.\)]\s*[-–]?\s*(.+)$/i) || t.match(/^Question\s+(\d+[a-z]?)[\s:.-]+(.+)$/i);
     if (qMatch) {
       flush();
       let stem = qMatch[2].trim();
-      // If stem already has options concatenated (e.g. "…?A) x b) y c) z d) w")
-      const stemOpt = stem.match(/^(.+?[?:])\s*([Aa][\.\)]\s.+)$/);
-      if (stemOpt && /[Bb][\.\)]\s/.test(stemOpt[2]) && /[Cc][\.\)]\s/.test(stemOpt[2])) {
+      const stemSplit = splitStemAndOptions(stem);
+      if (stemSplit) {
         mcqCount++;
-        cur = { n: mcqCount, stem: stemOpt[1].trim(), opts: optSplit(stemOpt[2]) };
+        cur = { n: String(mcqCount), stem: cleanDisplayText(stemSplit.stem), opts: stemSplit.opts };
+        flush();
         continue;
       }
-      // Treat as MCQ stem; look ahead for options
-      const stemHasQ = /[?]/.test(stem);
-      if (stemHasQ) {
+      const nextHasOptions = splitOptionRun(lines[i + 1] || "").length > 0;
+      if (mode === "mcq" || nextHasOptions || (/[?]/.test(stem) && mode !== "essay")) {
         mcqCount++;
-        cur = { n: mcqCount, stem, opts: [] };
+        cur = { n: String(mcqCount), stem: cleanDisplayText(stem), opts: [] };
       } else {
         essayCount++;
-        essays.push({ n: essayCount, text: stem });
+        essays.push({ n: String(essayCount), text: cleanDisplayText(stem) });
       }
+      continue;
+    }
+
+    const essayPrefix = t.match(/^([A-C]\d+[a-z]?)[\.)]?\s+(.+)$/i);
+    if (essayPrefix && mode !== "mcq") {
+      flush();
+      essayCount++;
+      essays.push({ n: String(essayCount), text: cleanDisplayText(essayPrefix[2]) });
       continue;
     }
 
     // Options line while collecting an MCQ
     if (cur) {
-      if (/^[a-eA-E][\.\)]\s/.test(t)) {
-        if (/[b-eB-E][\.\)]\s/.test(t.slice(3))) cur.opts.push(...optSplit(t));
-        else cur.opts.push(t.replace(/^([a-e])([\.\)])/, (_, l, s) => `${l.toUpperCase()}${s}`));
+      const opts = splitOptionRun(t);
+      if (opts.length > 0) {
+        cur.opts.push(...opts);
         continue;
       }
       if (cur.opts.length === 0) {
         // continuation of stem
-        cur.stem += " " + t;
+        cur.stem += " " + cleanDisplayText(t);
         continue;
       }
       flush();
     }
   }
   flush();
-  return { mcqs, essays };
+  return {
+    mcqs: mcqs.filter((q) => q.stem && q.opts.length >= 2),
+    essays: essays.filter((q) => q.text && !/^(?:answer|explanation|rationale)\b/i.test(q.text)),
+  };
 }
 
 function ExamPreviewModal({ article, open, onClose }: { article: any; open: boolean; onClose: () => void }) {
@@ -571,10 +705,10 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
   }, [open, onClose]);
   if (!open) return null;
   const title = decodeEntities(article?.title || "").replace(/^#+\s*/, "").trim();
-  const uni = (article?.university || "").trim();
-  const examType = (article?.exam_type || "").trim();
+  const uni = inferUniversity(article);
+  const examType = inferExamType(article);
   const examYear = (article?.exam_year || "").trim();
-  const unit = (article?.unit || getCategoryDisplayName(article?.category || "")).trim();
+  const unit = inferUnit(article);
   const lecturer = (article?.lecturer || "").trim();
 
   return (
@@ -607,11 +741,14 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
               <ol className="space-y-6">
                 {data.mcqs.map((q) => (
                   <li key={q.n} className="text-[15px] leading-relaxed">
-                    <p className="font-semibold"><span className="mr-2">{q.n}.</span>{q.stem}</p>
+                    <p className="font-semibold"><span className="mr-2">{q.n}.</span>{cleanDisplayText(q.stem)}</p>
                     {q.opts.length > 0 && (
-                      <ol className="mt-2 space-y-1 pl-6" type="A">
+                      <ol className="mt-3 space-y-2 pl-0" type="A">
                         {q.opts.map((o, i) => (
-                          <li key={i} className="text-[14px] text-neutral-800">{o.replace(/^[A-Ea-e][\.\)]\s*/, "")}</li>
+                          <li key={i} className="flex items-start gap-2 text-[14px] text-neutral-800">
+                            <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-neutral-300 text-[11px] font-bold">{String.fromCharCode(65 + i)}</span>
+                            <span>{cleanDisplayText(o.replace(/^\(?[A-Ea-e]\)?[\.)]?\s*/, ""))}</span>
+                          </li>
                         ))}
                       </ol>
                     )}
@@ -627,7 +764,7 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
               <ol className="space-y-5">
                 {data.essays.map((q) => (
                   <li key={q.n} className="text-[15px] leading-relaxed">
-                    <p><span className="mr-2 font-semibold">{q.n}.</span>{q.text}</p>
+                    <p><span className="mr-2 font-semibold">{q.n}.</span>{cleanDisplayText(q.text)}</p>
                   </li>
                 ))}
               </ol>
@@ -694,7 +831,7 @@ function stripBranding(s: string): string {
 function isCourseBrandingLine(s: string): boolean {
   const t = s.trim();
   if (!t) return false;
-  return /Mount\s+Kenya\s+University|\bMKU\b/i.test(t) && /\b[A-Z]{2,5}\s*\d{3,4}\b|semester|university/i.test(t);
+  return false;
 }
 
 function cleanHeadingText(value: string): string {
@@ -785,6 +922,9 @@ function preprocessContent(raw: string): string {
       .replace(/^HOW\s+TO\s+OPEN>\s*"?/i, "")
       .replace(/^say\s*:?>\s*"?/i, "")
       .replace(/([:.;!?])(?=\S)/g, "$1 ")
+      .replace(/([a-z\)])(?=[A-Z][a-z])/g, "$1 ")
+      .replace(/([A-Z]{2,})(?=[A-Z][a-z])/g, "$1 ")
+      .replace(/([A-Z]{3,})(?=[a-z]{3,})/g, "$1 ")
       .replace(/([a-z])(?=(?:Think of|The most|Every reaction|Almost always|This is why|If someone|There are|ABO incompatibility)\b)/g, "$1 ");
 
     if (isCourseBrandingLine(t)) {
@@ -903,20 +1043,21 @@ function preprocessContent(raw: string): string {
     {
       const stripped = t.replace(/^\*+|\*+$/g, "");
       // Detect a stem+options line: "…?A) foo b) bar c) baz…"
-      const stemSplit = stripped.match(/^(.+?[?:])\s*([Aa][\.\)]\s.+)$/);
-      if (stemSplit && /[Bb][\.\)]\s/.test(stemSplit[2]) && /[Cc][\.\)]\s/.test(stemSplit[2])) {
+      const marker = "(?:\\(?[A-Ea-e]\\)|[A-Ea-e][\\.)])";
+      const stemSplit = stripped.match(new RegExp(`^(.+?[?:])\\s*(${marker}\\s+.+)$`));
+      if (stemSplit && new RegExp(`${marker.replace("A-Ea-e", "Bb")}\\s+`).test(stemSplit[2]) && new RegExp(`${marker.replace("A-Ea-e", "Cc")}\\s+`).test(stemSplit[2])) {
         out.push(stemSplit[1].trim());
-        const parts = stemSplit[2].split(/\s*(?=[a-eA-E][\.\)]\s)/);
+        const parts = stemSplit[2].split(/\s*(?=(?:\(?[a-eA-E]\)|[a-eA-E][\.\)])\s+)/);
         if (parts.length >= 3) {
           parts.forEach(p => out.push(p.trim().replace(/^([a-e])([\.\)])/, (_, l, s) => `${l.toUpperCase()}${s}`)));
           continue;
         }
       }
       // Pure options run: "A) foo b) bar c) baz d) qux"
-      if (/^[Aa][\.\)]\s/.test(stripped) && /[Bb][\.\)]\s/.test(stripped) && /[Cc][\.\)]\s/.test(stripped)) {
-        const parts = stripped.split(/\s*(?=[a-eA-E][\.\)]\s)/);
+      if (/^(?:\(?[Aa]\)|[Aa][\.\)])\s/.test(stripped) && /(?:\(?[Bb]\)|[Bb][\.\)])\s/.test(stripped) && /(?:\(?[Cc]\)|[Cc][\.\)])\s/.test(stripped)) {
+        const parts = stripped.split(/\s*(?=(?:\(?[a-eA-E]\)|[a-eA-E][\.\)])\s+)/);
         if (parts.length >= 3) {
-          parts.forEach(p => out.push(p.trim().replace(/^([a-e])([\.\)])/, (_, l, s) => `${l.toUpperCase()}${s}`)));
+          parts.forEach(p => out.push(normalizeOptionLine(p)));
           continue;
         }
       }
@@ -966,6 +1107,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   let tableBuf: string[] = [];
   let flowBuf: string[] = [];
   let underSubheading = false;
+  let examMode: "mcq" | "essay" | null = null;
   const pqs: { number: string; question: string; answer: string }[] = [];
   let insertedRelated = false;
 
@@ -1028,7 +1170,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
     if (codeBuf) { codeBuf.push(line); continue; }
 
-    if (/^\*{0,2}\s*(✅\s*)?Answer\s*[:：]/i.test(t)) {
+    if (/^\*{0,2}\s*(✅\s*)?(?:Answer|Model answer|Correct answer|Explanation|Rationale)\s*[:：]/i.test(t)) {
       flushList(); flushFlow(); underSubheading = false;
       const buf: string[] = [t.replace(/^\*+/, "").replace(/\*+$/g, "")];
       let j = i + 1;
@@ -1041,7 +1183,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         // Bold-wrapped question stems that end with **: "**Q2. text?**" / "**2. text?**"
         if (/^\*\*(?:Q(?:uestion)?\s*)?\d+[\.\)]/i.test(nt)) break;
         if (/^#{1,6}\s/.test(nt)) break;
-        if (/^\*{0,2}\s*(✅\s*)?Answer\s*[:：]/i.test(nt)) break;
+        if (/^\*{0,2}\s*(✅\s*)?(?:Answer|Model answer|Correct answer|Explanation|Rationale)\s*[:：]/i.test(nt)) break;
         if (/^\*{1,2}\d+\.\s/.test(nt)) break;
         if (/^\d+\.\s.{4,}[?:]\s*\*{0,2}$/.test(nt)) break;
         // Numbered question stems like "1. Something?" or "1) Something?"
@@ -1060,7 +1202,10 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         j++;
       }
       while (buf.length && !buf[buf.length - 1].trim()) buf.pop();
-      els.push(<McqAnswerBlock key={`mcq-${i}`} raw={buf.join("\n")} />);
+      els.push(examMode === "essay"
+        ? <InlineAnswerBlock key={`ans-${i}`} raw={buf.join("\n")} />
+        : <McqAnswerBlock key={`mcq-${i}`} raw={buf.join("\n")} />
+      );
       skipUntil = j;
       continue;
     }
@@ -1123,6 +1268,12 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
+    if (/^\*{0,2}\s*(?:Question\s*)?\d+[a-z]?[\.)]\s+.{4,}/i.test(t) && examMode === "essay") {
+      flushList(); underSubheading = false;
+      els.push(<p key={`essay-q-${i}`} className="mb-4 font-serif text-xl font-bold leading-snug text-foreground"><Inline text={cleanDisplayText(t)} /></p>);
+      continue;
+    }
+
     const combinedOpts = Array.from(t.matchAll(/(?:^|\s)([A-E])\s*[\.)]\s*([\s\S]*?)(?=\s*[B-E]\s*[\.)]\s*|$)/gi));
     if (combinedOpts.length >= 2 && !inPractice) {
       flushList(); underSubheading = false;
@@ -1171,6 +1322,8 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (/^#{1,2}\s/.test(t)) {
       flushList(); underSubheading = false;
       const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").replace(/^\d+\.\s*/, "").replace(/^[IVXLC]+\.\s+/, "").trim();
+      if (/\b(section\s+a|multiple\s+choice|mcqs?)\b/i.test(heading)) examMode = "mcq";
+      if (/\b(section\s+b|section\s+c|essay|short\s+answer|long\s+answer|answer\s+any)\b/i.test(heading)) examMode = "essay";
       if (heading.toLowerCase().includes("practice")) { inPractice = true; continue; }
       flushPractice(); inPractice = false;
       if (!insertedRelated && inlineRelated.length > 0 && els.length >= 4) {
