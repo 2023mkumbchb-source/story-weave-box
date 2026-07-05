@@ -1035,6 +1035,8 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         // Strip leading markdown emphasis so "**Q2.**", "**MCQ 3**", "*Question 4*" all count.
         const ntStripped = nt.replace(/^[*_#>\s]+/, "");
         if (/^(MCQ|Question|Q)\s*\d+/i.test(ntStripped)) break;
+        // Bold-wrapped question stems that end with **: "**Q2. text?**" / "**2. text?**"
+        if (/^\*\*(?:Q(?:uestion)?\s*)?\d+[\.\)]/i.test(nt)) break;
         if (/^#{1,6}\s/.test(nt)) break;
         if (/^\*{0,2}\s*(✅\s*)?Answer\s*[:：]/i.test(nt)) break;
         if (/^\*{1,2}\d+\.\s/.test(nt)) break;
@@ -1079,13 +1081,13 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
-    const imageMatch = t.match(/^!\[(.*?)\]\((.*?)\)$/);
+      const imageMatch = t.match(/^!\[(.*?)\]\((.*?)\)$/);
     if (imageMatch) {
       flushList();
       underSubheading = false;
       const alt = imageMatch[1]?.trim() || "Medical illustration";
       const src = imageMatch[2]?.trim();
-      if (src && !src.startsWith("data:image/")) {
+        if (src) {
         els.push(
           <figure key={`img-${i}`} className="my-7 overflow-hidden rounded-lg border border-border bg-muted/20">
             <img src={src} alt={alt} loading="lazy" className="w-full object-cover" />
