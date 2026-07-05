@@ -1820,16 +1820,6 @@ export default function BlogPost() {
               password={(article as any).access_password}
               storageKey={article.slug || article.id}
             >
-            <div className="mb-3 flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() => setPreviewOpen(true)}
-              >
-                <Eye className="h-4 w-4" /> Preview as exam paper
-              </Button>
-            </div>
             <ClassicHero
               title={cleanMetaTitle(article)}
               image={article.og_image_url || extractFirstImageFromContent(article.content || "") || ""}
@@ -1839,6 +1829,17 @@ export default function BlogPost() {
               description={cleanMetaDescription(article)}
               category={article.category}
             />
+
+            <div className="mt-4 mb-3 flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => setPreviewOpen(true)}
+              >
+                <Eye className="h-4 w-4" /> Preview as exam paper
+              </Button>
+            </div>
 
             {(article as any).reading_time_minutes ? (
               <div className="mb-2"><ReadingTimeBadge minutes={(article as any).reading_time_minutes} /></div>
