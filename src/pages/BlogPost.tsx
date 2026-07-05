@@ -832,7 +832,7 @@ function stripBranding(s: string): string {
 function isCourseBrandingLine(s: string): boolean {
   const t = s.trim();
   if (!t) return false;
-  return /Mount\s+Kenya\s+University|\bMKU\b/i.test(t) && /\b[A-Z]{2,5}\s*\d{3,4}\b|semester|university/i.test(t);
+  return false;
 }
 
 function cleanHeadingText(value: string): string {
@@ -923,6 +923,9 @@ function preprocessContent(raw: string): string {
       .replace(/^HOW\s+TO\s+OPEN>\s*"?/i, "")
       .replace(/^say\s*:?>\s*"?/i, "")
       .replace(/([:.;!?])(?=\S)/g, "$1 ")
+      .replace(/([a-z\)])(?=[A-Z][a-z])/g, "$1 ")
+      .replace(/([A-Z]{2,})(?=[A-Z][a-z])/g, "$1 ")
+      .replace(/([A-Z]{3,})(?=[a-z]{3,})/g, "$1 ")
       .replace(/([a-z])(?=(?:Think of|The most|Every reaction|Almost always|This is why|If someone|There are|ABO incompatibility)\b)/g, "$1 ");
 
     if (isCourseBrandingLine(t)) {
@@ -1041,20 +1044,21 @@ function preprocessContent(raw: string): string {
     {
       const stripped = t.replace(/^\*+|\*+$/g, "");
       // Detect a stem+options line: "…?A) foo b) bar c) baz…"
-      const stemSplit = stripped.match(/^(.+?[?:])\s*([Aa][\.\)]\s.+)$/);
-      if (stemSplit && /[Bb][\.\)]\s/.test(stemSplit[2]) && /[Cc][\.\)]\s/.test(stemSplit[2])) {
+      const marker = "(?:\\(?[A-Ea-e]\\)|[A-Ea-e][\\.)])";
+      const stemSplit = stripped.match(new RegExp(`^(.+?[?:])\\s*(${marker}\\s+.+)$`));
+      if (stemSplit && new RegExp(`${marker.replace("A-Ea-e", "Bb")}\\s+`).test(stemSplit[2]) && new RegExp(`${marker.replace("A-Ea-e", "Cc")}\\s+`).test(stemSplit[2])) {
         out.push(stemSplit[1].trim());
-        const parts = stemSplit[2].split(/\s*(?=[a-eA-E][\.\)]\s)/);
+        const parts = stemSplit[2].split(/\s*(?=\(?[a-eA-E]\)?[\.\)]?\s+)/);
         if (parts.length >= 3) {
           parts.forEach(p => out.push(p.trim().replace(/^([a-e])([\.\)])/, (_, l, s) => `${l.toUpperCase()}${s}`)));
           continue;
         }
       }
       // Pure options run: "A) foo b) bar c) baz d) qux"
-      if (/^[Aa][\.\)]\s/.test(stripped) && /[Bb][\.\)]\s/.test(stripped) && /[Cc][\.\)]\s/.test(stripped)) {
-        const parts = stripped.split(/\s*(?=[a-eA-E][\.\)]\s)/);
+      if (/^\(?[Aa]\)?[\.\)]?\s/.test(stripped) && /\(?[Bb]\)?[\.\)]?\s/.test(stripped) && /\(?[Cc]\)?[\.\)]?\s/.test(stripped)) {
+        const parts = stripped.split(/\s*(?=\(?[a-eA-E]\)?[\.\)]?\s+)/);
         if (parts.length >= 3) {
-          parts.forEach(p => out.push(p.trim().replace(/^([a-e])([\.\)])/, (_, l, s) => `${l.toUpperCase()}${s}`)));
+          parts.forEach(p => out.push(normalizeOptionLine(p)));
           continue;
         }
       }
