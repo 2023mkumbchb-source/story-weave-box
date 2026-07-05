@@ -508,13 +508,16 @@ function extractExamQuestions(rawContent: string): { mcqs: { n: number; stem: st
   };
 
   for (let i = 0; i < lines.length; i++) {
-    let t = lines[i].trim().replace(/^\*+|\*+$/g, "").replace(/^#+\s*/, "");
+    let t = lines[i].trim()
+      .replace(/^[-•]\s+/, "")           // bullet prefix
+      .replace(/^#+\s*/, "")              // heading hashes
+      .replace(/^\*+/, "").replace(/\*+$/, "");  // bold wrappers
     if (!t) continue;
     if (/^(answer|explanation|correct answer)\s*[:：]/i.test(t)) continue;
     if (/^✅/.test(t)) continue;
 
     // Numbered question stem
-    const qMatch = t.match(/^(?:Q(?:uestion)?\s*)?(\d+)[\.\)]\s+(.+)$/i);
+    const qMatch = t.match(/^(?:Q(?:uestion)?\s*)?(\d+)[\.\)]\s*[-–]?\s*(.+)$/i);
     if (qMatch) {
       flush();
       let stem = qMatch[2].trim();
