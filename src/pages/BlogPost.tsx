@@ -464,6 +464,52 @@ function ReviewedBadge({ reviewer, date, onDark }: { reviewer: string; date: str
   );
 }
 
+function articleHaystack(article: any): string {
+  return `${article?.title || ""}\n${article?.content || ""}\n${article?.meta_description || ""}\n${article?.category || ""}`;
+}
+
+function inferUniversity(article: any): string {
+  const explicit = ((article?.university || "") as string).trim();
+  if (explicit) return explicit;
+  const hay = articleHaystack(article);
+  if (/\b(MKU|Mount\s+Kenya\s+University)\b/i.test(hay)) return "Mount Kenya University (MKU)";
+  if (/\b(UoN|University\s+of\s+Nairobi)\b/i.test(hay)) return "University of Nairobi (UoN)";
+  if (/\b(KU|Kenyatta\s+University)\b/i.test(hay)) return "Kenyatta University (KU)";
+  if (/\bJKUAT\b|Jomo\s+Kenyatta\s+University/i.test(hay)) return "JKUAT";
+  if (/\bMoi\s+University\b/i.test(hay)) return "Moi University";
+  return "";
+}
+
+function inferSchool(article: any): string {
+  const explicit = ((article?.school || "") as string).trim();
+  if (explicit) return explicit;
+  const hay = articleHaystack(article);
+  const match = hay.match(/\b(School\s+of\s+(?:Medicine|Health\s+Sciences|Clinical\s+Medicine|Nursing))\b/i);
+  return match ? match[1].replace(/\s+/g, " ").trim() : "School of Medicine";
+}
+
+function inferExamType(article: any): string {
+  const explicit = ((article?.exam_type || "") as string).trim();
+  if (explicit) return explicit;
+  const hay = articleHaystack(article);
+  if (/\bCAT\b|continuous\s+assessment/i.test(hay)) return "CAT";
+  if (/\bMCQs?\b|multiple\s+choice/i.test(hay)) return "MCQ Paper";
+  if (/\bessay\s+questions?|SAQ|short\s+answer|long\s+answer/i.test(hay)) return "Essay Paper";
+  if (/\bpaper\s*[12]\b|exam/i.test(hay)) return "Exam Paper";
+  return "";
+}
+
+function inferUnit(article: any): string {
+  const explicit = ((article?.unit || "") as string).trim();
+  if (explicit) return explicit;
+  const category = getCategoryDisplayName(article?.category || "");
+  const title = String(article?.title || "");
+  if (/bacteriology/i.test(title)) return "Bacteriology";
+  if (/pathology/i.test(title) && !/general pathology/i.test(category)) return "Pathology";
+  if (category && category !== "Uncategorized") return category;
+  return "Medicine";
+}
+
 function SourceAttribution({ article }: { article: any }) {
   const uni = inferUniversity(article);
   const school = inferSchool(article);
