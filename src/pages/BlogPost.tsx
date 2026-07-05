@@ -575,7 +575,6 @@ function cleanDisplayText(value: string): string {
 
 const OPTION_MARKER_SOURCE = String.raw`(?:\(?[A-Ea-e]\)|[A-Ea-e][\.)])`;
 const OPTION_MARKER_RE = new RegExp(String.raw`(?:^|\s)(${OPTION_MARKER_SOURCE})\s+`);
-const OPTION_SPLIT_RE = new RegExp(String.raw`\s*(?=${OPTION_MARKER_SOURCE}\s+)`);
 const OPTION_CAPTURE_RE = new RegExp(String.raw`(?:^|\s)(${OPTION_MARKER_SOURCE})\s+([\s\S]*?)(?=\s+${OPTION_MARKER_SOURCE}\s+|$)`, "gi");
 
 function normalizeOptionLine(line: string): string {
@@ -1048,15 +1047,15 @@ function preprocessContent(raw: string): string {
       const stemSplit = stripped.match(new RegExp(`^(.+?[?:])\\s*(${marker}\\s+.+)$`));
       if (stemSplit && new RegExp(`${marker.replace("A-Ea-e", "Bb")}\\s+`).test(stemSplit[2]) && new RegExp(`${marker.replace("A-Ea-e", "Cc")}\\s+`).test(stemSplit[2])) {
         out.push(stemSplit[1].trim());
-        const parts = stemSplit[2].split(/\s*(?=\(?[a-eA-E]\)?[\.\)]?\s+)/);
+        const parts = stemSplit[2].split(/\s*(?=(?:\(?[a-eA-E]\)|[a-eA-E][\.\)])\s+)/);
         if (parts.length >= 3) {
           parts.forEach(p => out.push(p.trim().replace(/^([a-e])([\.\)])/, (_, l, s) => `${l.toUpperCase()}${s}`)));
           continue;
         }
       }
       // Pure options run: "A) foo b) bar c) baz d) qux"
-      if (/^\(?[Aa]\)?[\.\)]?\s/.test(stripped) && /\(?[Bb]\)?[\.\)]?\s/.test(stripped) && /\(?[Cc]\)?[\.\)]?\s/.test(stripped)) {
-        const parts = stripped.split(/\s*(?=\(?[a-eA-E]\)?[\.\)]?\s+)/);
+      if (/^(?:\(?[Aa]\)|[Aa][\.\)])\s/.test(stripped) && /(?:\(?[Bb]\)|[Bb][\.\)])\s/.test(stripped) && /(?:\(?[Cc]\)|[Cc][\.\)])\s/.test(stripped)) {
+        const parts = stripped.split(/\s*(?=(?:\(?[a-eA-E]\)|[a-eA-E][\.\)])\s+)/);
         if (parts.length >= 3) {
           parts.forEach(p => out.push(normalizeOptionLine(p)));
           continue;
@@ -1108,6 +1107,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   let tableBuf: string[] = [];
   let flowBuf: string[] = [];
   let underSubheading = false;
+  let examMode: "mcq" | "essay" | null = null;
   const pqs: { number: string; question: string; answer: string }[] = [];
   let insertedRelated = false;
 
@@ -1170,7 +1170,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
     if (codeBuf) { codeBuf.push(line); continue; }
 
-    if (/^\*{0,2}\s*(✅\s*)?Answer\s*[:：]/i.test(t)) {
+    if (/^\*{0,2}\s*(✅\s*)?(?:Answer|Model answer|Correct answer|Explanation|Rationale)\s*[:：]/i.test(t)) {
       flushList(); flushFlow(); underSubheading = false;
       const buf: string[] = [t.replace(/^\*+/, "").replace(/\*+$/g, "")];
       let j = i + 1;
@@ -1183,7 +1183,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         // Bold-wrapped question stems that end with **: "**Q2. text?**" / "**2. text?**"
         if (/^\*\*(?:Q(?:uestion)?\s*)?\d+[\.\)]/i.test(nt)) break;
         if (/^#{1,6}\s/.test(nt)) break;
-        if (/^\*{0,2}\s*(✅\s*)?Answer\s*[:：]/i.test(nt)) break;
+        if (/^\*{0,2}\s*(✅\s*)?(?:Answer|Model answer|Correct answer|Explanation|Rationale)\s*[:：]/i.test(nt)) break;
         if (/^\*{1,2}\d+\.\s/.test(nt)) break;
         if (/^\d+\.\s.{4,}[?:]\s*\*{0,2}$/.test(nt)) break;
         // Numbered question stems like "1. Something?" or "1) Something?"
@@ -1202,7 +1202,10 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         j++;
       }
       while (buf.length && !buf[buf.length - 1].trim()) buf.pop();
-      els.push(<McqAnswerBlock key={`mcq-${i}`} raw={buf.join("\n")} />);
+      els.push(examMode === "essay"
+        ? <InlineAnswerBlock key={`ans-${i}`} raw={buf.join("\n")} />
+        : <McqAnswerBlock key={`mcq-${i}`} raw={buf.join("\n")} />
+      );
       skipUntil = j;
       continue;
     }
@@ -1265,6 +1268,12 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
+    if (/^\*{0,2}\s*(?:Question\s*)?\d+[a-z]?[\.)]\s+.{4,}/i.test(t) && examMode === "essay") {
+      flushList(); underSubheading = false;
+      els.push(<p key={`essay-q-${i}`} className="mb-4 font-serif text-xl font-bold leading-snug text-foreground"><Inline text={cleanDisplayText(t)} /></p>);
+      continue;
+    }
+
     const combinedOpts = Array.from(t.matchAll(/(?:^|\s)([A-E])\s*[\.)]\s*([\s\S]*?)(?=\s*[B-E]\s*[\.)]\s*|$)/gi));
     if (combinedOpts.length >= 2 && !inPractice) {
       flushList(); underSubheading = false;
@@ -1313,6 +1322,8 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (/^#{1,2}\s/.test(t)) {
       flushList(); underSubheading = false;
       const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").replace(/^\d+\.\s*/, "").replace(/^[IVXLC]+\.\s+/, "").trim();
+      if (/\b(section\s+a|multiple\s+choice|mcqs?)\b/i.test(heading)) examMode = "mcq";
+      if (/\b(section\s+b|section\s+c|essay|short\s+answer|long\s+answer|answer\s+any)\b/i.test(heading)) examMode = "essay";
       if (heading.toLowerCase().includes("practice")) { inPractice = true; continue; }
       flushPractice(); inPractice = false;
       if (!insertedRelated && inlineRelated.length > 0 && els.length >= 4) {
