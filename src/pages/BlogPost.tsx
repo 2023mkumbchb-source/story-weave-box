@@ -508,16 +508,13 @@ function extractExamQuestions(rawContent: string): { mcqs: { n: number; stem: st
   };
 
   for (let i = 0; i < lines.length; i++) {
-    let t = lines[i].trim()
-      .replace(/^[-•]\s+/, "")           // bullet prefix
-      .replace(/^#+\s*/, "")              // heading hashes
-      .replace(/^\*+/, "").replace(/\*+$/, "");  // bold wrappers
+    let t = lines[i].trim().replace(/^\*+|\*+$/g, "").replace(/^#+\s*/, "");
     if (!t) continue;
     if (/^(answer|explanation|correct answer)\s*[:：]/i.test(t)) continue;
     if (/^✅/.test(t)) continue;
 
     // Numbered question stem
-    const qMatch = t.match(/^(?:Q(?:uestion)?\s*)?(\d+)[\.\)]\s*[-–]?\s*(.+)$/i);
+    const qMatch = t.match(/^(?:Q(?:uestion)?\s*)?(\d+)[\.\)]\s+(.+)$/i);
     if (qMatch) {
       flush();
       let stem = qMatch[2].trim();
@@ -1038,8 +1035,6 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         // Strip leading markdown emphasis so "**Q2.**", "**MCQ 3**", "*Question 4*" all count.
         const ntStripped = nt.replace(/^[*_#>\s]+/, "");
         if (/^(MCQ|Question|Q)\s*\d+/i.test(ntStripped)) break;
-        // Bold-wrapped question stems that end with **: "**Q2. text?**" / "**2. text?**"
-        if (/^\*\*(?:Q(?:uestion)?\s*)?\d+[\.\)]/i.test(nt)) break;
         if (/^#{1,6}\s/.test(nt)) break;
         if (/^\*{0,2}\s*(✅\s*)?Answer\s*[:：]/i.test(nt)) break;
         if (/^\*{1,2}\d+\.\s/.test(nt)) break;
@@ -1084,13 +1079,13 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
-      const imageMatch = t.match(/^!\[(.*?)\]\((.*?)\)$/);
+    const imageMatch = t.match(/^!\[(.*?)\]\((.*?)\)$/);
     if (imageMatch) {
       flushList();
       underSubheading = false;
       const alt = imageMatch[1]?.trim() || "Medical illustration";
       const src = imageMatch[2]?.trim();
-        if (src) {
+      if (src && !src.startsWith("data:image/")) {
         els.push(
           <figure key={`img-${i}`} className="my-7 overflow-hidden rounded-lg border border-border bg-muted/20">
             <img src={src} alt={alt} loading="lazy" className="w-full object-cover" />
@@ -1823,17 +1818,7 @@ export default function BlogPost() {
               password={(article as any).access_password}
               storageKey={article.slug || article.id}
             >
-            <ClassicHero
-              title={cleanMetaTitle(article)}
-              image={article.og_image_url || extractFirstImageFromContent(article.content || "") || ""}
-              date={date}
-              unit={unitName && unitName !== "Uncategorized" ? unitName : ""}
-              shareUrl={`${SITE_URL}${buildBlogPath(article)}`}
-              description={cleanMetaDescription(article)}
-              category={article.category}
-            />
-
-            <div className="mt-4 mb-3 flex justify-end">
+            <div className="mb-3 flex justify-end">
               <Button
                 variant="outline"
                 size="sm"
@@ -1843,6 +1828,15 @@ export default function BlogPost() {
                 <Eye className="h-4 w-4" /> Preview as exam paper
               </Button>
             </div>
+            <ClassicHero
+              title={cleanMetaTitle(article)}
+              image={article.og_image_url || extractFirstImageFromContent(article.content || "") || ""}
+              date={date}
+              unit={unitName && unitName !== "Uncategorized" ? unitName : ""}
+              shareUrl={`${SITE_URL}${buildBlogPath(article)}`}
+              description={cleanMetaDescription(article)}
+              category={article.category}
+            />
 
             {(article as any).reading_time_minutes ? (
               <div className="mb-2"><ReadingTimeBadge minutes={(article as any).reading_time_minutes} /></div>
