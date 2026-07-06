@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useLayoutEffect, forwardRef, memo } from 
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft, Loader2, GraduationCap, ListChecks,
-  ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2, ImagePlus, Eye, X,
+  ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2, ImagePlus, X,
 } from "lucide-react";
 import ShareButtons from "@/components/ShareButtons";
 import ArticleComments from "@/components/ArticleComments";
@@ -785,42 +785,16 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
 }
 
 function ExamPreviewBall({ onOpen }: { onOpen: () => void }) {
-  const [top, setTop] = useState(112);
-
-  useEffect(() => {
-    let raf = 0;
-    const move = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        const d = document.documentElement;
-        const total = Math.max(1, d.scrollHeight - d.clientHeight);
-        const pct = Math.max(0, Math.min(1, d.scrollTop / total));
-        const minTop = 96;
-        const maxTop = Math.max(minTop, window.innerHeight - 116);
-        setTop(minTop + (maxTop - minTop) * pct);
-        raf = 0;
-      });
-    };
-    move();
-    window.addEventListener("scroll", move, { passive: true });
-    window.addEventListener("resize", move);
-    return () => {
-      window.removeEventListener("scroll", move);
-      window.removeEventListener("resize", move);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
-
   return (
     <button
       type="button"
       onClick={onOpen}
       aria-label="Preview exam paper"
       title="Preview exam paper"
-      className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border border-primary/30 bg-background/65 text-primary shadow-lg shadow-primary/15 backdrop-blur-md transition-all hover:scale-105 hover:bg-primary hover:text-primary-foreground sm:right-6"
-      style={{ top }}
+      className="fixed top-4 right-4 z-40 flex items-center gap-1.5 rounded-full border border-border bg-background/90 px-3 py-1.5 text-xs font-semibold text-foreground shadow-md backdrop-blur-md transition-colors hover:border-primary/40 hover:text-primary sm:right-6"
     >
-      <Eye className="h-6 w-6" />
+      <ListChecks className="h-3.5 w-3.5" />
+      <span className="hidden sm:inline">Preview</span>
     </button>
   );
 }
