@@ -216,6 +216,116 @@ function ToolbarBtn({ onClick, active, children, title }: { onClick: () => void;
 
 const YEARS = [0, 1, 2, 3, 4, 5, 6]; // 0 = Uncategorized
 
+function cleanMarkdownForPublish(content: string): string {
+  return String(content || "")
+    .replace(/&nbsp;|\u00A0/g, " ")
+    .replace(/([^\n])([A-E][\.)]\s+)/g, "$1\n$2")
+    .replace(/^\s*\*{1,2}((?:Section\s+[A-C]|Question\s*\d+|Q\d+|\d+[\.)]|[A-E][\.)])[^*]*)\*{1,2}\s*$/gim, "$1")
+    .replace(/^\s*[-*]\s+([A-E][\.)]\s+)/gim, "$1")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function makeAutoTags(title: string, category: string, content: string, existing: string[] = []): string[] {
+  const tags = [...existing];
+  const hay = `${title}\n${category}\n${content}`;
+  const add = (tag: string) => {
+    if (!tags.some((t) => t.toLowerCase() === tag.toLowerCase())) tags.push(tag);
+  };
+  add("mku");
+  add("Mount Kenya University");
+  const unit = category.replace(/^Year\s*\d+\s*:\s*/i, "").trim();
+  if (unit && unit !== "Uncategorized") add(unit);
+  if (/pathology|histopath|inflammation|neoplas/i.test(hay)) add("pathology");
+  if (/pharmacology|drug|receptor|dose/i.test(hay)) add("pharmacology");
+  if (/microbiology|bacter|virus|fung/i.test(hay)) add("microbiology");
+  if (/anatomy|histology|embryology/i.test(hay)) add("anatomy");
+  if (/mcq|multiple choice/i.test(hay)) add("MCQs");
+  if (/essay|short answer|long answer|SAQ/i.test(hay)) add("essays");
+  return tags.map((t) => t.trim()).filter(Boolean).filter((t, i, arr) => arr.findIndex((x) => x.toLowerCase() === t.toLowerCase()) === i).slice(0, 8);
+}
+
+function inferPublishExtras(title: string, category: string, content: string, current: PublishingExtras): PublishingExtras {
+  const hay = `${title}\n${category}\n${content}`;
+  const unit = current.unit || category.replace(/^Year\s*\d+\s*:\s*/i, "").trim();
+  const examYear = current.exam_year || hay.match(/\b(20\d{2}|19\d{2})\b/)?.[1] || "";
+  const examType = current.exam_type
+    || (/\bCAT\b/i.test(hay) ? "CAT"
+      : /\b(MCQ|multiple\s+choice)\b/i.test(hay) ? "MCQ Paper"
+      : /\b(essay|SAQ|short\s+answer|long\s+answer)\b/i.test(hay) ? "Essay Paper"
+      : /\b(exam|paper)\b/i.test(hay) ? "Exam Paper" : "");
+  return {
+    ...current,
+    university: current.university || "Mount Kenya University",
+    school: current.school || "School of Medicine",
+    unit: unit && unit !== "Uncategorized" ? unit : current.unit,
+    exam_type: examType || current.exam_type,
+    exam_year: examYear || current.exam_year,
+    tags: makeAutoTags(title, category, content, current.tags || []),
+    toc_enabled: current.toc_enabled ?? false,
+  };
+}
+
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error("AI formatting timed out")), ms)),
+  ]);
+}
+
+async function prepareArticleForPublish(input: { title: string; content: string; category: string; extras: PublishingExtras; metaTitle: string; metaDesc: string; slug: string }) {
+  let title = input.title.trim();
+  let content = cleanMarkdownForPublish(input.content);
+  let extras = inferPublishExtras(title, input.category, content, input.extras || {});
+  let metaTitle = input.metaTitle;
+  let metaDesc = input.metaDesc;
+  let slug = input.slug;
+
+  try {
+    const { data, error } = await withTimeout(
+      supabase.functions.invoke("generate-content", { body: { notes: content, type: "publish-format", title } }),
+      12000,
+    );
+    if (!error && data && !data.error) {
+      title = (data.title || title).trim();
+      content = cleanMarkdownForPublish(data.content || content);
+      metaTitle = data.meta_title || metaTitle || title;
+      metaDesc = data.meta_description || metaDesc || stripRichText(content, 155);
+      extras = inferPublishExtras(title, input.category, content, {
+        ...extras,
+        university: data.university || extras.university,
+        school: data.school || extras.school,
+        unit: data.unit || extras.unit,
+        exam_type: data.exam_type || extras.exam_type,
+        exam_year: data.exam_year || extras.exam_year,
+        tags: makeAutoTags(title, input.category, content, Array.isArray(data.tags) ? data.tags : extras.tags),
+      });
+    }
+  } catch {
+    // Fast local normalization remains the fallback so publishing never blocks.
+  }
+
+  return { title, content, extras, metaTitle: metaTitle || title, metaDesc: metaDesc || stripRichText(content, 155), slug: slug || slugifyText(title) };
+}
+
+async function prepareStoryForPublish(title: string, html: string, category: string) {
+  let next = { title: title.trim(), content: html.replace(/<p>\s*<\/p>/gi, "").trim(), category: category || "Uncategorized" };
+  try {
+    const { data, error } = await withTimeout(
+      supabase.functions.invoke("generate-content", { body: { notes: next.content, type: "story-format", title: next.title } }),
+      12000,
+    );
+    if (!error && data && !data.error) {
+      next = {
+        title: (data.title || next.title).trim(),
+        content: String(data.content || next.content).trim(),
+        category: data.category || next.category,
+      };
+    }
+  } catch {}
+  return next;
+}
+
 export default function AdminEditor() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -574,6 +684,7 @@ export default function AdminEditor() {
     if (!currentMcqSummary) return;
     setSavingMcq(true);
     try {
+      const nextExtras = inferPublishExtras(editTitle || currentMcqSummary.title, editCategory || currentMcqSummary.category || `Year ${selectedYear}: General`, (currentMcqSummary as any).original_notes || JSON.stringify(editMcqQuestions), extras || {});
       await saveMcqSet({
         id: currentMcqSummary.id,
         title: editTitle || currentMcqSummary.title,
@@ -585,7 +696,7 @@ export default function AdminEditor() {
         slug: editSlug || slugifyText(editTitle || currentMcqSummary.title) || "",
         og_image_url: editOgImage || "",
         is_raw: false,
-        ...extras,
+        ...nextExtras,
       } as any);
       toast({ title: "MCQ set saved!" });
       setAllMcqSets(prev => prev.map(m => m.id === currentMcqSummary.id ? {
@@ -630,17 +741,26 @@ export default function AdminEditor() {
     try {
       const htmlContent = editor.getHTML();
       const mdContent = htmlToMd(htmlContent);
-      const payload: any = {
+      const prepared = await prepareArticleForPublish({
         title: editTitle,
         content: mdContent,
+        category: editCategory || `Year ${selectedYear}: General`,
+        extras,
+        metaTitle: editMetaTitle,
+        metaDesc: editMetaDesc,
+        slug: editSlug,
+      });
+      const payload: any = {
+        title: prepared.title,
+        content: prepared.content,
         published: editPublished,
         original_notes: fullArticle?.original_notes || "",
         category: editCategory || `Year ${selectedYear}: General`,
-        meta_title: editMetaTitle || editTitle,
-        meta_description: editMetaDesc,
-        slug: editSlug || slugifyText(editTitle),
-        og_image_url: editOgImage || extractFirstImageFromContent(mdContent) || "",
-        ...extras,
+        meta_title: prepared.metaTitle,
+        meta_description: prepared.metaDesc,
+        slug: prepared.slug,
+        og_image_url: editOgImage || extractFirstImageFromContent(prepared.content) || "",
+        ...prepared.extras,
       };
       if (isAddMode) {
         await saveArticle(payload);
@@ -651,7 +771,13 @@ export default function AdminEditor() {
         payload.id = fullArticle.id;
         await saveArticle(payload);
         toast({ title: "Saved!" });
-        setAllArticles(prev => prev.map(a => a.id === fullArticle.id ? { ...a, title: editTitle, category: editCategory, meta_title: editMetaTitle, meta_description: editMetaDesc, slug: editSlug, og_image_url: editOgImage, published: editPublished } : a));
+        setEditTitle(prepared.title);
+        setEditMetaTitle(prepared.metaTitle);
+        setEditMetaDesc(prepared.metaDesc);
+        setEditSlug(prepared.slug);
+        setExtras(prepared.extras);
+        if (prepared.content !== mdContent) editor.commands.setContent(mdToHtml(prepared.content));
+        setAllArticles(prev => prev.map(a => a.id === fullArticle.id ? { ...a, title: prepared.title, category: editCategory, meta_title: prepared.metaTitle, meta_description: prepared.metaDesc, slug: prepared.slug, og_image_url: editOgImage, published: editPublished } : a));
       }
     } catch (err: any) {
       toast({ title: "Save failed", description: err.message, variant: "destructive" });
@@ -670,20 +796,21 @@ export default function AdminEditor() {
       // prose styles, avoiding the lossy markdown round-trip that was
       // breaking layout and duplicating images.
       const htmlContent = editor.getHTML();
-      const cover = extractFirstImageFromContent(htmlContent) || "";
+      const formatted = await prepareStoryForPublish(editTitle, htmlContent, editCategory);
+      const cover = extractFirstImageFromContent(formatted.content) || "";
       if (isAddMode || !currentStorySummary) {
-        if (!editTitle.trim()) {
+        if (!formatted.title.trim()) {
           toast({ title: "Title required", variant: "destructive" });
           setSaving(false);
           return;
         }
         const { data, error } = await supabase.from("stories").insert({
-          title: editTitle,
-          content: htmlContent,
-          category: editCategory || "Uncategorized",
+          title: formatted.title,
+          content: formatted.content,
+          category: formatted.category || "Uncategorized",
           published: editPublished,
           cover_image_url: cover || null,
-          slug: slugifyText(editTitle),
+          slug: slugifyText(formatted.title),
         } as any).select().single();
         if (error) throw error;
         toast({ title: "Story created!" });
@@ -692,15 +819,18 @@ export default function AdminEditor() {
         if (data) setCurrentIndex(0);
       } else {
         await supabase.from("stories").update({
-          title: editTitle,
-          content: htmlContent,
-          category: editCategory || "Uncategorized",
+          title: formatted.title,
+          content: formatted.content,
+          category: formatted.category || "Uncategorized",
           published: editPublished,
           cover_image_url: cover || null,
-          slug: slugifyText(editTitle),
+          slug: slugifyText(formatted.title),
         } as any).eq("id", currentStorySummary.id);
         toast({ title: "Story saved!" });
-        setAllStories(prev => prev.map(s => s.id === currentStorySummary.id ? { ...s, title: editTitle, content: htmlContent, category: editCategory, published: editPublished } : s));
+        setEditTitle(formatted.title);
+        setEditCategory(formatted.category || "Uncategorized");
+        if (formatted.content !== htmlContent) editor.commands.setContent(formatted.content);
+        setAllStories(prev => prev.map(s => s.id === currentStorySummary.id ? { ...s, title: formatted.title, content: formatted.content, category: formatted.category, published: editPublished } : s));
       }
     } catch (err: any) {
       toast({ title: "Save failed", description: err.message, variant: "destructive" });
@@ -742,9 +872,9 @@ export default function AdminEditor() {
     setIsAddMode(true);
     setAddMethod(editorMode === "mcqs" ? "gemini" : method);
       setEditTitle(""); setEditMetaTitle(""); setEditMetaDesc(""); setEditSlug("");
-    setEditCategory(selectedUnit || `Year ${selectedYear}: General`);
+      setEditCategory(selectedUnit || `Year ${selectedYear}: General`);
     setEditOgImage(""); setEditPublished(false); setGeminiNotes("");
-      setExtras({ comments_enabled: true, toc_enabled: true, tags: [] });
+      setExtras({ comments_enabled: true, toc_enabled: false, tags: ["mku", "Mount Kenya University"], university: "Mount Kenya University", school: "School of Medicine" });
     if (editor) editor.commands.setContent("<p></p>");
   };
 

@@ -249,6 +249,26 @@ function normalizeTags(tags: string[] | undefined): string[] {
   }).slice(0, 8);
 }
 
+function autoTagsFromText(parts: Array<string | undefined>, existing?: string[]): string[] {
+  const hay = parts.filter(Boolean).join("\n");
+  const tags = [...(existing || [])];
+  const add = (tag: string) => {
+    if (!tags.some((t) => t.toLowerCase() === tag.toLowerCase())) tags.push(tag);
+  };
+  add("mku");
+  add("Mount Kenya University");
+  if (/pathology|histopath|lesion|inflammation|neoplas/i.test(hay)) add("pathology");
+  if (/pharmacology|drug|receptor|dose/i.test(hay)) add("pharmacology");
+  if (/microbiology|bacter|virus|fung/i.test(hay)) add("microbiology");
+  if (/anatomy|embryology|histology/i.test(hay)) add("anatomy");
+  if (/physiology|cardio|respiratory|renal|endocrine/i.test(hay)) add("physiology");
+  const year = hay.match(/\bYear\s*([1-6])\b/i)?.[1];
+  if (year) add(`Year ${year}`);
+  const category = parts[1]?.replace(/^Year\s*\d+\s*:\s*/i, "").trim();
+  if (category && category !== "Uncategorized") add(category);
+  return normalizeTags(tags);
+}
+
 // Medical unit categories organized by year (based on actual timetable)
 export const YEAR_CATEGORIES: Record<string, string[]> = {
   "Year 1": [
@@ -695,13 +715,13 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
   if (article.password_protected !== undefined) payload.password_protected = article.password_protected;
   if (article.access_password !== undefined) payload.access_password = article.access_password;
   if (article.scheduled_at !== undefined) payload.scheduled_at = article.scheduled_at;
-  if (article.tags !== undefined) payload.tags = normalizeTags(article.tags);
+  payload.tags = autoTagsFromText([article.title, article.category, article.content, article.original_notes], article.tags);
   if (article.featured_image !== undefined) payload.featured_image = article.featured_image;
   if (article.reading_time_minutes !== undefined) payload.reading_time_minutes = article.reading_time_minutes;
   if (article.toc_enabled !== undefined) payload.toc_enabled = article.toc_enabled;
   if (article.comments_enabled !== undefined) payload.comments_enabled = article.comments_enabled;
-  if (article.university !== undefined) payload.university = article.university || null;
-  if (article.school !== undefined) payload.school = article.school || null;
+  payload.university = article.university || "Mount Kenya University";
+  payload.school = article.school || "School of Medicine";
   if (article.lecturer !== undefined) payload.lecturer = article.lecturer || null;
   if (article.exam_type !== undefined) payload.exam_type = article.exam_type || null;
   if (article.exam_year !== undefined) payload.exam_year = article.exam_year || null;
@@ -932,13 +952,13 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
   if (set.html_embed !== undefined) payload.html_embed = set.html_embed;
   if (set.password_protected !== undefined) payload.password_protected = set.password_protected;
   if (set.scheduled_at !== undefined) payload.scheduled_at = set.scheduled_at;
-  if (set.tags !== undefined) payload.tags = normalizeTags(set.tags);
+  payload.tags = autoTagsFromText([set.title, set.category, set.original_notes, JSON.stringify(set.questions || [])], set.tags);
   if (set.featured_image !== undefined) payload.featured_image = set.featured_image;
   if (set.reading_time_minutes !== undefined) payload.reading_time_minutes = set.reading_time_minutes;
   if (set.toc_enabled !== undefined) payload.toc_enabled = set.toc_enabled;
   if (set.comments_enabled !== undefined) payload.comments_enabled = set.comments_enabled;
-  if (set.university !== undefined) payload.university = set.university || null;
-  if (set.school !== undefined) payload.school = set.school || null;
+  payload.university = set.university || "Mount Kenya University";
+  payload.school = set.school || "School of Medicine";
   if (set.lecturer !== undefined) payload.lecturer = set.lecturer || null;
   if (set.exam_type !== undefined) payload.exam_type = set.exam_type || null;
   if (set.exam_year !== undefined) payload.exam_year = set.exam_year || null;
