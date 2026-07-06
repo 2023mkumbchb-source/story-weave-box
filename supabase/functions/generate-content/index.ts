@@ -355,6 +355,64 @@ REQUIREMENTS:
       });
     }
 
+    if (type === "publish-format") {
+      const messages = [
+        {
+          role: "system",
+          content: `You are a fast medical publishing formatter for Ompath Study.
+Return ONLY valid JSON with this shape:
+{"title":"...","content":"...","tags":["..."],"meta_title":"...","meta_description":"...","university":"Mount Kenya University","school":"School of Medicine","unit":"...","exam_type":"...","exam_year":"..."}
+
+Rules:
+- Fix FORMAT only: title hierarchy, subtitles, bullets, numbering, MCQ options, essay sections, spacing, and markdown artifacts.
+- Do not rewrite the academic meaning, do not shorten, do not remove questions, and do not remove images or tables.
+- Preserve Mount Kenya University / MKU whenever present; if no university is clear, use Mount Kenya University.
+- Use clean markdown: ## sections, ### subtitles, - bullets, A) choices each on their own line.
+- Remove stray asterisks that are not real bold emphasis.
+- Tags: 4-8 concise tags including mku and the unit/topic where possible.`,
+        },
+        { role: "user", content: customTitle ? `Title: ${customTitle}\n\nContent:\n${safeNotes}` : safeNotes },
+      ];
+      const text = await callAI(messages, geminiKey, allKeys);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        const result = normalizeArticleOutput(text);
+        return new Response(JSON.stringify({ ...result, tags: ["mku"], university: "Mount Kenya University", school: "School of Medicine" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const parsed = JSON.parse(jsonMatch[0]);
+      return new Response(JSON.stringify(parsed), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (type === "story-format") {
+      const messages = [
+        {
+          role: "system",
+          content: `You are a light-touch story formatter.
+Return ONLY valid JSON: {"title":"...","content":"...","category":"..."}
+Rules:
+- Preserve the author's voice and meaning.
+- Fix only necessary grammar, paragraph breaks, headings, spacing, and punctuation.
+- Keep safe HTML tags if the input uses HTML; otherwise return clean markdown.
+- Do not add new plot/details.`,
+        },
+        { role: "user", content: `Title: ${customTitle || "Untitled"}\n\nStory:\n${safeNotes.slice(0, 15000)}` },
+      ];
+      const text = await callAI(messages, geminiKey, allKeys);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        return new Response(JSON.stringify({ title: customTitle || "Untitled", content: notes, category: "Stories" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify(JSON.parse(jsonMatch[0])), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (type === "direct-article") {
       const messages = [
         {

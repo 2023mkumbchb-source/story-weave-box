@@ -42,6 +42,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedYear, setExpandedYear] = useState<number | null>(null);
+  const [hidden, setHidden] = useState(false);
 
   const isExamPage = /^\/exams\/[^/]+\/start/.test(location.pathname);
 
@@ -60,6 +61,25 @@ export default function Navbar() {
       sessionStorage.setItem(STORAGE_KEY, `Year ${activeYear}`);
     }
   }, [activeYear]);
+
+  useEffect(() => {
+    let lastY = window.scrollY;
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const nextY = window.scrollY;
+        const delta = nextY - lastY;
+        if (nextY < 24 || delta < -8) setHidden(false);
+        else if (delta > 8 && nextY > 96 && !sidebarOpen) setHidden(true);
+        lastY = nextY;
+        ticking = false;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [sidebarOpen]);
 
   const selectYear = (yr: number | null) => {
     if (!yr) {
@@ -85,7 +105,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="sticky top-0 z-40 border-b border-border bg-[hsl(174,62%,22%)] text-white">
+      <nav className={`sticky top-0 z-40 border-b border-border bg-[hsl(174,62%,22%)] text-white transition-transform duration-300 ease-out ${hidden ? "-translate-y-full" : "translate-y-0"}`}>
         {/* ── Primary bar ── */}
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5 sm:px-6">
           <Link to="/" className="flex items-center gap-2 text-lg font-bold text-white">

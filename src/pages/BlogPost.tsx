@@ -477,7 +477,7 @@ function inferUniversity(article: any): string {
   if (/\b(KU|Kenyatta\s+University)\b/i.test(hay)) return "Kenyatta University (KU)";
   if (/\bJKUAT\b|Jomo\s+Kenyatta\s+University/i.test(hay)) return "JKUAT";
   if (/\bMoi\s+University\b/i.test(hay)) return "Moi University";
-  return "";
+  return "Mount Kenya University (MKU)";
 }
 
 function inferSchool(article: any): string {
@@ -781,6 +781,47 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
         </div>
       </div>
     </div>
+  );
+}
+
+function ExamPreviewBall({ onOpen }: { onOpen: () => void }) {
+  const [top, setTop] = useState(112);
+
+  useEffect(() => {
+    let raf = 0;
+    const move = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        const d = document.documentElement;
+        const total = Math.max(1, d.scrollHeight - d.clientHeight);
+        const pct = Math.max(0, Math.min(1, d.scrollTop / total));
+        const minTop = 96;
+        const maxTop = Math.max(minTop, window.innerHeight - 116);
+        setTop(minTop + (maxTop - minTop) * pct);
+        raf = 0;
+      });
+    };
+    move();
+    window.addEventListener("scroll", move, { passive: true });
+    window.addEventListener("resize", move);
+    return () => {
+      window.removeEventListener("scroll", move);
+      window.removeEventListener("resize", move);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label="Preview exam paper"
+      title="Preview exam paper"
+      className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border border-primary/30 bg-background/65 text-primary shadow-lg shadow-primary/15 backdrop-blur-md transition-all hover:scale-105 hover:bg-primary hover:text-primary-foreground sm:right-6"
+      style={{ top }}
+    >
+      <Eye className="h-6 w-6" />
+    </button>
   );
 }
 
@@ -1867,6 +1908,7 @@ export default function BlogPost() {
   return (
     <>
       <ReadingProgress />
+      <ExamPreviewBall onOpen={() => setPreviewOpen(true)} />
 
       {/* Breadcrumbs */}
       <div className="border-b border-border bg-muted/30">
@@ -1985,17 +2027,6 @@ export default function BlogPost() {
               description={cleanMetaDescription(article)}
               category={article.category}
             />
-
-            <div className="mt-4 mb-3 flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() => setPreviewOpen(true)}
-              >
-                <Eye className="h-4 w-4" /> Preview as exam paper
-              </Button>
-            </div>
 
             {(article as any).reading_time_minutes ? (
               <div className="mb-2"><ReadingTimeBadge minutes={(article as any).reading_time_minutes} /></div>
