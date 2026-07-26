@@ -65,6 +65,19 @@ function getGroupLabel(year: string, category: string): string {
   return getCoreUnitGroup(category);
 }
 
+const YEAR3_SEMESTER_OPTIONS = [
+  { value: "1", label: "Semester 1" },
+  { value: "2", label: "Semester 2" },
+  { value: "3", label: "Semester 3" },
+  { value: "other", label: OTHER_UNITS_LABEL },
+];
+
+function unitMatchesSemester(unitName: string, semester: string | null): boolean {
+  if (!semester) return true;
+  const sem = getYear3Semester(unitName);
+  return semester === "other" ? !sem : String(sem) === semester;
+}
+
 export default function Blog() {
   useEffect(() => {
     updateMetaTags({
@@ -124,6 +137,7 @@ export default function Blog() {
     "All";
 
   const selectedUnit = searchParams.get("unit");
+  const selectedSemester = selectedYear === "Year 3" ? searchParams.get("sem") : null;
 
   // Scroll the results into view when the user changes year/unit filters
   // (categorized clicks used to leave the page scrolled wherever it was,
@@ -139,7 +153,7 @@ export default function Blog() {
       resultsAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 260);
     return () => window.clearTimeout(id);
-  }, [selectedYear, selectedUnit]);
+  }, [selectedYear, selectedUnit, selectedSemester]);
 
   useEffect(() => {
     const qpYear = normalizeYear(searchParams.get("year"));
@@ -194,9 +208,27 @@ export default function Blog() {
   };
 
   const setUnit = (unit: string | null) => {
-    if (unit) setSearchParams({ year: selectedYear, unit });
-    else if (selectedYear !== "All") setSearchParams({ year: selectedYear });
-    else setSearchParams({});
+    const params: Record<string, string> = {};
+    if (selectedYear !== "All") params.year = selectedYear;
+    if (selectedYear === "Year 3") {
+      if (unit) {
+        // Always carry the unit's own semester so the semester tab stays in sync,
+        // whether the unit was picked from the scoped chip row or the sidebar.
+        const sem = getYear3Semester(getCategoryDisplayName(unit));
+        params.sem = sem ? String(sem) : "other";
+      } else if (selectedSemester) {
+        params.sem = selectedSemester;
+      }
+    }
+    if (unit) params.unit = unit;
+    setSearchParams(unit || selectedYear !== "All" ? params : {});
+    setVisibleCount(20);
+  };
+
+  const setSemester = (sem: string | null) => {
+    const params: Record<string, string> = { year: selectedYear };
+    if (sem) params.sem = sem;
+    setSearchParams(params);
     setVisibleCount(20);
   };
 
@@ -216,7 +248,10 @@ export default function Blog() {
           const articleYear = normalizeYear(getYearFromCategory(a.category));
           const matchesYear = selectedYear === "All" || articleYear === selectedYear;
           const matchesUnit = !selectedUnit || a.category === selectedUnit;
-          return matchesYear && matchesUnit;
+          const matchesSemester =
+            !selectedSemester ||
+            unitMatchesSemester(getCategoryDisplayName(a.category || ""), selectedSemester);
+          return matchesYear && matchesUnit && matchesSemester;
         });
 
     // Sort by most recently updated/created
@@ -233,7 +268,7 @@ export default function Blog() {
       seen.add(a.id);
       return true;
     });
-  }, [articles, search, searchMatches, selectedYear, selectedUnit]);
+  }, [articles, search, searchMatches, selectedYear, selectedUnit, selectedSemester]);
 
   const filteredRecentArticles = useMemo(() => {
     if (selectedYear === "All") return recentArticles;
@@ -264,24 +299,48 @@ export default function Blog() {
       .sort((a, b) => b.latest - a.latest);
   }, [articles, selectedYear]);
 
+  // Units scoped to the currently selected semester (Year 3 only) — this is what
+  // actually drives the drill-down: pick a semester first, then only its units show up.
+  const unitsForSelection = useMemo(() => {
+    if (selectedYear !== "Year 3" || !selectedSemester) return unitsForYear;
+    return unitsForYear.filter(u => unitMatchesSemester(u.name, selectedSemester));
+  }, [unitsForYear, selectedYear, selectedSemester]);
+
+  // Article counts per semester, for the semester tab row.
+  const year3SemesterCounts = useMemo(() => {
+    const counts: Record<string, number> = { "1": 0, "2": 0, "3": 0, other: 0 };
+    if (selectedYear !== "Year 3") return counts;
+    unitsForYear.forEach(u => {
+      const sem = getYear3Semester(u.name);
+      counts[sem ? String(sem) : "other"] += u.count;
+    });
+    return counts;
+  }, [unitsForYear, selectedYear]);
+
   const groupedArticles = useMemo(() => {
     if (selectedUnit || search.trim()) return null;
+    const groupBySpecificUnit = selectedYear === "Year 3" && Boolean(selectedSemester);
     const groups = new Map<string, Article[]>();
     filtered.forEach(a => {
       const articleYear = normalizeYear(getYearFromCategory(a.category));
       if (selectedYear !== "All" && articleYear !== selectedYear) return;
-      const key = getGroupLabel(selectedYear, a.category || "Uncategorized");
+      const key = groupBySpecificUnit
+        ? getCategoryDisplayName(a.category || "Uncategorized") || "Other"
+        : getGroupLabel(selectedYear, a.category || "Uncategorized");
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(a);
     });
     const entries = Array.from(groups.entries())
       .filter(([, arts]) => arts.length > 0)
       .map(([cat, arts]) => ({ category: cat, name: cat, articles: arts }));
+    if (groupBySpecificUnit) {
+      return entries.sort((a, b) => b.articles.length - a.articles.length || a.name.localeCompare(b.name));
+    }
     if (selectedYear === "Year 3") {
       return entries.sort((a, b) => semesterGroupSortKey(a.category) - semesterGroupSortKey(b.category));
     }
     return entries.sort((a, b) => latestDate(b.articles) - latestDate(a.articles));
-  }, [filtered, selectedUnit, search, selectedYear]);
+  }, [filtered, selectedUnit, search, selectedYear, selectedSemester]);
 
   const toggleGroup = (category: string) => {
     setExpandedGroups(prev => {
@@ -457,8 +516,66 @@ export default function Blog() {
         ))}
       </div>
 
-      {/* Unit chips — ordered by most recently updated */}
-      {selectedYear !== "All" && unitsForYear.length > 0 && (
+      {/* Semester tabs — Year 3 only. This is the primary drill-down step:
+          pick a semester first, then its units show up below. */}
+      {selectedYear === "Year 3" && !search.trim() && (
+        <div className="mb-4">
+          <p className="mb-1.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Semester</p>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setSemester(null)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                !selectedSemester
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              All Semesters
+            </button>
+            {YEAR3_SEMESTER_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setSemester(selectedSemester === opt.value ? null : opt.value)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  selectedSemester === opt.value
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                {opt.label} ({year3SemesterCounts[opt.value] ?? 0})
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Breadcrumb once drilled into a semester and/or unit */}
+      {selectedYear === "Year 3" && (selectedSemester || selectedUnit) && !search.trim() && (
+        <div className="mb-4 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+          <button onClick={() => setSemester(null)} className="hover:text-foreground hover:underline">Year 3</button>
+          {selectedSemester && (
+            <>
+              <span>›</span>
+              <button
+                onClick={() => setUnit(null)}
+                className={selectedUnit ? "hover:text-foreground hover:underline" : "font-semibold text-foreground"}
+              >
+                {YEAR3_SEMESTER_OPTIONS.find(o => o.value === selectedSemester)?.label ?? selectedSemester}
+              </button>
+            </>
+          )}
+          {selectedUnit && (
+            <>
+              <span>›</span>
+              <span className="font-semibold text-foreground">{getCategoryDisplayName(selectedUnit)}</span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Unit chips — ordered by most recently updated. For Year 3, only shown once
+          a semester is chosen (or "All Semesters"), and scoped to that semester. */}
+      {selectedYear !== "All" && unitsForSelection.length > 0 && (selectedYear !== "Year 3" || selectedSemester || selectedUnit) && (
         <div className="mb-6 flex flex-wrap gap-1.5">
           <button
             onClick={() => setUnit(null)}
@@ -470,7 +587,7 @@ export default function Blog() {
           >
             All Units ({filtered.length})
           </button>
-          {unitsForYear.map(u => (
+          {unitsForSelection.map(u => (
             <button
               key={u.category}
               onClick={() => setUnit(selectedUnit === u.category ? null : u.category)}

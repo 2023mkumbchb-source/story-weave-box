@@ -11,6 +11,7 @@ export const YEAR3_SEMESTER: Record<string, 1 | 2 | 3> = {
   "Bacteriology": 1,
   "Parasitology": 1,
   "Nutrition and Dietetics": 1,
+  "Basic Pharmacology I": 1,
 
   "Cardiovascular System Pathology": 2,
   "Respiratory System Pathology": 2,
@@ -19,6 +20,7 @@ export const YEAR3_SEMESTER: Record<string, 1 | 2 | 3> = {
   "Head & Neck Pathology": 2,
   "Endocrine and Metabolic Pathology": 2,
   "Research Methodology and Proposal Writing": 2,
+  "Basic Pharmacology II": 2,
 
   "Neuropathology": 3,
   "Bone and Soft Tissue Pathology": 3,
@@ -32,6 +34,7 @@ export const YEAR3_SEMESTER: Record<string, 1 | 2 | 3> = {
   "Introduction to Clinical Techniques": 3,
   "Spot/Practical Examination": 3,
   "Community Health": 3,
+  "Basic Pharmacology III": 3,
 };
 
 export function getYear3Semester(subunitName: string): 1 | 2 | 3 | null {
