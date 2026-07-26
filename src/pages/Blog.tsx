@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { Search, X, BookOpen, Clock, ArrowLeft, ChevronDown } from "lucide-react";
 import {
@@ -13,6 +13,7 @@ import ArticleCard from "@/components/ArticleCard";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
 import { updateMetaTags } from "@/lib/seo";
 import { getAllCategories } from "@/lib/store";
+import { getYear3Semester, OTHER_UNITS_LABEL, semesterGroupSortKey } from "@/lib/year3Semesters";
 
 const YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
 const INITIAL_PER_GROUP = 6;
@@ -49,6 +50,21 @@ function getCoreUnitGroup(category: string): string {
   return getCategoryDisplayName(category || "Uncategorized") || "Other";
 }
 
+/**
+ * Year 3 has a confirmed semester-by-semester course structure, so it gets grouped
+ * by Semester 1/2/3 instead of the generic keyword-matched core-unit buckets (which
+ * dumped almost everything into one giant "Pathology" bucket). Other years keep the
+ * old grouping until their own semester breakdowns are confirmed.
+ */
+function getGroupLabel(year: string, category: string): string {
+  if (year === "Year 3") {
+    const subunit = getCategoryDisplayName(category || "");
+    const sem = getYear3Semester(subunit);
+    return sem ? `Semester ${sem}` : OTHER_UNITS_LABEL;
+  }
+  return getCoreUnitGroup(category);
+}
+
 export default function Blog() {
   useEffect(() => {
     updateMetaTags({
@@ -81,7 +97,7 @@ export default function Blog() {
     sidebarCats.forEach(c => {
       const y = getYearFromCategory(c.name) || "Other";
       if (!groups[y]) groups[y] = [];
-      const core = getCoreUnitGroup(c.name);
+      const core = getGroupLabel(y, c.name);
       let bucket = groups[y].find((g) => g.group === core);
       if (!bucket) {
         bucket = { group: core, units: [], count: 0 };
@@ -91,8 +107,12 @@ export default function Blog() {
       bucket.units.push({ category: c.name, name: getCategoryDisplayName(c.name), count });
       bucket.count += count;
     });
-    Object.values(groups).forEach(list => {
-      list.sort((a, b) => b.count - a.count || a.group.localeCompare(b.group));
+    Object.entries(groups).forEach(([y, list]) => {
+      if (y === "Year 3") {
+        list.sort((a, b) => semesterGroupSortKey(a.group) - semesterGroupSortKey(b.group));
+      } else {
+        list.sort((a, b) => b.count - a.count || a.group.localeCompare(b.group));
+      }
       list.forEach((g) => g.units.sort((a, b) => a.name.localeCompare(b.name)));
     });
     return groups;
@@ -104,6 +124,22 @@ export default function Blog() {
     "All";
 
   const selectedUnit = searchParams.get("unit");
+
+  // Scroll the results into view when the user changes year/unit filters
+  // (categorized clicks used to leave the page scrolled wherever it was,
+  // or get reset to y=0 by ScrollToTop, forcing a manual scroll to find results).
+  const resultsAnchorRef = useRef<HTMLDivElement>(null);
+  const isFirstFilterRender = useRef(true);
+  useEffect(() => {
+    if (isFirstFilterRender.current) {
+      isFirstFilterRender.current = false;
+      return;
+    }
+    const id = window.setTimeout(() => {
+      resultsAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 260);
+    return () => window.clearTimeout(id);
+  }, [selectedYear, selectedUnit]);
 
   useEffect(() => {
     const qpYear = normalizeYear(searchParams.get("year"));
@@ -234,14 +270,17 @@ export default function Blog() {
     filtered.forEach(a => {
       const articleYear = normalizeYear(getYearFromCategory(a.category));
       if (selectedYear !== "All" && articleYear !== selectedYear) return;
-      const key = getCoreUnitGroup(a.category || "Uncategorized");
+      const key = getGroupLabel(selectedYear, a.category || "Uncategorized");
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(a);
     });
-    return Array.from(groups.entries())
+    const entries = Array.from(groups.entries())
       .filter(([, arts]) => arts.length > 0)
-      .map(([cat, arts]) => ({ category: cat, name: cat, articles: arts }))
-      .sort((a, b) => latestDate(b.articles) - latestDate(a.articles));
+      .map(([cat, arts]) => ({ category: cat, name: cat, articles: arts }));
+    if (selectedYear === "Year 3") {
+      return entries.sort((a, b) => semesterGroupSortKey(a.category) - semesterGroupSortKey(b.category));
+    }
+    return entries.sort((a, b) => latestDate(b.articles) - latestDate(a.articles));
   }, [filtered, selectedUnit, search, selectedYear]);
 
   const toggleGroup = (category: string) => {
@@ -402,7 +441,7 @@ export default function Blog() {
       </div>
 
       {/* Year tabs */}
-      <div className="mb-5 flex gap-1 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0" style={{ scrollbarWidth: "none" }}>
+      <div ref={resultsAnchorRef} className="mb-5 flex gap-1 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0" style={{ scrollbarWidth: "none" }}>
         {YEARS.map(year => (
           <button
             key={year}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { GraduationCap, Calendar, Layers, ChevronDown, RotateCcw } from "lucide-react";
 import { getPublishedFlashcardSets, getCategoryDisplayName, getYearFromCategory, buildFlashcardPath, type FlashcardSet } from "@/lib/store";
@@ -33,6 +33,21 @@ export default function Flashcards() {
     setSelectedCategory(null);
     setVisibleCount(INITIAL_VISIBLE);
   }, [selectedYear]);
+
+  // Scroll results into view when the category filter changes, instead of
+  // leaving the user wherever they were scrolled with a different grid underneath.
+  const resultsAnchorRef = useRef<HTMLDivElement>(null);
+  const isFirstFilterRender = useRef(true);
+  useEffect(() => {
+    if (isFirstFilterRender.current) {
+      isFirstFilterRender.current = false;
+      return;
+    }
+    const id = window.setTimeout(() => {
+      resultsAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+    return () => window.clearTimeout(id);
+  }, [selectedCategory]);
 
   const yearScopedSets = useMemo(() => {
     if (selectedYear === "All") return sets;
@@ -80,13 +95,15 @@ export default function Flashcards() {
         </p>
       </div>
 
-      <CategoryTabs
-        categories={categories}
-        counts={categoryCounts}
-        totalCount={yearScopedSets.length}
-        selected={selectedCategory}
-        onChange={(c) => { setSelectedCategory(c); setVisibleCount(INITIAL_VISIBLE); }}
-      />
+      <div ref={resultsAnchorRef}>
+        <CategoryTabs
+          categories={categories}
+          counts={categoryCounts}
+          totalCount={yearScopedSets.length}
+          selected={selectedCategory}
+          onChange={(c) => { setSelectedCategory(c); setVisibleCount(INITIAL_VISIBLE); }}
+        />
+      </div>
 
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-12 text-center">

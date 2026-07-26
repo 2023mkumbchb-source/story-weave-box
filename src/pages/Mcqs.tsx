@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ListChecks, Calendar, Layers, Loader2, Search, X, RotateCcw, ChevronDown } from "lucide-react";
 import { getPublishedMcqSetSummaries, searchPublishedMcqSets, getCategoryDisplayName, getYearFromCategory, buildMcqPath, type McqSet } from "@/lib/store";
 import { getVisitedMcqIds } from "@/lib/progress-store";
 import { updateMetaTags } from "@/lib/seo";
 import CategoryTabs from "@/components/CategoryTabs";
+import { useTopicThumbnail } from "@/lib/topicThumbnail";
 import anatomyThumb from "@/assets/thumb-anatomy.jpg";
 import physiologyThumb from "@/assets/thumb-physiology.jpg";
 import pharmacologyThumb from "@/assets/thumb-pharmacology.jpg";
@@ -43,6 +44,21 @@ export default function Mcqs() {
     setSelectedCategory(null);
     setVisibleCount(INITIAL_VISIBLE);
   }, [selectedYear]);
+
+  // Scroll results into view when the category filter changes, instead of
+  // leaving the user wherever they were scrolled with a different grid underneath.
+  const resultsAnchorRef = useRef<HTMLDivElement>(null);
+  const isFirstFilterRender = useRef(true);
+  useEffect(() => {
+    if (isFirstFilterRender.current) {
+      isFirstFilterRender.current = false;
+      return;
+    }
+    const id = window.setTimeout(() => {
+      resultsAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+    return () => window.clearTimeout(id);
+  }, [selectedCategory]);
 
   const yearScopedSets = useMemo(() => {
     if (selectedYear === "All") return sets;
@@ -169,13 +185,15 @@ export default function Mcqs() {
       </div>
 
       {!isSearching && (
-        <CategoryTabs
-          categories={categories}
-          counts={categoryCounts}
-          totalCount={yearScopedSets.length}
-          selected={selectedCategory}
-          onChange={(c) => { setSelectedCategory(c); setVisibleCount(INITIAL_VISIBLE); }}
-        />
+        <div ref={resultsAnchorRef}>
+          <CategoryTabs
+            categories={categories}
+            counts={categoryCounts}
+            totalCount={yearScopedSets.length}
+            selected={selectedCategory}
+            onChange={(c) => { setSelectedCategory(c); setVisibleCount(INITIAL_VISIBLE); }}
+          />
+        </div>
       )}
 
       {isSearching && (
@@ -318,15 +336,20 @@ function ContinueBadge() {
 
 function McqCover({ set }: { set: McqSet }) {
   const og = (set.og_image_url || "").trim();
+  const hasOg = Boolean(og && !og.includes("/og-default") && !og.startsWith("data:image/"));
+  const unit = getCategoryDisplayName(set.category);
+  // Use the clean subunit name as the Wikipedia lookup key, same as article cards —
+  // gives every unit a real, distinct, correct thumbnail instead of one of 4 generic ones.
+  const topicCover = useTopicThumbnail(set.title, set.category, !hasOg, unit);
   const text = `${set.title} ${set.category}`.toLowerCase();
   const fallback = text.includes("anatom") || text.includes("histology") || text.includes("embryology")
     ? anatomyThumb
     : text.includes("physiology") || text.includes("cardio") || text.includes("respirat")
     ? physiologyThumb
-    : text.includes("pharmac") || text.includes("drug")
+    : text.includes("pharmac") || text.includes("drug") || text.includes("oncopath")
     ? pharmacologyThumb
     : pathologyThumb;
-  const src = og && !og.includes("/og-default") && !og.startsWith("data:image/") ? og : fallback;
+  const src = hasOg ? og : topicCover || fallback;
   if (!src) {
     return (
       <div className="flex aspect-[16/9] w-full items-center justify-center bg-gradient-to-br from-primary/15 via-accent/15 to-primary/5 text-primary">

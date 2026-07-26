@@ -11,7 +11,8 @@ import pathologyThumb from "@/assets/thumb-pathology.jpg";
 function getCategoryFallback(text: string): string {
   if (text.includes("anatom") || text.includes("histology") || text.includes("embryology")) return anatomyThumb;
   if (text.includes("physiology") || text.includes("cardio") || text.includes("respirat")) return physiologyThumb;
-  if (text.includes("pharmac") || text.includes("drug")) return pharmacologyThumb;
+  if (text.includes("pharmac") || text.includes("drug") || text.includes("oncopath") || text.includes("chemotherapy")) return pharmacologyThumb;
+  if (text.includes("biochem") || text.includes("genetic") || text.includes("metabolism") || text.includes("molecular")) return anatomyThumb;
   return pathologyThumb;
 }
 
@@ -35,7 +36,10 @@ export default function ArticleCard({ article }: { article: Article }) {
   const unit = getCategoryDisplayName(article.category);
   const year = getYearFromCategory(article.category);
   const staticCover = getArticleStaticThumb(article);
-  const topicCover = useTopicThumbnail(article.title, article.category, !staticCover);
+  // Prefer the clean subunit name (e.g. "Bone and Soft Tissue Pathology") as the
+  // Wikipedia lookup key — far more reliable than parsing noisy exam-question titles,
+  // and it means every subunit gets one consistent, correct, non-generic thumbnail.
+  const topicCover = useTopicThumbnail(article.title, article.category, !staticCover, unit);
   const cover = staticCover || topicCover || getCategoryFallback(`${article.category} ${article.title}`.toLowerCase());
   const displayDate = new Date(article.updated_at || article.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const location = useLocation();

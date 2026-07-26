@@ -66,8 +66,10 @@ async function fetchWikipediaThumb(keyword: string): Promise<string | null> {
   }
 }
 
-export async function getTopicThumbnail(title: string, category?: string): Promise<string | null> {
-  const keyword = extractTopicKeyword(title, category);
+export async function getTopicThumbnail(title: string, category?: string, preferredKeyword?: string | null): Promise<string | null> {
+  // A clean, specific subunit name (e.g. "Bone and Soft Tissue Pathology") is a far more
+  // reliable Wikipedia search key than words parsed out of a noisy exam-question title.
+  const keyword = (preferredKeyword && preferredKeyword.trim()) || extractTopicKeyword(title, category);
   if (!keyword) return null;
   const cache = readCache();
   const hit = cache[keyword];
@@ -79,9 +81,9 @@ export async function getTopicThumbnail(title: string, category?: string): Promi
 }
 
 /** React hook: returns the resolved topic thumbnail or null while loading. */
-export function useTopicThumbnail(title: string, category?: string, enabled = true): string | null {
+export function useTopicThumbnail(title: string, category?: string, enabled = true, preferredKeyword?: string | null): string | null {
   const [src, setSrc] = useState<string | null>(() => {
-    const k = extractTopicKeyword(title, category);
+    const k = (preferredKeyword && preferredKeyword.trim()) || extractTopicKeyword(title, category);
     if (!k) return null;
     const cache = readCache();
     return cache[k]?.url ?? null;
@@ -89,8 +91,8 @@ export function useTopicThumbnail(title: string, category?: string, enabled = tr
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
-    getTopicThumbnail(title, category).then(u => { if (!cancelled && u) setSrc(u); });
+    getTopicThumbnail(title, category, preferredKeyword).then(u => { if (!cancelled && u) setSrc(u); });
     return () => { cancelled = true; };
-  }, [title, category, enabled]);
+  }, [title, category, enabled, preferredKeyword]);
   return src;
 }
