@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   saveArticle, saveMcqSet, UNIT_CATEGORIES, YEAR_CATEGORIES,
   getCategoryDisplayName, buildBlogPath,
-  getArticleCategories, saveArticleCategory,
+  getArticleCategories, saveArticleCategory, ensureUniqueSlug,
   type McqSet, type Article, type ArticleCategory,
 } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
@@ -685,15 +685,17 @@ export default function AdminEditor() {
     setSavingMcq(true);
     try {
       const nextExtras = inferPublishExtras(editTitle || currentMcqSummary.title, editCategory || currentMcqSummary.category || `Year ${selectedYear}: General`, (currentMcqSummary as any).original_notes || JSON.stringify(editMcqQuestions), extras || {});
+      const finalTitle = editTitle || currentMcqSummary.title;
+      const uniqueSlug = await ensureUniqueSlug("mcq_sets", editSlug || slugifyText(finalTitle) || "", finalTitle, "quiz", currentMcqSummary.id);
       await saveMcqSet({
         id: currentMcqSummary.id,
-        title: editTitle || currentMcqSummary.title,
+        title: finalTitle,
         questions: editMcqQuestions,
         published: editPublished,
         original_notes: (currentMcqSummary as any).original_notes || "",
         category: editCategory || currentMcqSummary.category || `Year ${selectedYear}: General`,
         access_password: editMcqPassword || "",
-        slug: editSlug || slugifyText(editTitle || currentMcqSummary.title) || "",
+        slug: uniqueSlug,
         og_image_url: editOgImage || "",
         is_raw: false,
         ...nextExtras,
@@ -704,7 +706,7 @@ export default function AdminEditor() {
         title: editTitle || m.title,
         category: editCategory || m.category,
         published: editPublished,
-        slug: editSlug || m.slug,
+        slug: uniqueSlug,
         og_image_url: editOgImage || (m as any).og_image_url,
         access_password: editMcqPassword,
       } as any : m));
@@ -750,6 +752,7 @@ export default function AdminEditor() {
         metaDesc: editMetaDesc,
         slug: editSlug,
       });
+      const uniqueSlug = await ensureUniqueSlug("articles", prepared.slug, prepared.title, "article", fullArticle?.id);
       const payload: any = {
         title: prepared.title,
         content: prepared.content,
@@ -758,7 +761,7 @@ export default function AdminEditor() {
         category: editCategory || `Year ${selectedYear}: General`,
         meta_title: prepared.metaTitle,
         meta_description: prepared.metaDesc,
-        slug: prepared.slug,
+        slug: uniqueSlug,
         og_image_url: editOgImage || extractFirstImageFromContent(prepared.content) || "",
         ...prepared.extras,
       };
@@ -774,10 +777,10 @@ export default function AdminEditor() {
         setEditTitle(prepared.title);
         setEditMetaTitle(prepared.metaTitle);
         setEditMetaDesc(prepared.metaDesc);
-        setEditSlug(prepared.slug);
+        setEditSlug(uniqueSlug);
         setExtras(prepared.extras);
         if (prepared.content !== mdContent) editor.commands.setContent(mdToHtml(prepared.content));
-        setAllArticles(prev => prev.map(a => a.id === fullArticle.id ? { ...a, title: prepared.title, category: editCategory, meta_title: prepared.metaTitle, meta_description: prepared.metaDesc, slug: prepared.slug, og_image_url: editOgImage, published: editPublished } : a));
+        setAllArticles(prev => prev.map(a => a.id === fullArticle.id ? { ...a, title: prepared.title, category: editCategory, meta_title: prepared.metaTitle, meta_description: prepared.metaDesc, slug: uniqueSlug, og_image_url: editOgImage, published: editPublished } : a));
       }
     } catch (err: any) {
       toast({ title: "Save failed", description: err.message, variant: "destructive" });

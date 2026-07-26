@@ -399,6 +399,41 @@ function cleanPublicSlug(rawSlug: string, fallbackTitle: string, fallback = "stu
     .replace(/^-|-$/g, "") || fallback;
 }
 
+/**
+ * Guarantees the slug a new/edited record will publish under doesn't collide
+ * with another record's public URL (buildBlogPath/buildMcqPath/etc. all strip
+ * UUID prefixes and hex suffixes down to this same "clean" form, so two
+ * different titles that slugify the same, or two edits of the same title,
+ * would otherwise both resolve to one URL and only one record would ever be
+ * reachable — this is what caused the Google "duplicate canonical" issues).
+ * Appends -2, -3, ... until the clean form is unique among published rows.
+ */
+export async function ensureUniqueSlug(
+  table: "articles" | "mcq_sets" | "flashcard_sets" | "stories",
+  candidateSlug: string,
+  title: string,
+  fallback: string,
+  excludeId?: string,
+): Promise<string> {
+  const clean = cleanPublicSlug(candidateSlug, title, fallback);
+  const { data, error } = await supabase
+    .from(table)
+    .select("id, slug, title")
+    .eq("published", true);
+  if (error || !data) return candidateSlug || clean;
+
+  const taken = new Set(
+    data
+      .filter((r: any) => r.id !== excludeId)
+      .map((r: any) => cleanPublicSlug(r.slug || "", r.title || "", fallback)),
+  );
+  if (!taken.has(clean)) return candidateSlug || clean;
+
+  let i = 2;
+  while (taken.has(`${clean}-${i}`)) i++;
+  return `${clean}-${i}`;
+}
+
 export function buildBlogPath(article: Pick<Article, "id" | "title"> & { slug?: string }): string {
   return `/blog/${cleanPublicSlug(article.slug || "", article.title, "article")}`;
 }

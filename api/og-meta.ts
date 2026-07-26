@@ -640,6 +640,14 @@ export default async function handler(req: Request): Promise<Response> {
       if (!article) {
         return permanentRedirect(await closestLivePath("articles", param, "/blog", "article"));
       }
+      // The requested param may be a stale/UUID/near-match variant of this
+      // article's slug. Always 301 to the article's own true canonical path
+      // instead of declaring the requested URL canonical — otherwise every
+      // variant self-canonicalizes and Google has to guess which one is real.
+      const canonicalBlogPath = `/blog/${cleanPublicSlug(article.slug, article.title, "article")}`;
+      if (canonicalBlogPath !== `/blog/${param}`) {
+        return permanentRedirect(canonicalBlogPath);
+      }
       const rawTitle = article.meta_title && !(article.meta_title.length >= 58 && String(article.title || "").startsWith(article.meta_title))
         ? article.meta_title
         : article.title;
@@ -670,6 +678,10 @@ export default async function handler(req: Request): Promise<Response> {
       const mcq = await fetchMcqSetBySlugOrId(param);
       if (!mcq) {
         return permanentRedirect(await closestLivePath("mcq_sets", param, "/mcqs", "quiz"));
+      }
+      const canonicalMcqPath = `/mcqs/${cleanPublicSlug(mcq.slug, mcq.title, "quiz")}`;
+      if (canonicalMcqPath !== `/mcqs/${param}`) {
+        return permanentRedirect(canonicalMcqPath);
       }
       const rawQuestions: unknown[] = Array.isArray(mcq.questions) ? mcq.questions : [];
       const parsed = rawQuestions.map(parseQuestion).filter((p): p is ParsedQuestion => p !== null);
@@ -735,6 +747,10 @@ ${explanationLine}
       if (!set) {
         return permanentRedirect(await closestLivePath("flashcard_sets", param, "/flashcards", "flashcards"));
       }
+      const canonicalFlashcardPath = `/flashcards/${cleanPublicSlug(set.slug, set.title, "flashcards")}`;
+      if (canonicalFlashcardPath !== `/flashcards/${param}`) {
+        return permanentRedirect(canonicalFlashcardPath);
+      }
       const cards: unknown[] = Array.isArray(set.cards) ? set.cards : [];
       const cardCount = cards.length;
 
@@ -787,6 +803,10 @@ ${explanationLine}
           `<html><body><h1>Page not found</h1><p>This story does not exist.</p></body></html>`,
           { status: 404, headers: { "content-type": "text/html" } }
         );
+      }
+      const canonicalStoryPath = `/stories/${story.id}-${slugify(story.title) || "story"}`;
+      if (canonicalStoryPath !== `/stories/${param}`) {
+        return permanentRedirect(canonicalStoryPath);
       }
       title = `${story.title} | Story | OmpathStudy Kenya`;
       description =

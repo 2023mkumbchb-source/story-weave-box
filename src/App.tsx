@@ -24,6 +24,8 @@ const AdminEditor = lazy(() => import("./pages/AdminEditor"));
 const Stories = lazy(() => import("./pages/Stories"));
 const StoryRead = lazy(() => import("./pages/StoryRead"));
 const SubmitStory = lazy(() => import("./pages/SubmitStory"));
+const Essays = lazy(() => import("./pages/Essays"));
+const EssayStudy = lazy(() => import("./pages/EssayStudy"));
 const Login = lazy(() => import("./pages/Login"));
 const Admin = lazy(() => import("./pages/Admin"));
 const YearHub = lazy(() => import("./pages/YearHub"));
@@ -66,6 +68,8 @@ const App = () => (
                 <Route path="/stories" element={<Stories />} />
                 <Route path="/stories/:id" element={<StoryRead />} />
                 <Route path="/submit-story" element={<SubmitStory />} />
+                <Route path="/essays" element={<Essays />} />
+                <Route path="/essays/:slug" element={<EssayStudy />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/about" element={<About />} />

@@ -138,6 +138,7 @@ export default function SubmitStory() {
         <title>{metaTitle}</title>
         <meta name="description" content={description} />
         <meta name="keywords" content={keywords} />
+        <link rel="canonical" href={ogUrl} />
         <meta property="og:title" content={metaTitle} />
         <meta property="og:description" content={description} />
         <meta property="og:type" content="website" />
