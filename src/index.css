@@ -218,3 +218,7 @@
   animation: deep-flash 2s ease-out forwards;
   border-radius: 4px;
 }
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

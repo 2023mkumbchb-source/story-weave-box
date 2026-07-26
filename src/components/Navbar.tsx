@@ -72,7 +72,7 @@ export default function Navbar() {
         const nextY = window.scrollY;
         const delta = nextY - lastY;
         if (nextY < 24 || delta < -8) setHidden(false);
-        else if (delta > 8 && nextY > 96 && !sidebarOpen) setHidden(true);
+        else if (delta > 8 && nextY > 96 && !sidebarOpen && window.innerWidth >= 768) setHidden(true);
         lastY = nextY;
         ticking = false;
       });
@@ -256,7 +256,7 @@ export default function Navbar() {
         {/* ── Secondary bar: desktop only ── */}
         {activeYear && (
             <div className="hidden md:block overflow-hidden border-t border-white/10 bg-[hsl(174,62%,18%)]">
-              <div className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 py-1.5 sm:px-6" style={{ scrollbarWidth: "none" }}>
+              <div className="no-scrollbar mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 py-1.5 sm:px-6" style={{ scrollbarWidth: "none" }}>
                 <span className="mr-2 shrink-0 text-xs font-bold text-white/50">Year {activeYear}</span>
                 {YEAR_SECTIONS.map((s) => {
                   const to = `/${s.path}?year=${encodeURIComponent(`Year ${activeYear}`)}`;
