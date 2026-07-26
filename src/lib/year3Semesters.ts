@@ -1,8 +1,11 @@
 // Static Year 3 subunit -> semester lookup, confirmed against the MKU course
-// outline. Units not listed here (Chemical Pathology, Clinical Chemistry,
-// Hematopathology, Blood Transfusion, Basic Pharmacology) span multiple
-// semesters under one subunit label and need per-article topic review before
-// they can be split — they fall into "Other Units" until that's done.
+// outline. Every real unit is mapped — Chemical Pathology, Hematopathology,
+// and Basic Pharmacology were split into semester-specific subunits (I/II/III)
+// by reading actual article content, since those course names span more than
+// one semester under a single label in the raw data.
+// Only non-course documents (exam timetables, department admin docs) are
+// deliberately left unmapped — they get a separate "Reference" link instead
+// of a fake semester.
 export const YEAR3_SEMESTER: Record<string, 1 | 2 | 3> = {
   "General Pathology": 1,
   "Oncopathology": 1,
@@ -12,6 +15,7 @@ export const YEAR3_SEMESTER: Record<string, 1 | 2 | 3> = {
   "Parasitology": 1,
   "Nutrition and Dietetics": 1,
   "Basic Pharmacology I": 1,
+  "Chemical Pathology I": 1,
 
   "Cardiovascular System Pathology": 2,
   "Respiratory System Pathology": 2,
@@ -21,6 +25,8 @@ export const YEAR3_SEMESTER: Record<string, 1 | 2 | 3> = {
   "Endocrine and Metabolic Pathology": 2,
   "Research Methodology and Proposal Writing": 2,
   "Basic Pharmacology II": 2,
+  "Chemical Pathology II": 2,
+  "Hematopathology II": 2,
 
   "Neuropathology": 3,
   "Bone and Soft Tissue Pathology": 3,
@@ -35,13 +41,15 @@ export const YEAR3_SEMESTER: Record<string, 1 | 2 | 3> = {
   "Spot/Practical Examination": 3,
   "Community Health": 3,
   "Basic Pharmacology III": 3,
+  "Hematopathology III": 3,
+  "Blood Transfusion": 3,
 };
 
 export function getYear3Semester(subunitName: string): 1 | 2 | 3 | null {
   return YEAR3_SEMESTER[subunitName] ?? null;
 }
 
-export const OTHER_UNITS_LABEL = "Other Units";
+export const OTHER_UNITS_LABEL = "Reference";
 
 /** Sort key so "Semester 1" < "Semester 2" < "Semester 3" < "Other Units". */
 export function semesterGroupSortKey(label: string): number {

@@ -65,11 +65,14 @@ function getGroupLabel(year: string, category: string): string {
   return getCoreUnitGroup(category);
 }
 
+// Every real course unit now maps to a semester (see year3Semesters.ts). Only
+// non-course documents (exam timetables, admin docs) are unmapped, and they
+// don't get a tab here — they still show up as their own section when
+// browsing "All Semesters" (see getGroupLabel/OTHER_UNITS_LABEL).
 const YEAR3_SEMESTER_OPTIONS = [
   { value: "1", label: "Semester 1" },
   { value: "2", label: "Semester 2" },
   { value: "3", label: "Semester 3" },
-  { value: "other", label: OTHER_UNITS_LABEL },
 ];
 
 function unitMatchesSemester(unitName: string, semester: string | null): boolean {
@@ -270,6 +273,21 @@ export default function Blog() {
     });
   }, [articles, search, searchMatches, selectedYear, selectedUnit, selectedSemester]);
 
+  // Per-year totals for the "choose your year" landing step, shown when no
+  // year has been picked yet (fresh arrival from "Start Studying").
+  const yearTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    if (selectedYear !== "All") return totals;
+    articles.forEach(a => {
+      if (a.category === "Stories") return;
+      const y = normalizeYear(getYearFromCategory(a.category));
+      if (y && y !== "All") totals[y] = (totals[y] || 0) + 1;
+    });
+    return totals;
+  }, [articles, selectedYear]);
+
+  const showYearPicker = selectedYear === "All" && !search.trim();
+
   const filteredRecentArticles = useMemo(() => {
     if (selectedYear === "All") return recentArticles;
     const byId = new Map(articles.map(a => [a.id, a]));
@@ -450,30 +468,6 @@ export default function Blog() {
         )}
       </div>
 
-      {/* Continue reading */}
-      {!search.trim() && selectedYear !== "All" && !selectedUnit && filteredRecentArticles.length > 0 && (
-        <div className="mb-7 rounded-2xl border border-border bg-card p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <Clock className="h-3.5 w-3.5 text-primary" />
-            <h2 className="text-sm font-semibold text-foreground">Continue Reading</h2>
-          </div>
-          <div className="space-y-1">
-            {filteredRecentArticles.slice(0, 3).map(ra => (
-              <Link
-                key={ra.id}
-                to={buildBlogPath(ra)}
-                state={{ from: fromPath }}
-                className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/40"
-              >
-                <BookOpen className="h-3.5 w-3.5 shrink-0 text-primary" />
-                <span className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">{ra.title}</span>
-                <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{timeAgo(ra.visitedAt)}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Search */}
       <div className="mb-5">
         <div className={`relative flex items-center rounded-xl border bg-card transition-all ${searchFocused ? "border-primary ring-1 ring-primary/20" : "border-border"}`}>
@@ -499,6 +493,47 @@ export default function Blog() {
         )}
       </div>
 
+      {showYearPicker ? (
+        /* Step 1: choose a year. This is the dedicated first screen "Start Studying"
+           lands on — no search bar clutter, no tabs, just the one decision. */
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {["Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"].map(y => (
+            <button
+              key={y}
+              onClick={() => setYear(y)}
+              className="rounded-2xl border border-border bg-card p-5 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-card-hover)]"
+            >
+              <span className="font-serif text-xl font-bold text-foreground sm:text-2xl">{y}</span>
+              <p className="mt-1 text-xs text-muted-foreground">{yearTotals[y] ?? 0} notes</p>
+            </button>
+          ))}
+        </div>
+      ) : (
+      <>
+      {/* Continue reading */}
+      {!search.trim() && selectedYear !== "All" && !selectedUnit && filteredRecentArticles.length > 0 && (
+        <div className="mb-7 rounded-2xl border border-border bg-card p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <Clock className="h-3.5 w-3.5 text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">Continue Reading</h2>
+          </div>
+          <div className="space-y-1">
+            {filteredRecentArticles.slice(0, 3).map(ra => (
+              <Link
+                key={ra.id}
+                to={buildBlogPath(ra)}
+                state={{ from: fromPath }}
+                className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/40"
+              >
+                <BookOpen className="h-3.5 w-3.5 shrink-0 text-primary" />
+                <span className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">{ra.title}</span>
+                <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{timeAgo(ra.visitedAt)}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Year tabs */}
       <div ref={resultsAnchorRef} className="mb-5 flex gap-1 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0" style={{ scrollbarWidth: "none" }}>
         {YEARS.map(year => (
@@ -516,9 +551,36 @@ export default function Blog() {
         ))}
       </div>
 
-      {/* Semester tabs — Year 3 only. This is the primary drill-down step:
-          pick a semester first, then its units show up below. */}
-      {selectedYear === "Year 3" && !search.trim() && (
+      {/* Semester step — Year 3 only. Before a semester is picked, this is a full
+          step of its own (big cards, matching the Year picker) so it reads as a
+          deliberate decision rather than another row of tabs. Once picked, it
+          collapses to a compact switcher so browsing doesn't lose the space. */}
+      {selectedYear === "Year 3" && !search.trim() && !selectedSemester && !selectedUnit && (
+        <div className="mb-6">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Step 2 — Choose a semester</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {YEAR3_SEMESTER_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setSemester(opt.value)}
+                className="rounded-2xl border border-border bg-card p-5 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-card-hover)]"
+              >
+                <span className="font-serif text-lg font-bold text-foreground sm:text-xl">{opt.label}</span>
+                <p className="mt-1 text-xs text-muted-foreground">{year3SemesterCounts[opt.value] ?? 0} notes</p>
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setSemester(null)}
+            className="mt-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
+          >
+            Or browse all of Year 3 mixed together →
+          </button>
+        </div>
+      )}
+
+      {/* Compact semester switcher, shown once a semester (or unit) is already picked. */}
+      {selectedYear === "Year 3" && !search.trim() && (selectedSemester || selectedUnit) && (
         <div className="mb-4">
           <p className="mb-1.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Semester</p>
           <div className="flex flex-wrap gap-1.5">
@@ -665,6 +727,8 @@ export default function Blog() {
             </button>
           )}
         </div>
+      )}
+      </>
       )}
         </div>
       </div>
