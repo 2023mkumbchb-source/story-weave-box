@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import RichTextEditor from "@/components/RichTextEditor";
 import { Helmet } from "react-helmet-async";
+import { uploadImageToR2 } from "@/lib/r2";
 
 export default function SubmitStory() {
   const location = useLocation();
@@ -93,14 +94,12 @@ export default function SubmitStory() {
     }
   };
 
-  const handleCoverUpload = (file: File) => {
+  const handleCoverUpload = async (file: File) => {
     if (file.size > 3 * 1024 * 1024) {
       toast({ title: "Image too large", description: "Please use an image under 3 MB", variant: "destructive" });
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => setCoverImage((e.target?.result as string) || "");
-    reader.readAsDataURL(file);
+    setCoverImage(await uploadImageToR2(file));
   };
 
   if (submitted) {

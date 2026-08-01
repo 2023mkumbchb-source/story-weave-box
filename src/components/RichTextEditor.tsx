@@ -5,6 +5,7 @@ import Image from "@tiptap/extension-image";
 import { useRef } from "react";
 import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Quote, Heading2, Heading3, Undo, Redo, ImagePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { uploadImageToR2 } from "@/lib/r2";
 
 interface RichTextEditorProps {
   content: string;
@@ -63,12 +64,9 @@ export default function RichTextEditor({ content, onChange, placeholder, classNa
             event.preventDefault();
             const file = item.getAsFile();
             if (!file) continue;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              const src = e.target?.result as string;
+            uploadImageToR2(file).then((src) => {
               if (src && editor) editor.chain().focus().setImage({ src }).run();
-            };
-            reader.readAsDataURL(file);
+            });
             return true;
           }
         }
@@ -84,13 +82,9 @@ export default function RichTextEditor({ content, onChange, placeholder, classNa
 
   const iconSize = "h-4 w-4";
 
-  const handleFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const src = e.target?.result as string;
-      if (src) editor.chain().focus().setImage({ src }).run();
-    };
-    reader.readAsDataURL(file);
+  const handleFile = async (file: File) => {
+    const src = await uploadImageToR2(file);
+    if (src) editor.chain().focus().setImage({ src }).run();
   };
 
   return (

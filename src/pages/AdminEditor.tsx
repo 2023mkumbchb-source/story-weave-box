@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { Helmet } from "react-helmet-async";
 import { saveDraft, getDrafts, syncDrafts, deleteDraft, type OfflineDraft } from "@/lib/offline-drafts";
 import PublishingSettingsPanel, { type PublishingExtras, computeReadingTime } from "@/components/PublishingSettings";
+import { uploadImageToR2 } from "@/lib/r2";
 
 type EditorMode = "articles" | "mcqs" | "stories";
 
@@ -585,12 +586,9 @@ export default function AdminEditor() {
             event.preventDefault();
             const file = item.getAsFile();
             if (!file) continue;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              const src = e.target?.result as string;
+            uploadImageToR2(file).then((src) => {
               if (src && editor) editor.chain().focus().setImage({ src }).run();
-            };
-            reader.readAsDataURL(file);
+            });
             return true;
           }
         }
@@ -599,14 +597,10 @@ export default function AdminEditor() {
     },
   });
 
-  const insertImageFile = (file?: File | null) => {
+  const insertImageFile = async (file?: File | null) => {
     if (!file || !editor) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const src = e.target?.result as string;
-      if (src) editor.chain().focus().setImage({ src }).run();
-    };
-    reader.readAsDataURL(file);
+    const src = await uploadImageToR2(file);
+    if (src) editor.chain().focus().setImage({ src }).run();
   };
 
   // Load article into editor
