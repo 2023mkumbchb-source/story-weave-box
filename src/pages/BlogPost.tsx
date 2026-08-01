@@ -360,38 +360,56 @@ function ClassicHeroInner({
   const heroImage = image || topicThumb || "";
   const reviewer = pickReviewer(title);
 
-  /* Text-first editorial masthead: the title leads, the photograph supports it.
-     The old full-bleed dark hero with overlaid type buried the headline and made
-     every article look like a movie poster. */
+  /* Cinematic hero restored: slow-panning background photograph with the title
+     and description overlaid, as the site originally had. Falls back to a clean
+     text masthead when no image is available. */
+  if (!heroImage) {
+    return (
+      <header className="mb-8">
+        <div className="border-b border-border pb-6">
+          {unit && <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">{unit}</p>}
+          <h1
+            id={slugify(title)}
+            className="mt-2 scroll-mt-20 font-serif text-[1.85rem] font-bold leading-[1.15] text-foreground sm:text-[2.6rem] lg:text-[3rem]"
+          >
+            {title}
+          </h1>
+          {description && (
+            <p className="mt-3 max-w-[62ch] text-[15px] leading-relaxed text-muted-foreground sm:text-base">{description}</p>
+          )}
+          <ReviewedBadge reviewer={reviewer} date={date} />
+        </div>
+        <ShareButtons url={shareUrl} title={title} description={description} variant="full" className="mt-5" />
+      </header>
+    );
+  }
+
   return (
     <header className="mb-8">
-      <div className="border-b border-border pb-6">
-        {unit && (
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">{unit}</p>
-        )}
-        <h1
-          id={slugify(title)}
-          className="mt-2 scroll-mt-20 font-serif text-[1.85rem] font-bold leading-[1.15] text-foreground sm:text-[2.6rem] lg:text-[3rem]"
-        >
-          {title}
-        </h1>
-        {description && (
-          <p className="mt-3 max-w-[62ch] text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-            {description}
-          </p>
-        )}
-        <ReviewedBadge reviewer={reviewer} date={date} />
+      <div className="relative overflow-hidden rounded-xl border border-border bg-muted">
+        <img
+          src={heroImage}
+          alt={title}
+          loading="eager"
+          className="absolute inset-0 h-full w-full animate-hero-pan object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/20" />
+        <div className="relative flex min-h-[260px] flex-col justify-end p-5 sm:min-h-[340px] sm:p-8">
+          {unit && (
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary-foreground/80">{unit}</p>
+          )}
+          <h1
+            id={slugify(title)}
+            className="mt-2 scroll-mt-20 font-serif text-[1.7rem] font-bold leading-[1.15] text-white drop-shadow sm:text-[2.4rem] lg:text-[2.8rem]"
+          >
+            {title}
+          </h1>
+          {description && (
+            <p className="mt-3 max-w-[62ch] text-[14px] leading-relaxed text-white/85 sm:text-base">{description}</p>
+          )}
+        </div>
       </div>
-      {heroImage && (
-        <figure className="mt-6 overflow-hidden rounded-lg border border-border bg-muted">
-          <img
-            src={heroImage}
-            alt={title}
-            className="max-h-[360px] w-full object-cover object-center"
-            loading="eager"
-          />
-        </figure>
-      )}
+      <ReviewedBadge reviewer={reviewer} date={date} />
       <ShareButtons url={shareUrl} title={title} description={description} variant="full" className="mt-5" />
     </header>
   );
