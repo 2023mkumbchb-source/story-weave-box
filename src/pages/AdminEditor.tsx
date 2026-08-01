@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { Helmet } from "react-helmet-async";
 import { saveDraft, getDrafts, syncDrafts, deleteDraft, type OfflineDraft } from "@/lib/offline-drafts";
 import PublishingSettingsPanel, { type PublishingExtras, computeReadingTime } from "@/components/PublishingSettings";
+import { uploadImageToR2 } from "@/lib/r2";
 
 type EditorMode = "articles" | "mcqs" | "stories";
 
