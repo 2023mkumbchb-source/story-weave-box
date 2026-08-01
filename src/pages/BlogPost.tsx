@@ -374,7 +374,7 @@ function ClassicHeroInner({
           />
         </figure>
       )}
-      <ShareButtons url={shareUrl} title={title} description={description} variant="full" className="mt-5 px-5 sm:px-0" />
+      <ShareButtons url={shareUrl} title={title} description={description} variant="full" className="mt-5" />
     </header>
   );
 }
