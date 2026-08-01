@@ -1,19 +1,31 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   BookOpen, GraduationCap, ListChecks, Loader2,
-  ArrowRight, Trophy, BookMarked, Phone, MessageCircle, Clock, Sparkles, Globe2,
+  ArrowRight, Trophy, BookMarked, Phone, MessageCircle, Clock, Check, Search,
 } from "lucide-react";
 import { getAllCategories, getCategoryDisplayName, getYearFromCategory, YEAR_CATEGORIES, buildBlogPath, buildMcqPath, buildFlashcardPath } from "@/lib/store";
 import { buildStoryPath, updateMetaTags } from "@/lib/seo";
 import { supabase } from "@/integrations/supabase/client";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
+import { getSubjectKey, subjectColor } from "@/components/subjectTheme";
 
-const QUICK_ACCESS = [
-  { to: "/mcqs", label: "MCQ Bank", desc: "Clinical practice questions", icon: ListChecks, tint: "bg-primary/10 text-primary" },
-  { to: "/flashcards", label: "Flashcards", desc: "Spaced repetition ready", icon: GraduationCap, tint: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-  { to: "/blog", label: "Articles", desc: "Expert clinical guides", icon: BookOpen, tint: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
-  { to: "/exams", label: "Past Papers", desc: "Timed exam mode", icon: Trophy, tint: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+/* Resource tiles — the Geeky Medics "Explore our resources" block: a small number
+   of large, colour-blocked entry points instead of a wall of small links. */
+const RESOURCES = [
+  { to: "/blog", label: "Study Notes", desc: "High-yield notes by year & unit", icon: BookOpen, subject: "pathology" },
+  { to: "/mcqs", label: "MCQ Bank", desc: "Clinical vignette questions, free", icon: ListChecks, subject: "microbiology" },
+  { to: "/exams", label: "Past Papers & CATs", desc: "Timed exam mode, real papers", icon: Trophy, subject: "exam" },
+  { to: "/flashcards", label: "Flashcards", desc: "Rapid recall before the ward", icon: GraduationCap, subject: "anatomy" },
+];
+
+/* Proof points — TeachMeAnatomy / Lecturio hero pattern: the value of the library
+   is stated as checkable facts right beside the headline. */
+const PROOF = [
+  "Notes mapped to the MBChB curriculum, Year 1 → Year 6",
+  "Compiled from real past papers and CATs",
+  "Every MCQ set, exam and paper is completely free",
+  "Written for Kenyan medical schools — MKU, UoN, KU, JKUAT",
 ];
 
 type RecentItem = { id: string; title: string; type: "article" | "mcq" | "flashcard" | "story"; category: string; created_at: string; slug?: string | null };
@@ -31,11 +43,13 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function Index() {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<{ name: string; articles: number; flashcards: number; mcqs: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [recentlyUploaded, setRecentlyUploaded] = useState<RecentItem[]>([]);
   const [lastRead, setLastRead] = useState<RecentArticle[]>([]);
   const [activeTab, setActiveTab] = useState<"all" | "articles" | "mcqs" | "flashcards" | "stories">("all");
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     updateMetaTags({
@@ -72,6 +86,15 @@ export default function Index() {
     return { year, categories: yearCats, total };
   }).filter(g => g.total > 0);
 
+  const libraryTotals = categories.reduce(
+    (acc, c) => ({
+      notes: acc.notes + c.articles,
+      mcqs: acc.mcqs + c.mcqs,
+      units: acc.units + 1,
+    }),
+    { notes: 0, mcqs: 0, units: 0 },
+  );
+
   const filteredRecent = recentlyUploaded.filter(item => activeTab === "all" || (activeTab === "articles" && item.type === "article") || (activeTab === "mcqs" && item.type === "mcq") || (activeTab === "flashcards" && item.type === "flashcard") || (activeTab === "stories" && item.type === "story"));
 
   function getItemLink(item: RecentItem) {
@@ -91,66 +114,112 @@ export default function Index() {
   } as const;
 
   return (
-    <div className="min-h-dvh bg-muted/30">
-      {/* Hero — Academic Premium */}
-      <section className="relative overflow-hidden bg-primary text-primary-foreground">
-        <div className="absolute inset-0 opacity-[0.12] pointer-events-none" aria-hidden>
-          <svg className="h-full w-full" preserveAspectRatio="none">
-            <defs>
-              <pattern id="hero-grid" width="32" height="32" patternUnits="userSpaceOnUse">
-                <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.6" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#hero-grid)" />
-          </svg>
-        </div>
-        <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-white/5 pointer-events-none" />
-        <div className="absolute -bottom-32 -left-16 h-72 w-72 rounded-full border border-white/10 pointer-events-none" />
-
-        <div className="relative mx-auto max-w-6xl px-5 pt-12 pb-20 sm:pt-16 sm:pb-28">
+    <div className="min-h-dvh bg-background">
+      {/* ── Hero: split colour band (Osmosis/Lecturio) + checkable proof points
+             (TeachMeAnatomy) + a search bar as the primary action (AMBOSS). ── */}
+      <section className="band-ink relative overflow-hidden">
+        <div className="relative mx-auto grid max-w-6xl gap-10 px-5 py-12 sm:py-16 lg:grid-cols-[1.1fr,0.9fr] lg:items-center lg:py-20">
           <div>
-            <div className="mb-5 inline-flex items-center gap-2 text-primary-foreground/80">
-              <span className="h-px w-8 bg-primary-foreground/40" />
-              <Globe2 className="h-3.5 w-3.5" />
-              <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">Global Medical Education · East Africa</span>
-            </div>
-            <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight max-w-3xl">
-              Master medicine in East Africa <span className="text-primary-foreground/80">&amp; beyond.</span>
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-white/80">
+              Free medical library · Kenya
+            </span>
+            <h1 className="mt-5 font-serif text-[2.15rem] font-bold leading-[1.06] tracking-tight sm:text-5xl lg:text-[3.4rem]">
+              Every note, paper and MCQ<br className="hidden sm:block" />
+              <span style={{ color: "hsl(var(--highlight))" }}> for medical school.</span>
             </h1>
-            <p className="mt-5 max-w-xl text-base sm:text-lg leading-relaxed text-primary-foreground/85">
-              The most comprehensive open repository for medical students — high-yield notes, MCQ banks, past papers and clinical stories, organised by year and unit.
+            <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-white/75 sm:text-base">
+              Ompath Study organises the whole MBChB syllabus — notes, past papers, CATs, MCQ banks
+              and flashcards — by year, semester and unit, so revision starts in one click.
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Link to="/blog" className="rounded-full bg-white px-7 py-3 text-sm font-bold text-primary shadow-lg shadow-black/10 hover:bg-white/95 transition">
-                Start Studying
+
+            {/* Search-first entry */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                navigate(query.trim() ? `/blog?q=${encodeURIComponent(query.trim())}` : "/blog");
+              }}
+              className="mt-7 flex overflow-hidden rounded-xl bg-white shadow-lg shadow-black/20"
+            >
+              <span className="flex items-center pl-4 text-muted-foreground"><Search className="h-4 w-4" /></span>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search a topic — e.g. atherosclerosis, TB drugs…"
+                aria-label="Search study notes"
+                className="min-w-0 flex-1 bg-transparent px-3 py-3.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+              />
+              <button type="submit" className="bg-primary px-5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90">
+                Search
+              </button>
+            </form>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link to="/blog" className="rounded-lg bg-white px-6 py-3 text-sm font-bold text-[hsl(var(--ink))] transition hover:bg-white/90">
+                Browse by year
               </Link>
-              <Link to="/mcqs" className="rounded-full border border-primary-foreground/25 bg-white/10 px-7 py-3 text-sm font-bold text-primary-foreground backdrop-blur-sm hover:bg-white/20 transition">
-                Practice MCQs
+              <Link to="/mcqs" className="rounded-lg border border-white/25 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10">
+                Practise MCQs
               </Link>
+            </div>
+          </div>
+
+          {/* Proof card */}
+          <div className="rounded-2xl border border-white/15 bg-white/[0.06] p-6 backdrop-blur-sm">
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/60">Why students use it</p>
+            <ul className="mt-4 space-y-3">
+              {PROOF.map((p) => (
+                <li key={p} className="flex gap-3 text-sm leading-relaxed text-white/85">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "hsl(var(--highlight))" }} />
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6 grid grid-cols-3 gap-3 border-t border-white/10 pt-5 text-center">
+              {[
+                { v: libraryTotals.notes, l: "Notes" },
+                { v: libraryTotals.mcqs, l: "MCQ sets" },
+                { v: libraryTotals.units, l: "Units" },
+              ].map((s) => (
+                <div key={s.l}>
+                  <p className="font-serif text-2xl font-bold text-white">{s.v || "—"}</p>
+                  <p className="text-[11px] uppercase tracking-wide text-white/55">{s.l}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Quick Access Grid — overlapping cards */}
-      <section className="mx-auto max-w-6xl px-5 -mt-12 sm:-mt-14 relative z-10">
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-          {QUICK_ACCESS.map((q) => (
-            <div key={q.to}>
-              <Link to={q.to}
-                className="group block rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
-                <div className={`mb-3 flex h-11 w-11 items-center justify-center rounded-xl ${q.tint}`}>
-                  <q.icon className="h-5 w-5" />
+      {/* ── Resource tiles ── */}
+      <section className="mx-auto max-w-6xl px-5 py-10 sm:py-14">
+        <h2 className="rule-heading mb-5 font-serif text-xl font-bold text-foreground sm:text-2xl">Explore the library</h2>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          {RESOURCES.map((r) => {
+            const key = getSubjectKey(r.subject);
+            return (
+              <Link
+                key={r.to}
+                to={r.to}
+                className="group relative overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-elevated)]"
+              >
+                <div
+                  className="flex h-24 items-end p-4 transition-transform duration-500 group-hover:scale-[1.04] sm:h-32"
+                  style={{ background: `linear-gradient(140deg, ${subjectColor(key, 0.95)}, ${subjectColor(key, 0.55)})` }}
+                >
+                  <r.icon className="h-7 w-7 text-white/90 sm:h-8 sm:w-8" />
                 </div>
-                <h3 className="font-bold text-foreground text-sm sm:text-base">{q.label}</h3>
-                <p className="mt-0.5 text-[11px] sm:text-xs text-muted-foreground">{q.desc}</p>
+                <div className="p-4">
+                  <h3 className="text-sm font-bold text-foreground sm:text-base">{r.label}</h3>
+                  <p className="mt-1 text-[11px] leading-snug text-muted-foreground sm:text-xs">{r.desc}</p>
+                </div>
               </Link>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 py-10 sm:py-14">
+      <section className="band-surface">
+      <div className="mx-auto max-w-6xl px-5 py-10 sm:py-14">
         {/* Last Read */}
         {lastRead.length > 0 && (
           <div className="mb-10">
@@ -180,12 +249,12 @@ export default function Index() {
 
         {/* Browse by Year */}
         <div className="mb-10">
-          <div className="flex items-end justify-between border-b border-border pb-3 mb-5">
-            <div>
-              <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground">Browse by Year</h2>
-              <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground">MBChB curriculum, organised by year &amp; unit</p>
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div className="min-w-0">
+              <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground">Browse by year</h2>
+              <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground">Pick your year, then a semester or unit</p>
             </div>
-            <Link to="/blog" className="text-xs sm:text-sm font-semibold text-primary hover:underline whitespace-nowrap">View all</Link>
+            <Link to="/blog" className="whitespace-nowrap text-xs font-semibold text-primary hover:underline sm:text-sm">View all</Link>
           </div>
           {loading ? (
             <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
@@ -195,49 +264,52 @@ export default function Index() {
               <p className="text-muted-foreground">No study materials yet. Content is being added regularly!</p>
             </div>
           ) : (
-            <>
-              <div className="flex gap-2 overflow-x-auto pb-2 mb-5" style={{ scrollbarWidth: "none" }}>
-                {yearGroups.map(g => (
-                  <Link key={g.year} to={`/blog?year=${encodeURIComponent(g.year)}`}
-                    className="whitespace-nowrap rounded-full border border-border bg-card px-5 py-2 text-xs sm:text-sm font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary transition">
-                    {g.year}
-                  </Link>
-                ))}
-              </div>
-              <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {yearGroups.map((group) => (
-                  <div key={group.year}>
-                    <Link to={`/blog?year=${encodeURIComponent(group.year)}`}
-                      className="group block h-full rounded-2xl border border-border bg-card p-5 hover:shadow-md hover:border-primary/30 transition-all">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="font-serif text-lg font-bold text-primary">{group.year}</span>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                      <div className="space-y-1">
-                        {group.categories.slice(0, 5).map(cat => (
-                          <p key={cat.name} className="text-sm text-muted-foreground truncate">{getCategoryDisplayName(cat.name)}</p>
-                        ))}
-                        {group.categories.length > 5 && (
-                          <p className="text-xs text-muted-foreground/60">+{group.categories.length - 5} more units</p>
-                        )}
-                      </div>
-                    </Link>
+            <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {yearGroups.map((group) => (
+                <Link
+                  key={group.year}
+                  to={`/blog?year=${encodeURIComponent(group.year)}`}
+                  className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-card-hover)]"
+                >
+                  <div className="flex items-baseline justify-between border-b border-border px-5 py-4">
+                    <span className="font-serif text-xl font-bold text-foreground">{group.year}</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      {group.categories.length} units
+                    </span>
                   </div>
-                ))}
-              </div>
-            </>
+                  <div className="flex flex-wrap gap-1.5 p-4">
+                    {group.categories.slice(0, 6).map(cat => {
+                      const key = getSubjectKey(cat.name);
+                      return (
+                        <span
+                          key={cat.name}
+                          className="max-w-full truncate rounded-md px-2 py-1 text-[11px] font-semibold"
+                          style={{ backgroundColor: subjectColor(key, 0.12), color: subjectColor(key) }}
+                        >
+                          {getCategoryDisplayName(cat.name)}
+                        </span>
+                      );
+                    })}
+                    {group.categories.length > 6 && (
+                      <span className="rounded-md bg-muted px-2 py-1 text-[11px] font-semibold text-muted-foreground">
+                        +{group.categories.length - 6}
+                      </span>
+                    )}
+                  </div>
+                  <span className="mt-auto flex items-center gap-1.5 px-5 pb-4 text-xs font-bold text-primary">
+                    Open {group.year} <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </Link>
+              ))}
+            </div>
           )}
         </div>
 
         {/* Recently Added */}
         <div>
-          <div className="flex items-end justify-between border-b border-border pb-3 mb-5">
-            <div>
-              <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" /> Recently Added
-              </h2>
-              <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground">Fresh notes, MCQs, flashcards &amp; clinical stories</p>
-            </div>
+          <div className="mb-5">
+            <h2 className="font-serif text-xl font-bold text-foreground sm:text-2xl">Recently added</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">Fresh notes, MCQs, flashcards &amp; clinical stories</p>
           </div>
           <div className="flex gap-2 mb-5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
             {(["all", "articles", "mcqs", "flashcards", "stories"] as const).map(tab => (
@@ -252,18 +324,17 @@ export default function Index() {
               <p className="text-sm text-muted-foreground">No content yet. Check back soon!</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="overflow-hidden rounded-2xl border border-border bg-card">
               {filteredRecent.slice(0, 10).map(item => {
                 const meta = typeMeta[item.type];
                 const Icon = meta.icon;
+                const subject = getSubjectKey(`${item.category} ${item.title}`);
                 return (
                   <Link key={`${item.type}-${item.id}`} to={getItemLink(item)}
-                    className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-3 sm:p-4 transition-all hover:border-primary/30 hover:shadow-sm">
-                    <div className={`hidden sm:flex h-14 w-14 shrink-0 items-center justify-center rounded-xl ${meta.badge} font-bold text-xs tracking-wide`}>
-                      {meta.short}
-                    </div>
-                    <div className="flex sm:hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
-                      <Icon className="h-4 w-4 text-primary" />
+                    className="group relative flex items-center gap-3 border-b border-border px-3 py-3 transition-colors last:border-b-0 hover:bg-muted/50 sm:gap-4 sm:px-4">
+                    <span className="absolute left-0 top-0 h-full w-[3px]" style={{ backgroundColor: subjectColor(subject) }} aria-hidden />
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: subjectColor(subject, 0.12), color: subjectColor(subject) }}>
+                      <Icon className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
@@ -280,6 +351,7 @@ export default function Index() {
             </div>
           )}
         </div>
+      </div>
       </section>
 
       {/* Footer */}
