@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, X, BookOpen, Clock, ArrowLeft, ChevronDown } from "lucide-react";
+import { Search, X, BookOpen, Clock, ArrowLeft, ChevronDown, LayoutGrid, List } from "lucide-react";
 import {
   getCategoryDisplayName,
   getYearFromCategory,
@@ -10,8 +10,8 @@ import {
   type Article,
 } from "@/lib/store";
 import NoteRow from "@/components/NoteRow";
+import NoteCard from "@/components/NoteCard";
 import UnitTile from "@/components/UnitTile";
-import { getSubjectKey, subjectColor } from "@/components/subjectTheme";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
 import { updateMetaTags } from "@/lib/seo";
 import { getAllCategories } from "@/lib/store";
