@@ -609,6 +609,22 @@ export default async function handler(req: Request): Promise<Response> {
   const originalPath = url.searchParams.get("path") || "/";
 
   if (!isCrawler(ua)) {
+    // Legacy UUID / UUID-prefixed detail URLs must collapse to the single
+    // canonical slug path for EVERY client, not just crawlers. A client-side
+    // replaceState in the SPA is invisible to Google, so those URLs used to
+    // stay in the index as duplicates.
+    const legacyParts = originalPath.split("?")[0].split("/").filter(Boolean);
+    const legacySection = legacyParts[0] || "";
+    const legacyParam = legacyParts[1] || "";
+    if (
+      ["blog", "mcqs", "flashcards"].includes(legacySection) &&
+      extractUuidFromParam(legacyParam)
+    ) {
+      const target = await resolveCanonicalDetailPath(legacySection, legacyParam);
+      if (target && target !== `/${legacySection}/${legacyParam}`) {
+        return permanentRedirect(target);
+      }
+    }
     return Response.redirect(new URL(originalPath, url.origin).toString(), 307);
   }
 
