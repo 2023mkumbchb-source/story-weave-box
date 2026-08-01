@@ -480,6 +480,7 @@ export type Database = {
           payment_status: string
           phone_number: string
           project_id: string | null
+          provider_txn_id: string | null
           transaction_id: string | null
           updated_at: string
         }
@@ -494,6 +495,7 @@ export type Database = {
           payment_status?: string
           phone_number: string
           project_id?: string | null
+          provider_txn_id?: string | null
           transaction_id?: string | null
           updated_at?: string
         }
@@ -508,6 +510,7 @@ export type Database = {
           payment_status?: string
           phone_number?: string
           project_id?: string | null
+          provider_txn_id?: string | null
           transaction_id?: string | null
           updated_at?: string
         }
