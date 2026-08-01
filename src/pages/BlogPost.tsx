@@ -1726,7 +1726,19 @@ export default function BlogPost() {
 
   useEffect(() => {
     if (!slug) { setLoading(false); return; }
-    getArticleBySlugOrId(slug)
+    // Retry transient network/CDN failures before declaring the article missing —
+    // a flaky connection must never render "Article unavailable".
+    const fetchWithRetry = async (attempt = 0): Promise<any> => {
+      try {
+        return await getArticleBySlugOrId(slug);
+      } catch (err) {
+        if (attempt >= 3) throw err;
+        await new Promise((r) => setTimeout(r, 400 * Math.pow(2, attempt)));
+        return fetchWithRetry(attempt + 1);
+      }
+    };
+
+    fetchWithRetry()
       .then((a) => {
         if (!a) {
           setNotFound(true);
@@ -1760,6 +1772,11 @@ export default function BlogPost() {
         if (location.pathname !== canonicalPath) navigate(`${canonicalPath}${location.hash || ""}`, { replace: true });
         markArticleVisited({ id: a.id, title: a.title, category: a.category, visitedAt: Date.now() });
         if (a.category) getRelatedContent(a.category, a.id).then(setRelated);
+      })
+      .catch(() => {
+        // Network still failing: keep the shell, show offline messaging instead of "removed".
+        setIsOffline(true);
+        setNotFound(true);
       })
       .finally(() => setLoading(false));
   }, [slug, navigate, location.pathname, location.hash]);
