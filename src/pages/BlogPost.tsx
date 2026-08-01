@@ -369,7 +369,7 @@ function ClassicHeroInner({
           <img
             src={heroImage}
             alt={title}
-            className="aspect-[16/9] w-full object-cover object-center"
+            className="max-h-[360px] w-full object-cover object-center"
             loading="eager"
           />
         </figure>
