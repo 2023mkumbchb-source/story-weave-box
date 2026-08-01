@@ -194,6 +194,24 @@ function PracticeQuestion({ number, question, answer }: { number: string; questi
 }
 
 /* ─── MCQ answer + explanation collapsible (used inside articles) ─── */
+/* Essay question — answers are always visible (never hidden behind a button) */
+function EssayQuestion({ number, question, answer }: { number: string; question: string; answer: string }) {
+  return (
+    <article className="rounded-xl border border-border bg-card p-4 sm:p-5">
+      <div className="flex items-start gap-3">
+        <span className="shrink-0 flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold mt-0.5">{number}</span>
+        <h3 className="flex-1 text-sm sm:text-[15px] font-semibold text-foreground leading-relaxed"><Inline text={question} /></h3>
+      </div>
+      {answer && (
+        <div className="mt-3 border-l-2 border-primary/50 pl-4">
+          <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-primary">Model answer</p>
+          <p className="text-sm sm:text-[15px] text-foreground/90 leading-[1.75] whitespace-pre-line"><Inline text={answer} /></p>
+        </div>
+      )}
+    </article>
+  );
+}
+
 function McqAnswerBlock({ raw }: { raw: string }) {
   const [open, setOpen] = useState(false);
   const lines = raw.split("\n");
@@ -2070,7 +2088,7 @@ export default function BlogPost() {
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Short Answer Questions</p>
                     <div className="space-y-2">
                       {essaySaqs.map((q: any, i: number) => (
-                        <PracticeQuestion
+                        <EssayQuestion
                           key={`saq-${i}`}
                           number={`${i + 1}`}
                           question={q.question || ""}
@@ -2085,7 +2103,7 @@ export default function BlogPost() {
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Long Answer Questions</p>
                     <div className="space-y-2">
                       {essayLaqs.map((q: any, i: number) => (
-                        <PracticeQuestion
+                        <EssayQuestion
                           key={`laq-${i}`}
                           number={`${i + 1}`}
                           question={q.question || ""}
