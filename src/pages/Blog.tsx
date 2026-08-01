@@ -112,6 +112,14 @@ export default function Blog() {
     try { localStorage.setItem("ompath_notes_view", v); } catch { /* ignore */ }
   };
   const [sidebarCats, setSidebarCats] = useState<{ name: string; articles: number; flashcards: number; mcqs: number }[]>([]);
+  const [sortBy, setSortBy] = useState<"updated" | "az" | "read">(
+    () => (localStorage.getItem("ompath_notes_sort") as "updated" | "az" | "read") || "updated",
+  );
+  const [kindFilter, setKindFilter] = useState<"all" | "mcq" | "essay" | "notes">("all");
+  const setSort = (s: "updated" | "az" | "read") => {
+    setSortBy(s);
+    try { localStorage.setItem("ompath_notes_sort", s); } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     getAllCategories().then(setSidebarCats).catch(() => {});
@@ -266,12 +274,34 @@ export default function Blog() {
           return matchesYear && matchesUnit && matchesSemester;
         });
 
-    // Sort by most recently updated/created
-    const sorted = [...base].sort(
-      (a, b) =>
+    // Content-kind filter (MCQs / essays / plain notes)
+    const kindOf = (a: any) => {
+      const k = (a.content_kind || "").toLowerCase();
+      if (k.includes("mcq") && k.includes("essay")) return "both";
+      if (k.includes("mcq")) return "mcq";
+      if (k.includes("essay")) return "essay";
+      return "notes";
+    };
+    const kindFiltered = kindFilter === "all"
+      ? base
+      : base.filter((a) => {
+          const k = kindOf(a);
+          return k === kindFilter || (k === "both" && kindFilter !== "notes");
+        });
+
+    const lastReadAt = (id: string) => {
+      const hit = recentArticles.find((r: any) => r.id === id) as any;
+      return hit?.visitedAt || 0;
+    };
+
+    const sorted = [...kindFiltered].sort((a, b) => {
+      if (sortBy === "az") return (a.title || "").localeCompare(b.title || "");
+      if (sortBy === "read") return lastReadAt(b.id) - lastReadAt(a.id);
+      return (
         new Date(b.updated_at || b.created_at).getTime() -
         new Date(a.updated_at || a.created_at).getTime()
-    );
+      );
+    });
 
     // Deduplicate by article id
     const seen = new Set<string>();
@@ -280,7 +310,7 @@ export default function Blog() {
       seen.add(a.id);
       return true;
     });
-  }, [articles, search, searchMatches, selectedYear, selectedUnit, selectedSemester]);
+  }, [articles, search, searchMatches, selectedYear, selectedUnit, selectedSemester, sortBy, kindFilter, recentArticles]);
 
   // Per-year totals for the "choose your year" landing step, shown when no
   // year has been picked yet (fresh arrival from "Start Studying").
@@ -695,6 +725,28 @@ export default function Blog() {
             {filtered.length} {filtered.length === 1 ? "note" : "notes"}
           </p>
           <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5">
+            {/* Sort + content-kind filters */}
+            <select
+              value={kindFilter}
+              onChange={(e) => setKindFilter(e.target.value as any)}
+              aria-label="Filter by content type"
+              className="mr-1 rounded-md bg-transparent px-2 py-1 text-xs font-semibold text-muted-foreground focus:outline-none"
+            >
+              <option value="all">All types</option>
+              <option value="mcq">MCQs</option>
+              <option value="essay">Essays</option>
+              <option value="notes">Notes</option>
+            </select>
+            <select
+              value={sortBy}
+              onChange={(e) => setSort(e.target.value as any)}
+              aria-label="Sort notes"
+              className="mr-1 rounded-md bg-transparent px-2 py-1 text-xs font-semibold text-muted-foreground focus:outline-none"
+            >
+              <option value="updated">Last updated</option>
+              <option value="read">Last read</option>
+              <option value="az">A–Z</option>
+            </select>
             <button
               onClick={() => setViewMode("list")}
               aria-label="List view"
