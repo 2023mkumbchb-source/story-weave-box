@@ -1962,7 +1962,7 @@ export default function BlogPost() {
             </aside>
           )}
 
-          <article id="section-top" className="min-w-0">
+          <article id="section-top" className="min-w-0 lg:max-w-[76ch]">
             <Countdown data={(article as any).countdown} />
             <PasswordGate
               enabled={(article as any).password_protected}
