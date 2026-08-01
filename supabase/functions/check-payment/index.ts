@@ -88,6 +88,31 @@ serve(async (req) => {
       );
     }
 
+    // Still pending? Ask Palpluss directly (webhook may not have landed yet).
+    const PALPLUSS_API_KEY = Deno.env.get("PALPLUSS_API_KEY");
+    if (payment.payment_status === "pending" && payment.provider_txn_id && PALPLUSS_API_KEY) {
+      try {
+        const res = await fetch(`https://api.palpluss.com/v1/transactions/${payment.provider_txn_id}`, {
+          headers: { Authorization: "Basic " + btoa(`${PALPLUSS_API_KEY}:`) },
+        });
+        const json = await res.json().catch(() => ({}));
+        const remote = String(json?.data?.status || "").toUpperCase();
+        if (remote && remote !== "PENDING") {
+          const newStatus = remote === "SUCCESS" ? "completed" : "failed";
+          const receipt = json?.data?.mpesaReceipt ?? json?.data?.mpesa_receipt ?? null;
+          const { data: updated } = await supabase
+            .from("payments")
+            .update({ payment_status: newStatus, mpesa_code: receipt, updated_at: new Date().toISOString() })
+            .eq("id", payment.id)
+            .select()
+            .maybeSingle();
+          if (updated) payment = updated;
+        }
+      } catch (e) {
+        console.error("Palpluss status poll failed:", e);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
