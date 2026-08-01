@@ -1175,7 +1175,12 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         // Bold-wrapped question stems that end with **: "**Q2. text?**" / "**2. text?**"
         if (/^\*\*(?:Q(?:uestion)?\s*)?\d+[\.\)]/i.test(nt)) break;
         if (/^#{1,6}\s/.test(nt)) break;
-        if (/^\*{0,2}\s*(✅\s*)?(?:Answer|Model answer|Correct answer|Explanation|Rationale)\s*[:：]/i.test(nt)) break;
+        const isAnswerHdr = /^\*{0,2}\s*(✅\s*)?(?:Answer|Model answer|Correct answer)\s*[:：]/i.test(nt);
+        const isExpHdr = /^\*{0,2}\s*(✅\s*)?(?:Explanation|Rationale)\s*[:：]/i.test(nt);
+        // Merge a following Explanation/Rationale block into the SAME reveal button
+        // so one question never renders two "Show answer & explanation" buttons.
+        if (isAnswerHdr) break;
+        if (isExpHdr && sawExp) break;
         if (/^\*{1,2}\d+\.\s/.test(nt)) break;
         if (/^\d+\.\s.{4,}[?:]\s*\*{0,2}$/.test(nt)) break;
         // Numbered question stems like "1. Something?" or "1) Something?"
@@ -1190,7 +1195,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         }
         if (sawExp && /^-\s+[A-E][\.\)]\s/.test(nt)) break;
         buf.push(lines[j]);
-        if (/^\*{0,2}\s*Explanation\s*[:：]/i.test(nt)) sawExp = true;
+        if (isExpHdr) sawExp = true;
         j++;
       }
       while (buf.length && !buf[buf.length - 1].trim()) buf.pop();
@@ -1243,14 +1248,29 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       flushList(); flushPractice(); inPractice = false; underSubheading = false;
       _sec++;
       const qNum = questionMatch[2];
-      const qTitle = questionMatch[3]?.replace(/^\s*[-:]\s*/, "").trim() || "";
+      let qTitle = questionMatch[3]?.replace(/^\s*[-:]\s*/, "").trim() || "";
+      // Unified MCQ layout: pull the stem onto the "Qn" header row instead of
+      // rendering a bare "Question 1" heading followed by a duplicate stem line.
+      if (!qTitle) {
+        for (let k = i + 1; k < lines.length; k++) {
+          const nt = lines[k].trim();
+          if (!nt) continue;
+          if (/^\*{0,2}\s*[A-E]\s*[\.\)]/.test(nt)) break;
+          if (/^\*{0,2}\s*(✅\s*)?(?:Answer|Model answer|Correct answer|Explanation|Rationale)\s*[:：]/i.test(nt)) break;
+          if (/^#{1,6}\s/.test(nt)) break;
+          if (/^(QUESTION|Question|Q)\s*\d+/i.test(nt)) break;
+          qTitle = cleanDisplayText(nt.replace(/^\*+|\*+$/g, ""));
+          skipUntil = k + 1;
+          break;
+        }
+      }
       els.push(
         <div key={`q-${i}`} id={`section-${_sec}`} className="mt-10 mb-4 scroll-mt-20">
           <div className="flex items-center gap-3 mb-3">
             <span className="shrink-0 flex items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm w-10 h-10">
               Q{qNum}
             </span>
-            <h2 className="font-serif font-bold text-2xl text-foreground leading-tight sm:text-[2rem]">
+            <h2 className="font-serif font-bold text-xl text-foreground leading-snug sm:text-2xl">
               {qTitle || `Question ${qNum}`}
             </h2>
           </div>
