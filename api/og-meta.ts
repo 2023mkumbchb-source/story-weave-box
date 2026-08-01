@@ -373,6 +373,30 @@ async function fetchFlashcardSetBySlugOrId(param: string) {
   return byClean && byClean.length > 0 ? byClean[0] : null;
 }
 
+/**
+ * Resolve the one true public path for a legacy detail URL (UUID or
+ * UUID-prefixed slug). Returns null when nothing matches.
+ */
+async function resolveCanonicalDetailPath(section: string, param: string): Promise<string | null> {
+  try {
+    if (section === "blog") {
+      const article = await fetchArticleBySlug(param);
+      return article ? `/blog/${cleanPublicSlug(article.slug, article.title, "article")}` : "/blog";
+    }
+    if (section === "mcqs") {
+      const mcq = await fetchMcqSetBySlugOrId(param);
+      return mcq ? `/mcqs/${cleanPublicSlug(mcq.slug, mcq.title, "quiz")}` : "/mcqs";
+    }
+    if (section === "flashcards") {
+      const set = await fetchFlashcardSetBySlugOrId(param);
+      return set ? `/flashcards/${cleanPublicSlug(set.slug, set.title, "flashcards")}` : "/flashcards";
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 async function buildLiveIndexLinks(section: string, year?: string): Promise<string> {
   const yearPrefix = year && /^[1-6]$/.test(year) ? `Year ${year}:` : "";
   const filterYear = (row: Record<string, string>) => !yearPrefix || String(row.category || "").startsWith(yearPrefix);
