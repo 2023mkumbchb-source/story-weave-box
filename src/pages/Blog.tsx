@@ -456,30 +456,32 @@ export default function Blog() {
         </aside>
 
         <div className="min-w-0">
-      {/* Header */}
-      <div className="mb-7">
-        <h1 className="font-serif text-3xl font-bold leading-tight text-foreground sm:text-4xl">Study Notes</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Browse structured clinical notes by year and unit.</p>
+      {/* Page header — dark editorial band with the search inside it, the way
+          AMBOSS/TeachMeAnatomy anchor their library pages. */}
+      <div className="band-ink mb-6 rounded-2xl px-5 py-6 sm:px-7 sm:py-8">
         {yearRoute && (
           <button
             onClick={() => navigate(`/year/${yearRoute}`)}
-            className="mt-2 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-white/60 transition-colors hover:text-white"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Back to Year {yearRoute}
           </button>
         )}
-      </div>
-
-      {/* Search */}
-      <div className="mb-5">
-        <div className={`relative flex items-center rounded-xl border bg-card transition-all ${searchFocused ? "border-primary ring-1 ring-primary/20" : "border-border"}`}>
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/55">
+          {selectedYear === "All" ? "MBChB curriculum" : selectedYear}
+        </p>
+        <h1 className="mt-1.5 font-serif text-3xl font-bold leading-tight sm:text-4xl">Study Notes</h1>
+        <p className="mt-1.5 max-w-xl text-sm text-white/70">
+          High-yield notes, CATs and past papers, organised by year, semester and unit.
+        </p>
+        <div className={`mt-5 flex items-center overflow-hidden rounded-xl bg-white ${searchFocused ? "ring-2 ring-white/40" : ""}`}>
           <Search className="ml-3 h-4 w-4 shrink-0 text-muted-foreground" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
-            placeholder="Live search in title + content…"
+            placeholder="Search notes by title or content…"
             className="w-full bg-transparent px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
           {search && (
@@ -489,7 +491,7 @@ export default function Blog() {
           )}
         </div>
         {search.trim() && (
-          <p className="mt-1.5 text-xs text-muted-foreground">
+          <p className="mt-2 text-xs text-white/65">
             {searchLoading ? "Searching…" : filtered.length === 0 ? `No results for "${search}"` : `${filtered.length} matching articles`}
           </p>
         )}
@@ -637,34 +639,49 @@ export default function Blog() {
         </div>
       )}
 
-      {/* Unit chips — ordered by most recently updated. For Year 3, only shown once
-          a semester is chosen (or "All Semesters"), and scoped to that semester. */}
+      {/* Units. With no unit picked these render as colour-blocked tiles (Geeky
+          Medics resource-grid pattern) so a 30-unit semester reads as a visual
+          index; once a unit is open they collapse into a compact switcher row. */}
       {selectedYear !== "All" && unitsForSelection.length > 0 && (selectedYear !== "Year 3" || selectedSemester || selectedUnit) && (
-        <div className="mb-6 flex flex-wrap gap-1.5">
-          <button
-            onClick={() => setUnit(null)}
-            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-              !selectedUnit
-                ? "border border-primary/30 bg-primary/10 text-primary"
-                : "border border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            All Units ({filtered.length})
-          </button>
-          {unitsForSelection.map(u => (
+        selectedUnit ? (
+          <div className="mb-6 flex flex-wrap gap-1.5">
             <button
-              key={u.category}
-              onClick={() => setUnit(selectedUnit === u.category ? null : u.category)}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                selectedUnit === u.category
-                  ? "border border-primary/30 bg-primary/10 text-primary"
-                  : "border border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+              onClick={() => setUnit(null)}
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              {u.name} ({u.count})
+              ← All units
             </button>
-          ))}
-        </div>
+            {unitsForSelection.map(u => {
+              const key = getSubjectKey(u.name);
+              const active = selectedUnit === u.category;
+              return (
+                <button
+                  key={u.category}
+                  onClick={() => setUnit(active ? null : u.category)}
+                  className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+                  style={
+                    active
+                      ? { backgroundColor: subjectColor(key), color: "white" }
+                      : { backgroundColor: subjectColor(key, 0.12), color: subjectColor(key) }
+                  }
+                >
+                  {u.name} ({u.count})
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="mb-8">
+            <p className="mb-2.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              Choose a unit · {unitsForSelection.length} available
+            </p>
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+              {unitsForSelection.map(u => (
+                <UnitTile key={u.category} title={u.name} count={u.count} onClick={() => setUnit(u.category)} />
+              ))}
+            </div>
+          </div>
+        )
       )}
 
       {/* Articles */}
@@ -673,7 +690,7 @@ export default function Blog() {
           <p className="text-muted-foreground">No articles found</p>
         </div>
       ) : groupedArticles && !search.trim() ? (
-        <div className="space-y-10">
+        <div className="space-y-8">
           {groupedArticles.map(group => {
             const isExpanded = expandedGroups.has(group.category);
             const showCount = isExpanded ? group.articles.length : INITIAL_PER_GROUP;
@@ -681,24 +698,26 @@ export default function Blog() {
             return (
               <div key={group.category}>
                 <div className="mb-3 flex items-center gap-3">
-                  <h2 className="font-serif text-xl font-bold text-foreground sm:text-2xl">{group.name}</h2>
+                  <span
+                    className="h-5 w-1.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: subjectColor(getSubjectKey(group.name)) }}
+                    aria-hidden
+                  />
+                  <h2 className="font-serif text-lg font-bold text-foreground sm:text-2xl">{group.name}</h2>
                   <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                     {group.articles.length}
                   </span>
                   <div className="h-px flex-1 bg-border" />
                 </div>
-                <div className="space-y-3">
-                  {group.articles.slice(0, showCount).map(a => (
-                    <div key={a.id}>
-                      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{getCategoryDisplayName(a.category)}</p>
-                      <ArticleCard article={a} />
-                    </div>
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  {group.articles.slice(0, showCount).map((a, i) => (
+                    <NoteRow key={a.id} article={a} index={i} />
                   ))}
                 </div>
                 {hasMore && (
                   <button
                     onClick={() => toggleGroup(group.category)}
-                    className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                    className="mt-2.5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
                   >
                     {isExpanded ? (
                       <>Show less</>
@@ -715,20 +734,22 @@ export default function Blog() {
           })}
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.slice(0, visibleCount).map(a => (
-            <ArticleCard key={a.id} article={a} />
+        <>
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          {filtered.slice(0, visibleCount).map((a, i) => (
+            <NoteRow key={a.id} article={a} index={i} />
           ))}
-          {filtered.length > visibleCount && (
+        </div>
+        {filtered.length > visibleCount && (
             <button
               onClick={() => setVisibleCount(prev => prev + LOAD_MORE_STEP)}
-              className="mx-auto flex items-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+              className="mx-auto mt-4 flex items-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
             >
               Load more ({filtered.length - visibleCount} remaining)
               <ChevronDown className="h-4 w-4" />
             </button>
           )}
-        </div>
+        </>
       )}
       </>
       )}
