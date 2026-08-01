@@ -31,7 +31,11 @@ export function getSubjectKey(text: string): SubjectKey {
   return "path";
 }
 
-/** CSS colour expression for a subject, usable inline for borders/dots/tiles. */
-export function subjectColor(key: SubjectKey, alpha = 1): string {
-  return `hsl(var(--subject-${key}) / ${alpha})`;
+/**
+ * Single, quiet accent. The earlier per-discipline rainbow made every list and
+ * tile look like a colour chart; the site now uses one restrained ink tone so
+ * typography and hierarchy do the wayfinding instead of colour.
+ */
+export function subjectColor(_key: SubjectKey, alpha = 1): string {
+  return `hsl(var(--ink-soft) / ${alpha})`;
 }

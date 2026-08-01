@@ -342,62 +342,39 @@ function ClassicHeroInner({
   const heroImage = image || topicThumb || "";
   const reviewer = pickReviewer(title);
 
+  /* Text-first editorial masthead: the title leads, the photograph supports it.
+     The old full-bleed dark hero with overlaid type buried the headline and made
+     every article look like a movie poster. */
   return (
-    <header className="mb-10 -mx-5 sm:mx-0">
-      <div className="relative overflow-hidden sm:rounded-2xl bg-neutral-900 shadow-lg ring-1 ring-black/5">
-        {heroImage ? (
-          <div className="group relative aspect-[4/5] sm:aspect-[16/10] lg:aspect-[21/9] w-full">
-            <div
-              aria-hidden
-              className="absolute inset-0 scale-110 bg-cover bg-center blur-2xl opacity-70"
-              style={{ backgroundImage: `url(${heroImage})` }}
-            />
-            <img
-              src={heroImage}
-              alt={title}
-              className="absolute inset-0 h-full w-full object-cover object-center animate-hero-fade animate-hero-kenburns will-change-transform"
-              loading="eager"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/10" />
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-transparent to-transparent mix-blend-overlay" />
-            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8 lg:p-12 animate-hero-rise">
-              {unit && (
-                <span className="inline-flex items-center gap-1.5 mb-4 rounded-full bg-primary/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary-foreground backdrop-blur shadow-sm">
-                  <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
-                  {unit}
-                </span>
-              )}
-              <h1 id={slugify(title)} className="scroll-mt-20 font-serif text-3xl font-bold leading-[1.1] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] sm:text-5xl lg:text-6xl">
-                {title}
-              </h1>
-              {description && (
-                <p className="mt-4 max-w-prose font-serif text-sm sm:text-lg text-white/90 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)] leading-relaxed line-clamp-3">
-                  {description}
-                </p>
-              )}
-              <ReviewedBadge reviewer={reviewer} date={date} onDark />
-            </div>
-          </div>
-        ) : (
-          <div className="relative px-5 py-10 sm:px-10 sm:py-14 bg-gradient-to-br from-primary/15 via-background to-primary/5 animate-hero-fade">
-            {unit && (
-              <span className="inline-block mb-3 rounded-full bg-primary/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
-                {unit}
-              </span>
-            )}
-            <h1 id={slugify(title)} className="scroll-mt-20 font-serif text-3xl font-bold leading-tight text-foreground sm:text-5xl animate-hero-rise">
-              {title}
-            </h1>
-            {description && (
-              <p className="mt-4 max-w-prose font-serif text-base text-muted-foreground leading-relaxed">
-                {description}
-              </p>
-            )}
-            <ReviewedBadge reviewer={reviewer} date={date} />
-          </div>
+    <header className="mb-8">
+      <div className="border-b border-border pb-6">
+        {unit && (
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">{unit}</p>
         )}
+        <h1
+          id={slugify(title)}
+          className="mt-2 scroll-mt-20 font-serif text-[1.85rem] font-bold leading-[1.15] text-foreground sm:text-[2.6rem] lg:text-[3rem]"
+        >
+          {title}
+        </h1>
+        {description && (
+          <p className="mt-3 max-w-[62ch] text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+            {description}
+          </p>
+        )}
+        <ReviewedBadge reviewer={reviewer} date={date} />
       </div>
-      <ShareButtons url={shareUrl} title={title} description={description} variant="full" className="mt-5 px-5 sm:px-0" />
+      {heroImage && (
+        <figure className="mt-6 overflow-hidden rounded-lg border border-border bg-muted">
+          <img
+            src={heroImage}
+            alt={title}
+            className="max-h-[360px] w-full object-cover object-center"
+            loading="eager"
+          />
+        </figure>
+      )}
+      <ShareButtons url={shareUrl} title={title} description={description} variant="full" className="mt-5" />
     </header>
   );
 }
@@ -1985,7 +1962,7 @@ export default function BlogPost() {
             </aside>
           )}
 
-          <article id="section-top" className="min-w-0">
+          <article id="section-top" className="min-w-0 lg:max-w-[76ch]">
             <Countdown data={(article as any).countdown} />
             <PasswordGate
               enabled={(article as any).password_protected}
