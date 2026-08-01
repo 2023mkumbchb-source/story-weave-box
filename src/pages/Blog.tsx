@@ -645,9 +645,9 @@ export default function Blog() {
         </div>
       )}
 
-      {/* Units. With no unit picked these render as colour-blocked tiles (Geeky
-          Medics resource-grid pattern) so a 30-unit semester reads as a visual
-          index; once a unit is open they collapse into a compact switcher row. */}
+      {/* Units. With no unit picked these render as photo tiles (real topic
+          imagery, no generated art); once a unit is open they collapse into a
+          plain switcher row. */}
       {selectedYear !== "All" && unitsForSelection.length > 0 && (selectedYear !== "Year 3" || selectedSemester || selectedUnit) && (
         selectedUnit ? (
           <div className="mb-6 flex flex-wrap gap-1.5">
@@ -658,18 +658,16 @@ export default function Blog() {
               ← All units
             </button>
             {unitsForSelection.map(u => {
-              const key = getSubjectKey(u.name);
               const active = selectedUnit === u.category;
               return (
                 <button
                   key={u.category}
                   onClick={() => setUnit(active ? null : u.category)}
-                  className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
-                  style={
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                     active
-                      ? { backgroundColor: subjectColor(key), color: "white" }
-                      : { backgroundColor: subjectColor(key, 0.12), color: subjectColor(key) }
-                  }
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
                 >
                   {u.name} ({u.count})
                 </button>
@@ -690,36 +688,62 @@ export default function Blog() {
         )
       )}
 
+      {/* View switcher — list (dense index) or grid (cards) */}
+      {filtered.length > 0 && (
+        <div className="mb-3 flex items-center justify-between gap-3 border-b border-border pb-2">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            {filtered.length} {filtered.length === 1 ? "note" : "notes"}
+          </p>
+          <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5">
+            <button
+              onClick={() => setViewMode("list")}
+              aria-label="List view"
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${view === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <List className="h-3.5 w-3.5" /> List
+            </button>
+            <button
+              onClick={() => setViewMode("grid")}
+              aria-label="Grid view"
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${view === "grid" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" /> Grid
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Articles */}
       {filtered.length === 0 ? (
         <div className="py-16 text-center">
           <p className="text-muted-foreground">No articles found</p>
         </div>
       ) : groupedArticles && !search.trim() ? (
-        <div className="space-y-8">
+        <div className="space-y-9">
           {groupedArticles.map(group => {
             const isExpanded = expandedGroups.has(group.category);
             const showCount = isExpanded ? group.articles.length : INITIAL_PER_GROUP;
             const hasMore = group.articles.length > INITIAL_PER_GROUP;
             return (
               <div key={group.category}>
-                <div className="mb-3 flex items-center gap-3">
-                  <span
-                    className="h-5 w-1.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: subjectColor(getSubjectKey(group.name)) }}
-                    aria-hidden
-                  />
-                  <h2 className="font-serif text-lg font-bold text-foreground sm:text-2xl">{group.name}</h2>
-                  <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                    {group.articles.length}
-                  </span>
+                <div className="mb-3 flex items-baseline gap-3">
+                  <h2 className="font-serif text-lg font-bold text-foreground sm:text-xl">{group.name}</h2>
+                  <span className="shrink-0 text-xs text-muted-foreground">{group.articles.length}</span>
                   <div className="h-px flex-1 bg-border" />
                 </div>
-                <div className="overflow-hidden rounded-xl border border-border bg-card">
-                  {group.articles.slice(0, showCount).map((a, i) => (
-                    <NoteRow key={a.id} article={a} index={i} />
-                  ))}
-                </div>
+                {view === "grid" ? (
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+                    {group.articles.slice(0, showCount).map(a => (
+                      <NoteCard key={a.id} article={a} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-lg border border-border bg-card">
+                    {group.articles.slice(0, showCount).map((a, i) => (
+                      <NoteRow key={a.id} article={a} index={i} />
+                    ))}
+                  </div>
+                )}
                 {hasMore && (
                   <button
                     onClick={() => toggleGroup(group.category)}
@@ -741,15 +765,23 @@ export default function Blog() {
         </div>
       ) : (
         <>
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
-          {filtered.slice(0, visibleCount).map((a, i) => (
-            <NoteRow key={a.id} article={a} index={i} />
-          ))}
-        </div>
+        {view === "grid" ? (
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+            {filtered.slice(0, visibleCount).map(a => (
+              <NoteCard key={a.id} article={a} />
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-border bg-card">
+            {filtered.slice(0, visibleCount).map((a, i) => (
+              <NoteRow key={a.id} article={a} index={i} />
+            ))}
+          </div>
+        )}
         {filtered.length > visibleCount && (
             <button
               onClick={() => setVisibleCount(prev => prev + LOAD_MORE_STEP)}
-              className="mx-auto mt-4 flex items-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+              className="mx-auto mt-4 flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
             >
               Load more ({filtered.length - visibleCount} remaining)
               <ChevronDown className="h-4 w-4" />
