@@ -8,6 +8,20 @@ import { buildBlogPath, getCategoryDisplayName, getYearFromCategory } from "@/li
  * title with muted metadata, so a 120-note semester reads like a table of
  * contents instead of a colour chart.
  */
+/** Strip markdown/HTML entity noise from list titles (e.g. "CAT 1&amp;2"). */
+function cleanTitle(t: string): string {
+  return (t || "")
+    .replace(/&amp;/g, "&")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&(?:#39|apos|rsquo|lsquo);/g, "\u2019")
+    .replace(/&(?:quot|ldquo|rdquo);/g, '"')
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
+    .replace(/^#+\s*/, "")
+    .replace(/\*\*/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export default function NoteRow({ article, index }: { article: Article; index?: number }) {
   const location = useLocation();
   const unit = getCategoryDisplayName(article.category);
@@ -30,7 +44,7 @@ export default function NoteRow({ article, index }: { article: Article; index?: 
       )}
       <div className="min-w-0 flex-1">
         <h3 className="truncate text-[15px] font-semibold leading-snug text-foreground transition-colors group-hover:text-primary sm:text-[16px]">
-          {article.title}
+          {cleanTitle(article.title)}
         </h3>
         <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[11.5px] text-muted-foreground">
           <span className="truncate">{unit}</span>
