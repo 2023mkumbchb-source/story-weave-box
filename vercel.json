@@ -68,7 +68,11 @@
     }
   ],
   "redirects": [
-    { "source": "/blog/victory-school-club-membership-system-project-guide", "destination": "/blog", "statusCode": 301 }
+    {
+      "source": "/blog/victory-school-club-membership-system-project-guide",
+      "destination": "/blog",
+      "statusCode": 301
+    }
   ],
   "rewrites": [
     {
@@ -85,64 +89,151 @@
     },
     {
       "source": "/blog/:slug",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI|Google-InspectionTool|GoogleOther|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-Safety).*"
+        }
+      ],
       "destination": "/api/og-meta?path=/blog/:slug"
     },
     {
       "source": "/stories/:id",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI|Google-InspectionTool|GoogleOther|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-Safety).*"
+        }
+      ],
       "destination": "/api/og-meta?path=/stories/:id"
     },
     {
       "source": "/mcqs/:id",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI|Google-InspectionTool|GoogleOther|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-Safety).*"
+        }
+      ],
       "destination": "/api/og-meta?path=/mcqs/:id"
     },
     {
       "source": "/flashcards/:id",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI|Google-InspectionTool|GoogleOther|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-Safety).*"
+        }
+      ],
       "destination": "/api/og-meta?path=/flashcards/:id"
     },
     {
       "source": "/exams",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI|Google-InspectionTool|GoogleOther|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-Safety).*"
+        }
+      ],
       "destination": "/api/og-meta?path=/exams"
     },
     {
       "source": "/blog",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI|Google-InspectionTool|GoogleOther|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-Safety).*"
+        }
+      ],
       "destination": "/api/og-meta?path=/blog"
     },
     {
       "source": "/mcqs",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI|Google-InspectionTool|GoogleOther|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-Safety).*"
+        }
+      ],
       "destination": "/api/og-meta?path=/mcqs"
     },
     {
       "source": "/flashcards",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI|Google-InspectionTool|GoogleOther|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-Safety).*"
+        }
+      ],
       "destination": "/api/og-meta?path=/flashcards"
     },
     {
       "source": "/stories",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI|Google-InspectionTool|GoogleOther|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-Safety).*"
+        }
+      ],
       "destination": "/api/og-meta?path=/stories"
     },
     {
       "source": "/",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI|Google-InspectionTool|GoogleOther|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-Safety).*"
+        }
+      ],
       "destination": "/api/og-meta?path=/"
     },
     {
       "source": "/year/:year",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI|Google-InspectionTool|GoogleOther|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-Safety).*"
+        }
+      ],
       "destination": "/api/og-meta?path=/year/:year"
     },
     {
       "source": "/exams/:id/start",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI).*" }],
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ss]lack[Bb]ot|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI|Google-InspectionTool|GoogleOther|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-Safety).*"
+        }
+      ],
       "destination": "/api/og-meta?path=/exams/:id/start"
     },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/blog/:legacy([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}.*)",
+      "destination": "/api/og-meta?path=/blog/:legacy"
+    },
+    {
+      "source": "/mcqs/:legacy([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}.*)",
+      "destination": "/api/og-meta?path=/mcqs/:legacy"
+    },
+    {
+      "source": "/flashcards/:legacy([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}.*)",
+      "destination": "/api/og-meta?path=/flashcards/:legacy"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
