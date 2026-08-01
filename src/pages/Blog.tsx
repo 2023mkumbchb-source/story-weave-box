@@ -104,6 +104,13 @@ export default function Blog() {
   const [recentArticles, setRecentArticles] = useState<RecentArticle[]>([]);
   const [visibleCount, setVisibleCount] = useState(20);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [view, setView] = useState<"list" | "grid">(() =>
+    (localStorage.getItem("ompath_notes_view") as "list" | "grid") || "list",
+  );
+  const setViewMode = (v: "list" | "grid") => {
+    setView(v);
+    try { localStorage.setItem("ompath_notes_view", v); } catch { /* ignore */ }
+  };
   const [sidebarCats, setSidebarCats] = useState<{ name: string; articles: number; flashcards: number; mcqs: number }[]>([]);
 
   useEffect(() => {
