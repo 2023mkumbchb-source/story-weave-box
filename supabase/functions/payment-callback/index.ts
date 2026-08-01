@@ -14,37 +14,42 @@ serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) throw new Error('Supabase credentials not configured');
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) throw new Error('Backend credentials not configured');
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const rawBody = await req.text();
-    console.log('Callback received:', rawBody);
+    console.log('Palpluss callback received:', rawBody);
     const data = JSON.parse(rawBody);
 
-    const response = data.response || {};
-    const externalReference = response.ExternalReference;
-    const payheroStatus = (response.Status || '').toLowerCase();
-    const mpesaCode = response.MpesaReceiptNumber;
+    // Palpluss webhook payload
+    const txn = data.transaction || {};
+    const externalReference: string | undefined = txn.external_reference;
+    const providerTxnId: string | undefined = txn.id;
+    const status = String(txn.status || '').toUpperCase();
+    const mpesaCode: string | null = txn.mpesa_receipt ?? null;
 
-    if (!externalReference || !payheroStatus) {
+    if ((!externalReference && !providerTxnId) || !status) {
       return new Response(
         JSON.stringify({ success: false, error: 'Missing required fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const newStatus = payheroStatus === 'success' ? 'completed' : 'failed';
+    const newStatus = status === 'SUCCESS' ? 'completed' : 'failed';
 
-    const { data: payment, error: updateError } = await supabase
+    let query = supabase
       .from('payments')
       .update({
         payment_status: newStatus,
-        mpesa_code: mpesaCode || null,
+        mpesa_code: mpesaCode,
         updated_at: new Date().toISOString(),
-      })
-      .eq('transaction_id', externalReference)
-      .select()
-      .single();
+      });
+
+    query = externalReference
+      ? query.eq('transaction_id', externalReference)
+      : query.eq('provider_txn_id', providerTxnId!);
+
+    const { data: payment, error: updateError } = await query.select().maybeSingle();
 
     if (updateError) {
       console.error('Update error:', updateError);
@@ -57,7 +62,7 @@ serve(async (req) => {
     console.log('Payment updated:', payment?.id, 'Status:', newStatus);
 
     return new Response(
-      JSON.stringify({ success: true, status: newStatus, transaction_id: externalReference }),
+      JSON.stringify({ success: true, status: newStatus, transaction_id: externalReference ?? providerTxnId }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {
