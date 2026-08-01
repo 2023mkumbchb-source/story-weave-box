@@ -624,6 +624,9 @@ export default async function handler(req: Request): Promise<Response> {
       if (target && target !== `/${legacySection}/${legacyParam}`) {
         return permanentRedirect(target);
       }
+      // Never fall through to the 307 below for a legacy UUID URL — that
+      // would bounce back into this same handler and loop.
+      return permanentRedirect(`/${legacySection}`);
     }
     return Response.redirect(new URL(originalPath, url.origin).toString(), 307);
   }
