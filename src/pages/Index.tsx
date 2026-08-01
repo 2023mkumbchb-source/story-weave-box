@@ -65,16 +65,21 @@ export default function Index() {
 
     // Load recently uploaded content (articles, mcqs, flashcards, stories)
     Promise.all([
-      supabase.from("articles").select("id, title, category, created_at, slug").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(8),
-      supabase.from("mcq_sets").select("id, title, category, created_at, slug").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(8),
-      supabase.from("flashcard_sets").select("id, title, category, created_at, slug").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(5),
-      supabase.from("stories").select("id, title, category, created_at, slug").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(5),
+      supabase.from("articles").select("id, title, category, created_at, slug, content").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(16),
+      supabase.from("mcq_sets").select("id, title, category, created_at, slug, questions").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(16),
+      supabase.from("flashcard_sets").select("id, title, category, created_at, slug, cards").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(10),
+      supabase.from("stories").select("id, title, category, created_at, slug, content").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(10),
     ]).then(([arts, mcqs, fcs, stories]) => {
+      // Never surface empty shells on the homepage: articles/stories need real
+      // body text and question sets need actual questions.
+      const hasText = (r: any) => String(r?.content || "").replace(/!\[[^\]]*\]\([^)]*\)/g, "").trim().length >= 200;
+      const hasItems = (arr: any, min: number) => Array.isArray(arr) && arr.length >= min;
+      const strip = ({ content, questions, cards, ...rest }: any) => rest;
       const items: RecentItem[] = [
-        ...(arts.data || []).map(a => ({ ...a, type: "article" as const })),
-        ...(mcqs.data || []).map(m => ({ ...m, type: "mcq" as const })),
-        ...(fcs.data || []).map(f => ({ ...f, type: "flashcard" as const })),
-        ...(stories.data || []).map(s => ({ ...s, type: "story" as const })),
+        ...(arts.data || []).filter(hasText).map(a => ({ ...strip(a), type: "article" as const })),
+        ...(mcqs.data || []).filter((m: any) => hasItems(m.questions, 3)).map(m => ({ ...strip(m), type: "mcq" as const })),
+        ...(fcs.data || []).filter((f: any) => hasItems(f.cards, 3)).map(f => ({ ...strip(f), type: "flashcard" as const })),
+        ...(stories.data || []).filter(hasText).map(s => ({ ...strip(s), type: "story" as const })),
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setRecentlyUploaded(items);
     });
