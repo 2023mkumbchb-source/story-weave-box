@@ -942,6 +942,14 @@ function preprocessContent(raw: string): string {
       continue;
     }
 
+    // Pass markdown image lines through raw so the punctuation-spacing pass
+    // below doesn't split "![" into "! [" or "file.jpg" into "file. jpg",
+    // which breaks the ^!\[(.*?)\]\((.*?)\)$ match in the renderer.
+    if (/^!\[.*?\]\(\S+\)$/.test(trimmedRaw)) {
+      out.push(trimmedRaw);
+      continue;
+    }
+
     const line = rawLine;
     let t = line
       .trim()
