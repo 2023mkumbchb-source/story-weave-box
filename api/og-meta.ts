@@ -44,6 +44,15 @@ function isCrawler(userAgent: string | null): boolean {
     ua.includes("bot") ||
     ua.includes("crawl") ||
     ua.includes("spider") ||
+    // Google fetchers that do NOT contain "bot" in the UA string. Without
+    // these, Google-InspectionTool / GoogleOther get the JS shell while
+    // Googlebot gets the pre-rendered page — which is exactly what makes
+    // Search Console report "Google chose a different canonical".
+    ua.includes("inspectiontool") ||
+    ua.includes("googleother") ||
+    ua.includes("google-safety") ||
+    ua.includes("google-extended") ||
+    ua.includes("mediapartners-google") ||
     ua.includes("facebookexternalhit") ||
     ua.includes("whatsapp") ||
     ua.includes("telegram") ||
