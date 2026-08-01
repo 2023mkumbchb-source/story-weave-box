@@ -6,6 +6,20 @@ import { buildBlogPath, getCategoryDisplayName, getYearFromCategory } from "@/li
  * Compact grid card for the "grid" view of the notes library. Text-first and
  * colour-free — the aim is scannability, not decoration.
  */
+/** Strip markdown/HTML entity noise from list titles (e.g. "CAT 1&amp;2"). */
+function cleanTitle(t: string): string {
+  return (t || "")
+    .replace(/&amp;/g, "&")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&(?:#39|apos|rsquo|lsquo);/g, "\u2019")
+    .replace(/&(?:quot|ldquo|rdquo);/g, '"')
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
+    .replace(/^#+\s*/, "")
+    .replace(/\*\*/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export default function NoteCard({ article }: { article: Article }) {
   const location = useLocation();
   const unit = getCategoryDisplayName(article.category);
@@ -30,7 +44,7 @@ export default function NoteCard({ article }: { article: Article }) {
         {unit}
       </p>
       <h3 className="mt-1.5 line-clamp-3 font-serif text-[16px] font-bold leading-snug text-foreground transition-colors group-hover:text-primary">
-        {article.title}
+        {cleanTitle(article.title)}
       </h3>
       {preview && (
         <p className="mt-2 line-clamp-2 text-[12.5px] leading-relaxed text-muted-foreground">{preview}…</p>
