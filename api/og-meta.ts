@@ -44,6 +44,15 @@ function isCrawler(userAgent: string | null): boolean {
     ua.includes("bot") ||
     ua.includes("crawl") ||
     ua.includes("spider") ||
+    // Google fetchers that do NOT contain "bot" in the UA string. Without
+    // these, Google-InspectionTool / GoogleOther get the JS shell while
+    // Googlebot gets the pre-rendered page — which is exactly what makes
+    // Search Console report "Google chose a different canonical".
+    ua.includes("inspectiontool") ||
+    ua.includes("googleother") ||
+    ua.includes("google-safety") ||
+    ua.includes("google-extended") ||
+    ua.includes("mediapartners-google") ||
     ua.includes("facebookexternalhit") ||
     ua.includes("whatsapp") ||
     ua.includes("telegram") ||
@@ -364,6 +373,30 @@ async function fetchFlashcardSetBySlugOrId(param: string) {
   return byClean && byClean.length > 0 ? byClean[0] : null;
 }
 
+/**
+ * Resolve the one true public path for a legacy detail URL (UUID or
+ * UUID-prefixed slug). Returns null when nothing matches.
+ */
+async function resolveCanonicalDetailPath(section: string, param: string): Promise<string | null> {
+  try {
+    if (section === "blog") {
+      const article = await fetchArticleBySlug(param);
+      return article ? `/blog/${cleanPublicSlug(article.slug, article.title, "article")}` : "/blog";
+    }
+    if (section === "mcqs") {
+      const mcq = await fetchMcqSetBySlugOrId(param);
+      return mcq ? `/mcqs/${cleanPublicSlug(mcq.slug, mcq.title, "quiz")}` : "/mcqs";
+    }
+    if (section === "flashcards") {
+      const set = await fetchFlashcardSetBySlugOrId(param);
+      return set ? `/flashcards/${cleanPublicSlug(set.slug, set.title, "flashcards")}` : "/flashcards";
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 async function buildLiveIndexLinks(section: string, year?: string): Promise<string> {
   const yearPrefix = year && /^[1-6]$/.test(year) ? `Year ${year}:` : "";
   const filterYear = (row: Record<string, string>) => !yearPrefix || String(row.category || "").startsWith(yearPrefix);
@@ -576,6 +609,25 @@ export default async function handler(req: Request): Promise<Response> {
   const originalPath = url.searchParams.get("path") || "/";
 
   if (!isCrawler(ua)) {
+    // Legacy UUID / UUID-prefixed detail URLs must collapse to the single
+    // canonical slug path for EVERY client, not just crawlers. A client-side
+    // replaceState in the SPA is invisible to Google, so those URLs used to
+    // stay in the index as duplicates.
+    const legacyParts = originalPath.split("?")[0].split("/").filter(Boolean);
+    const legacySection = legacyParts[0] || "";
+    const legacyParam = legacyParts[1] || "";
+    if (
+      ["blog", "mcqs", "flashcards"].includes(legacySection) &&
+      extractUuidFromParam(legacyParam)
+    ) {
+      const target = await resolveCanonicalDetailPath(legacySection, legacyParam);
+      if (target && target !== `/${legacySection}/${legacyParam}`) {
+        return permanentRedirect(target);
+      }
+      // Never fall through to the 307 below for a legacy UUID URL — that
+      // would bounce back into this same handler and loop.
+      return permanentRedirect(`/${legacySection}`);
+    }
     return Response.redirect(new URL(originalPath, url.origin).toString(), 307);
   }
 
