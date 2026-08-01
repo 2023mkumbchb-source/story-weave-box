@@ -6,12 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+const PALPLUSS_BASE = 'https://api.palpluss.com/v1';
+
 function normalizePhoneNumber(phone: string): string {
-  phone = phone.trim().replace(/\D+/g, '');
+  phone = (phone || '').trim().replace(/\D+/g, '');
   if (/^254\d{9}$/.test(phone)) return phone;
-  if (/^07\d{8}$/.test(phone)) return '254' + phone.substring(1);
-  if (/^011\d{7}$/.test(phone)) return '254' + phone.substring(1);
-  if (/^\+254\d{9}$/.test(phone)) return phone.substring(1);
+  if (/^0\d{9}$/.test(phone)) return '254' + phone.substring(1);
+  if (/^\d{9}$/.test(phone)) return '254' + phone;
   return phone;
 }
 
@@ -21,17 +22,16 @@ serve(async (req) => {
   }
 
   try {
-    const PAYHERO_USERNAME = Deno.env.get('PAYHERO_API_USERNAME');
-    const PAYHERO_PASSWORD = Deno.env.get('PAYHERO_API_PASSWORD');
-    const PAYHERO_CHANNEL = Deno.env.get('PAYHERO_CHANNEL_ID');
+    const PALPLUSS_API_KEY = Deno.env.get('PALPLUSS_API_KEY');
+    const PALPLUSS_CHANNEL_ID = Deno.env.get('PALPLUSS_CHANNEL_ID');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!PAYHERO_USERNAME || !PAYHERO_PASSWORD || !PAYHERO_CHANNEL) {
-      throw new Error('PayHero credentials not configured');
+    if (!PALPLUSS_API_KEY) {
+      throw new Error('Palpluss API key not configured');
     }
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-      throw new Error('Supabase credentials not configured');
+      throw new Error('Backend credentials not configured');
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -45,39 +45,43 @@ serve(async (req) => {
     }
 
     const normalizedPhone = normalizePhoneNumber(phone);
-    const externalReference = `EXAM-${Date.now()}-${Math.floor(Math.random() * 9000) + 1000}`;
+    // accountReference must be <= 12 chars
+    const externalReference = `OMP${Date.now().toString(36).toUpperCase()}${Math.floor(Math.random() * 90 + 10)}`.slice(0, 12);
     const callbackUrl = `${SUPABASE_URL}/functions/v1/payment-callback`;
 
-    const payHeroData = {
+    const payload: Record<string, unknown> = {
       amount: Number(amount),
-      phone_number: normalizedPhone,
-      channel_id: Number(PAYHERO_CHANNEL),
-      provider: 'm-pesa',
-      external_reference: externalReference,
-      customer_name: 'Student',
-      callback_url: callbackUrl,
+      phone: normalizedPhone,
+      accountReference: externalReference,
+      transactionDesc: 'OmpathStudy'.slice(0, 13),
+      callbackUrl,
     };
+    if (PALPLUSS_CHANNEL_ID) payload.channelId = PALPLUSS_CHANNEL_ID;
 
-    console.log('Initiating PayHero payment:', payHeroData);
+    console.log('Initiating Palpluss STK push:', { ...payload, phone: '***' });
 
-    const payHeroResponse = await fetch('https://backend.payhero.co.ke/api/v2/payments', {
+    const res = await fetch(`${PALPLUSS_BASE}/payments/stk`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + btoa(`${PAYHERO_USERNAME}:${PAYHERO_PASSWORD}`),
+        // API key is the Basic Auth username, password empty
+        'Authorization': 'Basic ' + btoa(`${PALPLUSS_API_KEY}:`),
       },
-      body: JSON.stringify(payHeroData),
+      body: JSON.stringify(payload),
     });
 
-    const payHeroResult = await payHeroResponse.json();
-    console.log('PayHero response:', payHeroResult);
+    const result = await res.json().catch(() => ({}));
+    console.log('Palpluss response status:', res.status, JSON.stringify(result?.error ?? result?.data?.status ?? ''));
 
-    if (!payHeroResponse.ok) {
+    if (!res.ok || result?.success === false) {
+      const message = result?.error?.message || 'Payment initiation failed';
       return new Response(
-        JSON.stringify({ success: false, error: payHeroResult.message || 'Payment initiation failed' }),
+        JSON.stringify({ success: false, error: message, code: result?.error?.code }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const providerTxnId: string | null = result?.data?.transactionId ?? null;
 
     const { data: payment, error: dbError } = await supabase
       .from('payments')
@@ -86,6 +90,7 @@ serve(async (req) => {
         amount: Number(amount),
         payment_status: 'pending',
         transaction_id: externalReference,
+        provider_txn_id: providerTxnId,
         package_type: package_type || 'exam',
       })
       .select()
