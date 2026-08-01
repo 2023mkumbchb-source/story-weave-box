@@ -9,7 +9,9 @@ import {
   buildBlogPath,
   type Article,
 } from "@/lib/store";
-import ArticleCard from "@/components/ArticleCard";
+import NoteRow from "@/components/NoteRow";
+import UnitTile from "@/components/UnitTile";
+import { getSubjectKey, subjectColor } from "@/components/subjectTheme";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
 import { updateMetaTags } from "@/lib/seo";
 import { getAllCategories } from "@/lib/store";
@@ -95,7 +97,7 @@ export default function Blog() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => searchParams.get("q") || "");
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchMatches, setSearchMatches] = useState<Article[] | null>(null);
