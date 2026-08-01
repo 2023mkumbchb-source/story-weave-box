@@ -90,6 +90,7 @@ Deno.serve(async (req) => {
     const table: string = body.table || "articles";
     const limit: number = Math.min(Number(body.limit) || 5, 25);
     const cursor: string | null = body.cursor || null;
+    const ids: string[] | null = Array.isArray(body.ids) && body.ids.length ? body.ids : null;
 
     if (!TEXT_FIELDS[table]) throw new Error(`unsupported table: ${table}`);
 
@@ -105,6 +106,7 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: true })
       .limit(limit);
     if (cursor) q = q.gt("created_at", cursor);
+    if (ids) q = q.in("id", ids);
     const { data: rows, error } = await q;
     if (error) throw error;
     if (!rows?.length) return json({ done: true, processed: 0, table, action });
