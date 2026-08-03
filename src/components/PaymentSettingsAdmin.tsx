@@ -147,6 +147,7 @@ export default function PaymentSettingsAdmin() {
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Subscription passes</p>
+          <span className="sr-only">passes</span>
           <button
             type="button"
             onClick={addPlan}
