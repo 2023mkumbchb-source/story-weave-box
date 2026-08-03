@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { LogIn, Loader2, Mail, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,19 +13,28 @@ export default function Login() {
   const [readerPassword, setReaderPassword] = useState("");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [busy, setBusy] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { user, isAdmin, signIn, signUp, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      const redirect = sessionStorage.getItem("post_login_redirect") || (isAdmin ? "/admin" : "/account");
+      sessionStorage.removeItem("post_login_redirect");
+      navigate(redirect);
+    }
+  }, [user, isAdmin, authLoading, navigate]);
+
   const ogUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}${location.pathname}${location.search}`
       : location.pathname;
   const title = "Sign In | OmpathStudy Kenya";
   const description =
-    "Sign in to OmpathStudy to access your learning account, subscription, and authorized publishing tools.";
+    "Sign in to OmpathStudy to access your medical education content, subscriptions, and study materials.";
   const keywords =
-    "OmpathStudy sign in, medical education Kenya, student account";
+    "OmpathStudy, login, medical education Kenya, student portal, study notes";
 
   const google = async () => {
     setBusy(true);
@@ -37,7 +46,6 @@ export default function Login() {
       toast({ title: "Google sign-in failed", description: res.error, variant: "destructive" });
       return;
     }
-    navigate("/account");
   };
 
   const emailAuth = async (e: React.FormEvent) => {
@@ -51,7 +59,6 @@ export default function Login() {
         await signIn(email.trim(), readerPassword);
         toast({ title: "Signed in" });
       }
-      navigate("/account");
     } catch (err) {
       toast({
         title: mode === "signup" ? "Could not create the account" : "Could not sign in",
