@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useLayoutEffect, forwardRef, memo } from 
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft, Loader2, GraduationCap, ListChecks,
-  ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2, ImagePlus, X, Eye, EyeOff,
+  ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2, ImagePlus, X, Eye, EyeOff, Lock,
 } from "lucide-react";
 import ShareButtons from "@/components/ShareButtons";
 import ArticleComments from "@/components/ArticleComments";
@@ -20,6 +20,19 @@ import { parseSlideDeck, SlideDeckView, SlidePreviewModal } from "@/components/S
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useAccess } from "@/lib/access";
+import { SubscribeModal } from "@/components/SubscribeModal";
+import { openSubscribePrompt, useScrollSubscribePrompt } from "@/lib/subscribe-prompt";
+
+/**
+ * Mounts the subscription prompt for articles that carry MCQs: guests read the
+ * questions freely and get nudged as they scroll; subscribers see nothing.
+ */
+function ArticleSubscribeGate({ hasMcqs }: { hasMcqs: boolean }) {
+  const access = useAccess();
+  useScrollSubscribePrompt(hasMcqs && !access.canReveal);
+  return <SubscribeModal settings={access.settings} onUnlocked={access.applyPass} />;
+}
 
 /* ─── Inline text: bold/italic ─── */
 const Inline = forwardRef<HTMLSpanElement, { text: string }>(({ text }, ref) => {
