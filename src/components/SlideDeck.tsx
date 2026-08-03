@@ -69,6 +69,7 @@ export function parseSlideDeck(content: string): SlideDeck | null {
 
   const push = () => {
     if (cur && (cur.image || cur.rows.length)) {
+      cur.rows = mergeRepeatedPrefixes(cur.rows);
       cur.labelled = cur.rows.length > 1 && cur.rows.every((r) => !!r.label);
       slides.push(cur);
     }
