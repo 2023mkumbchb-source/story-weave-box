@@ -634,9 +634,14 @@ function countOptionMarkers(text: string): number {
   return (text.match(new RegExp(String.raw`(?:^|\s)${OPTION_MARKER_SOURCE}\s+`, "gi")) || []).length;
 }
 
-/** Marker letters in order, so "B. subtilis … C. difficile" prose isn't mistaken for choices. */
+/**
+ * Letters of the real option markers, in order — inline references like "(a)"
+ * or "(b)" inside a choice are ignored because a marker must be followed by a
+ * space. Used so microbiology prose ("B. subtilis … C. difficile") is never
+ * mistaken for a choice run.
+ */
 function markerLetters(text: string): string[] {
-  return Array.from(text.matchAll(new RegExp(String.raw`(?:^|\s)\(?([A-Ea-e])[\).]`, "g"))).map((m) => m[1].toUpperCase());
+  return Array.from(text.matchAll(new RegExp(String.raw`(?:^|\s)\(?([A-Ea-e])[\).]\s+`, "g"))).map((m) => m[1].toUpperCase());
 }
 
 function looksLikeChoiceRun(text: string, startsWithMarker: boolean): boolean {
