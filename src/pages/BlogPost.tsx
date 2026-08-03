@@ -593,13 +593,50 @@ const OPTION_MARKER_SOURCE = String.raw`(?:\(?[A-Ea-e]\)|[A-Ea-e][\.)])`;
 const OPTION_MARKER_RE = new RegExp(String.raw`(?:^|\s)(${OPTION_MARKER_SOURCE})\s+`);
 const OPTION_CAPTURE_RE = new RegExp(String.raw`(?:^|\s)(${OPTION_MARKER_SOURCE})\s+([\s\S]*?)(?=\s+${OPTION_MARKER_SOURCE}\s+|$)`, "gi");
 
+/**
+ * Papers pasted from PDFs often glue the next choice onto the previous one
+ * ("…T. b. gambienseC. Trypanosoma cruzi"). Insert the missing space so every
+ * marker is detectable, which is what forces one choice per row.
+ */
+function spaceOptionMarkers(text: string): string {
+  return (text || "").replace(
+    /([^\s])((?:\(?[A-E]\)|[A-E][.)])\s+)/g,
+    (m, before: string, marker: string) => (/[A-Za-z0-9)\].,;:'"]/.test(before) ? `${before} ${marker}` : m),
+  );
+}
+
+/** Count option markers in a line ("A) …", "B. …"). */
+function countOptionMarkers(text: string): number {
+  return (text.match(new RegExp(String.raw`(?:^|\s)${OPTION_MARKER_SOURCE}\s+`, "gi")) || []).length;
+}
+
+/** Marker letters in order, so "B. subtilis … C. difficile" prose isn't mistaken for choices. */
+function markerLetters(text: string): string[] {
+  return Array.from(text.matchAll(new RegExp(String.raw`(?:^|\s)\(?([A-Ea-e])[\).]`, "g"))).map((m) => m[1].toUpperCase());
+}
+
+function looksLikeChoiceRun(text: string, startsWithMarker: boolean): boolean {
+  const letters = markerLetters(text);
+  const min = startsWithMarker ? 2 : 3;
+  if (letters.length < min) return false;
+  return letters.every((l, i) => i === 0 || l.charCodeAt(0) === letters[i - 1].charCodeAt(0) + 1);
+}
+
+/** Split a run of choices into one string per choice, markers normalized. */
+function splitMarkerRun(text: string): string[] {
+  return text
+    .split(new RegExp(String.raw`\s+(?=${OPTION_MARKER_SOURCE}\s+)`))
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
 function normalizeOptionLine(line: string): string {
   const cleaned = cleanDisplayText(line);
   return cleaned.replace(/^\(?([A-Ea-e])\)?[\.)]?\s+/, (_, label) => `${String(label).toUpperCase()}) `);
 }
 
 function splitOptionRun(line: string): string[] {
-  const clean = cleanDisplayText(line);
+  const clean = spaceOptionMarkers(cleanDisplayText(line));
   const matches = Array.from(clean.matchAll(OPTION_CAPTURE_RE));
   if (matches.length >= 2) {
     return matches.map((m) => cleanDisplayText(m[2] || "")).filter(Boolean);
@@ -609,7 +646,7 @@ function splitOptionRun(line: string): string[] {
 }
 
 function splitStemAndOptions(text: string): { stem: string; opts: string[] } | null {
-  const clean = cleanDisplayText(text);
+  const clean = spaceOptionMarkers(cleanDisplayText(text));
   const first = clean.search(OPTION_MARKER_RE);
   if (first < 0) return null;
   const stem = clean.slice(0, first).trim().replace(/[;,:\s]+$/, "");
@@ -1069,27 +1106,32 @@ function preprocessContent(raw: string): string {
       continue;
     }
 
-    // ── FIX: concatenated MCQ options like "A) foo b) bar c) baz d) qux" → split ──
-    // Also handles "1. Question text?A) foo b) bar c) baz d) qux" by splitting the stem too.
+    // ── MCQ choices always get their own row ──
+    // Handles glued runs at any starting letter ("C. …D. …E. …"), a stem with
+    // choices attached ("…?A) … B) …"), and missing spaces before markers.
     {
-      const stripped = t.replace(/^\*+|\*+$/g, "");
-      // Detect a stem+options line: "…?A) foo b) bar c) baz…"
-      const marker = "(?:\\(?[A-Ea-e]\\)|[A-Ea-e][\\.)])";
-      const stemSplit = stripped.match(new RegExp(`^(.+?[?:])\\s*(${marker}\\s+.+)$`));
-      if (stemSplit && new RegExp(`${marker.replace("A-Ea-e", "Bb")}\\s+`).test(stemSplit[2]) && new RegExp(`${marker.replace("A-Ea-e", "Cc")}\\s+`).test(stemSplit[2])) {
-        out.push(stemSplit[1].trim());
-        const parts = stemSplit[2].split(/\s*(?=(?:\(?[a-eA-E]\)|[a-eA-E][\.\)])\s+)/);
-        if (parts.length >= 3) {
-          parts.forEach(p => out.push(p.trim().replace(/^([a-e])([\.\)])/, (_, l, s) => `${l.toUpperCase()}${s}`)));
+      const stripped = spaceOptionMarkers(t.replace(/^\*+|\*+$/g, "").replace(/\*\*/g, ""));
+      const startsWithMarker = new RegExp(String.raw`^${OPTION_MARKER_SOURCE}\s+`).test(stripped);
+      const markerCount = countOptionMarkers(stripped);
+
+      if (startsWithMarker && markerCount >= 2) {
+        const parts = splitMarkerRun(stripped);
+        if (parts.length >= 2) {
+          parts.forEach((p) => out.push(normalizeOptionLine(p)));
           continue;
         }
       }
-      // Pure options run: "A) foo b) bar c) baz d) qux"
-      if (/^(?:\(?[Aa]\)|[Aa][\.\)])\s/.test(stripped) && /(?:\(?[Bb]\)|[Bb][\.\)])\s/.test(stripped) && /(?:\(?[Cc]\)|[Cc][\.\)])\s/.test(stripped)) {
-        const parts = stripped.split(/\s*(?=(?:\(?[a-eA-E]\)|[a-eA-E][\.\)])\s+)/);
-        if (parts.length >= 3) {
-          parts.forEach(p => out.push(normalizeOptionLine(p)));
-          continue;
+
+      if (!startsWithMarker && markerCount >= 2) {
+        const firstMarker = stripped.search(OPTION_MARKER_RE);
+        if (firstMarker > 0) {
+          const stem = stripped.slice(0, firstMarker).trim().replace(/[;,:\s]+$/, "");
+          const parts = splitMarkerRun(stripped.slice(firstMarker).trim());
+          if (stem && parts.length >= 2) {
+            out.push(stem);
+            parts.forEach((p) => out.push(normalizeOptionLine(p)));
+            continue;
+          }
         }
       }
     }

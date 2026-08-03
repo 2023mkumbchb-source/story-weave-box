@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Eye, EyeOff, X, ZoomIn, Images, Check, Pencil, BadgeCheck, List, Rows3, Columns2 } from "lucide-react";
+import { Eye, EyeOff, X, ZoomIn, Images, Check, Pencil, BadgeCheck, List, Rows3, Columns2, Lock, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SlideCorrectionModal } from "@/components/SlideCorrectionModal";
-import { freeItemCount, useAccess } from "@/lib/access";
-import { FreeAccessBanner, Paywall } from "@/components/Paywall";
+import { useAccess } from "@/lib/access";
+import { SubscribeModal } from "@/components/SubscribeModal";
+import { openSubscribePrompt, useScrollSubscribePrompt } from "@/lib/subscribe-prompt";
 import { DeckDownloadButton } from "@/components/DeckPdfExport";
 
 /**
@@ -242,7 +243,7 @@ function AnswerRows({ rows, labelled }: { rows: SlideAnswerRow[]; labelled: bool
 
 /* ── One slide card ── */
 function SlideCard({
-  slide, index, onZoom, defaultOpen = false, corrections = [], onSuggest,
+  slide, index, onZoom, defaultOpen = false, corrections = [], onSuggest, locked = false,
 }: {
   slide: Slide;
   index: number;
@@ -250,8 +251,10 @@ function SlideCard({
   defaultOpen?: boolean;
   corrections?: string[];
   onSuggest?: (s: Slide) => void;
+  /** guests see the plate + prompt, but the answer key stays closed */
+  locked?: boolean;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(defaultOpen && !locked);
   const [loaded, setLoaded] = useState(false);
   const eager = index < 2;
 
@@ -307,14 +310,17 @@ function SlideCard({
         <div className="px-4 py-3">
           <button
             type="button"
-            onClick={() => setOpen((o) => !o)}
-            aria-expanded={open}
+            onClick={() => {
+              if (locked) { openSubscribePrompt("Subscribe to reveal the answer key for this plate."); return; }
+              setOpen((o) => !o);
+            }}
+            aria-expanded={locked ? false : open}
             className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
           >
-            {open ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-            {open ? "Hide" : "Reveal"}
+            {locked ? <Lock className="h-3.5 w-3.5" /> : open ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            {locked ? "Reveal (subscribers)" : open ? "Hide" : "Reveal"}
           </button>
-          {open && (
+          {open && !locked && (
             <div className="mt-3">
               <AnswerRows rows={slide.rows} labelled={slide.labelled} />
               {corrections.length > 0 && (
@@ -360,10 +366,10 @@ export function SlideDeckView({
   const [navOpen, setNavOpen] = useState(false);
   const access = useAccess();
 
-  const visibleSlides = access.unlocked
-    ? deck.slides
-    : deck.slides.slice(0, freeItemCount(deck.slides.length, access.settings.freeRatio));
-  const hiddenCount = deck.slides.length - visibleSlides.length;
+  // Every plate and prompt is public; only the answer key is subscriber-gated.
+  const visibleSlides = deck.slides;
+  const locked = !access.canReveal;
+  useScrollSubscribePrompt(locked && deck.slides.length > 0);
 
   useEffect(() => {
     if (!articleId) return;
@@ -398,7 +404,7 @@ export function SlideDeckView({
           {deck.slides.length} plates · tap Reveal for the answer key
         </p>
         <div className="flex items-center gap-2">
-          {access.unlocked && access.settings.downloadEnabled && (
+          {!locked && access.settings.downloadEnabled && (
             <>
               {onPreview && (
                 <button
@@ -440,11 +446,14 @@ export function SlideDeckView({
           </div>
           <button
             type="button"
-            onClick={() => { setRevealAll((v) => !v); setAllKey((k) => k + 1); }}
+            onClick={() => {
+              if (locked) { openSubscribePrompt("Subscribe to reveal every answer on this paper."); return; }
+              setRevealAll((v) => !v); setAllKey((k) => k + 1);
+            }}
             className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
           >
-            <Check className="h-3.5 w-3.5" />
-            {revealAll ? "Hide all" : "Reveal all"}
+            {locked ? <Lock className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
+            {locked ? "Reveal all" : revealAll ? "Hide all" : "Reveal all"}
           </button>
         </div>
       </div>
@@ -484,7 +493,25 @@ export function SlideDeckView({
         </div>
       )}
 
-      {access.isFree && <FreeAccessBanner count={deck.slides.length} label="plates" />}
+      {locked ? (
+        <button
+          type="button"
+          onClick={() => openSubscribePrompt("Subscribe to reveal the verified answer key on every plate.")}
+          className="not-prose mb-5 flex w-full items-center gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-left transition-colors hover:border-primary/50"
+        >
+          <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+          <span className="text-[13px] font-semibold leading-snug text-foreground">
+            All {deck.slides.length} plates are free to view. Subscribe to reveal the answer key and download the PDF handout.
+          </span>
+        </button>
+      ) : (
+        <div className="not-prose mb-5 flex items-center gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
+          <BadgeCheck className="h-4 w-4 shrink-0 text-primary" />
+          <p className="text-[13px] font-semibold leading-snug text-foreground">
+            Subscription active — all {deck.slides.length} plates and the full answer key are unlocked.
+          </p>
+        </div>
+      )}
 
       <div className={`grid items-start gap-5 ${cols === 2 ? "sm:grid-cols-2" : "mx-auto max-w-3xl grid-cols-1"}`}>
         {visibleSlides.map((s, i) => (
@@ -496,21 +523,12 @@ export function SlideDeckView({
             defaultOpen={revealAll}
             corrections={corrections[s.number] || []}
             onSuggest={articleId ? setSuggestFor : undefined}
+            locked={locked}
           />
         ))}
       </div>
 
-      {hiddenCount > 0 && (
-        <div className="relative">
-          <div className="pointer-events-none -mt-24 h-24 bg-gradient-to-b from-transparent to-background" />
-          <Paywall
-            settings={access.settings}
-            hiddenCount={hiddenCount}
-            label="plates"
-            onUnlocked={access.applyPass}
-          />
-        </div>
-      )}
+      <SubscribeModal settings={access.settings} onUnlocked={access.applyPass} />
 
       {deck.footer && (
         <p className="mt-8 border-t border-border pt-4 text-[13px] italic leading-relaxed text-muted-foreground">

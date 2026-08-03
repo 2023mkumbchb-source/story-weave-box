@@ -20,9 +20,8 @@ export interface PaymentSettings {
 }
 
 export const DEFAULT_PLANS: AccessPlan[] = [
-  { id: "day", label: "24-hour pass", price: 10, days: 1, download: false },
-  { id: "week", label: "1-week pass", price: 50, days: 7, download: true },
-  { id: "semester", label: "Semester pass", price: 300, days: 120, download: true },
+  { id: "semester", label: "Semester pass (3 months)", price: 300, days: 90, download: true },
+  { id: "annual", label: "Annual pass (12 months)", price: 1000, days: 365, download: true },
 ];
 
 export const DEFAULT_SETTINGS: PaymentSettings = {
@@ -33,7 +32,33 @@ export const DEFAULT_SETTINGS: PaymentSettings = {
 };
 
 const PASS_KEY = "ompath_access_pass";
+const DEVICE_KEY = "ompath_device_id";
 let settingsCache: { at: number; value: PaymentSettings } | null = null;
+
+/** Stable per-device identifier so a pass can be limited to 2 devices. */
+export function deviceId(): string {
+  try {
+    let id = localStorage.getItem(DEVICE_KEY);
+    if (!id) {
+      id = (crypto.randomUUID?.() || `dev-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      localStorage.setItem(DEVICE_KEY, id);
+    }
+    return id;
+  } catch {
+    return "unknown-device";
+  }
+}
+
+/** Human label for the device list shown to the buyer ("Phone" / "Laptop"). */
+export function deviceLabel(): string {
+  try {
+    const ua = navigator.userAgent;
+    const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+    return mobile ? "Phone / tablet" : "Laptop / desktop";
+  } catch {
+    return "Device";
+  }
+}
 
 export async function loadPaymentSettings(force = false): Promise<PaymentSettings> {
   if (!force && settingsCache && Date.now() - settingsCache.at < 5 * 60_000) return settingsCache.value;
@@ -96,7 +121,7 @@ export function clearPass() {
 
 export async function verifyCode(code: string): Promise<{ ok: boolean; pass?: AccessPass; error?: string }> {
   const { data, error } = await supabase.functions.invoke("access-code", {
-    body: { action: "verify", code },
+    body: { action: "verify", code, device_id: deviceId(), device_label: deviceLabel() },
   });
   if (error) return { ok: false, error: "Could not check that code. Try again." };
   if (!data?.valid) return { ok: false, error: data?.error || "Invalid code." };
@@ -112,7 +137,7 @@ export async function verifyCode(code: string): Promise<{ ok: boolean; pass?: Ac
 
 export async function issuePassForPayment(transactionId: string, plan?: string): Promise<AccessPass | null> {
   const { data, error } = await supabase.functions.invoke("access-code", {
-    body: { action: "issue", transaction_id: transactionId, plan },
+    body: { action: "issue", transaction_id: transactionId, plan, device_id: deviceId(), device_label: deviceLabel() },
   });
   if (error || !data?.success) return null;
   const pass: AccessPass = {
@@ -123,6 +148,23 @@ export async function issuePassForPayment(transactionId: string, plan?: string):
   };
   storePass(pass);
   return pass;
+}
+
+/** Let the buyer pick their own memorable pass code on the success screen. */
+export async function renamePassCode(currentCode: string, newCode: string): Promise<{ ok: boolean; pass?: AccessPass; error?: string }> {
+  const { data, error } = await supabase.functions.invoke("access-code", {
+    body: { action: "rename", code: currentCode, new_code: newCode, device_id: deviceId() },
+  });
+  if (error) return { ok: false, error: "Could not change the code. Try again." };
+  if (!data?.success) return { ok: false, error: data?.error || "Could not change the code." };
+  const pass: AccessPass = {
+    code: data.code,
+    plan: data.plan,
+    expires_at: data.expires_at,
+    allow_download: data.allow_download !== false,
+  };
+  storePass(pass);
+  return { ok: true, pass };
 }
 
 /**
@@ -159,7 +201,10 @@ export function useAccess() {
     hasPass,
     /** unlocked = free site, or a valid pass */
     unlocked: isFree || hasPass,
-    canDownload: (settings?.downloadEnabled ?? true) && (isFree ? true : !!pass?.allow_download),
+    /** Answers/reveals are a subscriber feature — never unlocked for guests. */
+    canReveal: hasPass,
+    /** PDF handouts are a pro feature: subscribers only. */
+    canDownload: (settings?.downloadEnabled ?? true) && !!pass?.allow_download,
     applyPass: (p: AccessPass) => setPass(p),
     signOutPass: () => { clearPass(); setPass(null); },
     refresh,

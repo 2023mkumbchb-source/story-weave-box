@@ -20,6 +20,8 @@ export type Database = {
           amount: number | null
           code: string
           created_at: string
+          device_limit: number
+          devices: Json
           expires_at: string
           id: string
           last_redeemed_at: string | null
@@ -34,6 +36,8 @@ export type Database = {
           amount?: number | null
           code: string
           created_at?: string
+          device_limit?: number
+          devices?: Json
           expires_at: string
           id?: string
           last_redeemed_at?: string | null
@@ -48,6 +52,8 @@ export type Database = {
           amount?: number | null
           code?: string
           created_at?: string
+          device_limit?: number
+          devices?: Json
           expires_at?: string
           id?: string
           last_redeemed_at?: string | null
