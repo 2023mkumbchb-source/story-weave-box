@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { Lock, Loader2, ShieldCheck, KeyRound, Smartphone, Check, Pencil, MonitorSmartphone, Eye, Download } from "lucide-react";
+import { Lock, Loader2, ShieldCheck, KeyRound, Smartphone, Check, Pencil, MonitorSmartphone, Eye, Download, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { AccessPass, AccessPlan, PaymentSettings, issuePassForPayment, normalizePassCode, renamePassCode, verifyCode } from "@/lib/access";
+import { useAuth } from "@/hooks/useAuth";
+import { signInWithGoogle } from "@/lib/social-auth";
+import { savePurchaseIntent } from "@/lib/purchase-intent";
 
 /**
  * Paywall shown where the free portion of a page ends. Two ways in:
@@ -38,6 +41,20 @@ export function Paywall({
   const [customCode, setCustomCode] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [renameMsg, setRenameMsg] = useState("");
+  const { user, loading: authLoading } = useAuth();
+  const [signingIn, setSigningIn] = useState(false);
+
+  const startGoogle = async () => {
+    setSigningIn(true);
+    savePurchaseIntent(planId);
+    const res = await signInWithGoogle();
+    if (res.redirected) return;
+    setSigningIn(false);
+    if (res.error) {
+      setState("error");
+      setMessage(res.error);
+    }
+  };
 
   const plan: AccessPlan = plans.find((p) => p.id === planId) || {
     id: "semester", label: "Semester pass (3 months)", price: settings.price, days: 90, download: true,
@@ -75,6 +92,11 @@ export function Paywall({
   };
 
   const pay = async () => {
+    if (!user) {
+      setState("error");
+      setMessage("Please sign in with Google first — it ties the subscription to your account.");
+      return;
+    }
     if (!/^(\+?254|0)?\d{9}$/.test(phone.replace(/\s+/g, ""))) {
       setState("error");
       setMessage("Enter a valid Safaricom number, e.g. 07XXXXXXXX.");
