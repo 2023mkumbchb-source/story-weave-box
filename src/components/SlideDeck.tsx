@@ -167,9 +167,35 @@ function Lightbox({ src, alt, onClose }: { src: string; alt?: string; onClose: (
 function AnswerRows({ rows, labelled }: { rows: SlideAnswerRow[]; labelled: boolean }) {
   if (!rows.length) return null;
 
+  const side = labelled ? splitSideTable(rows) : null;
+  if (side) {
+    return (
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="w-full border-collapse text-left text-sm">
+          <thead>
+            <tr className="bg-muted/60">
+              <th scope="col" className="w-12 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">#</th>
+              <th scope="col" className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{side.leftLabel}</th>
+              <th scope="col" className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{side.rightLabel}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {side.letters.map((r) => (
+              <tr key={r.letter} className="border-t border-border/70 align-top even:bg-muted/20">
+                <td className="px-3 py-2.5 font-mono text-xs font-bold text-primary">{r.letter}</td>
+                <td className="px-3 py-2.5 leading-relaxed text-foreground">{r.left?.term || "—"}</td>
+                <td className="px-3 py-2.5 leading-relaxed text-foreground">{r.right?.term || "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
   if (labelled) {
     return (
-      <div className="overflow-hidden rounded-lg border border-border">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full border-collapse text-left text-sm">
           <thead>
             <tr className="bg-muted/60">
@@ -286,7 +312,7 @@ function SlideCard({
             {open ? "Hide" : "Reveal"}
           </button>
           {open && (
-            <div className="mt-3 max-h-[26rem] overflow-y-auto overscroll-contain">
+            <div className="mt-3">
               <AnswerRows rows={slide.rows} labelled={slide.labelled} />
               {corrections.length > 0 && (
                 <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
