@@ -262,14 +262,7 @@ export function SlideDeckView({ deck, revealAllDefault = false }: { deck: SlideD
 
   return (
     <div className="not-prose">
-      {intro.length > 0 && (
-        <div className="mb-6 rounded-lg border-l-2 border-primary/40 bg-muted/30 px-4 py-3">
-          {intro.map((l, i) => (
-            <p key={i} className="text-[14px] leading-relaxed text-muted-foreground">{clean(l)}</p>
-          ))}
-        </div>
-      )}
-
+      {intro.length > 0 && null}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-y border-border py-3">
         <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           <Images className="h-3.5 w-3.5 text-primary" />
