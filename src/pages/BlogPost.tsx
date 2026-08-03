@@ -634,7 +634,7 @@ function spaceOptionMarkers(text: string): string {
 
 /** Count option markers in a line ("A) …", "B. …"). */
 function countOptionMarkers(text: string): number {
-  return (text.match(new RegExp(String.raw`(?:^|\s)${OPTION_MARKER_STRICT}\s+`, "g")) || []).length;
+  return (text.match(new RegExp(String.raw`(?<![^\s])${OPTION_MARKER_STRICT}\s+`, "g")) || []).length;
 }
 
 /**
@@ -644,8 +644,8 @@ function countOptionMarkers(text: string): number {
  * mistaken for a choice run.
  */
 function markerLetters(text: string): string[] {
-  return Array.from(text.matchAll(new RegExp(String.raw`(?:^|\s)\(?([A-Ea-e])[\).]\)?\s+`, "g")))
-    .filter((m) => !/^\s*\([a-e]\)/.test(m[0]))
+  return Array.from(text.matchAll(new RegExp(String.raw`(?<![^\s])(\()?([A-Ea-e])[\).]\s+`, "g")))
+    .filter((m) => !(m[1] && /[a-e]/.test(m[2])))
     .map((m) => m[1].toUpperCase());
 }
 
