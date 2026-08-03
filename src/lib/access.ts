@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSetting } from "@/lib/store";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface AccessPlan {
   id: string;
@@ -232,6 +233,7 @@ export async function forgetDevice(code: string, targetDeviceId: string): Promis
  * valid pass, and may they download the watermarked PDF.
  */
 export function useAccess() {
+  const { isAdmin } = useAuth();
   const [settings, setSettings] = useState<PaymentSettings | null>(null);
   const [pass, setPass] = useState<AccessPass | null>(() => readStoredPass());
   const [loading, setLoading] = useState(true);
@@ -253,6 +255,7 @@ export function useAccess() {
 
   const isFree = (settings?.price ?? 0) <= 0;
   const hasPass = !!pass;
+  const ownerAccess = isAdmin;
   return {
     loading,
     settings: settings ?? DEFAULT_SETTINGS,
@@ -260,11 +263,11 @@ export function useAccess() {
     isFree,
     hasPass,
     /** unlocked = free site, or a valid pass */
-    unlocked: isFree || hasPass,
+    unlocked: isFree || hasPass || ownerAccess,
     /** Answers/reveals are a subscriber feature — never unlocked for guests. */
-    canReveal: hasPass,
+    canReveal: hasPass || ownerAccess,
     /** PDF handouts are a pro feature: subscribers only. */
-    canDownload: (settings?.downloadEnabled ?? true) && !!pass?.allow_download,
+    canDownload: ownerAccess || ((settings?.downloadEnabled ?? true) && !!pass?.allow_download),
     applyPass: (p: AccessPass) => setPass(p),
     signOutPass: () => { clearPass(); setPass(null); },
     refresh,

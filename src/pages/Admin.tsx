@@ -19,6 +19,7 @@ import { SlideCorrectionsAdmin } from "@/components/SlideCorrectionsAdmin";
 import PaymentSettingsAdmin from "@/components/PaymentSettingsAdmin";
 import { autoIndexUrls, SITE_URL, slugifyText } from "@/lib/seo";
 import { Helmet } from "react-helmet-async";
+import { useAuth } from "@/hooks/useAuth";
 
 type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo" | "categories" | "editor" | "meta-manager" | "corrections" | "payments";
 type DirectType = "article" | "mcqs" | "flashcards";
@@ -27,6 +28,7 @@ export default function Admin() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
   const ogUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}${location.pathname}${location.search}`
@@ -41,11 +43,8 @@ export default function Admin() {
   const [articleEditId, setArticleEditId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (localStorage.getItem("learninghub_auth") !== "true" && sessionStorage.getItem("learninghub_auth") !== "true") {
+    if (!authLoading && !isAdmin) {
       navigate("/login");
-    } else {
-      localStorage.setItem("learninghub_auth", "true");
-      sessionStorage.setItem("learninghub_auth", "true");
     }
     Promise.all([getSetting("gemini_api_key"), getSetting("gemini_api_keys")]).then(([key, multiRaw]) => {
       setGeminiKey(key || "");
@@ -54,7 +53,7 @@ export default function Admin() {
         if (Array.isArray(parsed)) setGeminiKeysAll(parsed.filter(Boolean));
       } catch { /* ignore */ }
     });
-  }, [navigate]);
+  }, [navigate, isAdmin, authLoading]);
 
   // Persist tab in URL hash for refresh resilience
   const hashTab = location.hash.replace("#", "") as Tab;
