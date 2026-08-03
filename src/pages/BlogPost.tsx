@@ -2069,7 +2069,7 @@ export default function BlogPost() {
             <div className="prose-custom article-reader">
               <KeywordLinkProvider currentPath={buildBlogPath(article)}>
                 {slideDeck
-                  ? <SlideDeckView deck={slideDeck} />
+                  ? <SlideDeckView deck={slideDeck} articleId={article.id} />
                   : <ArticleContent content={article.content} inlineRelated={related.articles || []} />}
               </KeywordLinkProvider>
             </div>
