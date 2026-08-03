@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Eye, EyeOff, X, ZoomIn, Images, Check, Pencil, BadgeCheck } from "lucide-react";
+import { Eye, EyeOff, X, ZoomIn, Images, Check, Pencil, BadgeCheck, List, Rows3, Columns2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SlideCorrectionModal } from "@/components/SlideCorrectionModal";
 
@@ -59,27 +59,28 @@ function splitRow(raw: string): SlideAnswerRow {
 }
 
 /**
- * Source keys often repeat a prefix on consecutive lines
- * ("Root value: C5" / "Root value: C6"). Those are one answer, so collapse
- * them into a single row instead of three near-identical rows.
+ * Split labels like "Left diagram — A" into a side + letter so paired
+ * left/right plates can render as a proper two-column table.
  */
-function mergeRepeatedPrefixes(rows: SlideAnswerRow[]): SlideAnswerRow[] {
-  const out: SlideAnswerRow[] = [];
-  for (const row of rows) {
-    const prev = out[out.length - 1];
-    const key = (s?: SlideAnswerRow) => {
-      const m = (s?.term || "").match(/^([A-Za-z][A-Za-z\s/()-]{2,28}?)\s*:\s*(.+)$/);
-      return m ? { prefix: m[1].toLowerCase(), value: m[2] } : null;
-    };
-    const a = key(prev);
-    const b = key(row);
-    if (a && b && a.prefix === b.prefix && !row.detail && !prev.detail) {
-      prev.term = `${(prev.term || "").split(":")[0]}: ${a.value}, ${b.value}`;
-      continue;
-    }
-    out.push({ ...row });
-  }
-  return out;
+export interface SideTableRow { letter: string; left?: SlideAnswerRow; right?: SlideAnswerRow }
+function splitSideTable(rows: SlideAnswerRow[]): { letters: SideTableRow[]; leftLabel: string; rightLabel: string } | null {
+  const parsed = rows.map((r) => {
+    const m = (r.label || "").match(/^(Left|Right)\b([^A-Z]*)([A-Z])$/);
+    return m ? { side: m[1].toLowerCase(), heading: `${m[1]}${m[2]}`.replace(/[\s—–-]+$/, "").trim(), letter: m[3], row: r } : null;
+  });
+  if (parsed.some((p) => !p)) return null;
+  const ok = parsed as NonNullable<(typeof parsed)[number]>[];
+  if (!ok.some((p) => p.side === "left") || !ok.some((p) => p.side === "right")) return null;
+  const letters = Array.from(new Set(ok.map((p) => p.letter)));
+  return {
+    leftLabel: ok.find((p) => p.side === "left")!.heading,
+    rightLabel: ok.find((p) => p.side === "right")!.heading,
+    letters: letters.map((l) => ({
+      letter: l,
+      left: ok.find((p) => p.side === "left" && p.letter === l)?.row,
+      right: ok.find((p) => p.side === "right" && p.letter === l)?.row,
+    })),
+  };
 }
 
 /** Parse `## Number N: prompt` + image + `**Answer:**` bullet blocks. */
@@ -95,7 +96,6 @@ export function parseSlideDeck(content: string): SlideDeck | null {
 
   const push = () => {
     if (cur && (cur.image || cur.rows.length)) {
-      cur.rows = mergeRepeatedPrefixes(cur.rows);
       cur.labelled = cur.rows.length > 1 && cur.rows.every((r) => !!r.label);
       slides.push(cur);
     }
@@ -167,9 +167,35 @@ function Lightbox({ src, alt, onClose }: { src: string; alt?: string; onClose: (
 function AnswerRows({ rows, labelled }: { rows: SlideAnswerRow[]; labelled: boolean }) {
   if (!rows.length) return null;
 
+  const side = labelled ? splitSideTable(rows) : null;
+  if (side) {
+    return (
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="w-full border-collapse text-left text-sm">
+          <thead>
+            <tr className="bg-muted/60">
+              <th scope="col" className="w-12 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">#</th>
+              <th scope="col" className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{side.leftLabel}</th>
+              <th scope="col" className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{side.rightLabel}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {side.letters.map((r) => (
+              <tr key={r.letter} className="border-t border-border/70 align-top even:bg-muted/20">
+                <td className="px-3 py-2.5 font-mono text-xs font-bold text-primary">{r.letter}</td>
+                <td className="px-3 py-2.5 leading-relaxed text-foreground">{r.left?.term || "—"}</td>
+                <td className="px-3 py-2.5 leading-relaxed text-foreground">{r.right?.term || "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
   if (labelled) {
     return (
-      <div className="overflow-hidden rounded-lg border border-border">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full border-collapse text-left text-sm">
           <thead>
             <tr className="bg-muted/60">
@@ -286,7 +312,7 @@ function SlideCard({
             {open ? "Hide" : "Reveal"}
           </button>
           {open && (
-            <div className="mt-3 max-h-[26rem] overflow-y-auto overscroll-contain">
+            <div className="mt-3">
               <AnswerRows rows={slide.rows} labelled={slide.labelled} />
               {corrections.length > 0 && (
                 <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
@@ -313,6 +339,8 @@ export function SlideDeckView({ deck, revealAllDefault = false, articleId }: { d
   const [revealAll, setRevealAll] = useState(revealAllDefault);
   const [suggestFor, setSuggestFor] = useState<Slide | null>(null);
   const [corrections, setCorrections] = useState<Record<string, string[]>>({});
+  const [cols, setCols] = useState<1 | 2>(1);
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     if (!articleId) return;
@@ -346,30 +374,74 @@ export function SlideDeckView({ deck, revealAllDefault = false, articleId }: { d
           <Images className="h-3.5 w-3.5 text-primary" />
           {deck.slides.length} plates · tap Reveal for the answer key
         </p>
-        <button
-          type="button"
-          onClick={() => { setRevealAll((v) => !v); setAllKey((k) => k + 1); }}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
-        >
-          <Check className="h-3.5 w-3.5" />
-          {revealAll ? "Hide all answers" : "Reveal all answers"}
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex overflow-hidden rounded-full border border-border">
+            <button
+              type="button"
+              onClick={() => setCols(1)}
+              aria-pressed={cols === 1}
+              title="One column (paper view)"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${cols === 1 ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-primary"}`}
+            >
+              <Rows3 className="h-3.5 w-3.5" /> 1 col
+            </button>
+            <button
+              type="button"
+              onClick={() => setCols(2)}
+              aria-pressed={cols === 2}
+              title="Two columns (grid)"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${cols === 2 ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-primary"}`}
+            >
+              <Columns2 className="h-3.5 w-3.5" /> 2 col
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setRevealAll((v) => !v); setAllKey((k) => k + 1); }}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+          >
+            <Check className="h-3.5 w-3.5" />
+            {revealAll ? "Hide all" : "Reveal all"}
+          </button>
+        </div>
       </div>
 
-      {/* Jump strip */}
-      <nav aria-label="Slide index" className="mb-6 -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
-        {deck.slides.map((s) => (
-          <a
-            key={s.key}
-            href={`#slide-${s.number}`}
-            className="shrink-0 rounded-md border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
-          >
-            {s.number}
-          </a>
-        ))}
-      </nav>
+      {/* Slide index: left slide-over */}
+      <button
+        type="button"
+        onClick={() => setNavOpen(true)}
+        aria-label="Open plate index"
+        className="fixed bottom-24 left-3 z-40 inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-2 text-xs font-semibold text-foreground shadow-lg backdrop-blur transition-colors hover:border-primary/50 hover:text-primary"
+      >
+        <List className="h-4 w-4" /> Plates
+      </button>
+      {navOpen && (
+        <div className="fixed inset-0 z-[110] flex" role="dialog" aria-label="Plate index">
+          <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => setNavOpen(false)} />
+          <nav className="relative h-full w-64 max-w-[80vw] overflow-y-auto border-r border-border bg-card p-4 shadow-2xl">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Plates</p>
+              <button type="button" onClick={() => setNavOpen(false)} aria-label="Close plate index" className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {deck.slides.map((s) => (
+                <a
+                  key={s.key}
+                  href={`#slide-${s.number}`}
+                  onClick={() => setNavOpen(false)}
+                  className="rounded-md border border-border px-2 py-1.5 text-center text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                >
+                  {s.number}
+                </a>
+              ))}
+            </div>
+          </nav>
+        </div>
+      )}
 
-      <div className="grid items-start gap-5 sm:grid-cols-2">
+      <div className={`grid items-start gap-5 ${cols === 2 ? "sm:grid-cols-2" : "mx-auto max-w-3xl grid-cols-1"}`}>
         {deck.slides.map((s, i) => (
           <SlideCard
             key={`${s.key}-${allKey}`}
