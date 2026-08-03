@@ -2065,7 +2065,9 @@ export default function BlogPost() {
 
             <div className="prose-custom article-reader">
               <KeywordLinkProvider currentPath={buildBlogPath(article)}>
-                <ArticleContent content={article.content} inlineRelated={related.articles || []} />
+                {slideDeck
+                  ? <SlideDeckView deck={slideDeck} />
+                  : <ArticleContent content={article.content} inlineRelated={related.articles || []} />}
               </KeywordLinkProvider>
             </div>
 
@@ -2190,7 +2192,17 @@ export default function BlogPost() {
             {(article as any).comments_enabled !== false && <ArticleComments articleId={article.id} />}
             </PasswordGate>
           </article>
-          <ExamPreviewModal article={article} open={previewOpen} onClose={() => setPreviewOpen(false)} />
+          {slideDeck ? (
+            <SlidePreviewModal
+              deck={slideDeck}
+              title={cleanMetaTitle(article)}
+              university={inferUniversity(article)}
+              open={previewOpen}
+              onClose={() => setPreviewOpen(false)}
+            />
+          ) : (
+            <ExamPreviewModal article={article} open={previewOpen} onClose={() => setPreviewOpen(false)} />
+          )}
         </div>
       </div>
     </>
