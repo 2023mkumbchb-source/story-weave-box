@@ -1445,7 +1445,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       flushList(); underSubheading = false;
       combinedOpts.forEach((m, n) => {
         const label = m[1].toUpperCase();
-        const optText = (m[2] || "").replace(/^\*+|\*+$/g, "").trim();
+        const rawOption = (m[2] || "").replace(/^\*+|\*+$/g, "").trim();
+        const explanationMatch = rawOption.match(/^([\s\S]*?)\s*(?:Explanation|Rationale)\s*[:：]\s*([\s\S]+)$/i);
+        const optText = (explanationMatch?.[1] || rawOption).trim();
         if (!optText) return;
         els.push(
           <div key={`mcqopt-combo-${i}-${n}`} className="my-1.5 flex items-start gap-2.5 pl-1">
@@ -1453,6 +1455,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
             <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
           </div>
         );
+        if (explanationMatch?.[2]) {
+          els.push(<McqAnswerBlock key={`mcqopt-combo-exp-${i}-${n}`} raw={`Answer: ${label}. ${optText}\nExplanation: ${explanationMatch[2]}`} />);
+        }
       });
       continue;
     }
@@ -1464,13 +1469,18 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (mcqOptMatch && !inPractice) {
       flushList(); underSubheading = false;
       const label = mcqOptMatch[1].toUpperCase();
-      const optText = mcqOptMatch[2].replace(/^\*+|\*+$/g, "").trim();
+      const rawOption = mcqOptMatch[2].replace(/^\*+|\*+$/g, "").trim();
+      const explanationMatch = rawOption.match(/^([\s\S]*?)\s*(?:Explanation|Rationale)\s*[:：]\s*([\s\S]+)$/i);
+      const optText = (explanationMatch?.[1] || rawOption).trim();
       els.push(
         <div key={`mcqopt-${i}`} className="my-1.5 flex items-start gap-2.5 pl-1">
           <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
           <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
         </div>
       );
+      if (explanationMatch?.[2]) {
+        els.push(<McqAnswerBlock key={`mcqopt-exp-${i}`} raw={`Answer: ${label}. ${optText}\nExplanation: ${explanationMatch[2]}`} />);
+      }
       continue;
     }
     if (subQMatch) {
