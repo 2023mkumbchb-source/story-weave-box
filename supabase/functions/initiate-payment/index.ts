@@ -102,6 +102,7 @@ serve(async (req) => {
         provider_txn_id: providerTxnId,
         package_type: package_type || 'exam',
         buyer_email: authUser.email.toLowerCase(),
+        user_id: authUser.id,
       })
       .select()
       .single();
