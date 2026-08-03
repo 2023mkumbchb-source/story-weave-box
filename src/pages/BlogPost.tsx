@@ -215,6 +215,8 @@ function EssayQuestion({ number, question, answer }: { number: string; question:
 
 function McqAnswerBlock({ raw }: { raw: string }) {
   const [open, setOpen] = useState(false);
+  const access = useAccess();
+  const locked = !access.canReveal;
   const lines = raw.split("\n");
   const answerLine = cleanDisplayText((lines.shift() || "").replace(/^✅\s*/, "").replace(/^Answer\s*[:：]\s*/i, ""));
   const explanation = cleanDisplayText(lines.join("\n").trim());
@@ -223,19 +225,20 @@ function McqAnswerBlock({ raw }: { raw: string }) {
     <div className="not-prose my-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          if (locked) { openSubscribePrompt("Subscribe to reveal the verified answer and explanation."); return; }
+          setOpen((o) => !o);
+        }}
         className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-emerald-500/10"
       >
         <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-          {open
-            ? <EyeOff className="h-4 w-4" />
-            : <Eye className="h-4 w-4" />}
-          {open ? "Hide" : "Reveal"}
+          {locked ? <Lock className="h-4 w-4" /> : open ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {locked ? "Reveal — subscribers" : open ? "Hide" : "Reveal"}
         </span>
         <ChevronDown className={`h-4 w-4 text-emerald-600 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       <AnimatePresence initial={false}>
-        {open && (
+        {open && !locked && (
           <motion.div key="ans" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18 }} className="overflow-hidden">
             <div className="border-t border-emerald-500/20 px-4 py-3 space-y-2">
               <p className="text-[15px] font-semibold text-foreground">
