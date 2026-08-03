@@ -2038,14 +2038,14 @@ export default function BlogPost() {
 
       {/* Main layout */}
       <div className="mx-auto max-w-6xl px-5 py-8">
-        <div className={toc.length > 0 ? "lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10" : "max-w-3xl mx-auto"}>
-          {toc.length > 0 && (
+        <div className={slideDeck ? "" : toc.length > 0 ? "lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10" : "max-w-3xl mx-auto"}>
+          {!slideDeck && toc.length > 0 && (
             <aside className="hidden lg:block">
               <SidebarToc items={toc} activeId={activeSection} />
             </aside>
           )}
 
-          <article id="section-top" className="min-w-0 lg:max-w-[76ch]">
+          <article id="section-top" className={slideDeck ? "min-w-0" : "min-w-0 lg:max-w-[76ch]"}>
             <Countdown data={(article as any).countdown} />
             <PasswordGate
               enabled={(article as any).password_protected}
