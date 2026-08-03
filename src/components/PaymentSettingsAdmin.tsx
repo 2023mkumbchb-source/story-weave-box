@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Save, ShieldCheck, Trash2 } from "lucide-react";
+import { Loader2, Save, ShieldCheck, Trash2, Plus, X } from "lucide-react";
 import { getSetting, saveSetting } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { AccessPlan, DEFAULT_PLANS, loadPaymentSettings } from "@/lib/access";
@@ -57,6 +57,14 @@ export default function PaymentSettingsAdmin() {
   const updatePlan = (i: number, patch: Partial<AccessPlan>) =>
     setPlans((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
 
+  const addPlan = () =>
+    setPlans((prev) => [
+      ...prev,
+      { id: `plan-${Date.now().toString(36)}`, label: "New pass", price: 300, days: 90, download: true },
+    ]);
+
+  const removePlan = (i: number) => setPlans((prev) => prev.filter((_, idx) => idx !== i));
+
   if (loading) {
     return <div className="flex min-h-[30vh] items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
   }
@@ -69,7 +77,7 @@ export default function PaymentSettingsAdmin() {
       <div>
         <h2 className="mb-1 font-serif text-xl font-bold text-foreground">Payments &amp; access</h2>
         <p className="text-sm text-muted-foreground">
-          Set the site price, where the paywall starts, and the three subscription passes.
+          Answers and PDF handouts are always subscriber-only. Set the pass prices below — questions stay free to read.
         </p>
       </div>
 
@@ -119,7 +127,16 @@ export default function PaymentSettingsAdmin() {
       </div>
 
       <div className="rounded-xl border border-border bg-card p-5">
-        <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">Subscription passes</p>
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Subscription passes</p>
+          <button
+            type="button"
+            onClick={addPlan}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-semibold text-foreground hover:border-primary/50 hover:text-primary"
+          >
+            <Plus className="h-3 w-3" /> Add pass
+          </button>
+        </div>
         <div className="space-y-3">
           {plans.map((p, i) => (
             <div key={p.id} className="grid gap-2 sm:grid-cols-[1.4fr_0.7fr_0.7fr_auto] sm:items-center">
@@ -143,13 +160,27 @@ export default function PaymentSettingsAdmin() {
                 placeholder="Days"
                 className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
               />
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                <input type="checkbox" checked={p.download !== false} onChange={(e) => updatePlan(i, { download: e.target.checked })} className="accent-primary" />
-                PDF
-              </label>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <input type="checkbox" checked={p.download !== false} onChange={(e) => updatePlan(i, { download: e.target.checked })} className="accent-primary" />
+                  PDF
+                </label>
+                <button
+                  type="button"
+                  onClick={() => removePlan(i)}
+                  aria-label={`Remove ${p.label}`}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:border-destructive/50 hover:text-destructive"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
+        <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+          Recommended: a 3-month semester pass and a 12-month annual pass (90 and 365 days). Each pass works on 2 devices —
+          one laptop and one phone.
+        </p>
       </div>
 
       <button
