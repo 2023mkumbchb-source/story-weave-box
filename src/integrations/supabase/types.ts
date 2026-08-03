@@ -22,6 +22,7 @@ export type Database = {
           created_at: string
           device_limit: number
           devices: Json
+          email: string | null
           expires_at: string
           id: string
           last_redeemed_at: string | null
@@ -30,6 +31,7 @@ export type Database = {
           plan: string
           redeem_count: number
           scope: string
+          user_id: string | null
         }
         Insert: {
           allow_download?: boolean
@@ -38,6 +40,7 @@ export type Database = {
           created_at?: string
           device_limit?: number
           devices?: Json
+          email?: string | null
           expires_at: string
           id?: string
           last_redeemed_at?: string | null
@@ -46,6 +49,7 @@ export type Database = {
           plan?: string
           redeem_count?: number
           scope?: string
+          user_id?: string | null
         }
         Update: {
           allow_download?: boolean
@@ -54,6 +58,7 @@ export type Database = {
           created_at?: string
           device_limit?: number
           devices?: Json
+          email?: string | null
           expires_at?: string
           id?: string
           last_redeemed_at?: string | null
@@ -62,6 +67,7 @@ export type Database = {
           plan?: string
           redeem_count?: number
           scope?: string
+          user_id?: string | null
         }
         Relationships: [
           {
