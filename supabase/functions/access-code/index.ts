@@ -39,35 +39,6 @@ async function findGrant(supabase: ReturnType<typeof createClient>, raw: string)
 
 interface Plan { id: string; label: string; price: number; days: number; download?: boolean }
 
-interface DeviceEntry { id: string; label?: string; first_seen: string; last_seen: string }
-
-/** Register a device against a pass, enforcing the 2-device limit. */
-function registerDevice(
-  devices: DeviceEntry[],
-  limit: number,
-  deviceId?: string,
-  label?: string,
-): { ok: boolean; devices: DeviceEntry[]; error?: string } {
-  const list = Array.isArray(devices) ? devices.filter((d) => d && d.id) : [];
-  if (!deviceId) return { ok: true, devices: list };
-  const now = new Date().toISOString();
-  const existing = list.find((d) => d.id === deviceId);
-  if (existing) {
-    existing.last_seen = now;
-    if (label) existing.label = label;
-    return { ok: true, devices: list };
-  }
-  if (list.length >= Math.max(1, limit || 2)) {
-    return {
-      ok: false,
-      devices: list,
-      error: `This pass is already in use on ${list.length} devices (limit ${limit || 2}: one laptop and one phone).`,
-    };
-  }
-  list.push({ id: deviceId, label: label || "Device", first_seen: now, last_seen: now });
-  return { ok: true, devices: list };
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -76,6 +47,9 @@ serve(async (req) => {
     const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) throw new Error("Backend credentials not configured");
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const bearer = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") || "";
+    const { data: authData } = bearer ? await supabase.auth.getUser(bearer) : { data: { user: null } };
+    const authUser = authData.user;
 
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action || "verify");
@@ -99,10 +73,8 @@ serve(async (req) => {
     }
 
     if (action === "verify") {
-      const deviceIdIn = String(body?.device_id || "").trim() || undefined;
-      const deviceLabel = String(body?.device_label || "").trim() || undefined;
-      const email = String(body?.email || "").trim().toLowerCase() || null;
-      const userId = String(body?.user_id || "").trim() || null;
+      const email = authUser?.email?.trim().toLowerCase() || null;
+      const userId = authUser?.id || null;
       const code = String(body?.code || "").trim().toUpperCase();
       if (!code) return json({ valid: false, error: "Code required" }, 400);
 
@@ -113,15 +85,11 @@ serve(async (req) => {
         return json({ valid: false, expired: true, error: "That pass has expired." }, 200);
       }
 
-      const reg = registerDevice(grant.devices || [], grant.device_limit || 2, deviceIdIn, deviceLabel);
-      if (!reg.ok) return json({ valid: false, error: reg.error }, 200);
-
       await supabase
         .from("access_grants")
         .update({
           redeem_count: (grant.redeem_count || 0) + 1,
           last_redeemed_at: new Date().toISOString(),
-          devices: reg.devices,
           ...(email && !grant.email ? { email } : {}),
           ...(userId && !grant.user_id ? { user_id: userId } : {}),
         })
@@ -133,16 +101,14 @@ serve(async (req) => {
         plan: grant.plan,
         expires_at: grant.expires_at,
         allow_download: grant.allow_download !== false,
-        devices: reg.devices.length,
-        device_limit: grant.device_limit || 2,
       });
     }
 
     if (action === "account") {
       // Subscriber account page: look a pass up by code, signed-in user or email.
       const codeIn = String(body?.code || "").trim();
-      const userId = String(body?.user_id || "").trim();
-      const email = String(body?.email || "").trim().toLowerCase();
+      const userId = authUser?.id || "";
+      const email = authUser?.email?.trim().toLowerCase() || "";
 
       let grant: Record<string, unknown> | null = null;
       if (codeIn) grant = await findGrant(supabase, codeIn);
@@ -168,27 +134,12 @@ serve(async (req) => {
         expires_at: grant.expires_at,
         expired: new Date(String(grant.expires_at)).getTime() < Date.now(),
         allow_download: grant.allow_download !== false,
-        device_limit: grant.device_limit || 2,
-        devices: (Array.isArray(grant.devices) ? grant.devices : []).map((d: DeviceEntry) => ({
-          id: d.id, label: d.label || "Device", last_seen: d.last_seen,
-        })),
       });
-    }
-
-    if (action === "forget_device") {
-      const grant = await findGrant(supabase, String(body?.code || ""));
-      const target = String(body?.device_id || "").trim();
-      if (!grant) return json({ success: false, error: "That pass was not found." }, 200);
-      const devices: DeviceEntry[] = Array.isArray(grant.devices) ? grant.devices : [];
-      const next = devices.filter((d) => d.id !== target);
-      await supabase.from("access_grants").update({ devices: next }).eq("id", grant.id);
-      return json({ success: true, devices: next.length });
     }
 
     if (action === "rename") {
       const code = String(body?.code || "").trim().toUpperCase();
       const raw = String(body?.new_code || "").trim().toUpperCase();
-      const deviceIdIn = String(body?.device_id || "").trim();
       const newCode = raw.replace(/\s+/g, "-").replace(/[^A-Z0-9-]/g, "").replace(/^-+|-+$/g, "");
       if (!code || !newCode) return json({ success: false, error: "Both the current and new code are required." }, 400);
       if (newCode.length < 6 || newCode.length > 24) {
@@ -200,9 +151,8 @@ serve(async (req) => {
       if (new Date(grant.expires_at).getTime() < Date.now()) {
         return json({ success: false, error: "That pass has expired." }, 200);
       }
-      const devices: DeviceEntry[] = Array.isArray(grant.devices) ? grant.devices : [];
-      if (devices.length && deviceIdIn && !devices.some((d) => d.id === deviceIdIn)) {
-        return json({ success: false, error: "Only a device already signed in with this pass can change the code." }, 200);
+      if (grant.user_id && authUser?.id !== grant.user_id) {
+        return json({ success: false, error: "Sign in to the account linked to this subscription to change its code." }, 200);
       }
       if (canon(newCode) !== canon(grant.code)) {
         const clash = await findGrant(supabase, newCode);
@@ -228,10 +178,9 @@ serve(async (req) => {
 
     if (action === "issue") {
       const transactionId = String(body?.transaction_id || "").trim();
-      const deviceIdIn = String(body?.device_id || "").trim() || undefined;
-      const deviceLabelIn = String(body?.device_label || "").trim() || undefined;
-      const emailIn = String(body?.email || "").trim().toLowerCase() || null;
-      const userIdIn = String(body?.user_id || "").trim() || null;
+      const emailIn = authUser?.email?.trim().toLowerCase() || null;
+      const userIdIn = authUser?.id || null;
+      if (!userIdIn || !emailIn) return json({ success: false, error: "Sign in before activating a subscription." }, 401);
       if (!transactionId) return json({ success: false, error: "transaction_id required" }, 400);
 
       const { data: payment } = await supabase
@@ -252,9 +201,8 @@ serve(async (req) => {
         .eq("payment_id", payment.id)
         .maybeSingle();
       if (existing) {
-        const reg = registerDevice(existing.devices || [], existing.device_limit || 2, deviceIdIn, deviceLabelIn);
-        if (reg.ok) {
-          await supabase.from("access_grants").update({ devices: reg.devices }).eq("id", existing.id);
+        if (!existing.user_id || !existing.email) {
+          await supabase.from("access_grants").update({ user_id: userIdIn, email: emailIn }).eq("id", existing.id);
         }
         return json({
           success: true,
@@ -298,9 +246,6 @@ serve(async (req) => {
             allow_download: plan.download !== false,
             email: emailIn,
             user_id: userIdIn,
-            devices: deviceIdIn
-              ? [{ id: deviceIdIn, label: deviceLabelIn || "Device", first_seen: new Date().toISOString(), last_seen: new Date().toISOString() }]
-              : [],
           })
           .select()
           .maybeSingle();
