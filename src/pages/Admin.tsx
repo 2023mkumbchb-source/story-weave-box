@@ -29,7 +29,6 @@ export default function Admin() {
   const location = useLocation();
   const { toast } = useToast();
   const { isAdmin, loading: authLoading } = useAuth();
-  const { isAdmin, loading: authLoading } = useAuth();
   const ogUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}${location.pathname}${location.search}`
