@@ -16,6 +16,7 @@ import { slugify, useHashFlash } from "@/lib/deep-link";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { markArticleVisited } from "@/lib/progress-store";
+import { parseSlideDeck, SlideDeckView, SlidePreviewModal } from "@/components/SlideDeck";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
