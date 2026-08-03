@@ -567,6 +567,53 @@ export type Database = {
         }
         Relationships: []
       }
+      slide_corrections: {
+        Row: {
+          admin_note: string | null
+          article_id: string
+          created_at: string
+          id: string
+          slide_number: string
+          slide_prompt: string | null
+          status: string
+          submitter_name: string | null
+          suggestion: string
+          updated_at: string
+        }
+        Insert: {
+          admin_note?: string | null
+          article_id: string
+          created_at?: string
+          id?: string
+          slide_number: string
+          slide_prompt?: string | null
+          status?: string
+          submitter_name?: string | null
+          suggestion: string
+          updated_at?: string
+        }
+        Update: {
+          admin_note?: string | null
+          article_id?: string
+          created_at?: string
+          id?: string
+          slide_number?: string
+          slide_prompt?: string | null
+          status?: string
+          submitter_name?: string | null
+          suggestion?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "slide_corrections_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stories: {
         Row: {
           access_password: string | null
