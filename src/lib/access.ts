@@ -33,7 +33,6 @@ export const DEFAULT_SETTINGS: PaymentSettings = {
 };
 
 const PASS_KEY = "ompath_access_pass";
-const DEVICE_KEY = "ompath_device_id";
 let settingsCache: { at: number; value: PaymentSettings } | null = null;
 
 /** Codes are matched punctuation-insensitively, so normalise before sending. */
@@ -50,31 +49,6 @@ async function accountFields(): Promise<{ email?: string; user_id?: string }> {
     return { user_id: user.id, email: user.email ?? undefined };
   } catch {
     return {};
-  }
-}
-
-/** Stable per-device identifier so a pass can be limited to 2 devices. */
-export function deviceId(): string {
-  try {
-    let id = localStorage.getItem(DEVICE_KEY);
-    if (!id) {
-      id = (crypto.randomUUID?.() || `dev-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-      localStorage.setItem(DEVICE_KEY, id);
-    }
-    return id;
-  } catch {
-    return "unknown-device";
-  }
-}
-
-/** Human label for the device list shown to the buyer ("Phone" / "Laptop"). */
-export function deviceLabel(): string {
-  try {
-    const ua = navigator.userAgent;
-    const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
-    return mobile ? "Phone / tablet" : "Laptop / desktop";
-  } catch {
-    return "Device";
   }
 }
 
@@ -142,8 +116,6 @@ export async function verifyCode(code: string): Promise<{ ok: boolean; pass?: Ac
     body: {
       action: "verify",
       code: normalizePassCode(code),
-      device_id: deviceId(),
-      device_label: deviceLabel(),
       ...(await accountFields()),
     },
   });
@@ -165,8 +137,6 @@ export async function issuePassForPayment(transactionId: string, plan?: string):
       action: "issue",
       transaction_id: transactionId,
       plan,
-      device_id: deviceId(),
-      device_label: deviceLabel(),
       ...(await accountFields()),
     },
   });
@@ -184,7 +154,7 @@ export async function issuePassForPayment(transactionId: string, plan?: string):
 /** Let the buyer pick their own memorable pass code on the success screen. */
 export async function renamePassCode(currentCode: string, newCode: string): Promise<{ ok: boolean; pass?: AccessPass; error?: string }> {
   const { data, error } = await supabase.functions.invoke("access-code", {
-    body: { action: "rename", code: currentCode, new_code: normalizePassCode(newCode), device_id: deviceId() },
+    body: { action: "rename", code: currentCode, new_code: normalizePassCode(newCode), ...(await accountFields()) },
   });
   if (error) return { ok: false, error: "Could not change the code. Try again." };
   if (!data?.success) return { ok: false, error: data?.error || "Could not change the code." };
@@ -198,7 +168,6 @@ export async function renamePassCode(currentCode: string, newCode: string): Prom
   return { ok: true, pass };
 }
 
-export interface AccountDevice { id: string; label: string; last_seen?: string }
 export interface AccountInfo {
   found: boolean;
   code?: string;
@@ -207,25 +176,16 @@ export interface AccountInfo {
   expires_at?: string;
   expired?: boolean;
   allow_download?: boolean;
-  device_limit?: number;
-  devices?: AccountDevice[];
 }
 
 /** Subscriber account lookup — by stored pass code, or by the signed-in account. */
 export async function fetchAccount(code?: string): Promise<AccountInfo> {
+  const account = await accountFields();
   const { data, error } = await supabase.functions.invoke("access-code", {
-    body: { action: "account", code: code ? normalizePassCode(code) : undefined, ...(await accountFields()) },
+    body: { action: "account", code: account.user_id ? undefined : (code ? normalizePassCode(code) : undefined), ...account },
   });
   if (error || !data) return { found: false };
   return data as AccountInfo;
-}
-
-/** Free a device slot so the pass can be signed in somewhere else. */
-export async function forgetDevice(code: string, targetDeviceId: string): Promise<boolean> {
-  const { data } = await supabase.functions.invoke("access-code", {
-    body: { action: "forget_device", code: normalizePassCode(code), device_id: targetDeviceId },
-  });
-  return !!data?.success;
 }
 
 /**
@@ -233,7 +193,7 @@ export async function forgetDevice(code: string, targetDeviceId: string): Promis
  * valid pass, and may they download the watermarked PDF.
  */
 export function useAccess() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user, loading: authLoading } = useAuth();
   const [settings, setSettings] = useState<PaymentSettings | null>(null);
   const [pass, setPass] = useState<AccessPass | null>(() => readStoredPass());
   const [loading, setLoading] = useState(true);
@@ -247,6 +207,24 @@ export function useAccess() {
     });
     return () => { active = false; };
   }, []);
+
+  // Restore a subscription from the signed-in account on every browser.
+  useEffect(() => {
+    if (authLoading || !user) return;
+    let active = true;
+    fetchAccount().then((info) => {
+      if (!active || !info.found || info.expired || !info.code || !info.expires_at) return;
+      const linked: AccessPass = {
+        code: info.code,
+        plan: info.plan || "subscription",
+        expires_at: info.expires_at,
+        allow_download: info.allow_download !== false,
+      };
+      storePass(linked);
+      setPass(linked);
+    });
+    return () => { active = false; };
+  }, [authLoading, user]);
 
   const refresh = useCallback(() => {
     setPass(readStoredPass());

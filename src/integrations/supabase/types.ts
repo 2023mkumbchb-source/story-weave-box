@@ -20,8 +20,6 @@ export type Database = {
           amount: number | null
           code: string
           created_at: string
-          device_limit: number
-          devices: Json
           email: string | null
           expires_at: string
           id: string
@@ -38,8 +36,6 @@ export type Database = {
           amount?: number | null
           code: string
           created_at?: string
-          device_limit?: number
-          devices?: Json
           email?: string | null
           expires_at: string
           id?: string
@@ -56,8 +52,6 @@ export type Database = {
           amount?: number | null
           code?: string
           created_at?: string
-          device_limit?: number
-          devices?: Json
           email?: string | null
           expires_at?: string
           id?: string
@@ -548,6 +542,7 @@ export type Database = {
           provider_txn_id: string | null
           transaction_id: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           amount?: number
@@ -563,6 +558,7 @@ export type Database = {
           provider_txn_id?: string | null
           transaction_id?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           amount?: number
@@ -578,6 +574,7 @@ export type Database = {
           provider_txn_id?: string | null
           transaction_id?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }

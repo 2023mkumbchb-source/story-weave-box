@@ -25,7 +25,10 @@ export default function AuthCallback() {
       if (session) finish();
     });
     const timer = setTimeout(() => {
-      if (!done) setMessage("Sign-in did not complete. Please try again.");
+      if (!done) {
+        setMessage("Sign-in did not complete. Returning to sign in…");
+        navigate("/login", { replace: true });
+      }
     }, 8000);
 
     return () => {

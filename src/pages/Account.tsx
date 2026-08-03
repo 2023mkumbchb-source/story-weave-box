@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Loader2, ShieldCheck, MonitorSmartphone, Pencil, Check, LogOut, KeyRound, Trash2 } from "lucide-react";
+import { Loader2, ShieldCheck, Pencil, Check, LogOut, KeyRound } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  AccountInfo, deviceId, fetchAccount, forgetDevice, normalizePassCode, readStoredPass, renamePassCode, useAccess, verifyCode,
+  AccountInfo, fetchAccount, normalizePassCode, readStoredPass, renamePassCode, useAccess, verifyCode,
 } from "@/lib/access";
 import { toast } from "@/hooks/use-toast";
 
-/** Subscriber account page: plan, pass code, devices and sign-out. */
+/** Subscriber account page: plan, pass code and sign-out. */
 export default function Account() {
   const { user, signOut } = useAuth();
   const access = useAccess();
@@ -55,22 +55,11 @@ export default function Account() {
     load();
   };
 
-  const removeDevice = async (id: string) => {
-    if (!info?.code) return;
-    setBusy(true);
-    const ok = await forgetDevice(info.code, id);
-    setBusy(false);
-    toast({ title: ok ? "Device removed" : "Could not remove that device", variant: ok ? undefined : "destructive" });
-    load();
-  };
-
-  const thisDevice = deviceId();
-
   return (
     <div className="mx-auto min-h-[65vh] max-w-2xl px-5 py-10">
       <Helmet>
         <title>My account | Ompath Study</title>
-        <meta name="description" content="Manage your Ompath Study subscription, pass code and signed-in devices." />
+        <meta name="description" content="Manage your Ompath Study subscription and pass code." />
         <meta name="robots" content="noindex" />
       </Helmet>
 
@@ -129,30 +118,6 @@ export default function Account() {
             </p>
           </section>
 
-          <section className="mt-4 rounded-2xl border border-border bg-card p-5">
-            <p className="mb-3 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-              <MonitorSmartphone className="h-3.5 w-3.5" /> Devices ({info.devices?.length ?? 0} of {info.device_limit})
-            </p>
-            <ul className="divide-y divide-border">
-              {(info.devices || []).map((d) => (
-                <li key={d.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                  <span className="text-foreground">
-                    {d.label}
-                    {d.id === thisDevice && <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">This device</span>}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeDevice(d.id)}
-                    disabled={busy}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" /> Remove
-                  </button>
-                </li>
-              ))}
-              {!(info.devices || []).length && <li className="py-2 text-sm text-muted-foreground">No devices registered yet.</li>}
-            </ul>
-          </section>
         </>
       ) : (
         <section className="mt-6 rounded-2xl border border-border bg-card p-5">
@@ -160,7 +125,7 @@ export default function Account() {
             <KeyRound className="h-3.5 w-3.5" /> No subscription found on this account
           </p>
           <p className="mb-3 text-sm text-muted-foreground">
-            Already paid? Enter your pass code to link it to this account and device.
+            Already paid? Enter your pass code once to link it to this email account.
           </p>
           <div className="flex gap-2">
             <input
@@ -185,10 +150,10 @@ export default function Account() {
         {access.hasPass && (
           <button
             type="button"
-            onClick={() => { access.signOutPass(); toast({ title: "Pass removed from this device" }); load(); }}
+            onClick={() => { access.signOutPass(); toast({ title: "Saved pass cleared" }); load(); }}
             className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs font-semibold text-foreground"
           >
-            <LogOut className="h-3.5 w-3.5" /> Sign this device out of the pass
+            <LogOut className="h-3.5 w-3.5" /> Clear saved pass
           </button>
         )}
         {user && (

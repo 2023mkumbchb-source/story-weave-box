@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Lock, Loader2, ShieldCheck, KeyRound, Smartphone, Check, Pencil, MonitorSmartphone, Eye, Download, Mail } from "lucide-react";
+import { Lock, Loader2, ShieldCheck, KeyRound, Smartphone, Check, Pencil, Eye, Download, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { AccessPass, AccessPlan, PaymentSettings, issuePassForPayment, normalizePassCode, renamePassCode, verifyCode } from "@/lib/access";
@@ -180,13 +180,13 @@ export function Paywall({
             </button>
           </div>
           {renameMsg && <p className="mt-2 text-[11px] font-semibold text-primary">{renameMsg}</p>}
-          <p className="mt-2 inline-flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
-            <MonitorSmartphone className="mt-0.5 h-3 w-3 shrink-0" />
-            Use this code to sign in on up to <strong>2 devices</strong> (one laptop and one phone). Extra devices are refused.
-          </p>
+           <p className="mt-2 inline-flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
+             <Mail className="mt-0.5 h-3 w-3 shrink-0" />
+             This subscription is linked to <strong>your signed-in email</strong> and works wherever you sign in.
+           </p>
         </div>
         <p className="mt-3 text-[11px] text-muted-foreground">
-          Manage your subscription, code and devices any time on your{" "}
+           Manage your subscription and code any time on your{" "}
           <Link to="/account" className="font-semibold text-primary underline underline-offset-4">account page</Link>.
         </p>
       </div>
@@ -211,7 +211,7 @@ export function Paywall({
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-[11px] font-semibold text-muted-foreground">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1"><Eye className="h-3 w-3 text-primary" /> Reveal every answer</span>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1"><Download className="h-3 w-3 text-primary" /> PDF handouts</span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1"><MonitorSmartphone className="h-3 w-3 text-primary" /> 2 devices</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1"><Mail className="h-3 w-3 text-primary" /> Access follows your email</span>
         </div>
 
         <div className="mt-5 inline-flex overflow-hidden rounded-full border border-border">
@@ -342,9 +342,9 @@ export function Paywall({
           <p className={`mt-3 text-xs font-semibold ${state === "error" ? "text-destructive" : "text-primary"}`}>{message}</p>
         )}
         <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
-          One subscription covers the whole site on up to 2 devices. Downloads are watermarked with your pass code.{" "}
-          <Link to="/login" className="font-semibold text-primary underline underline-offset-4">Sign in with Google</Link> to keep it
-          tied to your account.
+          One subscription covers the whole site wherever you sign in. Downloads are watermarked with your pass code.{" "}
+          <Link to="/login" className="font-semibold text-primary underline underline-offset-4">Sign in</Link> to keep it
+          tied to your email account.
         </p>
       </div>
     </div>
