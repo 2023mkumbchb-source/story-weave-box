@@ -35,6 +35,15 @@ serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const bearer = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') || '';
+    const { data: authData } = bearer ? await supabase.auth.getUser(bearer) : { data: { user: null } };
+    const authUser = authData.user;
+    if (!authUser?.id || !authUser.email) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Sign in before making a payment' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     const { phone, amount, package_type } = await req.json();
 
     if (!phone || !amount || amount <= 0) {
@@ -92,6 +101,7 @@ serve(async (req) => {
         transaction_id: externalReference,
         provider_txn_id: providerTxnId,
         package_type: package_type || 'exam',
+        buyer_email: authUser.email.toLowerCase(),
       })
       .select()
       .single();
