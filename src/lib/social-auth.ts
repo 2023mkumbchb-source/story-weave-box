@@ -1,4 +1,4 @@
-import { lovable } from "@/integrations/lovable";
+import { supabase } from "@/integrations/supabase/client";
 
 /** Canonical public origin used for OAuth redirects (production must be the .com domain). */
 export function canonicalOrigin(): string {
@@ -8,16 +8,21 @@ export function canonicalOrigin(): string {
   return window.location.origin;
 }
 
-/** Google sign-in for students, so subscriptions can be tied to an account. */
+/**
+ * Google sign-in for students, so subscriptions can be tied to an account.
+ * Uses a plain full-page redirect (works on Vercel and inside the preview).
+ */
 export async function signInWithGoogle(): Promise<{ redirected?: boolean; error?: string }> {
   try {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${canonicalOrigin()}/auth/callback`,
-      extraParams: { prompt: "select_account" },
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${canonicalOrigin()}/auth/callback`,
+        queryParams: { prompt: "select_account" },
+      },
     });
-    if (result.error) return { error: String(result.error.message || result.error) };
-    if (result.redirected) return { redirected: true };
-    return {};
+    if (error) return { error: error.message };
+    return { redirected: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Google sign-in failed" };
   }
