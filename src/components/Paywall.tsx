@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Lock, Loader2, ShieldCheck, KeyRound, Smartphone, Check } from "lucide-react";
+import { Lock, Loader2, ShieldCheck, KeyRound, Smartphone, Check, Pencil, MonitorSmartphone, Eye, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { AccessPass, AccessPlan, PaymentSettings, issuePassForPayment, verifyCode } from "@/lib/access";
+import { AccessPass, AccessPlan, PaymentSettings, issuePassForPayment, renamePassCode, verifyCode } from "@/lib/access";
 
 /**
  * Paywall shown where the free portion of a page ends. Two ways in:
@@ -13,23 +13,33 @@ export function Paywall({
   hiddenCount,
   label = "questions",
   onUnlocked,
+  headline,
+  blurb,
+  bare = false,
 }: {
   settings: PaymentSettings;
-  hiddenCount: number;
+  hiddenCount?: number;
   label?: string;
   onUnlocked: (pass: AccessPass) => void;
+  headline?: string;
+  blurb?: string;
+  /** modal usage: drop the card chrome, the parent provides it */
+  bare?: boolean;
 }) {
   const plans = settings.plans.length ? settings.plans : [];
-  const [planId, setPlanId] = useState(plans[0]?.id || "day");
+  const [planId, setPlanId] = useState(plans[0]?.id || "semester");
   const [phone, setPhone] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "waiting" | "error">("idle");
   const [message, setMessage] = useState("");
   const [mode, setMode] = useState<"buy" | "code">("buy");
   const [code, setCode] = useState("");
   const [issued, setIssued] = useState<AccessPass | null>(null);
+  const [customCode, setCustomCode] = useState("");
+  const [renaming, setRenaming] = useState(false);
+  const [renameMsg, setRenameMsg] = useState("");
 
   const plan: AccessPlan = plans.find((p) => p.id === planId) || {
-    id: "day", label: "Access pass", price: settings.price, days: 1, download: false,
+    id: "semester", label: "Semester pass (3 months)", price: settings.price, days: 90, download: true,
   };
 
   const pollPayment = async (transactionId: string) => {
@@ -44,6 +54,7 @@ export function Paywall({
           const pass = await issuePassForPayment(transactionId, plan.id);
           if (pass) {
             setIssued(pass);
+            setCustomCode(pass.code);
             onUnlocked(pass);
             return;
           }
@@ -79,7 +90,7 @@ export function Paywall({
       return;
     }
     setState("waiting");
-    setMessage("Check your phone and enter your M-Pesa PIN…");
+    setMessage("Sent. Check your phone and enter your M-Pesa PIN — keep this page open.");
     pollPayment(data.transaction_id);
   };
 
@@ -93,34 +104,87 @@ export function Paywall({
       return;
     }
     setIssued(res.pass);
+    setCustomCode(res.pass.code);
     onUnlocked(res.pass);
+  };
+
+  const applyCustomCode = async () => {
+    if (!issued) return;
+    const next = customCode.trim().toUpperCase();
+    if (!next || next === issued.code) return;
+    setRenaming(true);
+    setRenameMsg("");
+    const res = await renamePassCode(issued.code, next);
+    setRenaming(false);
+    if (!res.ok || !res.pass) {
+      setRenameMsg(res.error || "Could not change the code.");
+      return;
+    }
+    setIssued(res.pass);
+    setCustomCode(res.pass.code);
+    onUnlocked(res.pass);
+    setRenameMsg("Code updated — use it on your other device.");
   };
 
   if (issued) {
     return (
-      <div className="not-prose my-8 rounded-2xl border border-primary/30 bg-primary/5 p-6 text-center">
+      <div className={`not-prose text-center ${bare ? "" : "my-8 rounded-2xl border border-primary/30 bg-primary/5 p-6"}`}>
         <ShieldCheck className="mx-auto h-8 w-8 text-primary" />
-        <p className="mt-3 font-serif text-lg font-bold text-foreground">Access unlocked</p>
+        <p className="mt-3 font-serif text-lg font-bold text-foreground">Subscription active</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Your pass code is <span className="font-mono font-bold text-foreground">{issued.code}</span> — valid until{" "}
-          {new Date(issued.expires_at).toLocaleDateString()}. Keep it to sign in on another device.
+          Valid until {new Date(issued.expires_at).toLocaleDateString()}. Answers and PDF handouts are unlocked.
         </p>
+
+        <div className="mx-auto mt-4 max-w-sm rounded-xl border border-border bg-card p-4 text-left">
+          <p className="mb-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            <Pencil className="h-3 w-3" /> Your pass code — you can change it
+          </p>
+          <div className="flex gap-2">
+            <input
+              value={customCode}
+              onChange={(e) => setCustomCode(e.target.value.toUpperCase())}
+              className="flex-1 rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm font-bold text-foreground outline-none focus:border-primary"
+            />
+            <button
+              type="button"
+              onClick={applyCustomCode}
+              disabled={renaming || !customCode.trim() || customCode.trim().toUpperCase() === issued.code}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+            >
+              {renaming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              Save
+            </button>
+          </div>
+          {renameMsg && <p className="mt-2 text-[11px] font-semibold text-primary">{renameMsg}</p>}
+          <p className="mt-2 inline-flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
+            <MonitorSmartphone className="mt-0.5 h-3 w-3 shrink-0" />
+            Use this code to sign in on up to <strong>2 devices</strong> (one laptop and one phone). Extra devices are refused.
+          </p>
+        </div>
       </div>
     );
   }
 
+  const busy = state === "sending" || state === "waiting";
+
   return (
-    <div className="not-prose relative my-8 overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
+    <div className={`not-prose relative overflow-hidden ${bare ? "" : "my-8 rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8"}`}>
       <div className="mx-auto max-w-lg text-center">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-primary">
-          <Lock className="h-3 w-3" /> Members only
+          <Lock className="h-3 w-3" /> Subscribers only
         </span>
         <h2 className="mt-4 font-serif text-2xl font-bold leading-snug text-foreground">
-          {hiddenCount} more {label} are locked
+          {headline || (hiddenCount ? `${hiddenCount} more ${label} are locked` : "Answers are for subscribers")}
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Unlock the full verified answer key on this page — plus every other paper on Ompath Study — with one pass.
+          {blurb || "Questions stay free to read. Subscribe once to reveal the verified answers on every paper on Ompath Study — and to download PDF handouts."}
         </p>
+
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-[11px] font-semibold text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1"><Eye className="h-3 w-3 text-primary" /> Reveal every answer</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1"><Download className="h-3 w-3 text-primary" /> PDF handouts</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1"><MonitorSmartphone className="h-3 w-3 text-primary" /> 2 devices</span>
+        </div>
 
         <div className="mt-5 inline-flex overflow-hidden rounded-full border border-border">
           <button
@@ -141,7 +205,7 @@ export function Paywall({
 
         {mode === "buy" ? (
           <>
-            <div className="mt-5 grid gap-2 text-left sm:grid-cols-3">
+            <div className="mt-5 grid gap-2 text-left sm:grid-cols-2">
               {plans.map((p) => (
                 <button
                   key={p.id}
@@ -152,7 +216,8 @@ export function Paywall({
                   <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{p.label}</p>
                   <p className="mt-1 font-serif text-lg font-bold text-foreground">KES {p.price}</p>
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    {p.days} day{p.days === 1 ? "" : "s"}{p.download ? " · PDF download" : ""}
+                    {p.days >= 365 ? "12 months" : p.days >= 85 ? "3 months" : `${p.days} days`}
+                    {p.download ? " · PDF downloads" : ""}
                   </p>
                   {planId === p.id && (
                     <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-primary"><Check className="h-3 w-3" /> Selected</p>
@@ -175,13 +240,30 @@ export function Paywall({
               <button
                 type="button"
                 onClick={pay}
-                disabled={state === "sending" || state === "waiting"}
+                disabled={busy}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-60"
               >
-                {state === "sending" || state === "waiting" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                Pay KES {plan.price || settings.price}
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                {state === "sending" ? "Sending request…" : state === "waiting" ? "Waiting for M-Pesa…" : `Pay KES ${plan.price || settings.price}`}
               </button>
             </div>
+
+            {busy && (
+              <div className="mt-4 rounded-xl border border-primary/25 bg-primary/5 p-4 text-left">
+                <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-primary">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Payment in progress
+                </p>
+                <ol className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-foreground/80">
+                  <li className={state === "waiting" ? "font-semibold text-primary" : ""}>1 · STK push sent to {phone || "your phone"}</li>
+                  <li>2 · Enter your M-Pesa PIN on the prompt</li>
+                  <li>3 · Your pass code appears here automatically</li>
+                </ol>
+                <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-primary/15">
+                  <div className="h-full w-1/3 animate-[pulse_1.4s_ease-in-out_infinite] rounded-full bg-primary" />
+                </div>
+                <p className="mt-2 text-[11px] text-muted-foreground">Keep this page open — it can take up to a minute.</p>
+              </div>
+            )}
           </>
         ) : (
           <div className="mt-5 flex flex-col gap-2 sm:flex-row">
@@ -210,7 +292,7 @@ export function Paywall({
           <p className={`mt-3 text-xs font-semibold ${state === "error" ? "text-destructive" : "text-primary"}`}>{message}</p>
         )}
         <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
-          One pass covers the whole site. Passes are personal — downloads are watermarked with your pass code.
+          One subscription covers the whole site on up to 2 devices. Downloads are watermarked with your pass code.
         </p>
       </div>
     </div>
