@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Eye, EyeOff, X, ZoomIn, Images, Check, Pencil, BadgeCheck, List, Rows3, Columns2, Lock, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SlideCorrectionModal } from "@/components/SlideCorrectionModal";
 import { useAccess } from "@/lib/access";
+import { useSiteSettings } from "@/lib/site-settings";
+import { redactNames } from "@/lib/redact";
 import { SubscribeModal } from "@/components/SubscribeModal";
 import { openSubscribePrompt, useScrollSubscribePrompt } from "@/lib/subscribe-prompt";
 import { DeckDownloadButton } from "@/components/DeckPdfExport";
@@ -365,10 +367,16 @@ export function SlideDeckView({
   const [cols, setCols] = useState<1 | 2>(2);
   const [navOpen, setNavOpen] = useState(false);
   const access = useAccess();
+  const site = useSiteSettings();
 
-  // Every plate and prompt is public; only the answer key is subscriber-gated.
-  const visibleSlides = deck.slides;
   const locked = !access.canReveal;
+  // Answers are always subscriber-only. How much of the paper a guest may
+  // browse is an admin choice: the whole paper, or half of it.
+  const visibleSlides = useMemo(() => {
+    if (!locked || site.guestSlideView !== "half") return deck.slides;
+    return deck.slides.slice(0, Math.max(1, Math.ceil(deck.slides.length / 2)));
+  }, [deck.slides, locked, site.guestSlideView]);
+  const truncated = visibleSlides.length < deck.slides.length;
   useScrollSubscribePrompt(locked && deck.slides.length > 0);
 
   useEffect(() => {
@@ -401,7 +409,7 @@ export function SlideDeckView({
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-y border-border py-3">
         <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           <Images className="h-3.5 w-3.5 text-primary" />
-          {deck.slides.length} plates · tap Reveal for the answer key
+          {site.showCounts ? `${deck.slides.length} plates · ` : ""}tap Reveal for the answer key
         </p>
         <div className="flex items-center gap-2">
           {!locked && access.settings.downloadEnabled && (
@@ -458,15 +466,8 @@ export function SlideDeckView({
         </div>
       </div>
 
-      {/* Slide index: left slide-over */}
-      <button
-        type="button"
-        onClick={() => setNavOpen(true)}
-        aria-label="Open plate index"
-        className="fixed bottom-24 left-3 z-40 inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-2 text-xs font-semibold text-foreground shadow-lg backdrop-blur transition-colors hover:border-primary/50 hover:text-primary"
-      >
-        <List className="h-4 w-4" /> Plates
-      </button>
+      {/* Slide index: draggable ball + slide-over */}
+      <PlatesHandle onOpen={() => setNavOpen(true)} />
       {navOpen && (
         <div className="fixed inset-0 z-[110] flex" role="dialog" aria-label="Plate index">
           <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => setNavOpen(false)} />
@@ -501,14 +502,16 @@ export function SlideDeckView({
         >
           <Sparkles className="h-4 w-4 shrink-0 text-primary" />
           <span className="text-[13px] font-semibold leading-snug text-foreground">
-            All {deck.slides.length} plates are free to view. Subscribe to reveal the answer key and download the PDF handout.
+            {truncated
+              ? "Part of this paper is open to guests. Subscribe to see every plate, reveal the answer key and download the PDF handout."
+              : "Every plate is free to view. Subscribe to reveal the answer key and download the PDF handout."}
           </span>
         </button>
       ) : (
         <div className="not-prose mb-5 flex items-center gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
           <BadgeCheck className="h-4 w-4 shrink-0 text-primary" />
           <p className="text-[13px] font-semibold leading-snug text-foreground">
-            Subscription active — all {deck.slides.length} plates and the full answer key are unlocked.
+            Subscription active — the full paper and answer key are unlocked.
           </p>
         </div>
       )}
@@ -530,9 +533,19 @@ export function SlideDeckView({
 
       <SubscribeModal settings={access.settings} onUnlocked={access.applyPass} />
 
+      {truncated && (
+        <button
+          type="button"
+          onClick={() => openSubscribePrompt("Subscribe to open the rest of this paper.")}
+          className="not-prose mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-4 text-sm font-bold text-primary"
+        >
+          <Lock className="h-4 w-4" /> Subscribe to continue this paper
+        </button>
+      )}
+
       {deck.footer && (
         <p className="mt-8 border-t border-border pt-4 text-[13px] italic leading-relaxed text-muted-foreground">
-          {clean(deck.footer)}
+          {redactNames(clean(deck.footer), site.redactedNames)}
         </p>
       )}
 
