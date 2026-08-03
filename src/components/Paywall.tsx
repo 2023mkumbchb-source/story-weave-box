@@ -342,9 +342,9 @@ export function Paywall({
           <p className={`mt-3 text-xs font-semibold ${state === "error" ? "text-destructive" : "text-primary"}`}>{message}</p>
         )}
         <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
-          One subscription covers the whole site on up to 2 devices. Downloads are watermarked with your pass code.{" "}
-          <Link to="/login" className="font-semibold text-primary underline underline-offset-4">Sign in with Google</Link> to keep it
-          tied to your account.
+          One subscription covers the whole site wherever you sign in. Downloads are watermarked with your pass code.{" "}
+          <Link to="/login" className="font-semibold text-primary underline underline-offset-4">Sign in</Link> to keep it
+          tied to your email account.
         </p>
       </div>
     </div>
