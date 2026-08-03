@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/hooks/useAuth";
 import { signInWithGoogle } from "@/lib/social-auth";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -70,6 +71,21 @@ export default function Login() {
     }
   };
 
+  const resetPassword = async () => {
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      toast({ title: "Enter your email first" });
+      return;
+    }
+    setBusy(true);
+    const redirectTo = `${window.location.origin}/login`;
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, { redirectTo });
+    setBusy(false);
+    toast(error
+      ? { title: "Could not send reset email", description: error.message, variant: "destructive" }
+      : { title: "Reset email sent", description: "Open the link in your inbox to choose a new password." });
+  };
+
   return (
     <div className="flex min-h-[calc(100vh-73px)] items-center justify-center px-6">
       <Helmet>
@@ -93,7 +109,7 @@ export default function Login() {
             {mode === "signup" ? "Create your account" : "Sign in"}
           </h1>
           <p className="mb-6 text-center text-sm text-muted-foreground">
-            Sign in so your subscription, pass code and devices follow you everywhere.
+            Sign in so your subscription and pass code follow your email everywhere.
           </p>
 
           <Button type="button" onClick={google} disabled={busy} variant="outline" className="mb-4 w-full gap-2">
@@ -112,6 +128,11 @@ export default function Login() {
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
               {mode === "signup" ? "Create account" : "Sign in"}
             </Button>
+            {mode === "signin" && (
+              <Button type="button" variant="link" onClick={resetPassword} disabled={busy} className="mt-2 w-full text-xs">
+                Forgot password?
+              </Button>
+            )}
           </form>
 
           <button
