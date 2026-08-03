@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 /**
  * Site-wide copy protection: blocks text selection/copy/cut, right-click and
@@ -6,7 +7,12 @@ import { useEffect } from "react";
  * shortcut. Form fields stay fully usable.
  */
 export default function ContentProtection() {
+  const { isAdmin } = useAuth();
   useEffect(() => {
+    if (isAdmin) {
+      document.body.classList.remove("no-copy");
+      return;
+    }
     const isEditable = (el: EventTarget | null) => {
       const node = el as HTMLElement | null;
       if (!node || !node.closest) return false;
@@ -46,7 +52,7 @@ export default function ContentProtection() {
       document.removeEventListener("keydown", blockKeys);
       document.body.classList.remove("no-copy");
     };
-  }, []);
+  }, [isAdmin]);
 
   return null;
 }

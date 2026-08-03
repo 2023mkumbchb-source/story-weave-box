@@ -330,10 +330,11 @@ async function prepareStoryForPublish(title: string, html: string, category: str
 export default function AdminEditor() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (localStorage.getItem("learninghub_auth") !== "true" && sessionStorage.getItem("learninghub_auth") !== "true") navigate("/login");
-  }, [navigate]);
+    if (!authLoading && !isAdmin) navigate("/login");
+  }, [navigate, isAdmin, authLoading]);
 
   const [allArticles, setAllArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
