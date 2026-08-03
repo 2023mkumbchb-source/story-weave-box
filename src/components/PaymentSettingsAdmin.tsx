@@ -235,8 +235,8 @@ export default function PaymentSettingsAdmin() {
           ))}
         </div>
         <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-          Recommended: a 3-month semester pass and a 12-month annual pass (90 and 365 days). Each pass works on 2 devices —
-          one laptop and one phone.
+          Recommended: a 3-month semester pass and a 12-month annual pass (90 and 365 days). Access follows the
+          subscriber's signed-in email on every device.
         </p>
       </div>
 
