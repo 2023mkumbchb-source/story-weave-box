@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { BookOpen, Phone, MessageCircle, Download, Mail, Heart } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const studyLinks = [
   { to: "/year/1", label: "Year 1" },
@@ -16,11 +17,12 @@ const exploreLinks = [
   { to: "/stories", label: "Stories" },
   { to: "/exams", label: "Weekly Exams" },
   { to: "/about", label: "About the Founder" },
-  { to: "/admin", label: "Dashboard" },
 ];
 
 export default function SiteFooter() {
   const location = useLocation();
+  const { isAdmin } = useAuth();
+  const visibleExploreLinks = isAdmin ? [...exploreLinks, { to: "/admin", label: "Dashboard" }] : exploreLinks;
 
   if (/^\/exams\/[^/]+\/start/.test(location.pathname)) return null;
 
@@ -68,7 +70,7 @@ export default function SiteFooter() {
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">Explore</h3>
             <ul className="mt-4 space-y-2 text-sm">
-              {exploreLinks.map((l) => (
+              {visibleExploreLinks.map((l) => (
                 <li key={l.to}>
                   <Link to={l.to} className="text-muted-foreground hover:text-primary transition-colors">{l.label}</Link>
                 </li>
