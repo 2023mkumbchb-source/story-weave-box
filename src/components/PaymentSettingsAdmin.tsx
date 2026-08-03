@@ -147,7 +147,50 @@ export default function PaymentSettingsAdmin() {
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Subscription passes</p>
-          <span className="sr-only">passes</span>
+</div></div>
+
+      {/* ── Site visibility ── */}
+      <div className="rounded-xl border border-border bg-card p-5">
+        <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">Site visibility</p>
+
+        <label className="mb-3 block">
+          <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Guests on image-answer papers</span>
+          <select
+            value={guestSlideView}
+            onChange={(e) => setGuestSlideView(e.target.value as "all" | "half")}
+            className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+          >
+            <option value="all">Can browse every plate (answers still locked)</option>
+            <option value="half">Can browse half the paper only</option>
+          </select>
+        </label>
+
+        <label className="mb-3 block">
+          <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Names to hide from content</span>
+          <input
+            value={redacted}
+            onChange={(e) => setRedacted(e.target.value)}
+            placeholder="Beda, Otieno"
+            className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+          />
+          <span className="mt-1 block text-[11px] text-muted-foreground">
+            Comma-separated. Lecturer names are scrubbed when pages render — the stored source is untouched.
+          </span>
+        </label>
+
+        <label className="mb-2 flex items-center gap-2 text-sm text-foreground">
+          <input type="checkbox" checked={founderVisible} onChange={(e) => setFounderVisible(e.target.checked)} className="accent-primary" />
+          Show the “About the founder” page
+        </label>
+        <label className="flex items-center gap-2 text-sm text-foreground">
+          <input type="checkbox" checked={showCounts} onChange={(e) => setShowCounts(e.target.checked)} className="accent-primary" />
+          Show plate / question counts in banners
+        </label>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Subscription passes</p>
           <button
             type="button"
             onClick={addPlan}
