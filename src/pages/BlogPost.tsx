@@ -622,16 +622,19 @@ const OPTION_CAPTURE_RE = new RegExp(String.raw`(?:^|\s)(${OPTION_MARKER_SOURCE}
  * ("…T. b. gambienseC. Trypanosoma cruzi"). Insert the missing space so every
  * marker is detectable, which is what forces one choice per row.
  */
+/** Option marker that ignores inline "(a)"/"(b)" cross-references inside a choice. */
+const OPTION_MARKER_STRICT = String.raw`(?:\([A-E]\)|[A-Ea-e][\.)])`;
+
 function spaceOptionMarkers(text: string): string {
   return (text || "").replace(
-    /([^\s])((?:\(?[A-E]\)|[A-E][.)])\s+)/g,
+    /([^\s])((?:\([A-E]\)|[A-E][.)])\s+)/g,
     (m, before: string, marker: string) => (/[A-Za-z0-9)\].,;:'"]/.test(before) ? `${before} ${marker}` : m),
   );
 }
 
 /** Count option markers in a line ("A) …", "B. …"). */
 function countOptionMarkers(text: string): number {
-  return (text.match(new RegExp(String.raw`(?:^|\s)${OPTION_MARKER_SOURCE}\s+`, "gi")) || []).length;
+  return (text.match(new RegExp(String.raw`(?:^|\s)${OPTION_MARKER_STRICT}\s+`, "g")) || []).length;
 }
 
 /**
@@ -641,7 +644,9 @@ function countOptionMarkers(text: string): number {
  * mistaken for a choice run.
  */
 function markerLetters(text: string): string[] {
-  return Array.from(text.matchAll(new RegExp(String.raw`(?:^|\s)\(?([A-Ea-e])[\).]\s+`, "g"))).map((m) => m[1].toUpperCase());
+  return Array.from(text.matchAll(new RegExp(String.raw`(?:^|\s)\(?([A-Ea-e])[\).]\)?\s+`, "g")))
+    .filter((m) => !/^\s*\([a-e]\)/.test(m[0]))
+    .map((m) => m[1].toUpperCase());
 }
 
 function looksLikeChoiceRun(text: string, startsWithMarker: boolean): boolean {
@@ -654,7 +659,7 @@ function looksLikeChoiceRun(text: string, startsWithMarker: boolean): boolean {
 /** Split a run of choices into one string per choice, markers normalized. */
 function splitMarkerRun(text: string): string[] {
   return text
-    .split(new RegExp(String.raw`\s+(?=${OPTION_MARKER_SOURCE}\s+)`))
+    .split(new RegExp(String.raw`\s+(?=${OPTION_MARKER_STRICT}\s+)`))
     .map((p) => p.trim())
     .filter(Boolean);
 }
