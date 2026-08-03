@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Eye, EyeOff, X, ZoomIn, Images, Check, Pencil, BadgeCheck, List, Rows3, Columns2, Lock, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SlideCorrectionModal } from "@/components/SlideCorrectionModal";
 import { useAccess } from "@/lib/access";
+import { useSiteSettings } from "@/lib/site-settings";
+import { redactNames } from "@/lib/redact";
 import { SubscribeModal } from "@/components/SubscribeModal";
 import { openSubscribePrompt, useScrollSubscribePrompt } from "@/lib/subscribe-prompt";
 import { DeckDownloadButton } from "@/components/DeckPdfExport";
@@ -242,6 +244,71 @@ function AnswerRows({ rows, labelled }: { rows: SlideAnswerRow[]; labelled: bool
 }
 
 /* ── One slide card ── */
+/**
+ * Draggable "Plates" ball. On a phone the fixed button used to sit on top of
+ * content, so it can now be dragged anywhere on the screen and remembers where
+ * the reader parked it.
+ */
+function PlatesHandle({ onOpen }: { onOpen: () => void }) {
+  const KEY = "ompath_plates_handle_pos";
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const dragging = useRef(false);
+  const moved = useRef(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) setPos(JSON.parse(raw));
+    } catch { /* ignore */ }
+  }, []);
+
+  const place = useCallback((clientX: number, clientY: number) => {
+    const x = Math.min(Math.max(8, clientX - 40), window.innerWidth - 96);
+    const y = Math.min(Math.max(8, clientY - 20), window.innerHeight - 56);
+    setPos({ x, y });
+  }, []);
+
+  useEffect(() => {
+    const move = (e: PointerEvent) => {
+      if (!dragging.current) return;
+      moved.current = true;
+      place(e.clientX, e.clientY);
+    };
+    const up = () => {
+      if (!dragging.current) return;
+      dragging.current = false;
+      setPos((p) => {
+        if (p) { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* ignore */ } }
+        return p;
+      });
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+  }, [place]);
+
+  const style = pos ? { left: pos.x, top: pos.y, bottom: "auto", right: "auto" } : undefined;
+
+  return (
+    <button
+      type="button"
+      onPointerDown={(e) => { dragging.current = true; moved.current = false; (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); }}
+      onClick={() => { if (!moved.current) onOpen(); }}
+      aria-label="Open plate index — drag to move"
+      title="Plate index (drag to move)"
+      style={style}
+      className="fixed bottom-24 left-3 z-40 inline-flex touch-none items-center gap-1.5 rounded-full border border-border bg-background/70 px-3 py-2 text-xs font-semibold text-foreground shadow-lg backdrop-blur transition-colors hover:border-primary/50 hover:text-primary"
+    >
+      <List className="h-4 w-4" /> Plates
+    </button>
+  );
+}
+
 function SlideCard({
   slide, index, onZoom, defaultOpen = false, corrections = [], onSuggest, locked = false,
 }: {
@@ -265,7 +332,7 @@ function SlideCard({
           {slide.number}
         </span>
         <h2 className="flex-1 font-serif text-[16px] font-bold leading-snug text-foreground sm:text-lg">
-          {slide.prompt || `Slide ${slide.number}`}
+          {redactNames(slide.prompt) || `Slide ${slide.number}`}
         </h2>
         {onSuggest && (
           <button
@@ -365,10 +432,16 @@ export function SlideDeckView({
   const [cols, setCols] = useState<1 | 2>(2);
   const [navOpen, setNavOpen] = useState(false);
   const access = useAccess();
+  const site = useSiteSettings();
 
-  // Every plate and prompt is public; only the answer key is subscriber-gated.
-  const visibleSlides = deck.slides;
   const locked = !access.canReveal;
+  // Answers are always subscriber-only. How much of the paper a guest may
+  // browse is an admin choice: the whole paper, or half of it.
+  const visibleSlides = useMemo(() => {
+    if (!locked || site.guestSlideView !== "half") return deck.slides;
+    return deck.slides.slice(0, Math.max(1, Math.ceil(deck.slides.length / 2)));
+  }, [deck.slides, locked, site.guestSlideView]);
+  const truncated = visibleSlides.length < deck.slides.length;
   useScrollSubscribePrompt(locked && deck.slides.length > 0);
 
   useEffect(() => {
@@ -401,7 +474,7 @@ export function SlideDeckView({
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-y border-border py-3">
         <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           <Images className="h-3.5 w-3.5 text-primary" />
-          {deck.slides.length} plates · tap Reveal for the answer key
+          {site.showCounts ? `${deck.slides.length} plates · ` : ""}tap Reveal for the answer key
         </p>
         <div className="flex items-center gap-2">
           {!locked && access.settings.downloadEnabled && (
@@ -458,15 +531,8 @@ export function SlideDeckView({
         </div>
       </div>
 
-      {/* Slide index: left slide-over */}
-      <button
-        type="button"
-        onClick={() => setNavOpen(true)}
-        aria-label="Open plate index"
-        className="fixed bottom-24 left-3 z-40 inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-2 text-xs font-semibold text-foreground shadow-lg backdrop-blur transition-colors hover:border-primary/50 hover:text-primary"
-      >
-        <List className="h-4 w-4" /> Plates
-      </button>
+      {/* Slide index: draggable ball + slide-over */}
+      <PlatesHandle onOpen={() => setNavOpen(true)} />
       {navOpen && (
         <div className="fixed inset-0 z-[110] flex" role="dialog" aria-label="Plate index">
           <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => setNavOpen(false)} />
@@ -501,14 +567,16 @@ export function SlideDeckView({
         >
           <Sparkles className="h-4 w-4 shrink-0 text-primary" />
           <span className="text-[13px] font-semibold leading-snug text-foreground">
-            All {deck.slides.length} plates are free to view. Subscribe to reveal the answer key and download the PDF handout.
+            {truncated
+              ? "Part of this paper is open to guests. Subscribe to see every plate, reveal the answer key and download the PDF handout."
+              : "Every plate is free to view. Subscribe to reveal the answer key and download the PDF handout."}
           </span>
         </button>
       ) : (
         <div className="not-prose mb-5 flex items-center gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
           <BadgeCheck className="h-4 w-4 shrink-0 text-primary" />
           <p className="text-[13px] font-semibold leading-snug text-foreground">
-            Subscription active — all {deck.slides.length} plates and the full answer key are unlocked.
+            Subscription active — the full paper and answer key are unlocked.
           </p>
         </div>
       )}
@@ -530,9 +598,19 @@ export function SlideDeckView({
 
       <SubscribeModal settings={access.settings} onUnlocked={access.applyPass} />
 
+      {truncated && (
+        <button
+          type="button"
+          onClick={() => openSubscribePrompt("Subscribe to open the rest of this paper.")}
+          className="not-prose mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-4 text-sm font-bold text-primary"
+        >
+          <Lock className="h-4 w-4" /> Subscribe to continue this paper
+        </button>
+      )}
+
       {deck.footer && (
         <p className="mt-8 border-t border-border pt-4 text-[13px] italic leading-relaxed text-muted-foreground">
-          {clean(deck.footer)}
+          {redactNames(clean(deck.footer), site.redactedNames)}
         </p>
       )}
 
@@ -579,29 +657,25 @@ export function SlidePreviewModal({
           <div className="mb-8 border-b-2 border-neutral-900 pb-5 text-center">
             {university && <p className="text-sm font-bold uppercase tracking-[0.2em] text-neutral-800">{university}</p>}
             <h1 className="mt-3 text-2xl font-bold leading-tight sm:text-3xl">{title}</h1>
-            <p className="mt-3 text-[11px] italic text-neutral-500">Spot paper preview — {deck.slides.length} plates with answer key.</p>
+            <p className="mt-3 text-[11px] italic text-neutral-500">Spot paper preview — questions only.</p>
           </div>
           <ol className="space-y-10">
             {deck.slides.map((s) => (
               <li key={s.key}>
-                <p className="mb-3 text-[15px] font-bold">{s.number}. {s.prompt}</p>
+                <p className="mb-3 text-[15px] font-bold">{s.number}. {redactNames(s.prompt)}</p>
                 {s.image && (
                   <img src={s.image} alt={s.alt || s.prompt} loading="lazy" decoding="async" className="mb-3 w-full rounded border border-neutral-200 object-contain" />
                 )}
                 {s.rows.length > 0 && (
-                  <table className="w-full border-collapse text-left text-[13px]">
-                    <tbody>
-                      {s.rows.map((r, i) => (
-                        <tr key={i} className="border-b border-neutral-200 align-top last:border-0">
-                          <td className="w-16 py-1.5 pr-2 font-bold text-neutral-500">{r.label || `${i + 1}.`}</td>
-                          <td className="py-1.5">
-                            {r.term}
-                            {r.detail && <span className="block text-neutral-500">{r.detail}</span>}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  /* Questions only — the answer key never leaves the site. */
+                  <ol className="text-[13px] text-neutral-500">
+                    {s.rows.map((r, i) => (
+                      <li key={i} className="border-b border-neutral-200 py-1.5 last:border-0">
+                        <span className="font-bold">{r.label || `${i + 1}.`}</span>
+                        <span className="ml-2 inline-block min-w-[55%] border-b border-dotted border-neutral-400 align-middle">&nbsp;</span>
+                      </li>
+                    ))}
+                  </ol>
                 )}
               </li>
             ))}

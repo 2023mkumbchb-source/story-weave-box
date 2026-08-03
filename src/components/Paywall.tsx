@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Lock, Loader2, ShieldCheck, KeyRound, Smartphone, Check, Pencil, MonitorSmartphone, Eye, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { AccessPass, AccessPlan, PaymentSettings, issuePassForPayment, renamePassCode, verifyCode } from "@/lib/access";
+import { Link } from "react-router-dom";
+import { AccessPass, AccessPlan, PaymentSettings, issuePassForPayment, normalizePassCode, renamePassCode, verifyCode } from "@/lib/access";
 
 /**
  * Paywall shown where the free portion of a page ends. Two ways in:
@@ -97,7 +98,7 @@ export function Paywall({
   const redeem = async () => {
     setState("sending");
     setMessage("");
-    const res = await verifyCode(code.trim().toUpperCase());
+    const res = await verifyCode(code);
     if (!res.ok || !res.pass) {
       setState("error");
       setMessage(res.error || "Invalid code.");
@@ -142,7 +143,7 @@ export function Paywall({
           <div className="flex gap-2">
             <input
               value={customCode}
-              onChange={(e) => setCustomCode(e.target.value.toUpperCase())}
+              onChange={(e) => setCustomCode(normalizePassCode(e.target.value))}
               className="flex-1 rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm font-bold text-foreground outline-none focus:border-primary"
             />
             <button
@@ -161,6 +162,10 @@ export function Paywall({
             Use this code to sign in on up to <strong>2 devices</strong> (one laptop and one phone). Extra devices are refused.
           </p>
         </div>
+        <p className="mt-3 text-[11px] text-muted-foreground">
+          Manage your subscription, code and devices any time on your{" "}
+          <Link to="/account" className="font-semibold text-primary underline underline-offset-4">account page</Link>.
+        </p>
       </div>
     );
   }
@@ -174,7 +179,7 @@ export function Paywall({
           <Lock className="h-3 w-3" /> Subscribers only
         </span>
         <h2 className="mt-4 font-serif text-2xl font-bold leading-snug text-foreground">
-          {headline || (hiddenCount ? `${hiddenCount} more ${label} are locked` : "Answers are for subscribers")}
+          {headline || `The ${label} beyond this point are for subscribers`}
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           {blurb || "Questions stay free to read. Subscribe once to reveal the verified answers on every paper on Ompath Study — and to download PDF handouts."}
@@ -271,7 +276,7 @@ export function Paywall({
               <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                onChange={(e) => setCode(normalizePassCode(e.target.value))}
                 placeholder="OM-XXXXXXXX"
                 className="w-full rounded-full border border-border bg-background py-2.5 pl-9 pr-3 font-mono text-sm text-foreground outline-none focus:border-primary"
               />
@@ -292,7 +297,9 @@ export function Paywall({
           <p className={`mt-3 text-xs font-semibold ${state === "error" ? "text-destructive" : "text-primary"}`}>{message}</p>
         )}
         <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
-          One subscription covers the whole site on up to 2 devices. Downloads are watermarked with your pass code.
+          One subscription covers the whole site on up to 2 devices. Downloads are watermarked with your pass code.{" "}
+          <Link to="/login" className="font-semibold text-primary underline underline-offset-4">Sign in with Google</Link> to keep it
+          tied to your account.
         </p>
       </div>
     </div>
@@ -305,7 +312,7 @@ export function FreeAccessBanner({ count, label = "questions" }: { count: number
     <div className="not-prose mb-5 flex items-center gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
       <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
       <p className="text-[13px] font-semibold leading-snug text-foreground">
-        This page is free to view — all {count} {label} and the full answer key are unlocked.
+        This page is free to view — every {label.replace(/s$/, "")} and the full answer key are unlocked.
       </p>
     </div>
   );

@@ -3,6 +3,7 @@ import { Loader2, Save, ShieldCheck, Trash2, Plus, X } from "lucide-react";
 import { getSetting, saveSetting } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { AccessPlan, DEFAULT_PLANS, loadPaymentSettings } from "@/lib/access";
+import { DEFAULT_SITE_SETTINGS, loadSiteSettings } from "@/lib/site-settings";
 import { toast } from "@/hooks/use-toast";
 
 /** Admin panel: price, where the paywall starts, PDF downloads and the 3 plans. */
@@ -14,6 +15,10 @@ export default function PaymentSettingsAdmin() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [passes, setPasses] = useState<{ code: string; plan: string; expires_at: string; amount: number }[]>([]);
+  const [founderVisible, setFounderVisible] = useState(false);
+  const [guestSlideView, setGuestSlideView] = useState<"all" | "half">("all");
+  const [redacted, setRedacted] = useState(DEFAULT_SITE_SETTINGS.redactedNames.join(", "));
+  const [showCounts, setShowCounts] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -21,10 +26,18 @@ export default function PaymentSettingsAdmin() {
       getSetting("paywall_free_ratio"),
       getSetting("pdf_download_enabled"),
       getSetting("access_plans"),
-    ]).then(([p, r, d, pl]) => {
+      getSetting("founder_page_visible"),
+      getSetting("guest_slide_view"),
+      getSetting("redacted_names"),
+      getSetting("show_content_counts"),
+    ]).then(([p, r, d, pl, fv, gsv, rn, sc]) => {
       setPrice(p || "0");
       setRatio(r || "0.25");
       setDownloads((d || "true") !== "false");
+      setFounderVisible(fv === "true");
+      setGuestSlideView(gsv === "half" ? "half" : "all");
+      setRedacted((rn ?? "").trim() || DEFAULT_SITE_SETTINGS.redactedNames.join(", "));
+      setShowCounts(sc === "true");
       try {
         const parsed = JSON.parse(pl || "[]");
         if (Array.isArray(parsed) && parsed.length) setPlans(parsed);
@@ -45,7 +58,12 @@ export default function PaymentSettingsAdmin() {
       await saveSetting("paywall_free_ratio", String(Math.min(0.9, Math.max(0.05, Number(ratio) || 0.25))));
       await saveSetting("pdf_download_enabled", downloads ? "true" : "false");
       await saveSetting("access_plans", JSON.stringify(plans));
+      await saveSetting("founder_page_visible", founderVisible ? "true" : "false");
+      await saveSetting("guest_slide_view", guestSlideView);
+      await saveSetting("redacted_names", redacted);
+      await saveSetting("show_content_counts", showCounts ? "true" : "false");
       await loadPaymentSettings(true);
+      await loadSiteSettings(true);
       toast({ title: "Payment settings saved" });
     } catch (e) {
       toast({ title: "Could not save", description: e instanceof Error ? e.message : "", variant: "destructive" });
@@ -124,6 +142,45 @@ export default function PaymentSettingsAdmin() {
           Handouts are deliberately abridged: about half the plates, no teaching notes, no reader corrections, and a diagonal
           watermark carrying the buyer’s pass code so leaks are traceable.
         </p>
+      </div>
+
+      {/* ── Site visibility ── */}
+      <div className="rounded-xl border border-border bg-card p-5">
+        <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">Site visibility</p>
+
+        <label className="mb-3 block">
+          <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Guests on image-answer papers</span>
+          <select
+            value={guestSlideView}
+            onChange={(e) => setGuestSlideView(e.target.value as "all" | "half")}
+            className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+          >
+            <option value="all">Can browse every plate (answers still locked)</option>
+            <option value="half">Can browse half the paper only</option>
+          </select>
+        </label>
+
+        <label className="mb-3 block">
+          <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Names to hide from content</span>
+          <input
+            value={redacted}
+            onChange={(e) => setRedacted(e.target.value)}
+            placeholder="Beda, Otieno"
+            className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+          />
+          <span className="mt-1 block text-[11px] text-muted-foreground">
+            Comma-separated. Lecturer names are scrubbed when pages render — the stored source is untouched.
+          </span>
+        </label>
+
+        <label className="mb-2 flex items-center gap-2 text-sm text-foreground">
+          <input type="checkbox" checked={founderVisible} onChange={(e) => setFounderVisible(e.target.checked)} className="accent-primary" />
+          Show the “About the founder” page
+        </label>
+        <label className="flex items-center gap-2 text-sm text-foreground">
+          <input type="checkbox" checked={showCounts} onChange={(e) => setShowCounts(e.target.checked)} className="accent-primary" />
+          Show plate / question counts in banners
+        </label>
       </div>
 
       <div className="rounded-xl border border-border bg-card p-5">
