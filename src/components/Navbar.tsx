@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, FileText, GraduationCap, Home, LayoutDashboard, ListChecks, Menu, BookOpenCheck, Trophy, ChevronRight } from "lucide-react";
+import { BookOpen, FileText, GraduationCap, Home, LayoutDashboard, ListChecks, Menu, BookOpenCheck, Trophy, ChevronRight, UserRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import ThemeToggle from "./ThemeToggle";
@@ -8,6 +8,7 @@ import ompathLogo from "@/assets/ompath-logo.png";
 const links = [
   { to: "/", label: "Home", icon: Home },
   { to: "/stories", label: "Stories", icon: BookOpenCheck },
+  { to: "/account", label: "Account", icon: UserRound },
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
 ];
 
