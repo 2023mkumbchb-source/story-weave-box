@@ -15,6 +15,28 @@ function newCode(): string {
   return "OM-" + Array.from(bytes).map((b) => ALPHABET[b % ALPHABET.length]).join("").slice(0, 8);
 }
 
+/**
+ * Canonical form of a pass code: uppercase, letters and digits only.
+ * Readers type their own renamed codes with spaces, dashes or lowercase, which
+ * used to make a perfectly valid pass come back as "code was not found".
+ */
+function canon(value: unknown): string {
+  return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+/** Find a grant by exact code, then by canonical (punctuation-insensitive) match. */
+async function findGrant(supabase: ReturnType<typeof createClient>, raw: string) {
+  const typed = String(raw || "").trim().toUpperCase();
+  const key = canon(typed);
+  if (!key) return null;
+
+  const { data: exact } = await supabase.from("access_grants").select("*").eq("code", typed).maybeSingle();
+  if (exact) return exact;
+
+  const { data: all } = await supabase.from("access_grants").select("*").limit(5000);
+  return (all || []).find((g: Record<string, unknown>) => canon(g.code) === key) ?? null;
+}
+
 interface Plan { id: string; label: string; price: number; days: number; download?: boolean }
 
 interface DeviceEntry { id: string; label?: string; first_seen: string; last_seen: string }
@@ -77,16 +99,14 @@ serve(async (req) => {
     }
 
     if (action === "verify") {
-      const code = String(body?.code || "").trim().toUpperCase();
       const deviceIdIn = String(body?.device_id || "").trim() || undefined;
       const deviceLabel = String(body?.device_label || "").trim() || undefined;
+      const email = String(body?.email || "").trim().toLowerCase() || null;
+      const userId = String(body?.user_id || "").trim() || null;
+      const code = String(body?.code || "").trim().toUpperCase();
       if (!code) return json({ valid: false, error: "Code required" }, 400);
 
-      const { data: grant } = await supabase
-        .from("access_grants")
-        .select("*")
-        .eq("code", code)
-        .maybeSingle();
+      const grant = await findGrant(supabase, code);
 
       if (!grant) return json({ valid: false, error: "That code was not found." }, 200);
       if (new Date(grant.expires_at).getTime() < Date.now()) {
@@ -102,6 +122,8 @@ serve(async (req) => {
           redeem_count: (grant.redeem_count || 0) + 1,
           last_redeemed_at: new Date().toISOString(),
           devices: reg.devices,
+          ...(email && !grant.email ? { email } : {}),
+          ...(userId && !grant.user_id ? { user_id: userId } : {}),
         })
         .eq("id", grant.id);
 
@@ -116,17 +138,64 @@ serve(async (req) => {
       });
     }
 
+    if (action === "account") {
+      // Subscriber account page: look a pass up by code, signed-in user or email.
+      const codeIn = String(body?.code || "").trim();
+      const userId = String(body?.user_id || "").trim();
+      const email = String(body?.email || "").trim().toLowerCase();
+
+      let grant: Record<string, unknown> | null = null;
+      if (codeIn) grant = await findGrant(supabase, codeIn);
+      if (!grant && userId) {
+        const { data } = await supabase
+          .from("access_grants").select("*").eq("user_id", userId)
+          .order("expires_at", { ascending: false }).limit(1).maybeSingle();
+        grant = data ?? null;
+      }
+      if (!grant && email) {
+        const { data } = await supabase
+          .from("access_grants").select("*").ilike("email", email)
+          .order("expires_at", { ascending: false }).limit(1).maybeSingle();
+        grant = data ?? null;
+      }
+      if (!grant) return json({ found: false });
+
+      return json({
+        found: true,
+        code: grant.code,
+        plan: grant.plan,
+        amount: grant.amount,
+        expires_at: grant.expires_at,
+        expired: new Date(String(grant.expires_at)).getTime() < Date.now(),
+        allow_download: grant.allow_download !== false,
+        device_limit: grant.device_limit || 2,
+        devices: (Array.isArray(grant.devices) ? grant.devices : []).map((d: DeviceEntry) => ({
+          id: d.id, label: d.label || "Device", last_seen: d.last_seen,
+        })),
+      });
+    }
+
+    if (action === "forget_device") {
+      const grant = await findGrant(supabase, String(body?.code || ""));
+      const target = String(body?.device_id || "").trim();
+      if (!grant) return json({ success: false, error: "That pass was not found." }, 200);
+      const devices: DeviceEntry[] = Array.isArray(grant.devices) ? grant.devices : [];
+      const next = devices.filter((d) => d.id !== target);
+      await supabase.from("access_grants").update({ devices: next }).eq("id", grant.id);
+      return json({ success: true, devices: next.length });
+    }
+
     if (action === "rename") {
       const code = String(body?.code || "").trim().toUpperCase();
       const raw = String(body?.new_code || "").trim().toUpperCase();
       const deviceIdIn = String(body?.device_id || "").trim();
-      const newCode = raw.replace(/[^A-Z0-9-]/g, "");
+      const newCode = raw.replace(/\s+/g, "-").replace(/[^A-Z0-9-]/g, "").replace(/^-+|-+$/g, "");
       if (!code || !newCode) return json({ success: false, error: "Both the current and new code are required." }, 400);
       if (newCode.length < 6 || newCode.length > 24) {
         return json({ success: false, error: "Choose a code between 6 and 24 characters (letters, numbers, dashes)." }, 200);
       }
 
-      const { data: grant } = await supabase.from("access_grants").select("*").eq("code", code).maybeSingle();
+      const grant = await findGrant(supabase, code);
       if (!grant) return json({ success: false, error: "That pass was not found." }, 200);
       if (new Date(grant.expires_at).getTime() < Date.now()) {
         return json({ success: false, error: "That pass has expired." }, 200);
@@ -135,8 +204,8 @@ serve(async (req) => {
       if (devices.length && deviceIdIn && !devices.some((d) => d.id === deviceIdIn)) {
         return json({ success: false, error: "Only a device already signed in with this pass can change the code." }, 200);
       }
-      if (newCode !== code) {
-        const { data: clash } = await supabase.from("access_grants").select("id").eq("code", newCode).maybeSingle();
+      if (canon(newCode) !== canon(grant.code)) {
+        const clash = await findGrant(supabase, newCode);
         if (clash) return json({ success: false, error: "That code is already taken — pick another." }, 200);
       }
 
@@ -161,6 +230,8 @@ serve(async (req) => {
       const transactionId = String(body?.transaction_id || "").trim();
       const deviceIdIn = String(body?.device_id || "").trim() || undefined;
       const deviceLabelIn = String(body?.device_label || "").trim() || undefined;
+      const emailIn = String(body?.email || "").trim().toLowerCase() || null;
+      const userIdIn = String(body?.user_id || "").trim() || null;
       if (!transactionId) return json({ success: false, error: "transaction_id required" }, 400);
 
       const { data: payment } = await supabase
@@ -225,6 +296,8 @@ serve(async (req) => {
             phone_number: payment.phone_number,
             amount: Number(payment.amount || 0),
             allow_download: plan.download !== false,
+            email: emailIn,
+            user_id: userIdIn,
             devices: deviceIdIn
               ? [{ id: deviceIdIn, label: deviceLabelIn || "Device", first_seen: new Date().toISOString(), last_seen: new Date().toISOString() }]
               : [],
