@@ -64,6 +64,29 @@ function extractFirstImage(content: string | null): string | null {
   return html ? html[1] : null;
 }
 
+/**
+ * Every remote image inside an article body, with its caption/alt text.
+ * Spot/slide-review notes are almost entirely images, so indexing each plate
+ * is what makes them discoverable in Google Images.
+ */
+function extractContentImages(content: string | null): { loc: string; caption: string }[] {
+  if (!content) return [];
+  const out: { loc: string; caption: string }[] = [];
+  const seen = new Set<string>();
+  const add = (loc: string, caption: string) => {
+    const url = (loc || "").trim();
+    if (!url || !/^https?:\/\//i.test(url) || seen.has(url)) return;
+    seen.add(url);
+    out.push({ loc: url, caption: (caption || "").replace(/\s+/g, " ").trim() });
+  };
+  for (const m of content.matchAll(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/gi)) add(m[2], m[1]);
+  for (const m of content.matchAll(/<img[^>]+src=["'](https?:\/\/[^"']+)["'][^>]*>/gi)) {
+    const alt = m[0].match(/alt=["']([^"']*)["']/i)?.[1] || "";
+    add(m[1], alt);
+  }
+  return out.slice(0, 900); // Google caps at 1000 images per <url>
+}
+
 const EXCLUDED_PATHS = new Set<string>([
   "/sitemap.xml",
   "/sitemap-dynamic.xml",
@@ -122,7 +145,7 @@ serve(async (req) => {
     const baseUrl = normalizeBaseUrl((siteUrlSetting as any)?.value);
 
     const [articles, mcqs, flashcards, stories] = await Promise.all([
-      fetchAllPublished(supabase, "articles", "id, title, slug, created_at, updated_at, category, og_image_url"),
+      fetchAllPublished(supabase, "articles", "id, title, slug, created_at, updated_at, category, og_image_url, content"),
       fetchAllPublished(supabase, "mcq_sets", "id, title, slug, og_image_url, created_at, updated_at, category"),
       fetchAllPublished(supabase, "flashcard_sets", "id, title, slug, created_at, updated_at, category"),
       fetchAllPublished(supabase, "stories", "id, title, slug, created_at, category, cover_image_url", "created_at"),
@@ -174,12 +197,22 @@ serve(async (req) => {
       if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
       emittedPaths.add(path);
       const lastmod = (a.updated_at || a.created_at) ? new Date(a.updated_at || a.created_at).toISOString().split("T")[0] : "";
-      const imageUrl = a.og_image_url || null;
+      const imageUrl = a.og_image_url || extractFirstImage(a.content) || null;
+      const contentImages = extractContentImages(a.content);
       xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
+      const emittedImages = new Set<string>();
       if (imageUrl) {
+        emittedImages.add(imageUrl);
         xml += `    <image:image>\n      <image:loc>${escapeXml(imageUrl)}</image:loc>\n      <image:title>${escapeXml(a.title)}</image:title>\n    </image:image>\n`;
+      }
+      for (const img of contentImages) {
+        if (emittedImages.has(img.loc)) continue;
+        emittedImages.add(img.loc);
+        xml += `    <image:image>\n      <image:loc>${escapeXml(img.loc)}</image:loc>\n      <image:title>${escapeXml(a.title)}</image:title>\n`;
+        if (img.caption) xml += `      <image:caption>${escapeXml(img.caption)}</image:caption>\n`;
+        xml += `    </image:image>\n`;
       }
       xml += `  </url>\n`;
     }

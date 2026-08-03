@@ -15,10 +15,12 @@ import {
   type Article, type FlashcardSet, type McqSet, type ArticleCategory,
 } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
+import { SlideCorrectionsAdmin } from "@/components/SlideCorrectionsAdmin";
+import PaymentSettingsAdmin from "@/components/PaymentSettingsAdmin";
 import { autoIndexUrls, SITE_URL, slugifyText } from "@/lib/seo";
 import { Helmet } from "react-helmet-async";
 
-type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo" | "categories" | "editor" | "meta-manager";
+type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo" | "categories" | "editor" | "meta-manager" | "corrections" | "payments";
 type DirectType = "article" | "mcqs" | "flashcards";
 
 export default function Admin() {
@@ -56,7 +58,7 @@ export default function Admin() {
 
   // Persist tab in URL hash for refresh resilience
   const hashTab = location.hash.replace("#", "") as Tab;
-  const [tab, setTab] = useState<Tab>(hashTab && ["create","articles","flashcards","mcqs","stories","raw","exams","recycle","settings","institutions","upgrade","import","cleanup","seo","categories","editor","meta-manager"].includes(hashTab) ? hashTab : "create");
+  const [tab, setTab] = useState<Tab>(hashTab && ["create","articles","flashcards","mcqs","stories","raw","exams","recycle","settings","institutions","upgrade","import","cleanup","seo","categories","editor","meta-manager","corrections","payments"].includes(hashTab) ? hashTab : "create");
   
   const setTabAndHash = (t: Tab) => {
     setTab(t);
@@ -418,6 +420,7 @@ export default function Admin() {
     { id: "mcqs", label: "MCQs", icon: ListChecks },
     { id: "stories", label: "Stories", icon: BookOpen },
     { id: "exams", label: "Exam Results", icon: ListChecks },
+    { id: "corrections", label: "Corrections", icon: Pencil },
     { id: "meta-manager", label: "Meta Manager", icon: Globe },
     { id: "raw", label: "Raw", icon: AlertTriangle },
     { id: "upgrade", label: "AI Upgrade", icon: Sparkles },
@@ -425,16 +428,17 @@ export default function Admin() {
     { id: "seo", label: "SEO & Indexing", icon: Globe },
     { id: "institutions", label: "Institutions", icon: Building2 },
     { id: "import", label: "Import", icon: Upload },
+    { id: "payments", label: "Payments", icon: Settings },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
   const activeTab = tabs.find(t => t.id === tab);
 
   const tabGroups = [
-    { label: "Content", items: tabs.filter(t => ["create","editor","articles","categories","flashcards","mcqs","stories","exams"].includes(t.id)) },
+    { label: "Content", items: tabs.filter(t => ["create","editor","articles","categories","flashcards","mcqs","stories","exams","corrections"].includes(t.id)) },
     { label: "Tools", items: tabs.filter(t => ["meta-manager","upgrade","cleanup","seo"].includes(t.id)) },
     { label: "Data", items: tabs.filter(t => ["raw","import"].includes(t.id)) },
-    { label: "System", items: tabs.filter(t => ["institutions","settings"].includes(t.id)) },
+    { label: "System", items: tabs.filter(t => ["institutions","payments","settings"].includes(t.id)) },
   ];
 
   return (
@@ -495,6 +499,16 @@ export default function Admin() {
           </button>
         ))}
       </div>
+
+      {tab === "payments" && <PaymentSettingsAdmin />}
+
+      {tab === "corrections" && (
+        <div>
+          <h2 className="mb-1 font-serif text-xl font-bold text-foreground">Plate corrections</h2>
+          <p className="mb-4 text-sm text-muted-foreground">Reader-submitted label fixes with the plate image and current answer key for one-glance approval.</p>
+          <SlideCorrectionsAdmin />
+        </div>
+      )}
 
       {tab === "create" && (
         <div>

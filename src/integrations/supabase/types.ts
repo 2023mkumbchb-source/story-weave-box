@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_grants: {
+        Row: {
+          allow_download: boolean
+          amount: number | null
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          last_redeemed_at: string | null
+          payment_id: string | null
+          phone_number: string | null
+          plan: string
+          redeem_count: number
+          scope: string
+        }
+        Insert: {
+          allow_download?: boolean
+          amount?: number | null
+          code: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          last_redeemed_at?: string | null
+          payment_id?: string | null
+          phone_number?: string | null
+          plan?: string
+          redeem_count?: number
+          scope?: string
+        }
+        Update: {
+          allow_download?: boolean
+          amount?: number | null
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          last_redeemed_at?: string | null
+          payment_id?: string | null
+          phone_number?: string | null
+          plan?: string
+          redeem_count?: number
+          scope?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_grants_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -566,6 +619,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      slide_corrections: {
+        Row: {
+          admin_note: string | null
+          article_id: string
+          created_at: string
+          id: string
+          slide_number: string
+          slide_prompt: string | null
+          status: string
+          submitter_name: string | null
+          suggestion: string
+          updated_at: string
+        }
+        Insert: {
+          admin_note?: string | null
+          article_id: string
+          created_at?: string
+          id?: string
+          slide_number: string
+          slide_prompt?: string | null
+          status?: string
+          submitter_name?: string | null
+          suggestion: string
+          updated_at?: string
+        }
+        Update: {
+          admin_note?: string | null
+          article_id?: string
+          created_at?: string
+          id?: string
+          slide_number?: string
+          slide_prompt?: string | null
+          status?: string
+          submitter_name?: string | null
+          suggestion?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "slide_corrections_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stories: {
         Row: {

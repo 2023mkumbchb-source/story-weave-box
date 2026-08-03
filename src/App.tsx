@@ -9,6 +9,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Navbar from "@/components/Navbar";
 import SiteFooter from "@/components/SiteFooter";
 import ScrollToTop from "@/components/ScrollToTop";
+import ContentProtection from "@/components/ContentProtection";
 import { Loader2 } from "lucide-react";
 
 const Index = lazy(() => import("./pages/Index"));
@@ -42,7 +43,7 @@ const RouteLoader = () => (
 );
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+  <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
@@ -50,6 +51,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <ScrollToTop />
+            <ContentProtection />
             <Navbar />
             <Suspense fallback={<RouteLoader />}>
               <Routes>

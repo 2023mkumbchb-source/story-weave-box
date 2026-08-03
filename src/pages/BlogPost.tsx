@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useLayoutEffect, forwardRef, memo } from 
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft, Loader2, GraduationCap, ListChecks,
-  ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2, ImagePlus, X,
+  ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2, ImagePlus, X, Eye, EyeOff,
 } from "lucide-react";
 import ShareButtons from "@/components/ShareButtons";
 import ArticleComments from "@/components/ArticleComments";
@@ -16,6 +16,7 @@ import { slugify, useHashFlash } from "@/lib/deep-link";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { markArticleVisited } from "@/lib/progress-store";
+import { parseSlideDeck, SlideDeckView, SlidePreviewModal } from "@/components/SlideDeck";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -226,8 +227,10 @@ function McqAnswerBlock({ raw }: { raw: string }) {
         className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-emerald-500/10"
       >
         <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-          <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-emerald-500/15">✓</span>
-          {open ? "Hide answer & explanation" : "Show answer & explanation"}
+          {open
+            ? <EyeOff className="h-4 w-4" />
+            : <Eye className="h-4 w-4" />}
+          {open ? "Hide" : "Reveal"}
         </span>
         <ChevronDown className={`h-4 w-4 text-emerald-600 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
@@ -1279,7 +1282,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         if (src) {
         els.push(
           <figure key={`img-${i}`} className="my-7 overflow-hidden rounded-lg border border-border bg-muted/20">
-            <img src={src} alt={alt} loading="lazy" className="w-full object-cover" />
+            <img src={src} alt={alt} loading="lazy" decoding="async" className="w-full object-contain" />
             {alt && <figcaption className="border-t border-border px-4 py-2 text-sm leading-relaxed text-muted-foreground">{alt}</figcaption>}
           </figure>
         );
@@ -1837,6 +1840,7 @@ export default function BlogPost() {
   }, []);
 
   const toc = useMemo(() => article ? extractToc(article.content) : [], [article]);
+  const slideDeck = useMemo(() => (article ? parseSlideDeck(article.content || "") : null), [article]);
 
   useEffect(() => {
     if (!toc.length) return;
@@ -2036,14 +2040,14 @@ export default function BlogPost() {
 
       {/* Main layout */}
       <div className="mx-auto max-w-6xl px-5 py-8">
-        <div className={toc.length > 0 ? "lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10" : "max-w-3xl mx-auto"}>
-          {toc.length > 0 && (
+        <div className={slideDeck ? "" : toc.length > 0 ? "lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10" : "max-w-3xl mx-auto"}>
+          {!slideDeck && toc.length > 0 && (
             <aside className="hidden lg:block">
               <SidebarToc items={toc} activeId={activeSection} />
             </aside>
           )}
 
-          <article id="section-top" className="min-w-0 lg:max-w-[76ch]">
+          <article id="section-top" className={slideDeck ? "min-w-0" : "min-w-0 lg:max-w-[76ch]"}>
             <Countdown data={(article as any).countdown} />
             <PasswordGate
               enabled={(article as any).password_protected}
@@ -2072,7 +2076,15 @@ export default function BlogPost() {
 
             <div className="prose-custom article-reader">
               <KeywordLinkProvider currentPath={buildBlogPath(article)}>
-                <ArticleContent content={article.content} inlineRelated={related.articles || []} />
+                {slideDeck
+                  ? <SlideDeckView
+                      deck={slideDeck}
+                      articleId={article.id}
+                      title={cleanMetaTitle(article)}
+                      university={inferUniversity(article)}
+                      onPreview={() => setPreviewOpen(true)}
+                    />
+                  : <ArticleContent content={article.content} inlineRelated={related.articles || []} />}
               </KeywordLinkProvider>
             </div>
 
@@ -2197,7 +2209,17 @@ export default function BlogPost() {
             {(article as any).comments_enabled !== false && <ArticleComments articleId={article.id} />}
             </PasswordGate>
           </article>
-          <ExamPreviewModal article={article} open={previewOpen} onClose={() => setPreviewOpen(false)} />
+          {slideDeck ? (
+            <SlidePreviewModal
+              deck={slideDeck}
+              title={cleanMetaTitle(article)}
+              university={inferUniversity(article)}
+              open={previewOpen}
+              onClose={() => setPreviewOpen(false)}
+            />
+          ) : (
+            <ExamPreviewModal article={article} open={previewOpen} onClose={() => setPreviewOpen(false)} />
+          )}
         </div>
       </div>
     </>
