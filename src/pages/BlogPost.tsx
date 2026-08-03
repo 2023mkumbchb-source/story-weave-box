@@ -471,7 +471,15 @@ function cleanMetaDescription(article: Article): string {
     provided = provided.slice(title.length).replace(/^\s*[|:;,.–—-]+\s*/, "").trim();
   }
   const cat = article.category ? article.category.replace(/^Year\s*\d+:\s*/i, "").trim() : "";
-  const fallback = stripRichText(article.content || "", 155)
+  // Strip markdown scaffolding so a hero blurb never shows "### SECTION A: …"
+  const body = (article.content || "")
+    .replace(/^\s*#{1,6}\s*/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*>\s?/gm, "")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\*\*?/g, "")
+    .replace(/^\s*(?:SECTION\s+[A-C]\b.*|MULTIPLE\s+CHOICE.*)$/gim, " ");
+  const fallback = stripRichText(body, 155)
     || `${article.title} study notes${cat ? ` on ${cat}` : ""} with clinical points and exam-focused revision for medical students.`;
   const desc = provided.length >= 50 ? provided : fallback;
   const enriched = /\b(Kenya|Africa|MBChB|medical students)\b/i.test(desc)
