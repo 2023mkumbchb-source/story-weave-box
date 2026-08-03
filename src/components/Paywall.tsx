@@ -253,7 +253,29 @@ export function Paywall({
               ))}
             </div>
 
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            {!user && !authLoading && (
+              <div className="mt-4 rounded-xl border border-primary/25 bg-primary/5 p-4 text-left">
+                <p className="text-xs font-bold uppercase tracking-wide text-primary">Step 1 · Sign in</p>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">
+                  Sign in with your Gmail account first. We bring you straight back to this page to finish the M-Pesa payment,
+                  and your subscription follows you on any device.
+                </p>
+                <button
+                  type="button"
+                  onClick={startGoogle}
+                  disabled={signingIn}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-60"
+                >
+                  {signingIn ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                  Continue with Google
+                </button>
+                <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                  Already paid on another device? Use <button type="button" onClick={() => { setMode("code"); setState("idle"); }} className="font-semibold text-primary underline underline-offset-4">I have a code</button>.
+                </p>
+              </div>
+            )}
+
+            <div className={`mt-4 flex flex-col gap-2 sm:flex-row ${!user && !authLoading ? "pointer-events-none opacity-40" : ""}`}>
               <div className="relative flex-1">
                 <Smartphone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -267,7 +289,7 @@ export function Paywall({
               <button
                 type="button"
                 onClick={pay}
-                disabled={busy}
+                disabled={busy || !user}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-60"
               >
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
