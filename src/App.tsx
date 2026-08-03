@@ -28,6 +28,7 @@ const SubmitStory = lazy(() => import("./pages/SubmitStory"));
 const Essays = lazy(() => import("./pages/Essays"));
 const EssayStudy = lazy(() => import("./pages/EssayStudy"));
 const Login = lazy(() => import("./pages/Login"));
+const Account = lazy(() => import("./pages/Account"));
 const Admin = lazy(() => import("./pages/Admin"));
 const YearHub = lazy(() => import("./pages/YearHub"));
 const CategoryManager = lazy(() => import("./pages/CategoryManager"));
@@ -73,6 +74,7 @@ const App = () => (
                 <Route path="/essays" element={<Essays />} />
                 <Route path="/essays/:slug" element={<EssayStudy />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/account" element={<Account />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/about" element={<About />} />
                 <Route path="*" element={<NotFound />} />

@@ -3,6 +3,7 @@ import { Loader2, Save, ShieldCheck, Trash2, Plus, X } from "lucide-react";
 import { getSetting, saveSetting } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { AccessPlan, DEFAULT_PLANS, loadPaymentSettings } from "@/lib/access";
+import { DEFAULT_SITE_SETTINGS, loadSiteSettings } from "@/lib/site-settings";
 import { toast } from "@/hooks/use-toast";
 
 /** Admin panel: price, where the paywall starts, PDF downloads and the 3 plans. */
@@ -14,6 +15,10 @@ export default function PaymentSettingsAdmin() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [passes, setPasses] = useState<{ code: string; plan: string; expires_at: string; amount: number }[]>([]);
+  const [founderVisible, setFounderVisible] = useState(false);
+  const [guestSlideView, setGuestSlideView] = useState<"all" | "half">("all");
+  const [redacted, setRedacted] = useState(DEFAULT_SITE_SETTINGS.redactedNames.join(", "));
+  const [showCounts, setShowCounts] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -21,10 +26,18 @@ export default function PaymentSettingsAdmin() {
       getSetting("paywall_free_ratio"),
       getSetting("pdf_download_enabled"),
       getSetting("access_plans"),
-    ]).then(([p, r, d, pl]) => {
+      getSetting("founder_page_visible"),
+      getSetting("guest_slide_view"),
+      getSetting("redacted_names"),
+      getSetting("show_content_counts"),
+    ]).then(([p, r, d, pl, fv, gsv, rn, sc]) => {
       setPrice(p || "0");
       setRatio(r || "0.25");
       setDownloads((d || "true") !== "false");
+      setFounderVisible(fv === "true");
+      setGuestSlideView(gsv === "half" ? "half" : "all");
+      setRedacted((rn ?? "").trim() || DEFAULT_SITE_SETTINGS.redactedNames.join(", "));
+      setShowCounts(sc === "true");
       try {
         const parsed = JSON.parse(pl || "[]");
         if (Array.isArray(parsed) && parsed.length) setPlans(parsed);
@@ -45,7 +58,12 @@ export default function PaymentSettingsAdmin() {
       await saveSetting("paywall_free_ratio", String(Math.min(0.9, Math.max(0.05, Number(ratio) || 0.25))));
       await saveSetting("pdf_download_enabled", downloads ? "true" : "false");
       await saveSetting("access_plans", JSON.stringify(plans));
+      await saveSetting("founder_page_visible", founderVisible ? "true" : "false");
+      await saveSetting("guest_slide_view", guestSlideView);
+      await saveSetting("redacted_names", redacted);
+      await saveSetting("show_content_counts", showCounts ? "true" : "false");
       await loadPaymentSettings(true);
+      await loadSiteSettings(true);
       toast({ title: "Payment settings saved" });
     } catch (e) {
       toast({ title: "Could not save", description: e instanceof Error ? e.message : "", variant: "destructive" });
