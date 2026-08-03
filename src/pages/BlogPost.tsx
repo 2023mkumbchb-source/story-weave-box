@@ -1830,6 +1830,7 @@ export default function BlogPost() {
   }, []);
 
   const toc = useMemo(() => article ? extractToc(article.content) : [], [article]);
+  const slideDeck = useMemo(() => (article ? parseSlideDeck(article.content || "") : null), [article]);
 
   useEffect(() => {
     if (!toc.length) return;
