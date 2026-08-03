@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useLayoutEffect, forwardRef, memo } from 
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft, Loader2, GraduationCap, ListChecks,
-  ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2, ImagePlus, X,
+  ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2, ImagePlus, X, Eye, EyeOff,
 } from "lucide-react";
 import ShareButtons from "@/components/ShareButtons";
 import ArticleComments from "@/components/ArticleComments";
