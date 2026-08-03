@@ -1053,6 +1053,7 @@ export function preprocessContent(raw: string): string {
       .replace(/([A-Z]{2,})(?=[A-Z][a-z])/g, "$1 ")
       .replace(/([A-Z]{3,})(?=[a-z]{3,})/g, "$1 ")
       .replace(/([^\s])(?=(?:Explanation|Rationale)\s*[:：])/gi, "$1 ")
+      .replace(/\s*(?:->|=>|⟶|⟹)\s*/g, " → ")
       .replace(/([a-z])(?=(?:Think of|The most|Every reaction|Almost always|This is why|If someone|There are|ABO incompatibility)\b)/g, "$1 ");
 
     if (isCourseBrandingLine(t)) {
