@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Eye, EyeOff, X, ZoomIn, Images, Check } from "lucide-react";
+import { Eye, EyeOff, X, ZoomIn, Images, Check, Pencil, BadgeCheck } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { SlideCorrectionModal } from "@/components/SlideCorrectionModal";
 
 /**
  * Slide / spot-exam deck renderer.
@@ -210,13 +212,22 @@ function AnswerRows({ rows, labelled }: { rows: SlideAnswerRow[]; labelled: bool
 }
 
 /* ── One slide card ── */
-function SlideCard({ slide, index, onZoom, defaultOpen = false }: { slide: Slide; index: number; onZoom: (s: Slide) => void; defaultOpen?: boolean }) {
+function SlideCard({
+  slide, index, onZoom, defaultOpen = false, corrections = [], onSuggest,
+}: {
+  slide: Slide;
+  index: number;
+  onZoom: (s: Slide) => void;
+  defaultOpen?: boolean;
+  corrections?: string[];
+  onSuggest?: (s: Slide) => void;
+}) {
   const [open, setOpen] = useState(defaultOpen);
   const [loaded, setLoaded] = useState(false);
   const eager = index < 2;
 
   return (
-    <article id={`slide-${slide.number}`} className="scroll-mt-24 overflow-hidden rounded-xl border border-border bg-card">
+    <article id={`slide-${slide.number}`} className="h-fit self-start scroll-mt-24 overflow-hidden rounded-xl border border-border bg-card">
       <header className="flex items-start gap-3 border-b border-border px-4 py-3">
         <span className="mt-0.5 inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-lg bg-primary px-1.5 text-[13px] font-bold text-primary-foreground">
           {slide.number}
@@ -224,6 +235,17 @@ function SlideCard({ slide, index, onZoom, defaultOpen = false }: { slide: Slide
         <h2 className="flex-1 font-serif text-[16px] font-bold leading-snug text-foreground sm:text-lg">
           {slide.prompt || `Slide ${slide.number}`}
         </h2>
+        {onSuggest && (
+          <button
+            type="button"
+            onClick={() => onSuggest(slide)}
+            title="Suggest a correction for this plate"
+            aria-label={`Suggest a correction for plate ${slide.number}`}
+            className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border/70 bg-background/70 text-muted-foreground backdrop-blur transition-colors hover:border-primary/40 hover:text-primary"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+        )}
       </header>
 
       {slide.image && (
@@ -264,8 +286,18 @@ function SlideCard({ slide, index, onZoom, defaultOpen = false }: { slide: Slide
             {open ? "Hide" : "Reveal"}
           </button>
           {open && (
-            <div className="mt-3">
+            <div className="mt-3 max-h-[26rem] overflow-y-auto overscroll-contain">
               <AnswerRows rows={slide.rows} labelled={slide.labelled} />
+              {corrections.length > 0 && (
+                <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                  <p className="mb-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-primary">
+                    <BadgeCheck className="h-3.5 w-3.5" /> Verified reader corrections
+                  </p>
+                  <ul className="space-y-1 text-[13px] leading-relaxed text-foreground">
+                    {corrections.map((c, i) => <li key={i}>• {c}</li>)}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -275,10 +307,31 @@ function SlideCard({ slide, index, onZoom, defaultOpen = false }: { slide: Slide
 }
 
 /* ── Deck ── */
-export function SlideDeckView({ deck, revealAllDefault = false }: { deck: SlideDeck; revealAllDefault?: boolean }) {
+export function SlideDeckView({ deck, revealAllDefault = false, articleId }: { deck: SlideDeck; revealAllDefault?: boolean; articleId?: string }) {
   const [zoom, setZoom] = useState<Slide | null>(null);
   const [allKey, setAllKey] = useState(0);
   const [revealAll, setRevealAll] = useState(revealAllDefault);
+  const [suggestFor, setSuggestFor] = useState<Slide | null>(null);
+  const [corrections, setCorrections] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    if (!articleId) return;
+    let active = true;
+    (async () => {
+      const { data } = await supabase
+        .from("slide_corrections")
+        .select("slide_number, suggestion")
+        .eq("article_id", articleId)
+        .eq("status", "approved");
+      if (!active || !data) return;
+      const map: Record<string, string[]> = {};
+      for (const row of data as { slide_number: string; suggestion: string }[]) {
+        (map[row.slide_number] ||= []).push(row.suggestion);
+      }
+      setCorrections(map);
+    })();
+    return () => { active = false; };
+  }, [articleId]);
 
   const intro = useMemo(
     () => deck.intro.split("\n").map((l) => l.trim()).filter((l) => l && !/^#\s/.test(l) && !/^!\[/.test(l)),
@@ -316,9 +369,17 @@ export function SlideDeckView({ deck, revealAllDefault = false }: { deck: SlideD
         ))}
       </nav>
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid items-start gap-5 sm:grid-cols-2">
         {deck.slides.map((s, i) => (
-          <SlideCard key={`${s.key}-${allKey}`} slide={s} index={i} onZoom={setZoom} defaultOpen={revealAll} />
+          <SlideCard
+            key={`${s.key}-${allKey}`}
+            slide={s}
+            index={i}
+            onZoom={setZoom}
+            defaultOpen={revealAll}
+            corrections={corrections[s.number] || []}
+            onSuggest={articleId ? setSuggestFor : undefined}
+          />
         ))}
       </div>
 
@@ -329,6 +390,16 @@ export function SlideDeckView({ deck, revealAllDefault = false }: { deck: SlideD
       )}
 
       {zoom?.image && <Lightbox src={zoom.image} alt={zoom.alt} onClose={() => setZoom(null)} />}
+
+      {articleId && suggestFor && (
+        <SlideCorrectionModal
+          articleId={articleId}
+          slideNumber={suggestFor.number}
+          slidePrompt={suggestFor.prompt}
+          open={!!suggestFor}
+          onClose={() => setSuggestFor(null)}
+        />
+      )}
     </div>
   );
 }
