@@ -227,8 +227,10 @@ function McqAnswerBlock({ raw }: { raw: string }) {
         className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-emerald-500/10"
       >
         <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-          <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-emerald-500/15">✓</span>
-          {open ? "Hide answer & explanation" : "Show answer & explanation"}
+          {open
+            ? <EyeOff className="h-4 w-4" />
+            : <Eye className="h-4 w-4" />}
+          {open ? "Hide" : "Reveal"}
         </span>
         <ChevronDown className={`h-4 w-4 text-emerald-600 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
@@ -1280,7 +1282,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         if (src) {
         els.push(
           <figure key={`img-${i}`} className="my-7 overflow-hidden rounded-lg border border-border bg-muted/20">
-            <img src={src} alt={alt} loading="lazy" className="w-full object-cover" />
+            <img src={src} alt={alt} loading="lazy" decoding="async" className="w-full object-contain" />
             {alt && <figcaption className="border-t border-border px-4 py-2 text-sm leading-relaxed text-muted-foreground">{alt}</figcaption>}
           </figure>
         );
