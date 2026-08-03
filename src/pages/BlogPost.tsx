@@ -1114,7 +1114,7 @@ function preprocessContent(raw: string): string {
       const startsWithMarker = new RegExp(String.raw`^${OPTION_MARKER_SOURCE}\s+`).test(stripped);
       const markerCount = countOptionMarkers(stripped);
 
-      if (startsWithMarker && markerCount >= 2) {
+      if (startsWithMarker && markerCount >= 2 && looksLikeChoiceRun(stripped, true)) {
         const parts = splitMarkerRun(stripped);
         if (parts.length >= 2) {
           parts.forEach((p) => out.push(normalizeOptionLine(p)));
@@ -1122,7 +1122,7 @@ function preprocessContent(raw: string): string {
         }
       }
 
-      if (!startsWithMarker && markerCount >= 2) {
+      if (!startsWithMarker && markerCount >= 3 && looksLikeChoiceRun(stripped, false)) {
         const firstMarker = stripped.search(OPTION_MARKER_RE);
         if (firstMarker > 0) {
           const stem = stripped.slice(0, firstMarker).trim().replace(/[;,:\s]+$/, "");
