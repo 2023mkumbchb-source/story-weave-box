@@ -230,9 +230,17 @@ function McqAnswerBlock({ raw }: { raw: string }) {
   const [open, setOpen] = useState(false);
   const access = useAccess();
   const locked = !access.canReveal;
-  const lines = raw.split("\n");
-  const answerLine = cleanDisplayText((lines.shift() || "").replace(/^✅\s*/, "").replace(/^Answer\s*[:：]\s*/i, ""));
-  const explanation = cleanDisplayText(lines.join("\n").trim());
+  const normalized = raw
+    .replace(/\*+/g, "")
+    .replace(/^\s*✅?\s*(?:Answer|Model answer|Correct answer)\s*[:：]?\s*/i, "")
+    .trim();
+  const explanationAt = normalized.search(/(?:^|\n|\s)\s*(?:Explanation|Rationale)\s*[:：]/i);
+  const answerRaw = explanationAt >= 0 ? normalized.slice(0, explanationAt) : normalized;
+  const explanationRaw = explanationAt >= 0
+    ? normalized.slice(explanationAt).replace(/^\s*(?:Explanation|Rationale)\s*[:：]\s*/i, "")
+    : "";
+  const answerLine = formatSequence(cleanDisplayText(answerRaw));
+  const explanation = formatSequence(cleanDisplayText(explanationRaw));
   if (!answerLine && !explanation) return null;
   return (
     <div className="not-prose my-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
@@ -611,6 +619,15 @@ function cleanDisplayText(value: string): string {
     .replace(/⭐+/g, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function formatSequence(value: string): string {
+  const text = value.trim();
+  if (!text || text.includes("→")) return text;
+  const parts = text.split(/\s*(?:,|;|\bthen\b|\bfollowed by\b)\s*/i).filter(Boolean);
+  const sequenceCue = /\b(?:egg|larva|larvae|nymph|pupa|adult|cyst|trophozoite|sporocyst|miracidium|cercaria|metacercaria|oocyst|sporozoite|merozoite|gametocyte)\b/i;
+  if (parts.length >= 3 && parts.every((part) => sequenceCue.test(part))) return parts.join(" → ");
+  return text;
 }
 
 const OPTION_MARKER_SOURCE = String.raw`(?:\(?[A-Ea-e]\)|[A-Ea-e][\.)])`;
@@ -1027,6 +1044,8 @@ export function preprocessContent(raw: string): string {
       .replace(/([a-z\)])(?=[A-Z][a-z])/g, "$1 ")
       .replace(/([A-Z]{2,})(?=[A-Z][a-z])/g, "$1 ")
       .replace(/([A-Z]{3,})(?=[a-z]{3,})/g, "$1 ")
+      .replace(/([^\s])(?=(?:Explanation|Rationale)\s*[:：])/gi, "$1 ")
+      .replace(/\s*(?:->|=>|⟶|⟹)\s*/g, " → ")
       .replace(/([a-z])(?=(?:Think of|The most|Every reaction|Almost always|This is why|If someone|There are|ABO incompatibility)\b)/g, "$1 ");
 
     if (isCourseBrandingLine(t)) {
@@ -1074,6 +1093,11 @@ export function preprocessContent(raw: string): string {
       extras.forEach((extra) => out.push(extra));
       continue;
     }
+
+    // Raw imported markdown sometimes leaves unmatched quote/emphasis wrappers.
+    // Keep meaningful inline emphasis, but remove wrappers that would otherwise
+    // show as literal publishing syntax.
+    t = t.replace(/^(["'“”‘’]+)(.+)\1$/, "$2").replace(/^\*{1,3}(?!\s)(.*?)(?:\*{1,3})?$/, "$1").trim();
 
     if (t.startsWith("|") && (t.includes("|---") || t.includes("| ---"))) {
       splitInlineTable(t).forEach(r => out.push(r));
@@ -1422,7 +1446,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       flushList(); underSubheading = false;
       combinedOpts.forEach((m, n) => {
         const label = m[1].toUpperCase();
-        const optText = (m[2] || "").replace(/^\*+|\*+$/g, "").trim();
+        const rawOption = (m[2] || "").replace(/^\*+|\*+$/g, "").trim();
+        const explanationMatch = rawOption.match(/^([\s\S]*?)\s*(?:Explanation|Rationale)\s*[:：]\s*([\s\S]+)$/i);
+        const optText = (explanationMatch?.[1] || rawOption).trim();
         if (!optText) return;
         els.push(
           <div key={`mcqopt-combo-${i}-${n}`} className="my-1.5 flex items-start gap-2.5 pl-1">
@@ -1430,6 +1456,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
             <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
           </div>
         );
+        if (explanationMatch?.[2]) {
+          els.push(<McqAnswerBlock key={`mcqopt-combo-exp-${i}-${n}`} raw={`Answer: ${label}. ${optText}\nExplanation: ${explanationMatch[2]}`} />);
+        }
       });
       continue;
     }
@@ -1441,13 +1470,18 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (mcqOptMatch && !inPractice) {
       flushList(); underSubheading = false;
       const label = mcqOptMatch[1].toUpperCase();
-      const optText = mcqOptMatch[2].replace(/^\*+|\*+$/g, "").trim();
+      const rawOption = mcqOptMatch[2].replace(/^\*+|\*+$/g, "").trim();
+      const explanationMatch = rawOption.match(/^([\s\S]*?)\s*(?:Explanation|Rationale)\s*[:：]\s*([\s\S]+)$/i);
+      const optText = (explanationMatch?.[1] || rawOption).trim();
       els.push(
         <div key={`mcqopt-${i}`} className="my-1.5 flex items-start gap-2.5 pl-1">
           <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
           <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
         </div>
       );
+      if (explanationMatch?.[2]) {
+        els.push(<McqAnswerBlock key={`mcqopt-exp-${i}`} raw={`Answer: ${label}. ${optText}\nExplanation: ${explanationMatch[2]}`} />);
+      }
       continue;
     }
     if (subQMatch) {

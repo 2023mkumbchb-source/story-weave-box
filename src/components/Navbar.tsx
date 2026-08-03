@@ -4,13 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import ThemeToggle from "./ThemeToggle";
 import ompathLogo from "@/assets/ompath-logo.png";
-
-const links = [
-  { to: "/", label: "Home", icon: Home },
-  { to: "/stories", label: "Stories", icon: BookOpenCheck },
-  { to: "/account", label: "Account", icon: UserRound },
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
-];
+import { useAuth } from "@/hooks/useAuth";
 
 const YEAR_OPTIONS = [1, 2, 3, 4, 5, 6] as const;
 const STORAGE_KEY = "nav_year_filter";
@@ -41,9 +35,22 @@ function getActiveYear(pathname: string, search: string): number | null {
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedYear, setExpandedYear] = useState<number | null>(null);
   const [hidden, setHidden] = useState(false);
+
+  const links = useMemo(() => {
+    const base = [
+      { to: "/", label: "Home", icon: Home },
+      { to: "/stories", label: "Stories", icon: BookOpenCheck },
+      { to: "/account", label: "Account", icon: UserRound },
+    ];
+    if (isAdmin) {
+      base.push({ to: "/admin", label: "Dashboard", icon: LayoutDashboard });
+    }
+    return base;
+  }, [isAdmin]);
 
   const isExamPage = /^\/exams\/[^/]+\/start/.test(location.pathname);
 
@@ -52,7 +59,6 @@ export default function Navbar() {
     [location.pathname, location.search]
   );
 
-  // Sync expanded year in sidebar with active year
   useEffect(() => {
     if (activeYear) setExpandedYear(activeYear);
   }, [activeYear]);
@@ -107,7 +113,6 @@ export default function Navbar() {
   return (
     <>
       <nav className={`sticky top-0 z-40 border-b border-border bg-[hsl(174,62%,22%)] text-white transition-transform duration-300 ease-out ${hidden ? "-translate-y-full" : "translate-y-0"}`}>
-        {/* ── Primary bar ── */}
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5 sm:px-6">
           <Link to="/" className="flex items-center gap-2 text-lg font-bold text-white">
             <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-white/10 p-1">
@@ -116,9 +121,7 @@ export default function Navbar() {
             <span className="font-serif">Ompath Study</span>
           </Link>
 
-          {/* Desktop nav */}
           <div className="hidden items-center gap-1 md:flex">
-            {/* Year pills */}
             <div className="mr-2 flex items-center gap-0.5 rounded-lg bg-white/10 p-0.5">
               {YEAR_OPTIONS.map((yr) => (
                 <button
@@ -149,7 +152,6 @@ export default function Navbar() {
             <ThemeToggle />
           </div>
 
-          {/* Mobile controls */}
           <div className="flex items-center gap-2 md:hidden">
             <ThemeToggle />
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -159,7 +161,6 @@ export default function Navbar() {
                 </button>
               </SheetTrigger>
               <SheetContent side="left" className="w-72 bg-[hsl(174,62%,16%)] border-r-0 p-0 text-white [&>button]:text-white">
-                {/* Sidebar header */}
                 <div className="flex items-center gap-2 border-b border-white/10 px-4 py-4">
                   <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-white/10 p-1">
                     <img src={ompathLogo} alt="Ompath Study logo" className="h-full w-full object-contain" />
@@ -167,9 +168,7 @@ export default function Navbar() {
                   <span className="font-serif text-lg font-bold">Ompath Study</span>
                 </div>
 
-                {/* Sidebar content */}
                 <div className="flex flex-col overflow-y-auto h-[calc(100%-65px)]">
-                  {/* Quick links */}
                   <div className="border-b border-white/10 px-3 py-3">
                     {links.map((l) => (
                       <Link
@@ -188,7 +187,6 @@ export default function Navbar() {
                     ))}
                   </div>
 
-                  {/* Year sections */}
                   <div className="px-3 py-3">
                     <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-white/40">Academic Years</p>
                     {YEAR_OPTIONS.map((yr) => {
@@ -254,7 +252,6 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* ── Secondary bar: desktop only ── */}
         {activeYear && (
             <div className="hidden md:block overflow-hidden border-t border-white/10 bg-[hsl(174,62%,18%)]">
               <div className="no-scrollbar mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 py-1.5 sm:px-6" style={{ scrollbarWidth: "none" }}>

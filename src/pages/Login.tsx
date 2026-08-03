@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
-import { Lock, LogIn, Loader2, Mail, ShieldCheck } from "lucide-react";
+import { LogIn, Loader2, Mail, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -8,43 +8,33 @@ import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/hooks/useAuth";
 import { signInWithGoogle } from "@/lib/social-auth";
 
-const ADMIN_PASSWORD = "Davis";
-
 export default function Login() {
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<"reader" | "admin">("reader");
   const [email, setEmail] = useState("");
   const [readerPassword, setReaderPassword] = useState("");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [busy, setBusy] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { user, isAdmin, signIn, signUp, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      const redirect = sessionStorage.getItem("post_login_redirect") || (isAdmin ? "/admin" : "/account");
+      sessionStorage.removeItem("post_login_redirect");
+      navigate(redirect);
+    }
+  }, [user, isAdmin, authLoading, navigate]);
+
   const ogUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}${location.pathname}${location.search}`
       : location.pathname;
-  const title = "Admin Login | OmpathStudy Kenya";
+  const title = "Sign In | OmpathStudy Kenya";
   const description =
-    "Sign in to manage OmpathStudy content and settings. Admin access is restricted to authorized staff for the Kenya medical education platform.";
+    "Sign in to OmpathStudy to access your medical education content, subscriptions, and study materials.";
   const keywords =
-    "OmpathStudy, admin login, medical education Kenya, content management, staff portal";
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    if (password === ADMIN_PASSWORD) {
-      localStorage.setItem("learninghub_auth", "true");
-      sessionStorage.setItem("learninghub_auth", "true");
-      toast({ title: "Logged in!" });
-      navigate("/admin");
-    } else {
-      toast({ title: "Incorrect password", variant: "destructive" });
-    }
-    setLoading(false);
-  };
+    "OmpathStudy, login, medical education Kenya, student portal, study notes";
 
   const google = async () => {
     setBusy(true);
@@ -56,7 +46,6 @@ export default function Login() {
       toast({ title: "Google sign-in failed", description: res.error, variant: "destructive" });
       return;
     }
-    navigate("/account");
   };
 
   const emailAuth = async (e: React.FormEvent) => {
@@ -70,7 +59,6 @@ export default function Login() {
         await signIn(email.trim(), readerPassword);
         toast({ title: "Signed in" });
       }
-      navigate("/account");
     } catch (err) {
       toast({
         title: mode === "signup" ? "Could not create the account" : "Could not sign in",
@@ -97,24 +85,6 @@ export default function Login() {
         <meta name="twitter:description" content={description} />
       </Helmet>
       <div className="w-full max-w-sm">
-        <div className="mb-4 inline-flex w-full overflow-hidden rounded-full border border-border">
-          <button
-            type="button"
-            onClick={() => setTab("reader")}
-            className={`flex-1 px-4 py-2 text-xs font-bold ${tab === "reader" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-          >
-            Student sign in
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("admin")}
-            className={`flex-1 px-4 py-2 text-xs font-bold ${tab === "admin" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-          >
-            Admin
-          </button>
-        </div>
-
-      {tab === "reader" ? (
         <div className="rounded-2xl border border-border bg-card p-8" style={{ boxShadow: "var(--shadow-elevated)" }}>
           <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <ShieldCheck className="h-7 w-7" />
@@ -155,37 +125,6 @@ export default function Login() {
             <Link to="/" className="text-xs text-muted-foreground hover:underline">← Continue as guest</Link>
           </div>
         </div>
-      ) : (
-      <form
-        onSubmit={handleSubmit}
-        className="rounded-2xl border border-border bg-card p-8"
-        style={{ boxShadow: "var(--shadow-elevated)" }}
-      >
-        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <Lock className="h-7 w-7" />
-        </div>
-        <h1 className="mb-2 text-center font-serif text-2xl font-bold text-foreground">
-          Admin Login
-        </h1>
-        <p className="mb-6 text-center text-sm text-muted-foreground">
-          Enter your password to access the dashboard
-        </p>
-        <Input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="mb-4"
-          required
-        />
-        <Button type="submit" className="w-full gap-2" disabled={loading}>
-          <LogIn className="h-4 w-4" /> Sign In
-        </Button>
-        <div className="mt-4 text-center">
-          <Link to="/" className="text-xs text-primary hover:underline">← Continue as guest</Link>
-        </div>
-      </form>
-      )}
       </div>
     </div>
   );
