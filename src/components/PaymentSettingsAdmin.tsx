@@ -34,12 +34,8 @@ export default function PaymentSettingsAdmin() {
   }, []);
 
   const loadPasses = async () => {
-    const { data } = await (supabase as any)
-      .from("access_grants")
-      .select("code, plan, expires_at, amount")
-      .order("created_at", { ascending: false })
-      .limit(25);
-    setPasses(data || []);
+    const { data } = await supabase.functions.invoke("access-code", { body: { action: "list" } });
+    setPasses(data?.passes || []);
   };
 
   const save = async () => {
