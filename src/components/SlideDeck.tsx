@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, X, ZoomIn, Images, Check, Pencil, BadgeCheck, List, Rows3, Columns2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SlideCorrectionModal } from "@/components/SlideCorrectionModal";
+import { freeItemCount, useAccess } from "@/lib/access";
+import { FreeAccessBanner, Paywall } from "@/components/Paywall";
+import { DeckDownloadButton } from "@/components/DeckPdfExport";
 
 /**
  * Slide / spot-exam deck renderer.
@@ -333,14 +336,34 @@ function SlideCard({
 }
 
 /* ── Deck ── */
-export function SlideDeckView({ deck, revealAllDefault = false, articleId }: { deck: SlideDeck; revealAllDefault?: boolean; articleId?: string }) {
+export function SlideDeckView({
+  deck,
+  revealAllDefault = false,
+  articleId,
+  title = "Spot paper",
+  university,
+  onPreview,
+}: {
+  deck: SlideDeck;
+  revealAllDefault?: boolean;
+  articleId?: string;
+  title?: string;
+  university?: string;
+  onPreview?: () => void;
+}) {
   const [zoom, setZoom] = useState<Slide | null>(null);
   const [allKey, setAllKey] = useState(0);
   const [revealAll, setRevealAll] = useState(revealAllDefault);
   const [suggestFor, setSuggestFor] = useState<Slide | null>(null);
   const [corrections, setCorrections] = useState<Record<string, string[]>>({});
-  const [cols, setCols] = useState<1 | 2>(1);
+  const [cols, setCols] = useState<1 | 2>(2);
   const [navOpen, setNavOpen] = useState(false);
+  const access = useAccess();
+
+  const visibleSlides = access.unlocked
+    ? deck.slides
+    : deck.slides.slice(0, freeItemCount(deck.slides.length, access.settings.freeRatio));
+  const hiddenCount = deck.slides.length - visibleSlides.length;
 
   useEffect(() => {
     if (!articleId) return;
@@ -375,6 +398,26 @@ export function SlideDeckView({ deck, revealAllDefault = false, articleId }: { d
           {deck.slides.length} plates · tap Reveal for the answer key
         </p>
         <div className="flex items-center gap-2">
+          {access.unlocked && access.settings.downloadEnabled && (
+            <>
+              {onPreview && (
+                <button
+                  type="button"
+                  onClick={onPreview}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                >
+                  <Images className="h-3.5 w-3.5" /> Preview
+                </button>
+              )}
+              <DeckDownloadButton
+                deck={deck}
+                title={title}
+                university={university}
+                passCode={access.pass?.code}
+                disabled={!access.canDownload}
+              />
+            </>
+          )}
           <div className="inline-flex overflow-hidden rounded-full border border-border">
             <button
               type="button"
@@ -441,8 +484,10 @@ export function SlideDeckView({ deck, revealAllDefault = false, articleId }: { d
         </div>
       )}
 
+      {access.isFree && <FreeAccessBanner count={deck.slides.length} label="plates" />}
+
       <div className={`grid items-start gap-5 ${cols === 2 ? "sm:grid-cols-2" : "mx-auto max-w-3xl grid-cols-1"}`}>
-        {deck.slides.map((s, i) => (
+        {visibleSlides.map((s, i) => (
           <SlideCard
             key={`${s.key}-${allKey}`}
             slide={s}
@@ -454,6 +499,18 @@ export function SlideDeckView({ deck, revealAllDefault = false, articleId }: { d
           />
         ))}
       </div>
+
+      {hiddenCount > 0 && (
+        <div className="relative">
+          <div className="pointer-events-none -mt-24 h-24 bg-gradient-to-b from-transparent to-background" />
+          <Paywall
+            settings={access.settings}
+            hiddenCount={hiddenCount}
+            label="plates"
+            onUnlocked={access.applyPass}
+          />
+        </div>
+      )}
 
       {deck.footer && (
         <p className="mt-8 border-t border-border pt-4 text-[13px] italic leading-relaxed text-muted-foreground">

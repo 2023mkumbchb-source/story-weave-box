@@ -288,3 +288,45 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-hero-pan { animation: none; transform: none; }
 }
+
+/* ── Copy protection ─────────────────────────────────────────────────────── */
+body.no-copy,
+body.no-copy .prose-custom,
+body.no-copy .article-reader {
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+body.no-copy input,
+body.no-copy textarea,
+body.no-copy select,
+body.no-copy [contenteditable="true"],
+body.no-copy [data-allow-copy="true"],
+body.no-copy [data-allow-copy="true"] * {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+body.no-copy img {
+  -webkit-user-drag: none;
+  user-drag: none;
+  pointer-events: auto;
+}
+
+/* Screenshots of a browser print dialog should not yield a clean copy */
+@media print {
+  body.no-copy .article-reader,
+  body.no-copy .prose-custom,
+  body.no-copy img {
+    display: none !important;
+  }
+  body.no-copy::after {
+    content: "Printing is disabled on ompathstudy.com — download the watermarked handout instead.";
+    display: block;
+    padding: 40px;
+    font-family: Georgia, serif;
+    font-size: 16px;
+  }
+}
