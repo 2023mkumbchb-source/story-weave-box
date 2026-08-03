@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSetting } from "@/lib/store";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface AccessPlan {
   id: string;
@@ -20,9 +21,8 @@ export interface PaymentSettings {
 }
 
 export const DEFAULT_PLANS: AccessPlan[] = [
-  { id: "day", label: "24-hour pass", price: 10, days: 1, download: false },
-  { id: "week", label: "1-week pass", price: 50, days: 7, download: true },
-  { id: "semester", label: "Semester pass", price: 300, days: 120, download: true },
+  { id: "semester", label: "Semester pass (3 months)", price: 300, days: 90, download: true },
+  { id: "annual", label: "Annual pass (12 months)", price: 1000, days: 365, download: true },
 ];
 
 export const DEFAULT_SETTINGS: PaymentSettings = {
@@ -34,6 +34,23 @@ export const DEFAULT_SETTINGS: PaymentSettings = {
 
 const PASS_KEY = "ompath_access_pass";
 let settingsCache: { at: number; value: PaymentSettings } | null = null;
+
+/** Codes are matched punctuation-insensitively, so normalise before sending. */
+export function normalizePassCode(value: string): string {
+  return (value || "").trim().toUpperCase().replace(/\s+/g, "-").replace(/[^A-Z0-9-]/g, "");
+}
+
+/** Attach the signed-in account (if any) so subscriptions can be tracked. */
+async function accountFields(): Promise<{ email?: string; user_id?: string }> {
+  try {
+    const { data } = await supabase.auth.getUser();
+    const user = data?.user;
+    if (!user) return {};
+    return { user_id: user.id, email: user.email ?? undefined };
+  } catch {
+    return {};
+  }
+}
 
 export async function loadPaymentSettings(force = false): Promise<PaymentSettings> {
   if (!force && settingsCache && Date.now() - settingsCache.at < 5 * 60_000) return settingsCache.value;
@@ -96,7 +113,11 @@ export function clearPass() {
 
 export async function verifyCode(code: string): Promise<{ ok: boolean; pass?: AccessPass; error?: string }> {
   const { data, error } = await supabase.functions.invoke("access-code", {
-    body: { action: "verify", code },
+    body: {
+      action: "verify",
+      code: normalizePassCode(code),
+      ...(await accountFields()),
+    },
   });
   if (error) return { ok: false, error: "Could not check that code. Try again." };
   if (!data?.valid) return { ok: false, error: data?.error || "Invalid code." };
@@ -112,7 +133,12 @@ export async function verifyCode(code: string): Promise<{ ok: boolean; pass?: Ac
 
 export async function issuePassForPayment(transactionId: string, plan?: string): Promise<AccessPass | null> {
   const { data, error } = await supabase.functions.invoke("access-code", {
-    body: { action: "issue", transaction_id: transactionId, plan },
+    body: {
+      action: "issue",
+      transaction_id: transactionId,
+      plan,
+      ...(await accountFields()),
+    },
   });
   if (error || !data?.success) return null;
   const pass: AccessPass = {
@@ -125,11 +151,49 @@ export async function issuePassForPayment(transactionId: string, plan?: string):
   return pass;
 }
 
+/** Let the buyer pick their own memorable pass code on the success screen. */
+export async function renamePassCode(currentCode: string, newCode: string): Promise<{ ok: boolean; pass?: AccessPass; error?: string }> {
+  const { data, error } = await supabase.functions.invoke("access-code", {
+    body: { action: "rename", code: currentCode, new_code: normalizePassCode(newCode), ...(await accountFields()) },
+  });
+  if (error) return { ok: false, error: "Could not change the code. Try again." };
+  if (!data?.success) return { ok: false, error: data?.error || "Could not change the code." };
+  const pass: AccessPass = {
+    code: data.code,
+    plan: data.plan,
+    expires_at: data.expires_at,
+    allow_download: data.allow_download !== false,
+  };
+  storePass(pass);
+  return { ok: true, pass };
+}
+
+export interface AccountInfo {
+  found: boolean;
+  code?: string;
+  plan?: string;
+  amount?: number;
+  expires_at?: string;
+  expired?: boolean;
+  allow_download?: boolean;
+}
+
+/** Subscriber account lookup — by stored pass code, or by the signed-in account. */
+export async function fetchAccount(code?: string): Promise<AccountInfo> {
+  const account = await accountFields();
+  const { data, error } = await supabase.functions.invoke("access-code", {
+    body: { action: "account", code: account.user_id ? undefined : (code ? normalizePassCode(code) : undefined), ...account },
+  });
+  if (error || !data) return { found: false };
+  return data as AccountInfo;
+}
+
 /**
  * Site-wide access state: is content free right now, does this reader hold a
  * valid pass, and may they download the watermarked PDF.
  */
 export function useAccess() {
+  const { isAdmin, user, loading: authLoading } = useAuth();
   const [settings, setSettings] = useState<PaymentSettings | null>(null);
   const [pass, setPass] = useState<AccessPass | null>(() => readStoredPass());
   const [loading, setLoading] = useState(true);
@@ -144,6 +208,24 @@ export function useAccess() {
     return () => { active = false; };
   }, []);
 
+  // Restore a subscription from the signed-in account on every browser.
+  useEffect(() => {
+    if (authLoading || !user) return;
+    let active = true;
+    fetchAccount().then((info) => {
+      if (!active || !info.found || info.expired || !info.code || !info.expires_at) return;
+      const linked: AccessPass = {
+        code: info.code,
+        plan: info.plan || "subscription",
+        expires_at: info.expires_at,
+        allow_download: info.allow_download !== false,
+      };
+      storePass(linked);
+      setPass(linked);
+    });
+    return () => { active = false; };
+  }, [authLoading, user]);
+
   const refresh = useCallback(() => {
     setPass(readStoredPass());
     loadPaymentSettings(true).then(setSettings);
@@ -151,6 +233,7 @@ export function useAccess() {
 
   const isFree = (settings?.price ?? 0) <= 0;
   const hasPass = !!pass;
+  const ownerAccess = isAdmin;
   return {
     loading,
     settings: settings ?? DEFAULT_SETTINGS,
@@ -158,8 +241,11 @@ export function useAccess() {
     isFree,
     hasPass,
     /** unlocked = free site, or a valid pass */
-    unlocked: isFree || hasPass,
-    canDownload: (settings?.downloadEnabled ?? true) && (isFree ? true : !!pass?.allow_download),
+    unlocked: isFree || hasPass || ownerAccess,
+    /** Answers/reveals are a subscriber feature — never unlocked for guests. */
+    canReveal: hasPass || ownerAccess,
+    /** PDF handouts are a pro feature: subscribers only. */
+    canDownload: ownerAccess || ((settings?.downloadEnabled ?? true) && !!pass?.allow_download),
     applyPass: (p: AccessPass) => setPass(p),
     signOutPass: () => { clearPass(); setPass(null); },
     refresh,

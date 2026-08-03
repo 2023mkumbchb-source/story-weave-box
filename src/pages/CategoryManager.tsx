@@ -8,10 +8,12 @@ import { useToast } from "@/hooks/use-toast";
 import { getArticleCategories, saveArticleCategory, deleteArticleCategory, type ArticleCategory } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { Helmet } from "react-helmet-async";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function CategoryManager() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
   const [categories, setCategories] = useState<ArticleCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
@@ -20,12 +22,12 @@ export default function CategoryManager() {
   const [newCat, setNewCat] = useState("");
 
   useEffect(() => {
-    if (localStorage.getItem("learninghub_auth") !== "true" && sessionStorage.getItem("learninghub_auth") !== "true") {
+    if (!authLoading && !isAdmin) {
       navigate("/login");
       return;
     }
-    loadCategories();
-  }, [navigate]);
+    if (isAdmin) loadCategories();
+  }, [navigate, isAdmin, authLoading]);
 
   const loadCategories = async () => {
     setLoading(true);

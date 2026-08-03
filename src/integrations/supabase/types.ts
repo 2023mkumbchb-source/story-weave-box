@@ -20,6 +20,7 @@ export type Database = {
           amount: number | null
           code: string
           created_at: string
+          email: string | null
           expires_at: string
           id: string
           last_redeemed_at: string | null
@@ -28,12 +29,14 @@ export type Database = {
           plan: string
           redeem_count: number
           scope: string
+          user_id: string | null
         }
         Insert: {
           allow_download?: boolean
           amount?: number | null
           code: string
           created_at?: string
+          email?: string | null
           expires_at: string
           id?: string
           last_redeemed_at?: string | null
@@ -42,12 +45,14 @@ export type Database = {
           plan?: string
           redeem_count?: number
           scope?: string
+          user_id?: string | null
         }
         Update: {
           allow_download?: boolean
           amount?: number | null
           code?: string
           created_at?: string
+          email?: string | null
           expires_at?: string
           id?: string
           last_redeemed_at?: string | null
@@ -56,6 +61,7 @@ export type Database = {
           plan?: string
           redeem_count?: number
           scope?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -536,6 +542,7 @@ export type Database = {
           provider_txn_id: string | null
           transaction_id: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           amount?: number
@@ -551,6 +558,7 @@ export type Database = {
           provider_txn_id?: string | null
           transaction_id?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           amount?: number
@@ -566,6 +574,7 @@ export type Database = {
           provider_txn_id?: string | null
           transaction_id?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Loader2, Save, ShieldCheck, Trash2 } from "lucide-react";
+import { Loader2, Save, ShieldCheck, Trash2, Plus, X } from "lucide-react";
 import { getSetting, saveSetting } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { AccessPlan, DEFAULT_PLANS, loadPaymentSettings } from "@/lib/access";
+import { DEFAULT_SITE_SETTINGS, loadSiteSettings } from "@/lib/site-settings";
 import { toast } from "@/hooks/use-toast";
 
 /** Admin panel: price, where the paywall starts, PDF downloads and the 3 plans. */
@@ -14,6 +15,10 @@ export default function PaymentSettingsAdmin() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [passes, setPasses] = useState<{ code: string; plan: string; expires_at: string; amount: number }[]>([]);
+  const [founderVisible, setFounderVisible] = useState(false);
+  const [guestSlideView, setGuestSlideView] = useState<"all" | "half">("all");
+  const [redacted, setRedacted] = useState(DEFAULT_SITE_SETTINGS.redactedNames.join(", "));
+  const [showCounts, setShowCounts] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -21,10 +26,18 @@ export default function PaymentSettingsAdmin() {
       getSetting("paywall_free_ratio"),
       getSetting("pdf_download_enabled"),
       getSetting("access_plans"),
-    ]).then(([p, r, d, pl]) => {
+      getSetting("founder_page_visible"),
+      getSetting("guest_slide_view"),
+      getSetting("redacted_names"),
+      getSetting("show_content_counts"),
+    ]).then(([p, r, d, pl, fv, gsv, rn, sc]) => {
       setPrice(p || "0");
       setRatio(r || "0.25");
       setDownloads((d || "true") !== "false");
+      setFounderVisible(fv === "true");
+      setGuestSlideView(gsv === "half" ? "half" : "all");
+      setRedacted((rn ?? "").trim() || DEFAULT_SITE_SETTINGS.redactedNames.join(", "));
+      setShowCounts(sc === "true");
       try {
         const parsed = JSON.parse(pl || "[]");
         if (Array.isArray(parsed) && parsed.length) setPlans(parsed);
@@ -45,7 +58,12 @@ export default function PaymentSettingsAdmin() {
       await saveSetting("paywall_free_ratio", String(Math.min(0.9, Math.max(0.05, Number(ratio) || 0.25))));
       await saveSetting("pdf_download_enabled", downloads ? "true" : "false");
       await saveSetting("access_plans", JSON.stringify(plans));
+      await saveSetting("founder_page_visible", founderVisible ? "true" : "false");
+      await saveSetting("guest_slide_view", guestSlideView);
+      await saveSetting("redacted_names", redacted);
+      await saveSetting("show_content_counts", showCounts ? "true" : "false");
       await loadPaymentSettings(true);
+      await loadSiteSettings(true);
       toast({ title: "Payment settings saved" });
     } catch (e) {
       toast({ title: "Could not save", description: e instanceof Error ? e.message : "", variant: "destructive" });
@@ -56,6 +74,14 @@ export default function PaymentSettingsAdmin() {
 
   const updatePlan = (i: number, patch: Partial<AccessPlan>) =>
     setPlans((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
+
+  const addPlan = () =>
+    setPlans((prev) => [
+      ...prev,
+      { id: `plan-${Date.now().toString(36)}`, label: "New pass", price: 300, days: 90, download: true },
+    ]);
+
+  const removePlan = (i: number) => setPlans((prev) => prev.filter((_, idx) => idx !== i));
 
   if (loading) {
     return <div className="flex min-h-[30vh] items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
@@ -69,7 +95,7 @@ export default function PaymentSettingsAdmin() {
       <div>
         <h2 className="mb-1 font-serif text-xl font-bold text-foreground">Payments &amp; access</h2>
         <p className="text-sm text-muted-foreground">
-          Set the site price, where the paywall starts, and the three subscription passes.
+          Answers and PDF handouts are always subscriber-only. Set the pass prices below — questions stay free to read.
         </p>
       </div>
 
@@ -118,8 +144,56 @@ export default function PaymentSettingsAdmin() {
         </p>
       </div>
 
+      {/* ── Site visibility ── */}
       <div className="rounded-xl border border-border bg-card p-5">
-        <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">Subscription passes</p>
+        <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">Site visibility</p>
+
+        <label className="mb-3 block">
+          <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Guests on image-answer papers</span>
+          <select
+            value={guestSlideView}
+            onChange={(e) => setGuestSlideView(e.target.value as "all" | "half")}
+            className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+          >
+            <option value="all">Can browse every plate (answers still locked)</option>
+            <option value="half">Can browse half the paper only</option>
+          </select>
+        </label>
+
+        <label className="mb-3 block">
+          <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Names to hide from content</span>
+          <input
+            value={redacted}
+            onChange={(e) => setRedacted(e.target.value)}
+            placeholder="Beda, Otieno"
+            className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+          />
+          <span className="mt-1 block text-[11px] text-muted-foreground">
+            Comma-separated. Lecturer names are scrubbed when pages render — the stored source is untouched.
+          </span>
+        </label>
+
+        <label className="mb-2 flex items-center gap-2 text-sm text-foreground">
+          <input type="checkbox" checked={founderVisible} onChange={(e) => setFounderVisible(e.target.checked)} className="accent-primary" />
+          Show the “About the founder” page
+        </label>
+        <label className="flex items-center gap-2 text-sm text-foreground">
+          <input type="checkbox" checked={showCounts} onChange={(e) => setShowCounts(e.target.checked)} className="accent-primary" />
+          Show plate / question counts in banners
+        </label>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Subscription passes</p>
+          <button
+            type="button"
+            onClick={addPlan}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-semibold text-foreground hover:border-primary/50 hover:text-primary"
+          >
+            <Plus className="h-3 w-3" /> Add pass
+          </button>
+        </div>
         <div className="space-y-3">
           {plans.map((p, i) => (
             <div key={p.id} className="grid gap-2 sm:grid-cols-[1.4fr_0.7fr_0.7fr_auto] sm:items-center">
@@ -143,13 +217,27 @@ export default function PaymentSettingsAdmin() {
                 placeholder="Days"
                 className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
               />
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                <input type="checkbox" checked={p.download !== false} onChange={(e) => updatePlan(i, { download: e.target.checked })} className="accent-primary" />
-                PDF
-              </label>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <input type="checkbox" checked={p.download !== false} onChange={(e) => updatePlan(i, { download: e.target.checked })} className="accent-primary" />
+                  PDF
+                </label>
+                <button
+                  type="button"
+                  onClick={() => removePlan(i)}
+                  aria-label={`Remove ${p.label}`}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:border-destructive/50 hover:text-destructive"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
+        <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+          Recommended: a 3-month semester pass and a 12-month annual pass (90 and 365 days). Access follows the
+          subscriber's signed-in email on every device.
+        </p>
       </div>
 
       <button

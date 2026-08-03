@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
@@ -20,45 +20,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const checkAdmin = async (userId: string) => {
-    const { data, error } = await supabase.rpc("has_role", {
-      _user_id: userId,
-      _role: "admin",
-    });
-
-    if (error) {
+  const checkAdmin = useCallback(async (userId: string) => {
+    try {
+      const roleRequest = supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+      const timeout = new Promise<{ data: false; error: Error }>((resolve) =>
+        window.setTimeout(() => resolve({ data: false, error: new Error("Role check timed out") }), 5000),
+      );
+      const { data, error } = await Promise.race([roleRequest, timeout]);
+      setIsAdmin(!error && Boolean(data));
+    } catch {
       setIsAdmin(false);
-      return;
     }
-
-    setIsAdmin(Boolean(data));
-  };
+  }, []);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await checkAdmin(session.user.id);
-        } else {
-          setIsAdmin(false);
-        }
-        setLoading(false);
-      }
-    );
+    let active = true;
+    const applySession = async (nextSession: Session | null) => {
+      if (!active) return;
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+      if (nextSession?.user) await checkAdmin(nextSession.user.id);
+      else setIsAdmin(false);
+      if (active) setLoading(false);
+    };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        checkAdmin(session.user.id);
-      }
-      setLoading(false);
+    // Keep this callback synchronous. Awaiting a backend request here can hold
+    // the auth client's session lock and leave the entire app loading forever.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setLoading(true);
+      window.setTimeout(() => { void applySession(nextSession); }, 0);
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    supabase.auth.getSession()
+      .then(({ data }) => applySession(data.session))
+      .catch(() => applySession(null));
+
+    return () => { active = false; subscription.unsubscribe(); };
+  }, [checkAdmin]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });

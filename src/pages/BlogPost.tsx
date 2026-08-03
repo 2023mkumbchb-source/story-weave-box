@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useLayoutEffect, forwardRef, memo } from 
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft, Loader2, GraduationCap, ListChecks,
-  ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2, ImagePlus, X, Eye, EyeOff,
+  ChevronDown, ChevronRight, FileText, HelpCircle, Sparkles, GitMerge, Settings2, ImagePlus, X, Eye, EyeOff, Lock,
 } from "lucide-react";
 import ShareButtons from "@/components/ShareButtons";
 import ArticleComments from "@/components/ArticleComments";
@@ -20,6 +20,19 @@ import { parseSlideDeck, SlideDeckView, SlidePreviewModal } from "@/components/S
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useAccess } from "@/lib/access";
+import { SubscribeModal } from "@/components/SubscribeModal";
+import { openSubscribePrompt, useScrollSubscribePrompt } from "@/lib/subscribe-prompt";
+
+/**
+ * Mounts the subscription prompt for articles that carry MCQs: guests read the
+ * questions freely and get nudged as they scroll; subscribers see nothing.
+ */
+function ArticleSubscribeGate({ hasMcqs }: { hasMcqs: boolean }) {
+  const access = useAccess();
+  useScrollSubscribePrompt(hasMcqs && !access.canReveal);
+  return <SubscribeModal settings={access.settings} onUnlocked={access.applyPass} />;
+}
 
 /* ─── Inline text: bold/italic ─── */
 const Inline = forwardRef<HTMLSpanElement, { text: string }>(({ text }, ref) => {
@@ -215,27 +228,38 @@ function EssayQuestion({ number, question, answer }: { number: string; question:
 
 function McqAnswerBlock({ raw }: { raw: string }) {
   const [open, setOpen] = useState(false);
-  const lines = raw.split("\n");
-  const answerLine = cleanDisplayText((lines.shift() || "").replace(/^✅\s*/, "").replace(/^Answer\s*[:：]\s*/i, ""));
-  const explanation = cleanDisplayText(lines.join("\n").trim());
+  const access = useAccess();
+  const locked = !access.canReveal;
+  const normalized = raw
+    .replace(/\*+/g, "")
+    .replace(/^\s*✅?\s*(?:Answer|Model answer|Correct answer)\s*[:：]?\s*/i, "")
+    .trim();
+  const explanationAt = normalized.search(/(?:^|\n|\s)\s*(?:Explanation|Rationale)\s*[:：]/i);
+  const answerRaw = explanationAt >= 0 ? normalized.slice(0, explanationAt) : normalized;
+  const explanationRaw = explanationAt >= 0
+    ? normalized.slice(explanationAt).replace(/^\s*(?:Explanation|Rationale)\s*[:：]\s*/i, "")
+    : "";
+  const answerLine = formatSequence(cleanDisplayText(answerRaw));
+  const explanation = formatSequence(cleanDisplayText(explanationRaw));
   if (!answerLine && !explanation) return null;
   return (
     <div className="not-prose my-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          if (locked) { openSubscribePrompt("Subscribe to reveal the verified answer and explanation."); return; }
+          setOpen((o) => !o);
+        }}
         className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-emerald-500/10"
       >
         <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-          {open
-            ? <EyeOff className="h-4 w-4" />
-            : <Eye className="h-4 w-4" />}
-          {open ? "Hide" : "Reveal"}
+          {locked ? <Lock className="h-4 w-4" /> : open ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {locked ? "Reveal — subscribers" : open ? "Hide" : "Reveal"}
         </span>
         <ChevronDown className={`h-4 w-4 text-emerald-600 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       <AnimatePresence initial={false}>
-        {open && (
+        {open && !locked && (
           <motion.div key="ans" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18 }} className="overflow-hidden">
             <div className="border-t border-emerald-500/20 px-4 py-3 space-y-2">
               <p className="text-[15px] font-semibold text-foreground">
@@ -455,7 +479,15 @@ function cleanMetaDescription(article: Article): string {
     provided = provided.slice(title.length).replace(/^\s*[|:;,.–—-]+\s*/, "").trim();
   }
   const cat = article.category ? article.category.replace(/^Year\s*\d+:\s*/i, "").trim() : "";
-  const fallback = stripRichText(article.content || "", 155)
+  // Strip markdown scaffolding so a hero blurb never shows "### SECTION A: …"
+  const body = (article.content || "")
+    .replace(/^\s*#{1,6}\s*/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*>\s?/gm, "")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\*\*?/g, "")
+    .replace(/^\s*(?:SECTION\s+[A-C]\b.*|MULTIPLE\s+CHOICE.*)$/gim, " ");
+  const fallback = stripRichText(body, 155)
     || `${article.title} study notes${cat ? ` on ${cat}` : ""} with clinical points and exam-focused revision for medical students.`;
   const desc = provided.length >= 50 ? provided : fallback;
   const enriched = /\b(Kenya|Africa|MBChB|medical students)\b/i.test(desc)
@@ -589,9 +621,65 @@ function cleanDisplayText(value: string): string {
     .trim();
 }
 
+function formatSequence(value: string): string {
+  const text = value.trim();
+  if (!text || text.includes("→")) return text;
+  const parts = text.split(/\s*(?:,|;|\bthen\b|\bfollowed by\b)\s*/i).filter(Boolean);
+  const sequenceCue = /\b(?:egg|larva|larvae|nymph|pupa|adult|cyst|trophozoite|sporocyst|miracidium|cercaria|metacercaria|oocyst|sporozoite|merozoite|gametocyte)\b/i;
+  if (parts.length >= 3 && parts.every((part) => sequenceCue.test(part))) return parts.join(" → ");
+  return text;
+}
+
 const OPTION_MARKER_SOURCE = String.raw`(?:\(?[A-Ea-e]\)|[A-Ea-e][\.)])`;
 const OPTION_MARKER_RE = new RegExp(String.raw`(?:^|\s)(${OPTION_MARKER_SOURCE})\s+`);
 const OPTION_CAPTURE_RE = new RegExp(String.raw`(?:^|\s)(${OPTION_MARKER_SOURCE})\s+([\s\S]*?)(?=\s+${OPTION_MARKER_SOURCE}\s+|$)`, "gi");
+
+/**
+ * Papers pasted from PDFs often glue the next choice onto the previous one
+ * ("…T. b. gambienseC. Trypanosoma cruzi"). Insert the missing space so every
+ * marker is detectable, which is what forces one choice per row.
+ */
+/** Option marker that ignores inline "(a)"/"(b)" cross-references inside a choice. */
+const OPTION_MARKER_STRICT = String.raw`(?:\([A-E]\)|[A-Ea-e][\.)])`;
+
+function spaceOptionMarkers(text: string): string {
+  return (text || "").replace(
+    /([^\s])((?:\([A-E]\)|[A-E][.)])\s+)/g,
+    (m, before: string, marker: string) => (/[A-Za-z0-9)\].,;:'"]/.test(before) ? `${before} ${marker}` : m),
+  );
+}
+
+/** Count option markers in a line ("A) …", "B. …"). */
+function countOptionMarkers(text: string): number {
+  return (text.match(new RegExp(String.raw`(?<![^\s])${OPTION_MARKER_STRICT}\s+`, "g")) || []).length;
+}
+
+/**
+ * Letters of the real option markers, in order — inline references like "(a)"
+ * or "(b)" inside a choice are ignored because a marker must be followed by a
+ * space. Used so microbiology prose ("B. subtilis … C. difficile") is never
+ * mistaken for a choice run.
+ */
+function markerLetters(text: string): string[] {
+  return Array.from(text.matchAll(new RegExp(String.raw`(?<![^\s])(\()?([A-Ea-e])[\).]\s+`, "g")))
+    .filter((m) => !(m[1] && /[a-e]/.test(m[2])))
+    .map((m) => m[2].toUpperCase());
+}
+
+function looksLikeChoiceRun(text: string, startsWithMarker: boolean): boolean {
+  const letters = markerLetters(text);
+  const min = startsWithMarker ? 2 : 3;
+  if (letters.length < min) return false;
+  return letters.every((l, i) => i === 0 || l.charCodeAt(0) === letters[i - 1].charCodeAt(0) + 1);
+}
+
+/** Split a run of choices into one string per choice, markers normalized. */
+function splitMarkerRun(text: string): string[] {
+  return text
+    .split(new RegExp(String.raw`\s+(?=${OPTION_MARKER_STRICT}\s+)`))
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
 
 function normalizeOptionLine(line: string): string {
   const cleaned = cleanDisplayText(line);
@@ -599,7 +687,7 @@ function normalizeOptionLine(line: string): string {
 }
 
 function splitOptionRun(line: string): string[] {
-  const clean = cleanDisplayText(line);
+  const clean = spaceOptionMarkers(cleanDisplayText(line));
   const matches = Array.from(clean.matchAll(OPTION_CAPTURE_RE));
   if (matches.length >= 2) {
     return matches.map((m) => cleanDisplayText(m[2] || "")).filter(Boolean);
@@ -609,7 +697,7 @@ function splitOptionRun(line: string): string[] {
 }
 
 function splitStemAndOptions(text: string): { stem: string; opts: string[] } | null {
-  const clean = cleanDisplayText(text);
+  const clean = spaceOptionMarkers(cleanDisplayText(text));
   const first = clean.search(OPTION_MARKER_RE);
   if (first < 0) return null;
   const stem = clean.slice(0, first).trim().replace(/[;,:\s]+$/, "");
@@ -917,7 +1005,7 @@ function isTableRow(s: string): boolean {
   return t.startsWith("|") && t.includes("|", 1);
 }
 
-function preprocessContent(raw: string): string {
+export function preprocessContent(raw: string): string {
   const out: string[] = [];
   let inKeyPoints = false;
   let inFence = false;
@@ -964,6 +1052,8 @@ function preprocessContent(raw: string): string {
       .replace(/([a-z\)])(?=[A-Z][a-z])/g, "$1 ")
       .replace(/([A-Z]{2,})(?=[A-Z][a-z])/g, "$1 ")
       .replace(/([A-Z]{3,})(?=[a-z]{3,})/g, "$1 ")
+      .replace(/([^\s])(?=(?:Explanation|Rationale)\s*[:：])/gi, "$1 ")
+      .replace(/\s*(?:->|=>|⟶|⟹)\s*/g, " → ")
       .replace(/([a-z])(?=(?:Think of|The most|Every reaction|Almost always|This is why|If someone|There are|ABO incompatibility)\b)/g, "$1 ");
 
     if (isCourseBrandingLine(t)) {
@@ -1011,6 +1101,11 @@ function preprocessContent(raw: string): string {
       extras.forEach((extra) => out.push(extra));
       continue;
     }
+
+    // Raw imported markdown sometimes leaves unmatched quote/emphasis wrappers.
+    // Keep meaningful inline emphasis, but remove wrappers that would otherwise
+    // show as literal publishing syntax.
+    t = t.replace(/^(["'“”‘’]+)(.+)\1$/, "$2").replace(/^\*{1,3}(?!\s)(.*?)(?:\*{1,3})?$/, "$1").trim();
 
     if (t.startsWith("|") && (t.includes("|---") || t.includes("| ---"))) {
       splitInlineTable(t).forEach(r => out.push(r));
@@ -1077,27 +1172,48 @@ function preprocessContent(raw: string): string {
       continue;
     }
 
-    // ── FIX: concatenated MCQ options like "A) foo b) bar c) baz d) qux" → split ──
-    // Also handles "1. Question text?A) foo b) bar c) baz d) qux" by splitting the stem too.
+    // ── MCQ choices always get their own row ──
+    // Handles glued runs at any starting letter ("C. …D. …E. …"), a stem with
+    // choices attached ("…?A) … B) …"), and missing spaces before markers.
     {
-      const stripped = t.replace(/^\*+|\*+$/g, "");
-      // Detect a stem+options line: "…?A) foo b) bar c) baz…"
-      const marker = "(?:\\(?[A-Ea-e]\\)|[A-Ea-e][\\.)])";
-      const stemSplit = stripped.match(new RegExp(`^(.+?[?:])\\s*(${marker}\\s+.+)$`));
-      if (stemSplit && new RegExp(`${marker.replace("A-Ea-e", "Bb")}\\s+`).test(stemSplit[2]) && new RegExp(`${marker.replace("A-Ea-e", "Cc")}\\s+`).test(stemSplit[2])) {
-        out.push(stemSplit[1].trim());
-        const parts = stemSplit[2].split(/\s*(?=(?:\(?[a-eA-E]\)|[a-eA-E][\.\)])\s+)/);
-        if (parts.length >= 3) {
-          parts.forEach(p => out.push(p.trim().replace(/^([a-e])([\.\)])/, (_, l, s) => `${l.toUpperCase()}${s}`)));
+      const stripped = spaceOptionMarkers(t.replace(/^\*+|\*+$/g, "").replace(/\*\*/g, ""));
+      const startsWithMarker = new RegExp(String.raw`^${OPTION_MARKER_SOURCE}\s+`).test(stripped);
+      const markerCount = countOptionMarkers(stripped);
+
+      if (startsWithMarker && markerCount >= 2 && looksLikeChoiceRun(stripped, true)) {
+        const parts = splitMarkerRun(stripped);
+        if (parts.length >= 2) {
+          parts.forEach((p) => out.push(normalizeOptionLine(p)));
           continue;
         }
       }
-      // Pure options run: "A) foo b) bar c) baz d) qux"
-      if (/^(?:\(?[Aa]\)|[Aa][\.\)])\s/.test(stripped) && /(?:\(?[Bb]\)|[Bb][\.\)])\s/.test(stripped) && /(?:\(?[Cc]\)|[Cc][\.\)])\s/.test(stripped)) {
-        const parts = stripped.split(/\s*(?=(?:\(?[a-eA-E]\)|[a-eA-E][\.\)])\s+)/);
-        if (parts.length >= 3) {
-          parts.forEach(p => out.push(normalizeOptionLine(p)));
-          continue;
+
+      if (!startsWithMarker && markerCount >= 3 && looksLikeChoiceRun(stripped, false)) {
+        const firstMarker = stripped.search(OPTION_MARKER_RE);
+        if (firstMarker > 0) {
+          const stem = stripped.slice(0, firstMarker).trim().replace(/[;,:*_\s]+$/, "");
+          const parts = splitMarkerRun(stripped.slice(firstMarker).trim());
+          if (stem && parts.length >= 2) {
+            out.push(stem);
+            parts.forEach((p) => out.push(normalizeOptionLine(p)));
+            continue;
+          }
+        }
+      }
+
+      // A stem that swallowed only choice A: "…captured by: A. Substrate-level
+      // phosphorylation" — give A its own row so all five choices line up.
+      if (!startsWithMarker && markerCount === 1) {
+        const letters = markerLetters(stripped);
+        const firstMarker = stripped.search(OPTION_MARKER_RE);
+        if (letters[0] === "A" && firstMarker > 12) {
+          const stem = stripped.slice(0, firstMarker).trim();
+          const choice = stripped.slice(firstMarker).trim();
+          if (/[?:;]$/.test(stem) && choice.length > 3) {
+            out.push(stem);
+            out.push(normalizeOptionLine(choice));
+            continue;
+          }
         }
       }
     }
@@ -1338,7 +1454,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       flushList(); underSubheading = false;
       combinedOpts.forEach((m, n) => {
         const label = m[1].toUpperCase();
-        const optText = (m[2] || "").replace(/^\*+|\*+$/g, "").trim();
+        const rawOption = (m[2] || "").replace(/^\*+|\*+$/g, "").trim();
+        const explanationMatch = rawOption.match(/^([\s\S]*?)\s*(?:Explanation|Rationale)\s*[:：]\s*([\s\S]+)$/i);
+        const optText = (explanationMatch?.[1] || rawOption).trim();
         if (!optText) return;
         els.push(
           <div key={`mcqopt-combo-${i}-${n}`} className="my-1.5 flex items-start gap-2.5 pl-1">
@@ -1346,6 +1464,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
             <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
           </div>
         );
+        if (explanationMatch?.[2]) {
+          els.push(<McqAnswerBlock key={`mcqopt-combo-exp-${i}-${n}`} raw={`Answer: ${label}. ${optText}\nExplanation: ${explanationMatch[2]}`} />);
+        }
       });
       continue;
     }
@@ -1357,13 +1478,18 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (mcqOptMatch && !inPractice) {
       flushList(); underSubheading = false;
       const label = mcqOptMatch[1].toUpperCase();
-      const optText = mcqOptMatch[2].replace(/^\*+|\*+$/g, "").trim();
+      const rawOption = mcqOptMatch[2].replace(/^\*+|\*+$/g, "").trim();
+      const explanationMatch = rawOption.match(/^([\s\S]*?)\s*(?:Explanation|Rationale)\s*[:：]\s*([\s\S]+)$/i);
+      const optText = (explanationMatch?.[1] || rawOption).trim();
       els.push(
         <div key={`mcqopt-${i}`} className="my-1.5 flex items-start gap-2.5 pl-1">
           <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
           <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
         </div>
       );
+      if (explanationMatch?.[2]) {
+        els.push(<McqAnswerBlock key={`mcqopt-exp-${i}`} raw={`Answer: ${label}. ${optText}\nExplanation: ${explanationMatch[2]}`} />);
+      }
       continue;
     }
     if (subQMatch) {
@@ -2087,6 +2213,12 @@ export default function BlogPost() {
                   : <ArticleContent content={article.content} inlineRelated={related.articles || []} />}
               </KeywordLinkProvider>
             </div>
+
+            {!slideDeck && (
+              <ArticleSubscribeGate
+                hasMcqs={/(?:^|\n)\s*(?:✅\s*)?(?:answer|correct answer)\s*[:：]/i.test(article.content || "")}
+              />
+            )}
 
             <HtmlEmbed data={(article as any).html_embed} position="bottom" />
 

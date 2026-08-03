@@ -10,6 +10,7 @@ import Navbar from "@/components/Navbar";
 import SiteFooter from "@/components/SiteFooter";
 import ScrollToTop from "@/components/ScrollToTop";
 import ContentProtection from "@/components/ContentProtection";
+import PurchaseResume from "@/components/PurchaseResume";
 import { Loader2 } from "lucide-react";
 
 const Index = lazy(() => import("./pages/Index"));
@@ -28,6 +29,8 @@ const SubmitStory = lazy(() => import("./pages/SubmitStory"));
 const Essays = lazy(() => import("./pages/Essays"));
 const EssayStudy = lazy(() => import("./pages/EssayStudy"));
 const Login = lazy(() => import("./pages/Login"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const Account = lazy(() => import("./pages/Account"));
 const Admin = lazy(() => import("./pages/Admin"));
 const YearHub = lazy(() => import("./pages/YearHub"));
 const CategoryManager = lazy(() => import("./pages/CategoryManager"));
@@ -52,6 +55,7 @@ const App = () => (
           <BrowserRouter>
             <ScrollToTop />
             <ContentProtection />
+            <PurchaseResume />
             <Navbar />
             <Suspense fallback={<RouteLoader />}>
               <Routes>
@@ -73,6 +77,8 @@ const App = () => (
                 <Route path="/essays" element={<Essays />} />
                 <Route path="/essays/:slug" element={<EssayStudy />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/account" element={<Account />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/about" element={<About />} />
                 <Route path="*" element={<NotFound />} />

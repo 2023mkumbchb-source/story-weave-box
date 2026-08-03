@@ -117,12 +117,6 @@ export interface Essay {
   slug?: string;
 }
 
-const ADMIN_PASSWORD = "Davis";
-
-export function authenticate(password: string): boolean {
-  return password === ADMIN_PASSWORD;
-}
-
 /**
  * Rebalance MCQ correct-answer letters so no two adjacent MCQs share the
  * same correct letter. Also reshuffles the options array so that the correct
