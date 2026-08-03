@@ -185,8 +185,8 @@ function AnswerRows({ rows, labelled }: { rows: SlideAnswerRow[]; labelled: bool
 }
 
 /* ── One slide card ── */
-function SlideCard({ slide, index, onZoom }: { slide: Slide; index: number; onZoom: (s: Slide) => void }) {
-  const [open, setOpen] = useState(false);
+function SlideCard({ slide, index, onZoom, defaultOpen = false }: { slide: Slide; index: number; onZoom: (s: Slide) => void; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
   const [loaded, setLoaded] = useState(false);
   const eager = index < 2;
 
@@ -300,7 +300,7 @@ export function SlideDeckView({ deck, revealAllDefault = false }: { deck: SlideD
 
       <div className="grid gap-5 sm:grid-cols-2">
         {deck.slides.map((s, i) => (
-          <SlideCard key={`${s.key}-${allKey}-${revealAll}`} slide={revealAll ? s : s} index={i} onZoom={setZoom} />
+          <SlideCard key={`${s.key}-${allKey}`} slide={s} index={i} onZoom={setZoom} defaultOpen={revealAll} />
         ))}
       </div>
 
