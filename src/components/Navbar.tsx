@@ -4,12 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import ThemeToggle from "./ThemeToggle";
 import ompathLogo from "@/assets/ompath-logo.png";
+import { useAuth } from "@/hooks/useAuth";
 
 const links = [
   { to: "/", label: "Home", icon: Home },
   { to: "/stories", label: "Stories", icon: BookOpenCheck },
   { to: "/account", label: "Account", icon: UserRound },
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
 ];
 
 const YEAR_OPTIONS = [1, 2, 3, 4, 5, 6] as const;
@@ -44,6 +44,7 @@ export default function Navbar() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedYear, setExpandedYear] = useState<number | null>(null);
   const [hidden, setHidden] = useState(false);
+  const { isAdmin } = useAuth();
 
   const isExamPage = /^\/exams\/[^/]+\/start/.test(location.pathname);
 
@@ -101,6 +102,7 @@ export default function Navbar() {
   }, [location.pathname]);
 
   const isActive = (to: string) => location.pathname === to || location.pathname.startsWith(`${to}/`);
+  const visibleLinks = isAdmin ? [...links, { to: "/admin", label: "Dashboard", icon: LayoutDashboard }] : links;
 
   if (isExamPage) return null;
 
@@ -135,7 +137,7 @@ export default function Navbar() {
               ))}
             </div>
 
-            {links.map((l) => (
+            {visibleLinks.map((l) => (
               <Link
                 key={l.to}
                 to={l.to}
@@ -171,7 +173,7 @@ export default function Navbar() {
                 <div className="flex flex-col overflow-y-auto h-[calc(100%-65px)]">
                   {/* Quick links */}
                   <div className="border-b border-white/10 px-3 py-3">
-                    {links.map((l) => (
+                    {visibleLinks.map((l) => (
                       <Link
                         key={l.to}
                         to={l.to}
