@@ -983,7 +983,7 @@ function isTableRow(s: string): boolean {
   return t.startsWith("|") && t.includes("|", 1);
 }
 
-function preprocessContent(raw: string): string {
+export function preprocessContent(raw: string): string {
   const out: string[] = [];
   let inKeyPoints = false;
   let inFence = false;
