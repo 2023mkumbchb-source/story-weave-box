@@ -48,6 +48,7 @@ export default function Login() {
 
   const google = async () => {
     setBusy(true);
+    sessionStorage.setItem("post_login_redirect", (location.state as { from?: string } | null)?.from || "/account");
     const res = await signInWithGoogle();
     setBusy(false);
     if (res.redirected) return;

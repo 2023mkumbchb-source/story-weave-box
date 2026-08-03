@@ -47,6 +47,7 @@ export function Paywall({
   const startGoogle = async () => {
     setSigningIn(true);
     savePurchaseIntent(planId);
+    sessionStorage.setItem("post_login_redirect", window.location.pathname + window.location.search);
     const res = await signInWithGoogle();
     if (res.redirected) return;
     setSigningIn(false);
