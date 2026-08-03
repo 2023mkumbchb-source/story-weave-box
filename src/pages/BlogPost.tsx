@@ -1163,6 +1163,22 @@ function preprocessContent(raw: string): string {
           }
         }
       }
+
+      // A stem that swallowed only choice A: "…captured by: A. Substrate-level
+      // phosphorylation" — give A its own row so all five choices line up.
+      if (!startsWithMarker && markerCount === 1) {
+        const letters = markerLetters(stripped);
+        const firstMarker = stripped.search(OPTION_MARKER_RE);
+        if (letters[0] === "A" && firstMarker > 12) {
+          const stem = stripped.slice(0, firstMarker).trim();
+          const choice = stripped.slice(firstMarker).trim();
+          if (/[?:;]$/.test(stem) && choice.length > 3) {
+            out.push(stem);
+            out.push(normalizeOptionLine(choice));
+            continue;
+          }
+        }
+      }
     }
 
     out.push(t);
