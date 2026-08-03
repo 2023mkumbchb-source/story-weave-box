@@ -646,7 +646,7 @@ function countOptionMarkers(text: string): number {
 function markerLetters(text: string): string[] {
   return Array.from(text.matchAll(new RegExp(String.raw`(?<![^\s])(\()?([A-Ea-e])[\).]\s+`, "g")))
     .filter((m) => !(m[1] && /[a-e]/.test(m[2])))
-    .map((m) => m[1].toUpperCase());
+    .map((m) => m[2].toUpperCase());
 }
 
 function looksLikeChoiceRun(text: string, startsWithMarker: boolean): boolean {
@@ -1167,7 +1167,7 @@ export function preprocessContent(raw: string): string {
       if (!startsWithMarker && markerCount >= 3 && looksLikeChoiceRun(stripped, false)) {
         const firstMarker = stripped.search(OPTION_MARKER_RE);
         if (firstMarker > 0) {
-          const stem = stripped.slice(0, firstMarker).trim().replace(/[;,:\s]+$/, "");
+          const stem = stripped.slice(0, firstMarker).trim().replace(/[;,:*_\s]+$/, "");
           const parts = splitMarkerRun(stripped.slice(firstMarker).trim());
           if (stem && parts.length >= 2) {
             out.push(stem);
