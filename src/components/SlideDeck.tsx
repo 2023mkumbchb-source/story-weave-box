@@ -339,6 +339,8 @@ export function SlideDeckView({ deck, revealAllDefault = false, articleId }: { d
   const [revealAll, setRevealAll] = useState(revealAllDefault);
   const [suggestFor, setSuggestFor] = useState<Slide | null>(null);
   const [corrections, setCorrections] = useState<Record<string, string[]>>({});
+  const [cols, setCols] = useState<1 | 2>(1);
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     if (!articleId) return;
@@ -372,30 +374,74 @@ export function SlideDeckView({ deck, revealAllDefault = false, articleId }: { d
           <Images className="h-3.5 w-3.5 text-primary" />
           {deck.slides.length} plates · tap Reveal for the answer key
         </p>
-        <button
-          type="button"
-          onClick={() => { setRevealAll((v) => !v); setAllKey((k) => k + 1); }}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
-        >
-          <Check className="h-3.5 w-3.5" />
-          {revealAll ? "Hide all answers" : "Reveal all answers"}
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex overflow-hidden rounded-full border border-border">
+            <button
+              type="button"
+              onClick={() => setCols(1)}
+              aria-pressed={cols === 1}
+              title="One column (paper view)"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${cols === 1 ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-primary"}`}
+            >
+              <Rows3 className="h-3.5 w-3.5" /> 1 col
+            </button>
+            <button
+              type="button"
+              onClick={() => setCols(2)}
+              aria-pressed={cols === 2}
+              title="Two columns (grid)"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${cols === 2 ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-primary"}`}
+            >
+              <Columns2 className="h-3.5 w-3.5" /> 2 col
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setRevealAll((v) => !v); setAllKey((k) => k + 1); }}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+          >
+            <Check className="h-3.5 w-3.5" />
+            {revealAll ? "Hide all" : "Reveal all"}
+          </button>
+        </div>
       </div>
 
-      {/* Jump strip */}
-      <nav aria-label="Slide index" className="mb-6 -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
-        {deck.slides.map((s) => (
-          <a
-            key={s.key}
-            href={`#slide-${s.number}`}
-            className="shrink-0 rounded-md border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
-          >
-            {s.number}
-          </a>
-        ))}
-      </nav>
+      {/* Slide index: left slide-over */}
+      <button
+        type="button"
+        onClick={() => setNavOpen(true)}
+        aria-label="Open plate index"
+        className="fixed bottom-24 left-3 z-40 inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-2 text-xs font-semibold text-foreground shadow-lg backdrop-blur transition-colors hover:border-primary/50 hover:text-primary"
+      >
+        <List className="h-4 w-4" /> Plates
+      </button>
+      {navOpen && (
+        <div className="fixed inset-0 z-[110] flex" role="dialog" aria-label="Plate index">
+          <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => setNavOpen(false)} />
+          <nav className="relative h-full w-64 max-w-[80vw] overflow-y-auto border-r border-border bg-card p-4 shadow-2xl">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Plates</p>
+              <button type="button" onClick={() => setNavOpen(false)} aria-label="Close plate index" className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {deck.slides.map((s) => (
+                <a
+                  key={s.key}
+                  href={`#slide-${s.number}`}
+                  onClick={() => setNavOpen(false)}
+                  className="rounded-md border border-border px-2 py-1.5 text-center text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                >
+                  {s.number}
+                </a>
+              ))}
+            </div>
+          </nav>
+        </div>
+      )}
 
-      <div className="grid items-start gap-5 sm:grid-cols-2">
+      <div className={`grid items-start gap-5 ${cols === 2 ? "sm:grid-cols-2" : "mx-auto max-w-3xl grid-cols-1"}`}>
         {deck.slides.map((s, i) => (
           <SlideCard
             key={`${s.key}-${allKey}`}
