@@ -29,6 +29,7 @@ export default function Admin() {
   const location = useLocation();
   const { toast } = useToast();
   const { isAdmin, loading: authLoading } = useAuth();
+  const { isAdmin, loading: authLoading } = useAuth();
   const ogUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}${location.pathname}${location.search}`
@@ -865,6 +866,7 @@ function CategoriesTab() {
   const [newName, setNewName] = useState("");
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
 
   const refresh = async () => {
     setLoading(true);
@@ -942,6 +944,7 @@ function CategoriesTab() {
 // ===== RAW CONTENT TAB =====
 function RawContentTab({ geminiKey }: { geminiKey: string }) {
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
   const [articles, setArticles] = useState<Article[]>([]);
   const [flashcardSets, setFlashcardSets] = useState<FlashcardSet[]>([]);
   const [mcqSets, setMcqSets] = useState<McqSet[]>([]);
@@ -1166,6 +1169,7 @@ function ArticlesList({
   const [updatedIds, setUpdatedIds] = useState<Set<string>>(new Set());
   const [aiGenerating, setAiGenerating] = useState(false);
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
 
   const refresh = async () => {
     setLoading(true);
@@ -1514,6 +1518,7 @@ function FlashcardsList() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<FlashcardSet | null>(null);
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
   const refresh = () => { getFlashcardSets().then((s) => setSets(s.filter((f: any) => f.is_raw !== true))).finally(() => setLoading(false)); };
   useEffect(() => { refresh(); }, []);
   const handleDelete = async (id: string) => { await deleteFlashcardSet(id); refresh(); toast({ title: "Deleted" }); };
@@ -1599,6 +1604,7 @@ function McqsList() {
   const [batchFixing, setBatchFixing] = useState(false);
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
   const refresh = () => { getMcqSets().then((s) => setSets(s.filter((m: any) => m.is_raw !== true))).finally(() => setLoading(false)); };
   useEffect(() => { refresh(); }, []);
   const handleDelete = async (id: string) => { await deleteMcqSet(id); refresh(); toast({ title: "Deleted" }); };
@@ -1765,6 +1771,7 @@ function SettingsPanel({ setGeminiKey }: { setGeminiKey: (key: string) => void }
   const [auditRunning, setAuditRunning] = useState(false);
   const [auditLog, setAuditLog] = useState<string[]>([]);
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
 
   useEffect(() => {
     Promise.all([getSetting("gemini_api_keys"), getSetting("gemini_api_key"), getSetting("exam_password"), getSetting("exam_price"), getSetting("exam_award"), getSetting("mcq_free_limit"), getSetting("mcq_price")]).then(([multiKeys, singleKey, pwd, price, award, freeLimit, mPrice]) => {
@@ -2242,6 +2249,7 @@ function escapeHtml(str: string): string {
 // ===== RECYCLE BIN =====
 function RecycleBinTab() {
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
   const [items, setItems] = useState<{ type: string; id: string; title: string; deleted_at: string; category: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -2340,6 +2348,7 @@ function InstitutionsTab() {
   const [filter, setFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
   const [updating, setUpdating] = useState<string | null>(null);
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
 
   const load = async () => {
     setLoading(true);
@@ -2458,6 +2467,7 @@ const CLEANUP_YEAR_OPTIONS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Ye
 
 function BulkCleanupTab({ onEditArticle }: { onEditArticle: (id: string) => void }) {
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
   const [scanning, setScanning] = useState(false);
   const [results, setResults] = useState<CleanupResult[]>([]);
   const [fixing, setFixing] = useState<string | null>(null);
@@ -2886,6 +2896,7 @@ function ContentUpgradeTab() {
   const [preview, setPreview] = useState<{ id: string; title: string; content: string } | null>(null);
   const [applying, setApplying] = useState(false);
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
 
   const handleScan = async () => {
     setScanning(true);
@@ -3051,6 +3062,7 @@ const CONTENT_TYPES = ["all", "articles", "stories", "mcqs", "flashcards", "essa
 
 function SeoIndexingTab() {
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
   const [seoYear, setSeoYear] = useState<string>("All");
   const [seoMode, setSeoMode] = useState<"missing" | "all">("missing");
   const [includeUnpublished, setIncludeUnpublished] = useState(true);
@@ -3468,6 +3480,7 @@ function SeoIndexingTab() {
 
 function StoriesTab() {
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
   const [stories, setStories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editId, setEditId] = useState<string | null>(null);
@@ -3701,6 +3714,7 @@ function StoriesTab() {
 
 function ImportTab() {
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number; articles: number; mcqs: number; stories: number; skipped: number; errors: string[] } | null>(null);
   const [jsonData, setJsonData] = useState<any[] | null>(null);
@@ -3830,6 +3844,7 @@ function ImportTab() {
 // ===== META MANAGER TAB =====
 function MetaManagerTab() {
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
   const [contentType, setContentType] = useState<"articles" | "mcq_sets" | "flashcard_sets" | "essays">("articles");
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
