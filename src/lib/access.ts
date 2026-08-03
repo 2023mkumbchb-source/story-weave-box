@@ -35,6 +35,23 @@ const PASS_KEY = "ompath_access_pass";
 const DEVICE_KEY = "ompath_device_id";
 let settingsCache: { at: number; value: PaymentSettings } | null = null;
 
+/** Codes are matched punctuation-insensitively, so normalise before sending. */
+export function normalizePassCode(value: string): string {
+  return (value || "").trim().toUpperCase().replace(/\s+/g, "-").replace(/[^A-Z0-9-]/g, "");
+}
+
+/** Attach the signed-in account (if any) so subscriptions can be tracked. */
+async function accountFields(): Promise<{ email?: string; user_id?: string }> {
+  try {
+    const { data } = await supabase.auth.getUser();
+    const user = data?.user;
+    if (!user) return {};
+    return { user_id: user.id, email: user.email ?? undefined };
+  } catch {
+    return {};
+  }
+}
+
 /** Stable per-device identifier so a pass can be limited to 2 devices. */
 export function deviceId(): string {
   try {
@@ -121,7 +138,13 @@ export function clearPass() {
 
 export async function verifyCode(code: string): Promise<{ ok: boolean; pass?: AccessPass; error?: string }> {
   const { data, error } = await supabase.functions.invoke("access-code", {
-    body: { action: "verify", code, device_id: deviceId(), device_label: deviceLabel() },
+    body: {
+      action: "verify",
+      code: normalizePassCode(code),
+      device_id: deviceId(),
+      device_label: deviceLabel(),
+      ...(await accountFields()),
+    },
   });
   if (error) return { ok: false, error: "Could not check that code. Try again." };
   if (!data?.valid) return { ok: false, error: data?.error || "Invalid code." };
@@ -137,7 +160,14 @@ export async function verifyCode(code: string): Promise<{ ok: boolean; pass?: Ac
 
 export async function issuePassForPayment(transactionId: string, plan?: string): Promise<AccessPass | null> {
   const { data, error } = await supabase.functions.invoke("access-code", {
-    body: { action: "issue", transaction_id: transactionId, plan, device_id: deviceId(), device_label: deviceLabel() },
+    body: {
+      action: "issue",
+      transaction_id: transactionId,
+      plan,
+      device_id: deviceId(),
+      device_label: deviceLabel(),
+      ...(await accountFields()),
+    },
   });
   if (error || !data?.success) return null;
   const pass: AccessPass = {
@@ -153,7 +183,7 @@ export async function issuePassForPayment(transactionId: string, plan?: string):
 /** Let the buyer pick their own memorable pass code on the success screen. */
 export async function renamePassCode(currentCode: string, newCode: string): Promise<{ ok: boolean; pass?: AccessPass; error?: string }> {
   const { data, error } = await supabase.functions.invoke("access-code", {
-    body: { action: "rename", code: currentCode, new_code: newCode, device_id: deviceId() },
+    body: { action: "rename", code: currentCode, new_code: normalizePassCode(newCode), device_id: deviceId() },
   });
   if (error) return { ok: false, error: "Could not change the code. Try again." };
   if (!data?.success) return { ok: false, error: data?.error || "Could not change the code." };
@@ -165,6 +195,36 @@ export async function renamePassCode(currentCode: string, newCode: string): Prom
   };
   storePass(pass);
   return { ok: true, pass };
+}
+
+export interface AccountDevice { id: string; label: string; last_seen?: string }
+export interface AccountInfo {
+  found: boolean;
+  code?: string;
+  plan?: string;
+  amount?: number;
+  expires_at?: string;
+  expired?: boolean;
+  allow_download?: boolean;
+  device_limit?: number;
+  devices?: AccountDevice[];
+}
+
+/** Subscriber account lookup — by stored pass code, or by the signed-in account. */
+export async function fetchAccount(code?: string): Promise<AccountInfo> {
+  const { data, error } = await supabase.functions.invoke("access-code", {
+    body: { action: "account", code: code ? normalizePassCode(code) : undefined, ...(await accountFields()) },
+  });
+  if (error || !data) return { found: false };
+  return data as AccountInfo;
+}
+
+/** Free a device slot so the pass can be signed in somewhere else. */
+export async function forgetDevice(code: string, targetDeviceId: string): Promise<boolean> {
+  const { data } = await supabase.functions.invoke("access-code", {
+    body: { action: "forget_device", code: normalizePassCode(code), device_id: targetDeviceId },
+  });
+  return !!data?.success;
 }
 
 /**
