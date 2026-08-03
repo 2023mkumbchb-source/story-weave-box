@@ -2138,6 +2138,12 @@ export default function BlogPost() {
               </KeywordLinkProvider>
             </div>
 
+            {!slideDeck && (
+              <ArticleSubscribeGate
+                hasMcqs={/(?:^|\n)\s*(?:✅\s*)?(?:answer|correct answer)\s*[:：]/i.test(article.content || "")}
+              />
+            )}
+
             <HtmlEmbed data={(article as any).html_embed} position="bottom" />
 
             {Array.isArray((article as any).tags) && (article as any).tags.length > 0 && (
