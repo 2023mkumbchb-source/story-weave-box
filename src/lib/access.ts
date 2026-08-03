@@ -180,8 +180,9 @@ export interface AccountInfo {
 
 /** Subscriber account lookup — by stored pass code, or by the signed-in account. */
 export async function fetchAccount(code?: string): Promise<AccountInfo> {
+  const account = await accountFields();
   const { data, error } = await supabase.functions.invoke("access-code", {
-    body: { action: "account", code: code ? normalizePassCode(code) : undefined, ...(await accountFields()) },
+    body: { action: "account", code: account.user_id ? undefined : (code ? normalizePassCode(code) : undefined), ...account },
   });
   if (error || !data) return { found: false };
   return data as AccountInfo;

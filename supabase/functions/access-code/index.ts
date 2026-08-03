@@ -84,6 +84,9 @@ serve(async (req) => {
       if (new Date(grant.expires_at).getTime() < Date.now()) {
         return json({ valid: false, expired: true, error: "That pass has expired." }, 200);
       }
+      if ((grant.user_id && grant.user_id !== userId) || (grant.email && grant.email.toLowerCase() !== email)) {
+        return json({ valid: false, error: "That pass belongs to another email account." }, 200);
+      }
 
       await supabase
         .from("access_grants")
@@ -111,8 +114,7 @@ serve(async (req) => {
       const email = authUser?.email?.trim().toLowerCase() || "";
 
       let grant: Record<string, unknown> | null = null;
-      if (codeIn) grant = await findGrant(supabase, codeIn);
-      if (!grant && userId) {
+      if (userId) {
         const { data } = await supabase
           .from("access_grants").select("*").eq("user_id", userId)
           .order("expires_at", { ascending: false }).limit(1).maybeSingle();
@@ -123,6 +125,12 @@ serve(async (req) => {
           .from("access_grants").select("*").ilike("email", email)
           .order("expires_at", { ascending: false }).limit(1).maybeSingle();
         grant = data ?? null;
+      }
+      if (!grant && codeIn) {
+        const byCode = await findGrant(supabase, codeIn);
+        if (byCode && (!byCode.user_id || byCode.user_id === userId) && (!byCode.email || byCode.email.toLowerCase() === email)) {
+          grant = byCode;
+        }
       }
       if (!grant) return json({ found: false });
 
