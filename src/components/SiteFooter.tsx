@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { BookOpen, Phone, MessageCircle, Download, Mail, Heart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,17 +12,22 @@ const studyLinks = [
   { to: "/year/6", label: "Year 6" },
 ];
 
-const exploreLinks = [
-  { to: "/", label: "Home" },
-  { to: "/stories", label: "Stories" },
-  { to: "/exams", label: "Weekly Exams" },
-  { to: "/about", label: "About the Founder" },
-];
-
 export default function SiteFooter() {
   const location = useLocation();
   const { isAdmin } = useAuth();
-  const visibleExploreLinks = isAdmin ? [...exploreLinks, { to: "/admin", label: "Dashboard" }] : exploreLinks;
+
+  const exploreLinks = useMemo(() => {
+    const base = [
+      { to: "/", label: "Home" },
+      { to: "/stories", label: "Stories" },
+      { to: "/exams", label: "Weekly Exams" },
+      { to: "/about", label: "About the Founder" },
+    ];
+    if (isAdmin) {
+      base.push({ to: "/admin", label: "Dashboard" });
+    }
+    return base;
+  }, [isAdmin]);
 
   if (/^\/exams\/[^/]+\/start/.test(location.pathname)) return null;
 
@@ -30,7 +35,6 @@ export default function SiteFooter() {
     <footer className="mt-16 min-h-[380px] border-t border-border bg-gradient-to-b from-card/40 to-card/80">
       <div className="mx-auto max-w-6xl px-6 py-12">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Brand */}
           <div className="lg:col-span-1">
             <Link to="/" className="flex items-center gap-2 text-base font-semibold text-foreground">
               <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
@@ -54,7 +58,6 @@ export default function SiteFooter() {
             </div>
           </div>
 
-          {/* Study */}
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">Study Notes</h3>
             <ul className="mt-4 space-y-2 text-sm">
@@ -66,11 +69,10 @@ export default function SiteFooter() {
             </ul>
           </div>
 
-          {/* Explore */}
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">Explore</h3>
             <ul className="mt-4 space-y-2 text-sm">
-              {visibleExploreLinks.map((l) => (
+              {exploreLinks.map((l) => (
                 <li key={l.to}>
                   <Link to={l.to} className="text-muted-foreground hover:text-primary transition-colors">{l.label}</Link>
                 </li>
@@ -78,7 +80,6 @@ export default function SiteFooter() {
             </ul>
           </div>
 
-          {/* App */}
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">Get the App</h3>
             <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
@@ -119,7 +120,6 @@ function InstallAppButton() {
     }
   };
 
-  // Always show the button - on iOS/unsupported it'll guide users
   return (
     <button
       onClick={handleInstall}
