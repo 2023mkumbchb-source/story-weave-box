@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Eye, EyeOff, X, ZoomIn, Images, Check, Pencil, BadgeCheck } from "lucide-react";
+import { Eye, EyeOff, X, ZoomIn, Images, Check, Pencil, BadgeCheck, List, Rows3, Columns2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SlideCorrectionModal } from "@/components/SlideCorrectionModal";
 
@@ -59,27 +59,28 @@ function splitRow(raw: string): SlideAnswerRow {
 }
 
 /**
- * Source keys often repeat a prefix on consecutive lines
- * ("Root value: C5" / "Root value: C6"). Those are one answer, so collapse
- * them into a single row instead of three near-identical rows.
+ * Split labels like "Left diagram — A" into a side + letter so paired
+ * left/right plates can render as a proper two-column table.
  */
-function mergeRepeatedPrefixes(rows: SlideAnswerRow[]): SlideAnswerRow[] {
-  const out: SlideAnswerRow[] = [];
-  for (const row of rows) {
-    const prev = out[out.length - 1];
-    const key = (s?: SlideAnswerRow) => {
-      const m = (s?.term || "").match(/^([A-Za-z][A-Za-z\s/()-]{2,28}?)\s*:\s*(.+)$/);
-      return m ? { prefix: m[1].toLowerCase(), value: m[2] } : null;
-    };
-    const a = key(prev);
-    const b = key(row);
-    if (a && b && a.prefix === b.prefix && !row.detail && !prev.detail) {
-      prev.term = `${(prev.term || "").split(":")[0]}: ${a.value}, ${b.value}`;
-      continue;
-    }
-    out.push({ ...row });
-  }
-  return out;
+export interface SideTableRow { letter: string; left?: SlideAnswerRow; right?: SlideAnswerRow }
+function splitSideTable(rows: SlideAnswerRow[]): { letters: SideTableRow[]; leftLabel: string; rightLabel: string } | null {
+  const parsed = rows.map((r) => {
+    const m = (r.label || "").match(/^(Left|Right)\b([^A-Z]*)([A-Z])$/);
+    return m ? { side: m[1].toLowerCase(), heading: `${m[1]}${m[2]}`.replace(/[\s—–-]+$/, "").trim(), letter: m[3], row: r } : null;
+  });
+  if (parsed.some((p) => !p)) return null;
+  const ok = parsed as NonNullable<(typeof parsed)[number]>[];
+  if (!ok.some((p) => p.side === "left") || !ok.some((p) => p.side === "right")) return null;
+  const letters = Array.from(new Set(ok.map((p) => p.letter)));
+  return {
+    leftLabel: ok.find((p) => p.side === "left")!.heading,
+    rightLabel: ok.find((p) => p.side === "right")!.heading,
+    letters: letters.map((l) => ({
+      letter: l,
+      left: ok.find((p) => p.side === "left" && p.letter === l)?.row,
+      right: ok.find((p) => p.side === "right" && p.letter === l)?.row,
+    })),
+  };
 }
 
 /** Parse `## Number N: prompt` + image + `**Answer:**` bullet blocks. */
@@ -95,7 +96,6 @@ export function parseSlideDeck(content: string): SlideDeck | null {
 
   const push = () => {
     if (cur && (cur.image || cur.rows.length)) {
-      cur.rows = mergeRepeatedPrefixes(cur.rows);
       cur.labelled = cur.rows.length > 1 && cur.rows.every((r) => !!r.label);
       slides.push(cur);
     }
