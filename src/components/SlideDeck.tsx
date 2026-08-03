@@ -56,6 +56,30 @@ function splitRow(raw: string): SlideAnswerRow {
   return { label, term: body };
 }
 
+/**
+ * Source keys often repeat a prefix on consecutive lines
+ * ("Root value: C5" / "Root value: C6"). Those are one answer, so collapse
+ * them into a single row instead of three near-identical rows.
+ */
+function mergeRepeatedPrefixes(rows: SlideAnswerRow[]): SlideAnswerRow[] {
+  const out: SlideAnswerRow[] = [];
+  for (const row of rows) {
+    const prev = out[out.length - 1];
+    const key = (s?: SlideAnswerRow) => {
+      const m = (s?.term || "").match(/^([A-Za-z][A-Za-z\s/()-]{2,28}?)\s*:\s*(.+)$/);
+      return m ? { prefix: m[1].toLowerCase(), value: m[2] } : null;
+    };
+    const a = key(prev);
+    const b = key(row);
+    if (a && b && a.prefix === b.prefix && !row.detail && !prev.detail) {
+      prev.term = `${(prev.term || "").split(":")[0]}: ${a.value}, ${b.value}`;
+      continue;
+    }
+    out.push({ ...row });
+  }
+  return out;
+}
+
 /** Parse `## Number N: prompt` + image + `**Answer:**` bullet blocks. */
 export function parseSlideDeck(content: string): SlideDeck | null {
   if (!content) return null;
