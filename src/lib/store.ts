@@ -277,6 +277,9 @@ export const YEAR_CATEGORIES: Record<string, string[]> = {
     "Behavioural Sciences and Ethics",
     "Anatomy",
     "Cardiovascular Physiology",
+    "Aponeurosis - Anatomy",
+    "Aponeurosis - Histology",
+    "Aponeurosis - Embryology",
   ],
   "Year 2": [
     "Neurochemistry",
@@ -292,6 +295,9 @@ export const YEAR_CATEGORIES: Record<string, string[]> = {
     "Microbiology",
     "Epidemiology and Statistics",
     "Clinical Biochemistry",
+    "Aponeurosis - Anatomy",
+    "Aponeurosis - Histology",
+    "Aponeurosis - Embryology",
   ],
   "Year 3": [
     "Basic Pharmacology II",
