@@ -2,6 +2,16 @@
 
 # Gametogenesis & Ovarian/Uterine Cycle
 
+## Q85: State the basis for A; state the basis for C
+
+![Diagram of the endometrial cycle with the proliferative phase (A) and secretory phase (C) labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-menstrual-cycl-7838a842.jpg)
+
+**Answer:**
+- Basis for A (proliferative phase): oestrogen presence
+- Basis for C (secretory phase changes/menstruation): progesterone lack (withdrawal)
+
+---
+
 ## Q1: Identify the structure shown; its basis; functions of the zona pellucida
 
 ![Gross photo of grape-like vesicles from a molar pregnancy](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q32-cdd8c07f.jpg)
@@ -92,6 +102,15 @@
 ---
 
 # Fertilization & Early Development
+
+## Q86: Identify the condition
+
+![Ultrasound image of an empty gestational sac](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-blighted-ovum-1fa51103.jpg)
+
+**Answer:**
+- Blighted ovum (anembryonic pregnancy)
+
+---
 
 ## Q8: State the stage at which this congenital anomaly forms; two sources of amniotic fluid
 
@@ -236,6 +255,26 @@
 ---
 
 # Fetal Membranes, Placenta & Twinning
+
+## Q90: Identify A; identify B
+
+![Two placental specimens: A shows a centrally-inserted cord, B shows a cord inserting at the placental margin with a fan of vessels](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-placenta-anoma-caacbef6.jpg)
+
+**Answer:**
+- A — battledore placenta (marginal cord insertion)
+- B — placenta velamentosa (velamentous cord insertion, into the membranes)
+
+---
+
+## Q89: Identify the procedure; state 2 foetal causes of polyhydramnios
+
+![Diagram of a needle sampling the amniotic cavity under ultrasound guidance](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-amniocentesis-a62315f3.jpg)
+
+**Answer:**
+- Procedure: amniocentesis
+- Two foetal causes of polyhydramnios (any two): CNS anomalies; anomalies causing gastrointestinal obstruction; multiple pregnancy; cardiac anomalies; trisomy 21 (or 18 and 13)
+
+---
 
 ## Q19: Identify the congenital anomaly; state its basis
 
@@ -474,6 +513,16 @@
 
 # Folding & Body Plan
 
+## Q87: Identify A; state its basis
+
+![MRI of the sacrum showing a mass labelled A](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-chordoma-b31343a4.jpg)
+
+**Answer:**
+- A — chordoma
+- Basis: persistence of the notochord
+
+---
+
 ## Q38: Identify A; two fates of B
 
 ![Cross-section of an embryo with neural tube (A) and notochord (B) labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q18-837d93c4.jpg)
@@ -671,6 +720,17 @@
 ---
 
 # Neural Tube, CNS & Neural Crest
+
+## Q88: Identify the anomaly; state the deficiency that leads to this; identify 2 types of neurulation
+
+![Clinical photo of a large fluctuant swelling over the lower spine](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-spina-bifida-ea48ec73.jpg)
+
+**Answer:**
+- Anomaly: spina bifida cystica
+- Deficiency: vitamin B9 (folate) deficiency
+- Two types of neurulation: primary; secondary
+
+---
 
 ## Q52: Identify the basis of the anomaly shown; two neural crest derivatives in the skin
 
@@ -944,6 +1004,16 @@
 
 # Genetic & Chromosomal Anomalies
 
+## Q84: Identify A; identify B
+
+![Two karyotypes, A showing a single X chromosome and B showing a normal male complement](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-karyotype-0782a5b6.jpg)
+
+**Answer:**
+- A — 45,X0: Turner's syndrome
+- B — 46,XY: normal male karyotype
+
+---
+
 ## Q72: Syndromes depicted by the karyotypes displayed; most vulnerable period for congenital anomalies (2+2 marks)
 
 ![Two karyotypes, A showing trisomy 21 and B showing an extra sex chromosome](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q33-7a5ac325.jpg)
@@ -1113,4 +1183,4 @@
 
 ---
 
-*Compiled from the Aponeurosis SPOT collection (Anatomy Spot Revision; Embryology Slide Review Marathon; PAT 3 Marathon (20 Nov 2015); PAT III (8 Nov 2019); SDL Revision Mock Marathon; PAT 8 Slideshow (2 Mar 2012); Week 12 Review), originally compiled by Jose Kariuki (Jitu), 2021. Used here with permission for the Ompath Study revision series.*
+*Compiled from the Aponeurosis SPOT collection (Histology and Embryology Spot Review by Mohamed Onyango; Anatomy Spot Revision; Embryology Slide Review Marathon; PAT 3 Marathon (20 Nov 2015); PAT III (8 Nov 2019); SDL Revision Mock Marathon; PAT 8 Slideshow (2 Mar 2012); Week 12 Review), originally compiled by Jose Kariuki (Jitu), 2021. Used here with permission for the Ompath Study revision series.*

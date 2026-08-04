@@ -54,6 +54,37 @@
 
 # Epithelial Tissue
 
+## Q63: Identify the apical specialisation shown; state the filament found in it; state any 2 locations
+
+![Electron micrograph of tall stereocilia at a cell's apical surface](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-h-stereocilia-69d0be86.jpg)
+
+**Answer:**
+- Apical specialisation: stereocilia
+- Filament: actin
+- Two locations: germinal epithelium of the epididymis and vas deferens; inner ear (cochlear hair cells)
+
+---
+
+## Q55: Identify the slide; state the receptors for touch
+
+![Photomicrograph of skin showing a hair follicle with an attached sebaceous gland](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-h-pilosebaceous-f18d53be.jpg)
+
+**Answer:**
+- Slide: pilosebaceous unit
+- Receptors for touch: Meissner's corpuscle; Merkel discs
+
+---
+
+## Q53: Identify the structures shown, giving 2 reasons; give two classes of these structures according to the mode of secretion
+
+![Photomicrograph of dilated glandular structures with a low cuboidal secretory epithelium](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-h-apocrine-afc2a29e.jpg)
+
+**Answer:**
+- Structures shown: apocrine sweat glands — reasons: largely dilated lumen; low cuboidal secretory portion that secretes into the hair follicle
+- Two classes of sweat gland by mode of secretion: apocrine; eccrine
+
+---
+
 ## Q5: State two sites where the epithelial specializations A and B are found (2+2 marks)
 
 ![Electron micrograph of microvilli (A) beside a coloured SEM image of stereocilia (B)](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q24-714f2fb4.jpg)
@@ -182,6 +213,16 @@
 
 # Cartilage
 
+## Q62: Identify the slide giving reasons
+
+![Photomicrograph of hyaline cartilage with chondrocytes in lacunae](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-h-hyaline-cartil-5dae18db.jpg)
+
+**Answer:**
+- Slide: hyaline cartilage
+- Reasons: cells in lacunae; cells in isogenous groups; homogeneous matrix
+
+---
+
 ## Q16: Identify two regions where this tissue is found; two congenital anomalies associated with it
 
 ![Photomicrograph of elastic cartilage with elastic fibre network](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q26-d03a2a82.jpg)
@@ -244,6 +285,27 @@
 ---
 
 # Bone Tissue
+
+## Q61: Identify the slide; state the role of the tissue shown; name one congenital anomaly affecting this structure
+
+![Photomicrograph of the epiphyseal growth plate showing columns of chondrocytes](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-h-epiphyseal-2425c120.jpg)
+
+**Answer:**
+- Slide: epiphyseal growth plate
+- Role: longitudinal bone growth
+- Congenital anomaly: achondroplasia
+
+---
+
+## Q57: List 2 main cell types in this tissue; name the various lamellae systems found in this tissue
+
+![Ground section of compact bone showing Haversian systems](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-h-bone-1fcf5a93.jpg)
+
+**Answer:**
+- Two main cell types (any two): osteoblasts; osteocytes; osteoclasts
+- Lamellae systems in bone: Haversian system; endosteal lamellae; periosteal lamellae; interstitial lamellae
+
+---
 
 ## Q21: Identify the tissue displayed, giving reasons
 
@@ -315,6 +377,26 @@
 
 # Muscle Tissue
 
+## Q60: Identify the tissue; identify 2 ultrastructural features
+
+![Photomicrograph of cardiac muscle with branching fibres and intercalated discs](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-h-cardiac-muscle-08f8fc32.jpg)
+
+**Answer:**
+- Tissue: cardiac muscle
+- Two ultrastructural features: diads; intercalated discs containing gap junctions
+
+---
+
+## Q56: Identify the slide; state any anomaly associated with it
+
+![Photomicrograph of skeletal muscle fibres in longitudinal section](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-h-skeletal-muscl-38450e72.jpg)
+
+**Answer:**
+- Slide: skeletal muscle
+- Associated anomaly: Poland's syndrome (congenital absence/underdevelopment of the pectoralis major, often with hand anomalies)
+
+---
+
 ## Q27: Outline four features displayed in this tissue (4 marks)
 
 ![Photomicrograph of skeletal muscle in longitudinal section](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q29-6b138b61.jpg)
@@ -352,6 +434,46 @@
 ---
 
 # Nervous & Ganglion Tissue
+
+## Q59: Identify A giving reasons
+
+![Photomicrograph of a Purkinje cell with extensive dendritic arborisation, labelled A](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-h-purkinje-2e90f8d9.jpg)
+
+**Answer:**
+- A — Purkinje cell: large flask-shaped nucleus; dendritic arborisation
+- Also visible in this image (for revision): Purkinje cells form the sole output neurons of the cerebellar cortex
+
+---
+
+## Q58: Identify A giving reasons
+
+![Golgi-stained photomicrograph of a pyramidal-shaped neuron with multiple dendrites, labelled A](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-h-pyramidal-05cc2c1f.jpg)
+
+**Answer:**
+- A — pyramidal cell: pyramidal-shaped cell body; multiple dendrites
+- Also visible in this image (for revision): pyramidal cells are the principal projection neurons of the cerebral cortex, found chiefly in layers III and V
+
+---
+
+## Q54: State two regions where this tissue is found
+
+![Photomicrograph of a sensory ganglion with clusters of large neuronal cell bodies](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-h-ganglion-b8c9842d.jpg)
+
+**Answer:**
+- Dorsal root ganglion (DRG)
+- Trigeminal ganglion
+
+---
+
+## Q52: Identify A giving reasons; identify the tract associated with A
+
+![Photomicrograph of a multilamellated corpuscle with a central axon, labelled A](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-h-pacinian-679d13eb.jpg)
+
+**Answer:**
+- A — Pacinian corpuscle: multilamellated; central axon
+- Tract associated with A: dorsal column–medial lemniscal pathway
+
+---
 
 ## Q30: Identify the slide shown; two cell types
 
@@ -624,4 +746,4 @@
 
 ---
 
-*Compiled from the Aponeurosis SPOT collection (PAT 3 Marathon (20 Nov 2015); PAT III (8 Nov 2019); Anatomy Spot Revision; SDL Revision Mock Marathon; Week 12 Review; PAT 8 Slideshow (2 Mar 2012)), originally compiled by Jose Kariuki (Jitu), 2021. Used here with permission for the Ompath Study revision series.*
+*Compiled from the Aponeurosis SPOT collection (Histology and Embryology Spot Review by Mohamed Onyango; PAT 3 Marathon (20 Nov 2015); PAT III (8 Nov 2019); Anatomy Spot Revision; SDL Revision Mock Marathon; Week 12 Review; PAT 8 Slideshow (2 Mar 2012)), originally compiled by Jose Kariuki (Jitu), 2021. Used here with permission for the Ompath Study revision series.*
