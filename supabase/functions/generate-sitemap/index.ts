@@ -198,7 +198,11 @@ serve(async (req) => {
       emittedPaths.add(path);
       const lastmod = (a.updated_at || a.created_at) ? new Date(a.updated_at || a.created_at).toISOString().split("T")[0] : "";
       const imageUrl = a.og_image_url || extractFirstImage(a.content) || null;
-      const contentImages = extractContentImages(a.content);
+      // Scanned page images of transcribed past papers live in `original_notes`
+      // (kept out of the visible body, but still indexed for Google Images).
+      const contentImages = extractContentImages(
+        [a.content, a.original_notes].filter(Boolean).join("\n"),
+      );
       xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
