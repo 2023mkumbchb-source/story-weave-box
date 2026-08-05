@@ -1509,7 +1509,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
 
     if (/^#{1,2}\s/.test(t)) {
-      flushList(); underSubheading = false;
+      flushList(); underSubheading = false; inMcqChoices = false;
       const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").replace(/^\d+\.\s*/, "").replace(/^[IVXLC]+\.\s+/, "").trim();
       if (/\b(section\s+a|multiple\s+choice|mcqs?)\b/i.test(heading)) examMode = "mcq";
       if (/\b(section\s+b|section\s+c|essay|short\s+answer|long\s+answer|answer\s+any)\b/i.test(heading)) examMode = "essay";
@@ -1529,7 +1529,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
 
     if (/^#{3,6}\s/.test(t)) {
-      flushList(); underSubheading = true;
+      flushList(); underSubheading = true; inMcqChoices = false;
       const txt = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").trim();
       els.push(<h3 key={`h3-${i}`} id={slugify(txt)} className="mt-6 mb-2 scroll-mt-20 font-serif text-xl font-bold leading-snug text-foreground">{txt}</h3>);
       continue;
