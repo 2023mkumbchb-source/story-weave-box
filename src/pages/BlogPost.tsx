@@ -1255,9 +1255,6 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   let flowBuf: string[] = [];
   let underSubheading = false;
   let examMode: "mcq" | "essay" | null = null;
-  // True once an MCQ stem has been rendered, so lowercase "a) …" lines are read
-  // as its choices rather than as essay sub-parts.
-  let inMcqChoices = false;
   const pqs: { number: string; question: string; answer: string }[] = [];
   let insertedRelated = false;
 
@@ -1439,7 +1436,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
 
     if (/^\*{0,2}\s*(?:Question\s*)?\d+[a-z]?[\.)]\s+.{4,}/i.test(t) && examMode === "essay") {
-      flushList(); underSubheading = false; inMcqChoices = false;
+      flushList(); underSubheading = false;
       els.push(<p key={`essay-q-${i}`} className="mb-4 font-serif text-xl font-bold leading-snug text-foreground"><Inline text={cleanDisplayText(t)} /></p>);
       continue;
     }
@@ -1454,7 +1451,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         const optText = (explanationMatch?.[1] || rawOption).trim();
         if (!optText) return;
         els.push(
-          <div key={`mcqopt-combo-${i}-${n}`} className="my-1.5 flex items-start gap-2.5 pl-9 sm:pl-12">
+          <div key={`mcqopt-combo-${i}-${n}`} className="my-1.5 flex items-start gap-2.5 pl-1">
             <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
             <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
           </div>
@@ -1469,16 +1466,15 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     const subQMatch = t.match(/^(\(?[a-z]\)|[ivx]+\)|\([ivx]+\))\s*(.+)/i);
     // MCQ choice line (A–E) — render uniformly even when wrapped in stray **
     // Handles: "A) text", "**A) text**", "E)** text", "**A.** text", etc.
-    const mcqOptMatch = t.match(/^\*{0,2}\s*\(?([A-Ea-e])\)?\s*[\.\)]\s*\*{0,2}\s*(.+?)\s*\*{0,2}\s*$/);
-    const isLowerChoice = !!mcqOptMatch && /[a-e]/.test(mcqOptMatch[1]);
-    if (mcqOptMatch && !inPractice && (!isLowerChoice || inMcqChoices)) {
+    const mcqOptMatch = t.match(/^\*{0,2}\s*([A-E])\s*[\.\)]\s*\*{0,2}\s*(.+?)\s*\*{0,2}\s*$/);
+    if (mcqOptMatch && !inPractice) {
       flushList(); underSubheading = false;
       const label = mcqOptMatch[1].toUpperCase();
       const rawOption = mcqOptMatch[2].replace(/^\*+|\*+$/g, "").trim();
       const explanationMatch = rawOption.match(/^([\s\S]*?)\s*(?:Explanation|Rationale)\s*[:：]\s*([\s\S]+)$/i);
       const optText = (explanationMatch?.[1] || rawOption).trim();
       els.push(
-        <div key={`mcqopt-${i}`} className="my-1.5 flex items-start gap-2.5 pl-9 sm:pl-12">
+        <div key={`mcqopt-${i}`} className="my-1.5 flex items-start gap-2.5 pl-1">
           <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
           <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
         </div>
@@ -1501,7 +1497,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
 
     if (/^#{1,2}\s/.test(t)) {
-      flushList(); underSubheading = false; inMcqChoices = false;
+      flushList(); underSubheading = false;
       const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").replace(/^\d+\.\s*/, "").replace(/^[IVXLC]+\.\s+/, "").trim();
       if (/\b(section\s+a|multiple\s+choice|mcqs?)\b/i.test(heading)) examMode = "mcq";
       if (/\b(section\s+b|section\s+c|essay|short\s+answer|long\s+answer|answer\s+any)\b/i.test(heading)) examMode = "essay";
@@ -1521,7 +1517,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
 
     if (/^#{3,6}\s/.test(t)) {
-      flushList(); underSubheading = true; inMcqChoices = false;
+      flushList(); underSubheading = true;
       const txt = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").trim();
       els.push(<h3 key={`h3-${i}`} id={slugify(txt)} className="mt-6 mb-2 scroll-mt-20 font-serif text-xl font-bold leading-snug text-foreground">{txt}</h3>);
       continue;
@@ -1548,40 +1544,6 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (inPractice && t.startsWith("→")) continue;
 
     if (t.startsWith("- ")) { pushBullet(t.slice(2), `li-${i}`); continue; }
-
-    // ── Numbered MCQ stem ("12. Which of the following …" followed by choices) ──
-    // Rendered as a question header with its own number badge so the literal
-    // paper numbering is preserved and the choices can sit clearly indented
-    // to the right of it instead of sharing the same column.
-    if (/^\*{0,2}\s*\d{1,3}\s*[.)]\s+.{4,}/.test(t) && !inPractice) {
-      let nextMeaningful = "";
-      for (let k = i + 1; k < lines.length; k++) {
-        const nt = lines[k].trim();
-        if (!nt) continue;
-        nextMeaningful = nt;
-        break;
-      }
-      const nextIsChoice = /^\*{0,2}\s*\(?[A-Ea-e]\)?\s*[.)]\s+/.test(nextMeaningful);
-      if (nextIsChoice) {
-        flushList(); flushPractice(); underSubheading = false;
-        inMcqChoices = true;
-        _sec++;
-        const stripped = t.replace(/^\*+|\*+$/g, "");
-        const qNum = stripped.match(/^\s*(\d{1,3})/)?.[1] ?? "";
-        const qStem = cleanDisplayText(stripped.replace(/^\s*\d{1,3}\s*[.)]\s*/, ""));
-        els.push(
-          <div key={`mcqq-${i}`} id={`section-${_sec}`} className="mt-8 mb-3 flex items-start gap-3 scroll-mt-20">
-            <span className="mt-0.5 shrink-0 flex items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm w-9 h-9">
-              {qNum}
-            </span>
-            <p className="flex-1 pt-1.5 font-semibold text-[1.03rem] leading-relaxed text-foreground sm:text-[1.08rem]">
-              <Inline text={qStem} />
-            </p>
-          </div>
-        );
-        continue;
-      }
-    }
 
     if (/^\d+\.\s/.test(t) && !t.includes("→") && !inPractice) {
       if (!listBuf || listBuf.type !== "ol") { flushList(); listBuf = { type: "ol", items: [] }; }
