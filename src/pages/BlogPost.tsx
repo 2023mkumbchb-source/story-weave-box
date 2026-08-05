@@ -1571,6 +1571,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       const nextIsChoice = /^\*{0,2}\s*\(?[A-Ea-e]\)?\s*[.)]\s+/.test(nextMeaningful);
       if (nextIsChoice) {
         flushList(); flushPractice(); underSubheading = false;
+        inMcqChoices = true;
         _sec++;
         const stripped = t.replace(/^\*+|\*+$/g, "");
         const qNum = stripped.match(/^\s*(\d{1,3})/)?.[1] ?? "";
