@@ -1447,7 +1447,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
 
     if (/^\*{0,2}\s*(?:Question\s*)?\d+[a-z]?[\.)]\s+.{4,}/i.test(t) && examMode === "essay") {
-      flushList(); underSubheading = false;
+      flushList(); underSubheading = false; inMcqChoices = false;
       els.push(<p key={`essay-q-${i}`} className="mb-4 font-serif text-xl font-bold leading-snug text-foreground"><Inline text={cleanDisplayText(t)} /></p>);
       continue;
     }
