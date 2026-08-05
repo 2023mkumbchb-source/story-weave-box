@@ -1553,6 +1553,39 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
 
     if (t.startsWith("- ")) { pushBullet(t.slice(2), `li-${i}`); continue; }
 
+    // ── Numbered MCQ stem ("12. Which of the following …" followed by choices) ──
+    // Rendered as a question header with its own number badge so the literal
+    // paper numbering is preserved and the choices can sit clearly indented
+    // to the right of it instead of sharing the same column.
+    if (/^\*{0,2}\s*\d{1,3}\s*[.)]\s+.{4,}/.test(t) && !inPractice) {
+      let nextMeaningful = "";
+      for (let k = i + 1; k < lines.length; k++) {
+        const nt = lines[k].trim();
+        if (!nt) continue;
+        nextMeaningful = nt;
+        break;
+      }
+      const nextIsChoice = /^\*{0,2}\s*\(?[A-Ea-e]\)?\s*[.)]\s+/.test(nextMeaningful);
+      if (nextIsChoice) {
+        flushList(); flushPractice(); underSubheading = false;
+        _sec++;
+        const stripped = t.replace(/^\*+|\*+$/g, "");
+        const qNum = stripped.match(/^\s*(\d{1,3})/)?.[1] ?? "";
+        const qStem = cleanDisplayText(stripped.replace(/^\s*\d{1,3}\s*[.)]\s*/, ""));
+        els.push(
+          <div key={`mcqq-${i}`} id={`section-${_sec}`} className="mt-8 mb-3 flex items-start gap-3 scroll-mt-20">
+            <span className="mt-0.5 shrink-0 flex items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm w-9 h-9">
+              {qNum}
+            </span>
+            <p className="flex-1 pt-1.5 font-semibold text-[1.03rem] leading-relaxed text-foreground sm:text-[1.08rem]">
+              <Inline text={qStem} />
+            </p>
+          </div>
+        );
+        continue;
+      }
+    }
+
     if (/^\d+\.\s/.test(t) && !t.includes("→") && !inPractice) {
       if (!listBuf || listBuf.type !== "ol") { flushList(); listBuf = { type: "ol", items: [] }; }
       const num = t.match(/^(\d+)/)?.[1] ?? "";
