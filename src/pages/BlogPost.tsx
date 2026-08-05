@@ -1470,7 +1470,8 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     // MCQ choice line (A–E) — render uniformly even when wrapped in stray **
     // Handles: "A) text", "**A) text**", "E)** text", "**A.** text", etc.
     const mcqOptMatch = t.match(/^\*{0,2}\s*\(?([A-Ea-e])\)?\s*[\.\)]\s*\*{0,2}\s*(.+?)\s*\*{0,2}\s*$/);
-    if (mcqOptMatch && !inPractice) {
+    const isLowerChoice = !!mcqOptMatch && /[a-e]/.test(mcqOptMatch[1]);
+    if (mcqOptMatch && !inPractice && (!isLowerChoice || inMcqChoices)) {
       flushList(); underSubheading = false;
       const label = mcqOptMatch[1].toUpperCase();
       const rawOption = mcqOptMatch[2].replace(/^\*+|\*+$/g, "").trim();
