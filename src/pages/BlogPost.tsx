@@ -8,7 +8,7 @@ import ShareButtons from "@/components/ShareButtons";
 import ArticleComments from "@/components/ArticleComments";
 import { Countdown, HtmlEmbed, PasswordGate, ContentToc, ReadingTimeBadge } from "@/components/ContentExtras";
 import { motion, AnimatePresence } from "framer-motion";
-import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, buildFlashcardPath, type Article } from "@/lib/store";
+import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, buildFlashcardPath, truncateOnWordBoundary, type Article } from "@/lib/store";
 import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags, autoIndexUrls } from "@/lib/seo";
 import { useTopicThumbnail } from "@/lib/topicThumbnail";
 import { KeywordLinkProvider, useKeywordLinks, linkifyText } from "@/lib/keyword-link";
@@ -493,7 +493,7 @@ function cleanMetaDescription(article: Article): string {
   const enriched = /\b(Kenya|Africa|MBChB|medical students)\b/i.test(desc)
     ? desc
     : `${desc.replace(/[.\s]+$/, "")}. For MBChB and health students in Kenya and beyond.`;
-  return enriched.length <= 155 ? enriched : `${enriched.slice(0, 152).trimEnd()}...`;
+  return truncateOnWordBoundary(enriched, 155);
 }
 
 function ReviewedBadge({ reviewer, date, onDark }: { reviewer: string; date: string; onDark?: boolean }) {

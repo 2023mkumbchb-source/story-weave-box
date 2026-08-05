@@ -718,18 +718,41 @@ export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | 
   return getArticleById(startsWithMatch.id);
 }
 
+/**
+ * Trim a description to maxLength without cutting mid-word or mid-sentence.
+ * Prefers the last sentence boundary before maxLength; falls back to a
+ * word boundary so meta descriptions never end in dangling fragments.
+ */
+export function truncateOnWordBoundary(text: string, maxLength: number): string {
+  const value = String(text || "").trim();
+  if (value.length <= maxLength) return value;
+  const cut = value.slice(0, maxLength);
+  const sentenceCut = cut.search(/[.!?](?=\s|$)[^]*$/);
+  const sentenceEnd = cut.lastIndexOf(". ");
+  const bang = cut.lastIndexOf("! ");
+  const q = cut.lastIndexOf("? ");
+  const bestSentence = Math.max(sentenceEnd, bang, q);
+  if (bestSentence >= maxLength * 0.55) {
+    return cut.slice(0, bestSentence + 1).replace(/\s+$/, "");
+  }
+  const lastSpace = cut.lastIndexOf(" ");
+  const body = lastSpace > maxLength * 0.55 ? cut.slice(0, lastSpace) : cut;
+  return `${body.replace(/[\s,;:—–-]+$/, "")}…`;
+}
+
 export async function saveArticle(article: Omit<Article, "id"> & { id?: string }): Promise<Article> {
   const normalizedSlug = (article.slug || slugifyTitle(article.title)).trim();
   const cat = article.category ? article.category.replace(/^Year\s*\d+:\s*/i, "").trim() : "";
   const normalizedMetaTitle = (article.meta_title?.trim() || article.title || "Study Notes").slice(0, 60);
   const generatedDescription = stripRichText(article.content || article.original_notes || "", 155);
   const providedDescription = article.meta_description?.trim() || "";
-  const normalizedMetaDescription = (
+  const normalizedMetaDescription = truncateOnWordBoundary(
     (providedDescription.length >= 50 ? providedDescription : "") ||
     generatedDescription ||
     providedDescription ||
-    `${article.title} — clinical study notes${cat ? " on " + cat : ""} for medical students.`
-  ).slice(0, 155);
+    `${article.title} — clinical study notes${cat ? " on " + cat : ""} for medical students.`,
+    155,
+  );
   const normalizedOgImage = article.og_image_url?.trim() || article.featured_image?.trim() || extractFirstImageFromContent(article.content || "") || null;
 
   const payload = {
