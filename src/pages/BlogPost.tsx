@@ -1846,6 +1846,22 @@ function SourcePaperGallery({ originalNotes }: { originalNotes?: string | null }
   );
 }
 
+function ArticleJumpLinks({ items }: { items: TocItem[] }) {
+  if (!items.length) return null;
+  return (
+    <nav aria-label="Article sections" className="not-prose mb-7 rounded-xl border border-border bg-muted/30 p-4 lg:hidden">
+      <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">In this guide</p>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {items.slice(0, 8).map((item) => (
+          <a key={item.id} href={`#${item.id}`} className="shrink-0 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary">
+            {item.text}
+          </a>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
 /* ─── Main BlogPost component ─── */
 export default function BlogPost() {
   const { slug } = useParams();
@@ -2397,6 +2413,8 @@ export default function BlogPost() {
             <SourcePaperGallery originalNotes={(article as any).original_notes} />
 
             <HtmlEmbed data={(article as any).html_embed} position="top" />
+
+            {!slideDeck && <ArticleJumpLinks items={toc} />}
 
             {(article as any).toc_enabled && <ContentToc content={article.content} />}
 

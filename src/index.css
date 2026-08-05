@@ -155,9 +155,13 @@
     font-family: 'Source Serif 4', Georgia, serif;
   }
   /* Long words / URLs should wrap on small screens to prevent horizontal overflow */
-  h1, h2, h3, h4, h5, h6, p, a, span, li {
-    overflow-wrap: anywhere;
-    word-break: break-word;
+  h1, h2, h3, h4, h5, h6 {
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+  p, a, span, li {
+    overflow-wrap: break-word;
+    word-break: normal;
   }
 }
 
@@ -169,7 +173,9 @@
   /* Use :where() so specificity stays 0 — utility classes inside cards win,
      and anything inside .not-prose (related cards, asides) is fully excluded. */
   .article-reader :where(p):not(:where(.not-prose, .not-prose *)) {
-    @apply text-[1.03rem] leading-8 text-foreground/90;
+    @apply text-[1.03rem] leading-relaxed text-foreground/90;
+    max-width: 72ch; /* more readable line length */
+    margin: 0 auto;
   }
   .article-reader :where(h2):not(:where(.not-prose, .not-prose *)) {
     @apply font-serif text-2xl font-bold leading-tight text-foreground sm:text-3xl;
