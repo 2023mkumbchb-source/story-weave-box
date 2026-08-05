@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trackAnswer } from "@/lib/answer-tracker";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface McqQuestion {
   question: string;
@@ -120,6 +121,7 @@ export default function ExamMode({
   onPay,
   onRetryPay,
 }: Props) {
+  const { isAdmin } = useAuth();
   const [answers, setAnswers] = useState<Map<number, number>>(new Map());
   const [submitted, setSubmitted] = useState(false);
   const [submitReason, setSubmitReason] = useState<SubmitReason>("manual");
@@ -212,21 +214,23 @@ export default function ExamMode({
     return () => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); };
   }, []);
 
-  // ── Block copy/paste/right-click ──
+  // ── Block copy/paste/right-click (students only — admin can copy freely) ──
   useEffect(() => {
+    if (isAdmin) return;
     const block = (e: Event) => e.preventDefault();
     ["copy", "cut", "paste", "contextmenu"].forEach((ev) => document.addEventListener(ev, block));
     return () => ["copy", "cut", "paste", "contextmenu"].forEach((ev) => document.removeEventListener(ev, block));
-  }, []);
+  }, [isAdmin]);
 
   // ── No-select style ──
   useEffect(() => {
+    if (isAdmin) return;
     const s = document.createElement("style");
     s.id = "exam-no-select";
     s.textContent = `.exam-container * { user-select: none; -webkit-user-select: none; }`;
     document.head.appendChild(s);
     return () => s.remove();
-  }, []);
+  }, [isAdmin]);
 
   // ── Submit ──
   const doSubmit = useCallback(async (reason: SubmitReason) => {
