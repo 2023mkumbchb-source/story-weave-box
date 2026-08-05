@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, X, BookOpen, Clock, ArrowLeft, ChevronDown, LayoutGrid, List } from "lucide-react";
+import { Search, X, BookOpen, Clock, ArrowLeft, ChevronDown, LayoutGrid, List, ArrowRight, SlidersHorizontal } from "lucide-react";
 import {
   getCategoryDisplayName,
   getYearFromCategory,
@@ -124,6 +124,20 @@ export default function Blog() {
   useEffect(() => {
     getAllCategories().then(setSidebarCats).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTyping = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
+      if (event.key === "/" && !isTyping) {
+        event.preventDefault();
+        document.getElementById("note-search")?.focus();
+      }
+      if (event.key === "Escape" && search) setSearch("");
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [search]);
 
   const sidebarGroups = useMemo(() => {
     const groups: Record<string, { group: string; units: { category: string; name: string; count: number }[]; count: number }[]> = {};
@@ -327,6 +341,11 @@ export default function Blog() {
 
   const showYearPicker = selectedYear === "All" && !search.trim();
 
+  const catalogueStats = useMemo(() => {
+    const notes = articles.filter(a => a.category !== "Stories");
+    return { notes: notes.length, units: new Set(notes.map(a => a.category)).size };
+  }, [articles]);
+
   const filteredRecentArticles = useMemo(() => {
     if (selectedYear === "All") return recentArticles;
     const byId = new Map(articles.map(a => [a.id, a]));
@@ -494,7 +513,9 @@ export default function Blog() {
 
         <div className="min-w-0">
       {/* Page header — quiet, paper-like. Type does the work; no colour band. */}
-      <div className="mb-6 border-b border-border pb-5">
+      <div className="mb-6 overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="relative px-5 py-6 sm:px-7 sm:py-7">
+          <div className="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full bg-primary/[0.07] blur-2xl" />
         {yearRoute && (
           <button
             onClick={() => navigate(`/year/${yearRoute}`)}
@@ -503,16 +524,31 @@ export default function Blog() {
             <ArrowLeft className="h-3.5 w-3.5" /> Back to Year {yearRoute}
           </button>
         )}
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-          {selectedYear === "All" ? "MBChB curriculum" : selectedYear}
-        </p>
-        <h1 className="mt-1 font-serif text-3xl font-bold leading-tight text-foreground sm:text-[2.35rem]">Study Notes</h1>
-        <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
-          High-yield notes, CATs and past papers, organised by year, semester and unit.
-        </p>
-        <div className={`mt-4 flex max-w-2xl items-center overflow-hidden rounded-lg border bg-card ${searchFocused ? "border-primary ring-1 ring-primary/20" : "border-border"}`}>
+        <div className="relative flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
+              {selectedYear === "All" ? "MBChB study library" : selectedYear}
+            </p>
+            <h1 className="mt-1 font-serif text-3xl font-bold leading-tight text-foreground sm:text-[2.35rem]">Study Notes</h1>
+            <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
+              High-yield notes, CATs and past papers, organised by year, semester and unit.
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-5 border-l border-border pl-5 text-right">
+            <div>
+              <p className="font-serif text-xl font-bold text-foreground">{selectedYear === "All" ? catalogueStats.notes : filtered.length}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{selectedYear === "All" ? "notes" : "in view"}</p>
+            </div>
+            {selectedYear === "All" && <div>
+              <p className="font-serif text-xl font-bold text-foreground">{catalogueStats.units}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">units</p>
+            </div>}
+          </div>
+        </div>
+        <div className={`relative mt-5 flex max-w-2xl items-center overflow-hidden rounded-xl border bg-background shadow-sm transition-shadow ${searchFocused ? "border-primary ring-2 ring-primary/15" : "border-border"}`}>
           <Search className="ml-3 h-4 w-4 shrink-0 text-muted-foreground" />
           <input
+            id="note-search"
             value={search}
             onChange={e => setSearch(e.target.value)}
             onFocus={() => setSearchFocused(true)}
@@ -531,23 +567,37 @@ export default function Blog() {
             {searchLoading ? "Searching…" : filtered.length === 0 ? `No results for "${search}"` : `${filtered.length} matching articles`}
           </p>
         )}
+        {!search.trim() && <p className="mt-2 text-xs text-muted-foreground">Press <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-sans text-[10px]">/</kbd> to search the library.</p>}
+        </div>
       </div>
 
       {showYearPicker ? (
         /* Step 1: choose a year. This is the dedicated first screen "Start Studying"
            lands on — no search bar clutter, no tabs, just the one decision. */
+        <>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Start here</p>
+            <h2 className="mt-0.5 font-serif text-xl font-bold text-foreground">Choose your year</h2>
+          </div>
+          <span className="hidden text-xs text-muted-foreground sm:block">Select a year to explore its units</span>
+        </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {["Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"].map(y => (
             <button
               key={y}
               onClick={() => setYear(y)}
-              className="rounded-lg border border-border bg-card p-5 text-left transition-colors hover:border-primary/50 hover:bg-muted/30"
+              className="group rounded-xl border border-border bg-card p-5 text-left transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-[var(--shadow-card-hover)]"
             >
-              <span className="font-serif text-xl font-bold text-foreground sm:text-2xl">{y}</span>
-              <p className="mt-1 text-xs text-muted-foreground">{yearTotals[y] ?? 0} notes</p>
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-serif text-xl font-bold text-foreground sm:text-2xl">{y}</span>
+                <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{yearTotals[y] ?? 0} notes ready to review</p>
             </button>
           ))}
         </div>
+        </>
       ) : (
       <>
       {/* Continue reading */}
@@ -768,7 +818,17 @@ export default function Blog() {
       {/* Articles */}
       {filtered.length === 0 ? (
         <div className="py-16 text-center">
-          <p className="text-muted-foreground">No articles found</p>
+          <SlidersHorizontal className="mx-auto mb-3 h-5 w-5 text-muted-foreground" />
+          <p className="font-medium text-foreground">No notes found</p>
+          <p className="mt-1 text-sm text-muted-foreground">Try a different search or clear your filters.</p>
+          {(search || selectedUnit || kindFilter !== "all") && (
+            <button
+              onClick={() => { setSearch(""); setUnit(null); setKindFilter("all"); }}
+              className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              Reset filters <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       ) : groupedArticles && !search.trim() ? (
         <div className="space-y-9">
