@@ -145,7 +145,7 @@ serve(async (req) => {
     const baseUrl = normalizeBaseUrl((siteUrlSetting as any)?.value);
 
     const [articles, mcqs, flashcards, stories] = await Promise.all([
-      fetchAllPublished(supabase, "articles", "id, title, slug, created_at, updated_at, category, og_image_url, content"),
+      fetchAllPublished(supabase, "articles", "id, title, slug, created_at, updated_at, category, og_image_url, content, original_notes"),
       fetchAllPublished(supabase, "mcq_sets", "id, title, slug, og_image_url, created_at, updated_at, category"),
       fetchAllPublished(supabase, "flashcard_sets", "id, title, slug, created_at, updated_at, category"),
       fetchAllPublished(supabase, "stories", "id, title, slug, created_at, category, cover_image_url", "created_at"),
