@@ -1263,6 +1263,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   let flowBuf: string[] = [];
   let underSubheading = false;
   let examMode: "mcq" | "essay" | null = null;
+  // True once an MCQ stem has been rendered, so lowercase "a) …" lines are read
+  // as its choices rather than as essay sub-parts.
+  let inMcqChoices = false;
   const pqs: { number: string; question: string; answer: string }[] = [];
   let insertedRelated = false;
 
