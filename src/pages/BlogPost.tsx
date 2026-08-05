@@ -1451,7 +1451,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         const optText = (explanationMatch?.[1] || rawOption).trim();
         if (!optText) return;
         els.push(
-          <div key={`mcqopt-combo-${i}-${n}`} className="my-1.5 flex items-start gap-2.5 pl-1">
+          <div key={`mcqopt-combo-${i}-${n}`} className="my-1.5 flex items-start gap-2.5 pl-9 sm:pl-12">
             <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
             <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
           </div>
@@ -1466,7 +1466,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     const subQMatch = t.match(/^(\(?[a-z]\)|[ivx]+\)|\([ivx]+\))\s*(.+)/i);
     // MCQ choice line (A–E) — render uniformly even when wrapped in stray **
     // Handles: "A) text", "**A) text**", "E)** text", "**A.** text", etc.
-    const mcqOptMatch = t.match(/^\*{0,2}\s*([A-E])\s*[\.\)]\s*\*{0,2}\s*(.+?)\s*\*{0,2}\s*$/);
+    const mcqOptMatch = t.match(/^\*{0,2}\s*\(?([A-Ea-e])\)?\s*[\.\)]\s*\*{0,2}\s*(.+?)\s*\*{0,2}\s*$/);
     if (mcqOptMatch && !inPractice) {
       flushList(); underSubheading = false;
       const label = mcqOptMatch[1].toUpperCase();
@@ -1474,7 +1474,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       const explanationMatch = rawOption.match(/^([\s\S]*?)\s*(?:Explanation|Rationale)\s*[:：]\s*([\s\S]+)$/i);
       const optText = (explanationMatch?.[1] || rawOption).trim();
       els.push(
-        <div key={`mcqopt-${i}`} className="my-1.5 flex items-start gap-2.5 pl-1">
+        <div key={`mcqopt-${i}`} className="my-1.5 flex items-start gap-2.5 pl-9 sm:pl-12">
           <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
           <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
         </div>
