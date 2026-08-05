@@ -24,3 +24,11 @@ dist-ssr
 *.sw?
 .vercel
 .env*.local
+
+# Cloudflare Wrangler local dev cache
+.wrangler
+
+# Local working material for the content pipeline — source PDFs, OCR/crop
+# scratch scripts and intermediate renders. Never meant to be committed.
+Uploaded/
+scratch/
