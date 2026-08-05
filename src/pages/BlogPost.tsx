@@ -798,7 +798,8 @@ function extractExamQuestions(rawContent: string): { mcqs: PreviewMcq[]; essays:
 }
 
 function ExamPreviewModal({ article, open, onClose }: { article: any; open: boolean; onClose: () => void }) {
-  const data = useMemo(() => extractExamQuestions(article?.content || ""), [article?.content]);
+  const scans = useMemo(() => extractSourceScans(article?.content || ""), [article?.content]);
+  const data = useMemo(() => (scans.length ? { mcqs: [], essays: [] } : extractExamQuestions(article?.content || "")), [article?.content, scans.length]);
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -836,10 +837,27 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
               {lecturer && <span>Lecturer: {lecturer}</span>}
               <span>Date: {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</span>
             </div>
-            <p className="mt-4 text-[11px] italic text-neutral-500">Preview paper — questions only. Answers are hidden.</p>
+            <p className="mt-4 text-[11px] italic text-neutral-500">
+              {scans.length ? "Exact scan of the original paper, page by page." : "Preview paper — questions only. Answers are hidden."}
+            </p>
           </div>
 
-          {data.mcqs.length > 0 && (
+          {scans.length > 0 && (
+            <section className="space-y-4">
+              {scans.map((src, i) => (
+                <img
+                  key={src + i}
+                  src={src}
+                  alt={`Page ${i + 1}`}
+                  loading={i < 2 ? "eager" : "lazy"}
+                  decoding="async"
+                  className="w-full rounded border border-neutral-200 object-contain"
+                />
+              ))}
+            </section>
+          )}
+
+          {!scans.length && data.mcqs.length > 0 && (
             <section className="mb-10">
               <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-neutral-700 border-b border-neutral-300 pb-2">Section A: Multiple Choice</h2>
               <ol className="space-y-6">
@@ -862,7 +880,7 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
             </section>
           )}
 
-          {data.essays.length > 0 && (
+          {!scans.length && data.essays.length > 0 && (
             <section>
               <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-neutral-700 border-b border-neutral-300 pb-2">Section B: Essay Questions</h2>
               <ol className="space-y-5">
@@ -875,7 +893,7 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
             </section>
           )}
 
-          {data.mcqs.length === 0 && data.essays.length === 0 && (
+          {!scans.length && data.mcqs.length === 0 && data.essays.length === 0 && (
             <p className="text-center text-sm text-neutral-500">No exam-style questions detected in this article.</p>
           )}
 
@@ -1005,12 +1023,25 @@ function isTableRow(s: string): boolean {
   return t.startsWith("|") && t.includes("|", 1);
 }
 
+/**
+ * Original-paper page scans travel inside `content` as a hidden block so
+ * they never need a schema change, but they must never render inline —
+ * they only feed the "Preview" modal (see extractSourceScans below).
+ */
+const SOURCE_SCANS_BLOCK_RE = /<!--SOURCE_SCANS\n([\s\S]*?)\nSOURCE_SCANS-->/;
+
+export function extractSourceScans(raw: string): string[] {
+  const m = (raw || "").match(SOURCE_SCANS_BLOCK_RE);
+  if (!m) return [];
+  return m[1].split("\n").map((l) => l.trim()).filter(Boolean);
+}
+
 export function preprocessContent(raw: string): string {
   const out: string[] = [];
   let inKeyPoints = false;
   let inFence = false;
 
-  const decoded = decodeEntities(raw);
+  const decoded = decodeEntities(raw).replace(SOURCE_SCANS_BLOCK_RE, "");
   const sourceLines = decoded.replace(/\r\n?/g, "\n").split("\n");
 
   for (let idx = 0; idx < sourceLines.length; idx++) {
