@@ -1024,6 +1024,54 @@ function isTableRow(s: string): boolean {
 }
 
 /**
+ * Scanned/imported papers arrive with a hard line break at every printed line
+ * width, so a single sentence used to render as four separate paragraphs with a
+ * full paragraph gap between each fragment — the "spaced out, unreadable" look.
+ * This rejoins those fragments into real paragraphs: a line only continues the
+ * previous one when the previous line does not end a sentence AND the current
+ * line starts mid-sentence (lowercase / opening bracket).
+ */
+const STRUCTURAL_START =
+  /^(?:#{1,6}\s|>|\||!\[|```|[-*+•]\s|\(?[a-z0-9]{1,3}[.)]\s|[A-Ea-e]\s*[.)]\s|(?:answer|model answer|correct answer|explanation|rationale|question|q)\b\s*\d*\s*[:：]?)/i;
+
+export function unwrapHardBreaks(raw: string): string {
+  const lines = String(raw ?? "").replace(/\r\n?/g, "\n").split("\n");
+  const out: string[] = [];
+  let inFence = false;
+
+  for (const original of lines) {
+    const t = original.trim();
+    if (/^```/.test(t)) { inFence = !inFence; out.push(original); continue; }
+    if (inFence || !t) { out.push(original); continue; }
+
+    // Find the previous non-blank output line.
+    let prevIdx = out.length - 1;
+    while (prevIdx >= 0 && !out[prevIdx].trim()) prevIdx--;
+    const prev = prevIdx >= 0 ? out[prevIdx].trim() : "";
+
+    const continuation =
+      prev.length > 0 &&
+      prev.length < 4000 &&
+      !isTableRow(prev) &&
+      !isTableRow(t) &&
+      !/^(?:#{1,6}\s|>|\||!\[)/.test(prev) &&
+      !STRUCTURAL_START.test(t) &&
+      !/[.!?;:*_}"”’]$/.test(prev) &&
+      /^[a-z(\u2018\u201c]/.test(t);
+
+    if (continuation) {
+      out[prevIdx] = `${out[prevIdx].replace(/\s+$/, "")} ${t}`;
+      // Drop any blank lines that were sitting between the two fragments.
+      out.length = prevIdx + 1;
+      continue;
+    }
+    out.push(original);
+  }
+
+  return out.join("\n");
+}
+
+/**
  * Original-paper page scans travel inside `content` as a hidden block so
  * they never need a schema change, but they must never render inline —
  * they only feed the "Preview" modal (see extractSourceScans below).
@@ -1041,7 +1089,7 @@ export function preprocessContent(raw: string): string {
   let inKeyPoints = false;
   let inFence = false;
 
-  const decoded = decodeEntities(raw).replace(SOURCE_SCANS_BLOCK_RE, "");
+  const decoded = unwrapHardBreaks(decodeEntities(raw).replace(SOURCE_SCANS_BLOCK_RE, ""));
   const sourceLines = decoded.replace(/\r\n?/g, "\n").split("\n");
 
   for (let idx = 0; idx < sourceLines.length; idx++) {
@@ -1293,7 +1341,10 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   let tableBuf: string[] = [];
   let flowBuf: string[] = [];
   let underSubheading = false;
-  let examMode: "mcq" | "essay" | null = null;
+  // Short-answer / SAQ papers have no multiple-choice options at all: their
+  // A, B, C lines are answer points, so they must read as bullet points.
+  let examMode: "mcq" | "essay" | null =
+    /\bSAQs?\b|short[- ]answer|essay/i.test(content.slice(0, 3000)) ? "essay" : null;
   // True once an MCQ stem has been rendered, so lowercase "a) …" lines are read
   // as its choices rather than as essay sub-parts.
   let inMcqChoices = false;
@@ -1485,13 +1536,21 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
 
     const combinedOpts = Array.from(t.matchAll(/(?:^|\s)([A-E])\s*[\.)]\s*([\s\S]*?)(?=\s*[B-E]\s*[\.)]\s*|$)/gi));
     if (combinedOpts.length >= 2 && !inPractice) {
-      flushList(); underSubheading = false;
+      if (examMode !== "essay") { flushList(); }
+      underSubheading = false;
       combinedOpts.forEach((m, n) => {
         const label = m[1].toUpperCase();
         const rawOption = (m[2] || "").replace(/^\*+|\*+$/g, "").trim();
         const explanationMatch = rawOption.match(/^([\s\S]*?)\s*(?:Explanation|Rationale)\s*[:：]\s*([\s\S]+)$/i);
         const optText = (explanationMatch?.[1] || rawOption).trim();
         if (!optText) return;
+        // In SAQ/essay papers the letters are answer points, not MCQ choices —
+        // render them as a tight bulleted list so they read as revision points.
+        if (examMode === "essay") {
+          pushBullet(`**${label}.** ${optText}`, `essay-pt-${i}-${n}`);
+          if (explanationMatch?.[2]) pushBullet(explanationMatch[2].trim(), `essay-pt-exp-${i}-${n}`);
+          return;
+        }
         els.push(
           <div key={`mcqopt-combo-${i}-${n}`} className="my-1.5 flex items-start gap-2.5 pl-9 sm:pl-12">
             <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
@@ -1511,11 +1570,18 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     const mcqOptMatch = t.match(/^\*{0,2}\s*\(?([A-Ea-e])\)?\s*[\.\)]\s*\*{0,2}\s*(.+?)\s*\*{0,2}\s*$/);
     const isLowerChoice = !!mcqOptMatch && /[a-e]/.test(mcqOptMatch[1]);
     if (mcqOptMatch && !inPractice && (!isLowerChoice || inMcqChoices)) {
-      flushList(); underSubheading = false;
+      if (examMode !== "essay") { flushList(); }
+      underSubheading = false;
       const label = mcqOptMatch[1].toUpperCase();
       const rawOption = mcqOptMatch[2].replace(/^\*+|\*+$/g, "").trim();
       const explanationMatch = rawOption.match(/^([\s\S]*?)\s*(?:Explanation|Rationale)\s*[:：]\s*([\s\S]+)$/i);
       const optText = (explanationMatch?.[1] || rawOption).trim();
+      // A long lettered line is prose (an answer point), never an MCQ choice.
+      if (examMode === "essay" || optText.length > 110) {
+        pushBullet(`**${label}.** ${optText}`, `essay-pt-${i}`);
+        if (explanationMatch?.[2]) pushBullet(explanationMatch[2].trim(), `essay-pt-exp-${i}`);
+        continue;
+      }
       els.push(
         <div key={`mcqopt-${i}`} className="my-1.5 flex items-start gap-2.5 pl-9 sm:pl-12">
           <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
@@ -1528,8 +1594,15 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
     if (subQMatch) {
-      flushList(); underSubheading = false;
       const label = subQMatch[1].replace(/[()]/g, "").toUpperCase();
+      const subText = subQMatch[2].trim();
+      // In SAQ/essay papers "(a) …" lines are answer points: bullet them so the
+      // page reads as revision points instead of a wall of chipped rows.
+      if (examMode === "essay" || subText.length > 110) {
+        pushBullet(`**${label}.** ${subText}`, `essay-sub-${i}`);
+        continue;
+      }
+      flushList(); underSubheading = false;
       els.push(
         <div key={`subq-${i}`} className="my-3 flex items-start gap-2.5 pl-1">
           <span className="shrink-0 flex items-center justify-center rounded bg-primary/10 text-primary font-bold text-xs w-7 h-7">{label}</span>

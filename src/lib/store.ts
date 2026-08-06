@@ -1075,6 +1075,17 @@ export async function getRelatedContent(category: string, excludeArticleId?: str
 }
 
 export async function getAllCategories(): Promise<{ name: string; articles: number; flashcards: number; mcqs: number }[]> {
+  // Aggregate in the database — the browser used to download every published
+  // row's category just to count them, which dominated homepage load time.
+  const rpc = await (supabase as any).rpc("category_counts");
+  if (!rpc.error && Array.isArray(rpc.data)) {
+    return (rpc.data as any[]).map((r) => ({
+      name: r.name as string,
+      articles: Number(r.articles) || 0,
+      flashcards: Number(r.flashcards) || 0,
+      mcqs: Number(r.mcqs) || 0,
+    }));
+  }
   const [{ data: articles }, { data: flashcards }, { data: mcqs }] = await Promise.all([
     supabase.from("articles").select("category, updated_at, created_at").eq("published", true),
     supabase.from("flashcard_sets").select("category, updated_at, created_at").eq("published", true),
