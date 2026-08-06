@@ -1722,32 +1722,66 @@ function SourcePaperGallery({ originalNotes }: { originalNotes?: string | null }
     () => [...String(originalNotes || "").matchAll(/!\[[^\]]*\]\((https?:[^)]+)\)/g)].map((match) => match[1]),
     [originalNotes],
   );
+  const [viewerOpen, setViewerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!viewerOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setViewerOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [viewerOpen]);
+
   if (!pages.length) return null;
   return (
-    <section className="not-prose mb-7 overflow-hidden rounded-xl border border-border bg-card">
-      <details>
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 sm:px-5 [&::-webkit-details-marker]:hidden">
-          <span className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary"><FileText className="h-4 w-4" /></span>
-            <span>
-              <span className="block text-sm font-bold text-foreground">View original paper scans</span>
-              <span className="mt-0.5 block text-xs text-muted-foreground">Tap any page to open the full-size original.</span>
+    <>
+      <section className="not-prose mb-7 overflow-hidden rounded-xl border border-border bg-card">
+        <details>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 sm:px-5 [&::-webkit-details-marker]:hidden">
+            <span className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary"><FileText className="h-4 w-4" /></span>
+              <span>
+                <span className="block text-sm font-bold text-foreground">View original paper scans</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">Tap any page to review the scans in a scrollable viewer.</span>
+              </span>
             </span>
-          </span>
-          <span className="shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground">{pages.length} pages</span>
-        </summary>
-        <div className="border-t border-border bg-muted/20 p-3 sm:p-4">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {pages.map((src, index) => (
-              <a key={src} href={src} target="_blank" rel="noopener noreferrer" className="group overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-primary/50">
-                <img src={src} alt={`Original pathology paper page ${index + 1}`} loading="lazy" className="aspect-[3/4] w-full object-cover object-top" />
-                <span className="block px-2 py-1.5 text-xs font-semibold text-muted-foreground group-hover:text-primary">Page {index + 1}</span>
-              </a>
-            ))}
+            <span className="shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground">{pages.length} pages</span>
+          </summary>
+          <div className="border-t border-border bg-muted/20 p-3 sm:p-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {pages.map((src, index) => (
+                <button key={src} type="button" onClick={() => setViewerOpen(true)} className="group overflow-hidden rounded-lg border border-border bg-card text-left transition-colors hover:border-primary/50">
+                  <img src={src} alt={`Original pathology paper page ${index + 1}`} loading="lazy" className="aspect-[3/4] w-full object-cover object-top" />
+                  <span className="block px-2 py-1.5 text-xs font-semibold text-muted-foreground group-hover:text-primary">Page {index + 1}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </details>
+      </section>
+
+      {viewerOpen && (
+        <div className="fixed inset-0 z-[120] bg-background/95 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Original paper scans">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background/95 px-4 py-3 shadow-sm sm:px-6">
+            <p className="text-sm font-bold text-foreground">Original paper scans <span className="font-normal text-muted-foreground">· Scroll to review all {pages.length} pages</span></p>
+            <button type="button" onClick={() => setViewerOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-muted" aria-label="Close paper scans">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="h-[calc(100dvh-65px)] overflow-y-auto px-3 py-5 sm:px-6">
+            <div className="mx-auto max-w-3xl space-y-5">
+              {pages.map((src, index) => (
+                <figure key={src} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+                  <img src={src} alt={`Original pathology paper page ${index + 1}`} className="w-full" />
+                  <figcaption className="px-3 py-2 text-xs font-semibold text-muted-foreground">Page {index + 1} of {pages.length}</figcaption>
+                </figure>
+              ))}
+            </div>
           </div>
         </div>
-      </details>
-    </section>
+      )}
+    </>
   );
 }
 
