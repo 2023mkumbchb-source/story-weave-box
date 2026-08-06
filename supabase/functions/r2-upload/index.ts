@@ -7,7 +7,13 @@ const corsHeaders = {
 
 const ACCOUNT_ID = Deno.env.get("R2_ACCOUNT_ID")!;
 const BUCKET = Deno.env.get("R2_BUCKET")!;
-const PUBLIC_BASE = (Deno.env.get("R2_PUBLIC_BASE") || "").replace(/\/+$/, "");
+const configuredPublicBase = (Deno.env.get("R2_PUBLIC_BASE") || "").replace(/\/+$/, "");
+// R2 assets are served from the CDN hostname.  The application hostname routes
+// unknown paths back to the SPA and therefore returns HTML for image URLs.
+const PUBLIC_BASE = configuredPublicBase.replace(
+  /^https?:\/\/(?:www\.)?ompathstudy\.com(?=\/|$)/i,
+  "https://cdn.ompathstudy.com",
+);
 
 const r2 = new AwsClient({
   accessKeyId: Deno.env.get("R2_ACCESS_KEY_ID")!,
