@@ -1491,13 +1491,21 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
 
     const combinedOpts = Array.from(t.matchAll(/(?:^|\s)([A-E])\s*[\.)]\s*([\s\S]*?)(?=\s*[B-E]\s*[\.)]\s*|$)/gi));
     if (combinedOpts.length >= 2 && !inPractice) {
-      flushList(); underSubheading = false;
+      if (examMode !== "essay") { flushList(); }
+      underSubheading = false;
       combinedOpts.forEach((m, n) => {
         const label = m[1].toUpperCase();
         const rawOption = (m[2] || "").replace(/^\*+|\*+$/g, "").trim();
         const explanationMatch = rawOption.match(/^([\s\S]*?)\s*(?:Explanation|Rationale)\s*[:：]\s*([\s\S]+)$/i);
         const optText = (explanationMatch?.[1] || rawOption).trim();
         if (!optText) return;
+        // In SAQ/essay papers the letters are answer points, not MCQ choices —
+        // render them as a tight bulleted list so they read as revision points.
+        if (examMode === "essay") {
+          pushBullet(`**${label}.** ${optText}`, `essay-pt-${i}-${n}`);
+          if (explanationMatch?.[2]) pushBullet(explanationMatch[2].trim(), `essay-pt-exp-${i}-${n}`);
+          return;
+        }
         els.push(
           <div key={`mcqopt-combo-${i}-${n}`} className="my-1.5 flex items-start gap-2.5 pl-1">
             <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
@@ -1516,11 +1524,17 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     // Handles: "A) text", "**A) text**", "E)** text", "**A.** text", etc.
     const mcqOptMatch = t.match(/^\*{0,2}\s*([A-E])\s*[\.\)]\s*\*{0,2}\s*(.+?)\s*\*{0,2}\s*$/);
     if (mcqOptMatch && !inPractice) {
-      flushList(); underSubheading = false;
+      if (examMode !== "essay") { flushList(); }
+      underSubheading = false;
       const label = mcqOptMatch[1].toUpperCase();
       const rawOption = mcqOptMatch[2].replace(/^\*+|\*+$/g, "").trim();
       const explanationMatch = rawOption.match(/^([\s\S]*?)\s*(?:Explanation|Rationale)\s*[:：]\s*([\s\S]+)$/i);
       const optText = (explanationMatch?.[1] || rawOption).trim();
+      if (examMode === "essay") {
+        pushBullet(`**${label}.** ${optText}`, `essay-pt-${i}`);
+        if (explanationMatch?.[2]) pushBullet(explanationMatch[2].trim(), `essay-pt-exp-${i}`);
+        continue;
+      }
       els.push(
         <div key={`mcqopt-${i}`} className="my-1.5 flex items-start gap-2.5 pl-1">
           <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
