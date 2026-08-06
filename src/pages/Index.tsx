@@ -285,8 +285,7 @@ export default function Index() {
                       return (
                         <span
                           key={cat.name}
-                          className="max-w-full truncate rounded-md px-2 py-1 text-[11px] font-semibold"
-                          style={{ backgroundColor: subjectColor(key, 0.12), color: subjectColor(key) }}
+                          className="max-w-full truncate rounded-md bg-muted px-2 py-1 text-[11px] font-semibold text-foreground/80"
                         >
                           {getCategoryDisplayName(cat.name)}
                         </span>
@@ -327,15 +326,15 @@ export default function Index() {
             </div>
           ) : (
             <div className="overflow-hidden rounded-2xl border border-border bg-card">
-              {filteredRecent.slice(0, 10).map(item => {
+              {filteredRecent.slice(0, recentShown).map(item => {
                 const meta = typeMeta[item.type];
                 const Icon = meta.icon;
                 const subject = getSubjectKey(`${item.category} ${item.title}`);
                 return (
                   <Link key={`${item.type}-${item.id}`} to={getItemLink(item)}
                     className="group relative flex items-center gap-3 border-b border-border px-3 py-3 transition-colors last:border-b-0 hover:bg-muted/50 sm:gap-4 sm:px-4">
-                    <span className="absolute left-0 top-0 h-full w-[3px]" style={{ backgroundColor: subjectColor(subject) }} aria-hidden />
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: subjectColor(subject, 0.12), color: subjectColor(subject) }}>
+                    <span className="absolute left-0 top-0 h-full w-[3px] bg-primary/60" aria-hidden />
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground/70">
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -350,6 +349,16 @@ export default function Index() {
                   </Link>
                 );
               })}
+            </div>
+          )}
+          {filteredRecent.length > recentShown && (
+            <div className="mt-5 flex justify-center">
+              <button
+                onClick={() => setRecentShown((n) => n + 10)}
+                className="rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-bold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+              >
+                Show more
+              </button>
             </div>
           )}
         </div>
