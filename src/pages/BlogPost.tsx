@@ -1038,7 +1038,7 @@ export function unwrapHardBreaks(raw: string): string {
       !isTableRow(t) &&
       !/^(?:#{1,6}\s|>|\||!\[)/.test(prev) &&
       !STRUCTURAL_START.test(t) &&
-      !/[.!?;:*_)\]}"”’]$/.test(prev) &&
+      !/[.!?;:*_}"”’]$/.test(prev) &&
       /^[a-z(\u2018\u201c]/.test(t);
 
     if (continuation) {
