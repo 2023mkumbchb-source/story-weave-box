@@ -8,7 +8,7 @@ import ShareButtons from "@/components/ShareButtons";
 import ArticleComments from "@/components/ArticleComments";
 import { Countdown, HtmlEmbed, PasswordGate, ContentToc, ReadingTimeBadge } from "@/components/ContentExtras";
 import { motion, AnimatePresence } from "framer-motion";
-import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, buildFlashcardPath, type Article } from "@/lib/store";
+import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, buildFlashcardPath, truncateOnWordBoundary, type Article } from "@/lib/store";
 import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags, autoIndexUrls } from "@/lib/seo";
 import { useTopicThumbnail } from "@/lib/topicThumbnail";
 import { KeywordLinkProvider, useKeywordLinks, linkifyText } from "@/lib/keyword-link";
@@ -493,7 +493,7 @@ function cleanMetaDescription(article: Article): string {
   const enriched = /\b(Kenya|Africa|MBChB|medical students)\b/i.test(desc)
     ? desc
     : `${desc.replace(/[.\s]+$/, "")}. For MBChB and health students in Kenya and beyond.`;
-  return enriched.length <= 155 ? enriched : `${enriched.slice(0, 152).trimEnd()}...`;
+  return truncateOnWordBoundary(enriched, 155);
 }
 
 function ReviewedBadge({ reviewer, date, onDark }: { reviewer: string; date: string; onDark?: boolean }) {
@@ -798,7 +798,8 @@ function extractExamQuestions(rawContent: string): { mcqs: PreviewMcq[]; essays:
 }
 
 function ExamPreviewModal({ article, open, onClose }: { article: any; open: boolean; onClose: () => void }) {
-  const data = useMemo(() => extractExamQuestions(article?.content || ""), [article?.content]);
+  const scans = useMemo(() => extractSourceScans(article?.content || ""), [article?.content]);
+  const data = useMemo(() => (scans.length ? { mcqs: [], essays: [] } : extractExamQuestions(article?.content || "")), [article?.content, scans.length]);
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -836,10 +837,27 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
               {lecturer && <span>Lecturer: {lecturer}</span>}
               <span>Date: {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</span>
             </div>
-            <p className="mt-4 text-[11px] italic text-neutral-500">Preview paper — questions only. Answers are hidden.</p>
+            <p className="mt-4 text-[11px] italic text-neutral-500">
+              {scans.length ? "Exact scan of the original paper, page by page." : "Preview paper — questions only. Answers are hidden."}
+            </p>
           </div>
 
-          {data.mcqs.length > 0 && (
+          {scans.length > 0 && (
+            <section className="space-y-4">
+              {scans.map((src, i) => (
+                <img
+                  key={src + i}
+                  src={src}
+                  alt={`Page ${i + 1}`}
+                  loading={i < 2 ? "eager" : "lazy"}
+                  decoding="async"
+                  className="w-full rounded border border-neutral-200 object-contain"
+                />
+              ))}
+            </section>
+          )}
+
+          {!scans.length && data.mcqs.length > 0 && (
             <section className="mb-10">
               <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-neutral-700 border-b border-neutral-300 pb-2">Section A: Multiple Choice</h2>
               <ol className="space-y-6">
@@ -862,7 +880,7 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
             </section>
           )}
 
-          {data.essays.length > 0 && (
+          {!scans.length && data.essays.length > 0 && (
             <section>
               <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-neutral-700 border-b border-neutral-300 pb-2">Section B: Essay Questions</h2>
               <ol className="space-y-5">
@@ -875,7 +893,7 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
             </section>
           )}
 
-          {data.mcqs.length === 0 && data.essays.length === 0 && (
+          {!scans.length && data.mcqs.length === 0 && data.essays.length === 0 && (
             <p className="text-center text-sm text-neutral-500">No exam-style questions detected in this article.</p>
           )}
 
@@ -1053,12 +1071,25 @@ export function unwrapHardBreaks(raw: string): string {
   return out.join("\n");
 }
 
+/**
+ * Original-paper page scans travel inside `content` as a hidden block so
+ * they never need a schema change, but they must never render inline —
+ * they only feed the "Preview" modal (see extractSourceScans below).
+ */
+const SOURCE_SCANS_BLOCK_RE = /<!--SOURCE_SCANS\n([\s\S]*?)\nSOURCE_SCANS-->/;
+
+export function extractSourceScans(raw: string): string[] {
+  const m = (raw || "").match(SOURCE_SCANS_BLOCK_RE);
+  if (!m) return [];
+  return m[1].split("\n").map((l) => l.trim()).filter(Boolean);
+}
+
 export function preprocessContent(raw: string): string {
   const out: string[] = [];
   let inKeyPoints = false;
   let inFence = false;
 
-  const decoded = unwrapHardBreaks(decodeEntities(raw));
+  const decoded = unwrapHardBreaks(decodeEntities(raw).replace(SOURCE_SCANS_BLOCK_RE, ""));
   const sourceLines = decoded.replace(/\r\n?/g, "\n").split("\n");
 
   for (let idx = 0; idx < sourceLines.length; idx++) {
@@ -1077,6 +1108,14 @@ export function preprocessContent(raw: string): string {
     // ── FIX: pass table rows through completely raw (no transforms) ──
     const trimmedRaw = rawLine.trim().replace(/&nbsp;/gi, " ").replace(/\u00A0/g, " ");
     if (isTableRow(trimmedRaw)) {
+      out.push(trimmedRaw);
+      continue;
+    }
+
+    // Pass markdown image lines through raw so the punctuation-spacing pass
+    // below doesn't split "![" into "! [" or "file.jpg" into "file. jpg",
+    // which breaks the ^!\[(.*?)\]\((.*?)\)$ match in the renderer.
+    if (/^!\[.*?\]\(\S+\)$/.test(trimmedRaw)) {
       out.push(trimmedRaw);
       continue;
     }
@@ -1306,6 +1345,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   // A, B, C lines are answer points, so they must read as bullet points.
   let examMode: "mcq" | "essay" | null =
     /\bSAQs?\b|short[- ]answer|essay/i.test(content.slice(0, 3000)) ? "essay" : null;
+  // True once an MCQ stem has been rendered, so lowercase "a) …" lines are read
+  // as its choices rather than as essay sub-parts.
+  let inMcqChoices = false;
   const pqs: { number: string; question: string; answer: string }[] = [];
   let insertedRelated = false;
 
@@ -1487,7 +1529,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
 
     if (/^\*{0,2}\s*(?:Question\s*)?\d+[a-z]?[\.)]\s+.{4,}/i.test(t) && examMode === "essay") {
-      flushList(); underSubheading = false;
+      flushList(); underSubheading = false; inMcqChoices = false;
       els.push(<p key={`essay-q-${i}`} className="mb-4 font-serif text-xl font-bold leading-snug text-foreground"><Inline text={cleanDisplayText(t)} /></p>);
       continue;
     }
@@ -1510,7 +1552,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           return;
         }
         els.push(
-          <div key={`mcqopt-combo-${i}-${n}`} className="my-1.5 flex items-start gap-2.5 pl-1">
+          <div key={`mcqopt-combo-${i}-${n}`} className="my-1.5 flex items-start gap-2.5 pl-9 sm:pl-12">
             <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
             <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
           </div>
@@ -1525,8 +1567,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     const subQMatch = t.match(/^(\(?[a-z]\)|[ivx]+\)|\([ivx]+\))\s*(.+)/i);
     // MCQ choice line (A–E) — render uniformly even when wrapped in stray **
     // Handles: "A) text", "**A) text**", "E)** text", "**A.** text", etc.
-    const mcqOptMatch = t.match(/^\*{0,2}\s*([A-E])\s*[\.\)]\s*\*{0,2}\s*(.+?)\s*\*{0,2}\s*$/);
-    if (mcqOptMatch && !inPractice) {
+    const mcqOptMatch = t.match(/^\*{0,2}\s*\(?([A-Ea-e])\)?\s*[\.\)]\s*\*{0,2}\s*(.+?)\s*\*{0,2}\s*$/);
+    const isLowerChoice = !!mcqOptMatch && /[a-e]/.test(mcqOptMatch[1]);
+    if (mcqOptMatch && !inPractice && (!isLowerChoice || inMcqChoices)) {
       if (examMode !== "essay") { flushList(); }
       underSubheading = false;
       const label = mcqOptMatch[1].toUpperCase();
@@ -1540,7 +1583,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         continue;
       }
       els.push(
-        <div key={`mcqopt-${i}`} className="my-1.5 flex items-start gap-2.5 pl-1">
+        <div key={`mcqopt-${i}`} className="my-1.5 flex items-start gap-2.5 pl-9 sm:pl-12">
           <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
           <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
         </div>
@@ -1570,7 +1613,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
 
     if (/^#{1,2}\s/.test(t)) {
-      flushList(); underSubheading = false;
+      flushList(); underSubheading = false; inMcqChoices = false;
       const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").replace(/^\d+\.\s*/, "").replace(/^[IVXLC]+\.\s+/, "").trim();
       if (/\b(section\s+a|multiple\s+choice|mcqs?)\b/i.test(heading)) examMode = "mcq";
       if (/\b(section\s+b|section\s+c|essay|short\s+answer|long\s+answer|answer\s+any)\b/i.test(heading)) examMode = "essay";
@@ -1590,7 +1633,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
 
     if (/^#{3,6}\s/.test(t)) {
-      flushList(); underSubheading = true;
+      flushList(); underSubheading = true; inMcqChoices = false;
       const txt = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").trim();
       els.push(<h3 key={`h3-${i}`} id={slugify(txt)} className="mt-6 mb-2 scroll-mt-20 font-serif text-xl font-bold leading-snug text-foreground">{txt}</h3>);
       continue;
@@ -1617,6 +1660,40 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (inPractice && t.startsWith("→")) continue;
 
     if (t.startsWith("- ")) { pushBullet(t.slice(2), `li-${i}`); continue; }
+
+    // ── Numbered MCQ stem ("12. Which of the following …" followed by choices) ──
+    // Rendered as a question header with its own number badge so the literal
+    // paper numbering is preserved and the choices can sit clearly indented
+    // to the right of it instead of sharing the same column.
+    if (/^\*{0,2}\s*\d{1,3}\s*[.)]\s+.{4,}/.test(t) && !inPractice) {
+      let nextMeaningful = "";
+      for (let k = i + 1; k < lines.length; k++) {
+        const nt = lines[k].trim();
+        if (!nt) continue;
+        nextMeaningful = nt;
+        break;
+      }
+      const nextIsChoice = /^\*{0,2}\s*\(?[A-Ea-e]\)?\s*[.)]\s+/.test(nextMeaningful);
+      if (nextIsChoice) {
+        flushList(); flushPractice(); underSubheading = false;
+        inMcqChoices = true;
+        _sec++;
+        const stripped = t.replace(/^\*+|\*+$/g, "");
+        const qNum = stripped.match(/^\s*(\d{1,3})/)?.[1] ?? "";
+        const qStem = cleanDisplayText(stripped.replace(/^\s*\d{1,3}\s*[.)]\s*/, ""));
+        els.push(
+          <div key={`mcqq-${i}`} id={`section-${_sec}`} className="mt-8 mb-3 flex items-start gap-3 scroll-mt-20">
+            <span className="mt-0.5 shrink-0 flex items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm w-9 h-9">
+              {qNum}
+            </span>
+            <p className="flex-1 pt-1.5 font-semibold text-[1.03rem] leading-relaxed text-foreground sm:text-[1.08rem]">
+              <Inline text={qStem} />
+            </p>
+          </div>
+        );
+        continue;
+      }
+    }
 
     if (/^\d+\.\s/.test(t) && !t.includes("→") && !inPractice) {
       if (!listBuf || listBuf.type !== "ol") { flushList(); listBuf = { type: "ol", items: [] }; }
@@ -1710,6 +1787,62 @@ function SidebarToc({ items, activeId }: { items: TocItem[]; activeId: string })
         </a>
       ))}
     </nav>
+  );
+}
+
+function SourcePaperGallery({ originalNotes }: { originalNotes?: string | null }) {
+  const pages = useMemo(
+    () => [...String(originalNotes || "").matchAll(/!\[[^\]]*\]\((https?:[^)]+)\)/g)].map((match) => match[1]),
+    [originalNotes],
+  );
+  const [viewerOpen, setViewerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!viewerOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setViewerOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [viewerOpen]);
+
+  if (!pages.length) return null;
+  return (
+    <>
+      <section className="not-prose mb-7 overflow-hidden rounded-xl border border-border bg-card">
+        <button type="button" onClick={() => setViewerOpen(true)} className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left transition-colors hover:bg-muted/40 sm:px-5">
+          <span className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary"><FileText className="h-4 w-4" /></span>
+            <span>
+              <span className="block text-sm font-bold text-foreground">View original paper scans</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">Open the complete set in a scrollable viewer.</span>
+            </span>
+          </span>
+          <span className="shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground">{pages.length} pages</span>
+        </button>
+      </section>
+
+      {viewerOpen && (
+        <div className="fixed inset-0 z-[120] bg-background/95 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Original paper scans">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background/95 px-4 py-3 shadow-sm sm:px-6">
+            <p className="text-sm font-bold text-foreground">Original paper scans <span className="font-normal text-muted-foreground">· Scroll to review all {pages.length} pages</span></p>
+            <button type="button" onClick={() => setViewerOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-muted" aria-label="Close paper scans">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="h-[calc(100dvh-65px)] overflow-y-auto px-3 py-5 sm:px-6">
+            <div className="mx-auto max-w-3xl space-y-5">
+              {pages.map((src, index) => (
+                <figure key={src} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+                  <img src={src} alt={`Original pathology paper page ${index + 1}`} className="w-full" />
+                  <figcaption className="px-3 py-2 text-xs font-semibold text-muted-foreground">Page {index + 1} of {pages.length}</figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -2260,6 +2393,8 @@ export default function BlogPost() {
             ) : null}
 
             <SourceAttribution article={article} />
+
+            <SourcePaperGallery originalNotes={(article as any).original_notes} />
 
             <HtmlEmbed data={(article as any).html_embed} position="top" />
 

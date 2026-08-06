@@ -36,7 +36,6 @@ export const YEAR3_SEMESTER: Record<string, 1 | 2 | 3> = {
   "Immunopathology": 3,
   "Medical Mycology": 3,
   "Medical Virology": 3,
-  "Clinical Techniques": 3,
   "Introduction to Clinical Techniques": 3,
   "Spot/Practical Examination": 3,
   "Community Health": 3,

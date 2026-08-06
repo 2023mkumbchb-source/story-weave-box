@@ -145,7 +145,7 @@ serve(async (req) => {
     const baseUrl = normalizeBaseUrl((siteUrlSetting as any)?.value);
 
     const [articles, mcqs, flashcards, stories] = await Promise.all([
-      fetchAllPublished(supabase, "articles", "id, title, slug, created_at, updated_at, category, og_image_url, content"),
+      fetchAllPublished(supabase, "articles", "id, title, slug, created_at, updated_at, category, og_image_url, content, original_notes"),
       fetchAllPublished(supabase, "mcq_sets", "id, title, slug, og_image_url, created_at, updated_at, category"),
       fetchAllPublished(supabase, "flashcard_sets", "id, title, slug, created_at, updated_at, category"),
       fetchAllPublished(supabase, "stories", "id, title, slug, created_at, category, cover_image_url", "created_at"),
@@ -198,7 +198,11 @@ serve(async (req) => {
       emittedPaths.add(path);
       const lastmod = (a.updated_at || a.created_at) ? new Date(a.updated_at || a.created_at).toISOString().split("T")[0] : "";
       const imageUrl = a.og_image_url || extractFirstImage(a.content) || null;
-      const contentImages = extractContentImages(a.content);
+      // Scanned page images of transcribed past papers live in `original_notes`
+      // (kept out of the visible body, but still indexed for Google Images).
+      const contentImages = extractContentImages(
+        [a.content, a.original_notes].filter(Boolean).join("\n"),
+      );
       xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
