@@ -22,10 +22,18 @@ function cleanTitle(t: string): string {
     .trim();
 }
 
+function assessmentLabel(article: Article): string {
+  const tags = article.tags || [];
+  const assessment = tags.find((tag) => /^(CAT\s*\d+|End[- ]of[- ]Semester|End[- ]of[- ]Year|Paper\s*(I|II|III|\d+)|Final Exam)$/i.test(tag));
+  const semester = tags.find((tag) => /^Semester\s*[1-3]$/i.test(tag));
+  return [semester, assessment].filter(Boolean).join(" / ");
+}
+
 export default function NoteRow({ article, index }: { article: Article; index?: number }) {
   const location = useLocation();
   const unit = getCategoryDisplayName(article.category);
   const year = getYearFromCategory(article.category);
+  const assessment = assessmentLabel(article);
   const date = new Date(article.updated_at || article.created_at).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
@@ -46,6 +54,7 @@ export default function NoteRow({ article, index }: { article: Article; index?: 
         <h3 className="truncate text-[15px] font-semibold leading-snug text-foreground transition-colors group-hover:text-primary sm:text-[16px]">
           {cleanTitle(article.title)}
         </h3>
+        {assessment && <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-primary/80">{assessment}</p>}
         <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[11.5px] text-muted-foreground">
           <span className="truncate">{unit}</span>
           {year && <span className="hidden sm:inline">· {year}</span>}

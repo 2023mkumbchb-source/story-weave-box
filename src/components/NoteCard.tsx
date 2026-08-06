@@ -20,10 +20,18 @@ function cleanTitle(t: string): string {
     .trim();
 }
 
+function assessmentLabel(article: Article): string {
+  const tags = article.tags || [];
+  const assessment = tags.find((tag) => /^(CAT\s*\d+|End[- ]of[- ]Semester|End[- ]of[- ]Year|Paper\s*(I|II|III|\d+)|Final Exam)$/i.test(tag));
+  const semester = tags.find((tag) => /^Semester\s*[1-3]$/i.test(tag));
+  return [semester, assessment].filter(Boolean).join(" / ");
+}
+
 export default function NoteCard({ article }: { article: Article }) {
   const location = useLocation();
   const unit = getCategoryDisplayName(article.category);
   const year = getYearFromCategory(article.category);
+  const assessment = assessmentLabel(article);
   const date = new Date(article.updated_at || article.created_at).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
@@ -43,6 +51,7 @@ export default function NoteCard({ article }: { article: Article }) {
       <p className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
         {unit}
       </p>
+      {assessment && <p className="mt-1 text-[10.5px] font-semibold uppercase tracking-wider text-primary/80">{assessment}</p>}
       <h3 className="mt-1.5 line-clamp-3 font-serif text-[16px] font-bold leading-snug text-foreground transition-colors group-hover:text-primary">
         {cleanTitle(article.title)}
       </h3>
