@@ -1005,6 +1005,54 @@ function isTableRow(s: string): boolean {
   return t.startsWith("|") && t.includes("|", 1);
 }
 
+/**
+ * Scanned/imported papers arrive with a hard line break at every printed line
+ * width, so a single sentence used to render as four separate paragraphs with a
+ * full paragraph gap between each fragment — the "spaced out, unreadable" look.
+ * This rejoins those fragments into real paragraphs: a line only continues the
+ * previous one when the previous line does not end a sentence AND the current
+ * line starts mid-sentence (lowercase / opening bracket).
+ */
+const STRUCTURAL_START =
+  /^(?:#{1,6}\s|>|\||!\[|```|[-*+•]\s|\(?[a-z0-9]{1,3}[.)]\s|[A-Ea-e]\s*[.)]\s|(?:answer|model answer|correct answer|explanation|rationale|question|q)\b\s*\d*\s*[:：]?)/i;
+
+export function unwrapHardBreaks(raw: string): string {
+  const lines = String(raw ?? "").replace(/\r\n?/g, "\n").split("\n");
+  const out: string[] = [];
+  let inFence = false;
+
+  for (const original of lines) {
+    const t = original.trim();
+    if (/^```/.test(t)) { inFence = !inFence; out.push(original); continue; }
+    if (inFence || !t) { out.push(original); continue; }
+
+    // Find the previous non-blank output line.
+    let prevIdx = out.length - 1;
+    while (prevIdx >= 0 && !out[prevIdx].trim()) prevIdx--;
+    const prev = prevIdx >= 0 ? out[prevIdx].trim() : "";
+
+    const continuation =
+      prev.length > 0 &&
+      prev.length < 4000 &&
+      !isTableRow(prev) &&
+      !isTableRow(t) &&
+      !/^(?:#{1,6}\s|>|\||!\[)/.test(prev) &&
+      !STRUCTURAL_START.test(t) &&
+      !/[.!?;:*_)\]}"”’]$/.test(prev) &&
+      /^[a-z(\u2018\u201c]/.test(t);
+
+    if (continuation) {
+      out[prevIdx] = `${out[prevIdx].replace(/\s+$/, "")} ${t}`;
+      // Drop any blank lines that were sitting between the two fragments.
+      out.length = prevIdx + 1;
+      continue;
+    }
+    out.push(original);
+  }
+
+  return out.join("\n");
+}
+
 export function preprocessContent(raw: string): string {
   const out: string[] = [];
   let inKeyPoints = false;
