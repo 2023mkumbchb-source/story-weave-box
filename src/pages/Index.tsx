@@ -50,6 +50,7 @@ export default function Index() {
   const [lastRead, setLastRead] = useState<RecentArticle[]>([]);
   const [activeTab, setActiveTab] = useState<"all" | "articles" | "mcqs" | "flashcards" | "stories">("all");
   const [query, setQuery] = useState("");
+  const [recentShown, setRecentShown] = useState(10);
 
   useEffect(() => {
     updateMetaTags({
@@ -63,26 +64,22 @@ export default function Index() {
     // Load last read
     setLastRead(getRecentArticles());
 
-    // Load recently uploaded content (articles, mcqs, flashcards, stories)
-    Promise.all([
-      supabase.from("articles").select("id, title, category, created_at, slug, content").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(16),
-      supabase.from("mcq_sets").select("id, title, category, created_at, slug, questions").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(16),
-      supabase.from("flashcard_sets").select("id, title, category, created_at, slug, cards").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(10),
-      supabase.from("stories").select("id, title, category, created_at, slug, content").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false }).limit(10),
-    ]).then(([arts, mcqs, fcs, stories]) => {
-      // Never surface empty shells on the homepage: articles/stories need real
-      // body text and question sets need actual questions.
-      const hasText = (r: any) => String(r?.content || "").replace(/!\[[^\]]*\]\([^)]*\)/g, "").trim().length >= 200;
-      const hasItems = (arr: any, min: number) => Array.isArray(arr) && arr.length >= min;
-      const strip = ({ content, questions, cards, ...rest }: any) => rest;
-      const items: RecentItem[] = [
-        ...(arts.data || []).filter(hasText).map(a => ({ ...strip(a), type: "article" as const })),
-        ...(mcqs.data || []).filter((m: any) => hasItems(m.questions, 3)).map(m => ({ ...strip(m), type: "mcq" as const })),
-        ...(fcs.data || []).filter((f: any) => hasItems(f.cards, 3)).map(f => ({ ...strip(f), type: "flashcard" as const })),
-        ...(stories.data || []).filter(hasText).map(s => ({ ...strip(s), type: "story" as const })),
-      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      setRecentlyUploaded(items);
-    });
+    // Recently added: one aggregated request that returns metadata only. The
+    // database already filters out empty shells (no body text / no questions),
+    // so the browser never downloads article bodies just to render this list.
+    (supabase as any)
+      .rpc("home_recent", { limit_n: 40 })
+      .then(({ data }: { data: any[] | null }) => {
+        const items: RecentItem[] = (data || []).map((r) => ({
+          id: r.id,
+          title: r.title,
+          category: r.category,
+          created_at: r.created_at,
+          slug: r.slug,
+          type: r.kind as RecentItem["type"],
+        }));
+        setRecentlyUploaded(items);
+      });
   }, []);
 
   const yearGroups = Object.keys(YEAR_CATEGORIES).map(year => {
