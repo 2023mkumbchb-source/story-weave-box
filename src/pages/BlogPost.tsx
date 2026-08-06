@@ -1010,7 +1010,7 @@ export function preprocessContent(raw: string): string {
   let inKeyPoints = false;
   let inFence = false;
 
-  const decoded = decodeEntities(raw);
+  const decoded = unwrapHardBreaks(decodeEntities(raw));
   const sourceLines = decoded.replace(/\r\n?/g, "\n").split("\n");
 
   for (let idx = 0; idx < sourceLines.length; idx++) {
