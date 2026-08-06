@@ -1551,8 +1551,15 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
     if (subQMatch) {
-      flushList(); underSubheading = false;
       const label = subQMatch[1].replace(/[()]/g, "").toUpperCase();
+      const subText = subQMatch[2].trim();
+      // In SAQ/essay papers "(a) …" lines are answer points: bullet them so the
+      // page reads as revision points instead of a wall of chipped rows.
+      if (examMode === "essay" || subText.length > 110) {
+        pushBullet(`**${label}.** ${subText}`, `essay-sub-${i}`);
+        continue;
+      }
+      flushList(); underSubheading = false;
       els.push(
         <div key={`subq-${i}`} className="my-3 flex items-start gap-2.5 pl-1">
           <span className="shrink-0 flex items-center justify-center rounded bg-primary/10 text-primary font-bold text-xs w-7 h-7">{label}</span>
