@@ -1533,7 +1533,8 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       const rawOption = mcqOptMatch[2].replace(/^\*+|\*+$/g, "").trim();
       const explanationMatch = rawOption.match(/^([\s\S]*?)\s*(?:Explanation|Rationale)\s*[:：]\s*([\s\S]+)$/i);
       const optText = (explanationMatch?.[1] || rawOption).trim();
-      if (examMode === "essay") {
+      // A long lettered line is prose (an answer point), never an MCQ choice.
+      if (examMode === "essay" || optText.length > 110) {
         pushBullet(`**${label}.** ${optText}`, `essay-pt-${i}`);
         if (explanationMatch?.[2]) pushBullet(explanationMatch[2].trim(), `essay-pt-exp-${i}`);
         continue;
