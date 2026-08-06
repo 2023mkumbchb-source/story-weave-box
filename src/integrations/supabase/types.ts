@@ -819,6 +819,16 @@ export type Database = {
     }
     Functions: {
       _slugify: { Args: { input: string }; Returns: string }
+      category_counts: {
+        Args: never
+        Returns: {
+          articles: number
+          flashcards: number
+          latest: string
+          mcqs: number
+          name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -826,6 +836,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      home_recent: {
+        Args: { limit_n?: number }
+        Returns: {
+          category: string
+          created_at: string
+          id: string
+          kind: string
+          slug: string
+          title: string
+        }[]
+      }
+      slugify_title: { Args: { t: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"
