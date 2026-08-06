@@ -1302,7 +1302,10 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   let tableBuf: string[] = [];
   let flowBuf: string[] = [];
   let underSubheading = false;
-  let examMode: "mcq" | "essay" | null = null;
+  // Short-answer / SAQ papers have no multiple-choice options at all: their
+  // A, B, C lines are answer points, so they must read as bullet points.
+  let examMode: "mcq" | "essay" | null =
+    /\bSAQs?\b|short[- ]answer|essay/i.test(content.slice(0, 3000)) ? "essay" : null;
   const pqs: { number: string; question: string; answer: string }[] = [];
   let insertedRelated = false;
 
