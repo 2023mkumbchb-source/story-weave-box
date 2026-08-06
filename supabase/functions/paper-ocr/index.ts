@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callOmniRoute, omniRouteConfig } from "../_shared/omniroute.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,6 +20,25 @@ function geminiKeys(): string[] {
 const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
 
 async function callVision(prompt: string, images: { mime: string; data: string }[]): Promise<string> {
+  // Prefer the OmniRoute combo when configured; send images as OpenAI image_url parts.
+  const omni = omniRouteConfig();
+  if (omni) {
+    try {
+      const content = [
+        { type: "text", text: prompt },
+        ...images.map((im) => ({ type: "image_url", image_url: { url: `data:${im.mime};base64,${im.data}` } })),
+      ];
+      return await callOmniRoute(omni, {
+        messages: [{ role: "user", content }],
+        temperature: 0.1,
+        maxTokens: 8192,
+        timeoutMs: 110000,
+      });
+    } catch (e: any) {
+      console.log("OmniRoute vision unavailable, falling back to Gemini:", e?.message || String(e));
+    }
+  }
+
   const keys = geminiKeys();
   if (!keys.length) throw new Error("No Gemini API key configured");
 

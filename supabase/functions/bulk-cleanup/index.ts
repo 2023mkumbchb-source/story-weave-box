@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { callOmniRoute, omniRouteConfig } from "../_shared/omniroute.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -550,18 +551,13 @@ function extractFirstJsonObject(text: string): any | null {
 }
 
 async function callLovableAiCleanup(article: ArticleLite): Promise<AiCleanupOutput | null> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) return null;
-
   const allowedCategories = Object.keys(CATEGORY_KEYWORDS).join("\n");
   const contentForAi = article.content.slice(0, AI_MAX_CONTENT_CHARS);
 
-  const payload = {
-    model: AI_MODEL,
-    messages: [
-      {
-        role: "system",
-        content: `You clean and classify MBChB study notes. Return ONLY valid JSON with this exact schema:
+  const messages = [
+    {
+      role: "system",
+      content: `You clean and classify MBChB study notes. Return ONLY valid JSON with this exact schema:
 {"title":"string","category":"string","content_type":"article|mcq|essay|delete","clean_content":"string","reason":"string"}
 Rules:
 - title must be concise, no emojis, no university names.
@@ -569,12 +565,35 @@ Rules:
 - content_type = mcq if mostly MCQ exam items; essay if SAQ/LAQ style; delete only if empty/garbage.
 - clean_content must preserve content but improve formatting and remove emojis/university mentions.
 Allowed categories:\n${allowedCategories}`,
-      },
-      {
-        role: "user",
-        content: `Current title: ${article.title}\nCurrent category: ${article.category}\n\nContent:\n${contentForAi}`,
-      },
-    ],
+    },
+    {
+      role: "user",
+      content: `Current title: ${article.title}\nCurrent category: ${article.category}\n\nContent:\n${contentForAi}`,
+    },
+  ];
+
+  // Prefer the OmniRoute combo (free providers) when configured; fall back to Lovable.
+  const omni = omniRouteConfig();
+  if (omni) {
+    try {
+      const text = await callOmniRoute(omni, {
+        messages,
+        temperature: 0.1,
+        maxTokens: 8000,
+        timeoutMs: 25000,
+      });
+      return extractFirstJsonObject(text);
+    } catch (e: any) {
+      console.log("OmniRoute unavailable, falling back to Lovable:", e?.message || String(e));
+    }
+  }
+
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) return null;
+
+  const payload = {
+    model: AI_MODEL,
+    messages,
     temperature: 0.1,
   };
 

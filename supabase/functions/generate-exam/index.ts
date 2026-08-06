@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { callOmniRoute, omniRouteConfig } from "../_shared/omniroute.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +18,21 @@ function normalizeUnitName(category: string): string {
 }
 
 async function callGeminiFallback(prompt: string): Promise<string> {
+  // Prefer the OmniRoute combo (free providers) when configured; fall back to Gemini keys.
+  const omni = omniRouteConfig();
+  if (omni) {
+    try {
+      return await callOmniRoute(omni, {
+        messages: [
+          { role: "system", content: "You are a senior medical exam writer. Return ONLY valid JSON, no markdown or code blocks." },
+          { role: "user", content: prompt },
+        ],
+      });
+    } catch (e: any) {
+      console.log("OmniRoute unavailable, falling back to Gemini:", e?.message || String(e));
+    }
+  }
+
   const keys: string[] = [];
   for (const name of ["GEMINI_API_KEY", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3", "GEMINI_API_KEY_4", "GEMINI_API_KEY_5"]) {
     const v = Deno.env.get(name);

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callOmniRoute, omniRouteConfig } from "../_shared/omniroute.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -209,6 +210,16 @@ function parseEssayOutput(raw: string) {
 }
 
 async function callAI(messages: any[], geminiKey?: string, allKeys?: string[]): Promise<string> {
+  // Prefer the OmniRoute combo (free providers) when configured; fall back to Gemini keys.
+  const omni = omniRouteConfig();
+  if (omni) {
+    try {
+      return await callOmniRoute(omni, { messages });
+    } catch (e: any) {
+      console.log("OmniRoute unavailable, falling back to Gemini:", e?.message || String(e));
+    }
+  }
+
   // Build list of keys to try: provided keys array > single key > env var
   const keyList: string[] = [];
   if (allKeys && allKeys.length > 0) {
@@ -222,7 +233,7 @@ async function callAI(messages: any[], geminiKey?: string, allKeys?: string[]): 
     if (v && !keyList.includes(v)) keyList.push(v);
   }
 
-  if (keyList.length === 0) throw new Error("No Gemini API key configured. Please save your Gemini API key in Settings.");
+  if (keyList.length === 0) throw new Error("No AI provider configured. Set OMNIROUTE_BASE_URL/OMNIROUTE_API_KEY secrets or save a Gemini API key in Settings.");
 
   const systemMsg = messages.find((m: any) => m.role === "system")?.content || "";
   const userMsg = messages.find((m: any) => m.role === "user")?.content || "";

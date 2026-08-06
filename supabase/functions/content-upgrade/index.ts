@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { callOmniRoute, omniRouteConfig, omniRouteConfigured } from "../_shared/omniroute.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,6 +36,20 @@ async function resolveSiteUrlFromBodyOrSettings(
 }
 
 async function callGemini(apiKey: string, prompt: string, maxTokens = 8000): Promise<string> {
+  // Prefer the OmniRoute combo (free providers) when configured; fall back to Gemini.
+  const omni = omniRouteConfig();
+  if (omni) {
+    try {
+      return await callOmniRoute(omni, {
+        messages: [{ role: "user", content: prompt }],
+        maxTokens,
+        temperature: 0.3,
+      });
+    } catch (e: any) {
+      console.log("OmniRoute unavailable, falling back to Gemini:", e?.message || String(e));
+    }
+  }
+
   for (const model of GEMINI_MODELS) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -193,7 +208,7 @@ serve(async (req) => {
       : Deno.env.get("GEMINI_API_KEY");
 
     if (action === "scan") {
-      if (!geminiKey) throw new Error("GEMINI_API_KEY not set");
+      if (!geminiKey && !omniRouteConfigured()) throw new Error("No AI provider configured. Set OMNIROUTE_BASE_URL/OMNIROUTE_API_KEY secrets or a GEMINI_API_KEY.");
 
       const { data: articles } = await sb
         .from("articles")
@@ -240,7 +255,7 @@ Return ONLY the JSON array, no markdown.`;
     }
 
     if (action === "upgrade") {
-      if (!geminiKey) throw new Error("GEMINI_API_KEY not set");
+      if (!geminiKey && !omniRouteConfigured()) throw new Error("No AI provider configured. Set OMNIROUTE_BASE_URL/OMNIROUTE_API_KEY secrets or a GEMINI_API_KEY.");
 
       const id = body?.id;
       const upgradeType = body?.type || "format";
@@ -303,7 +318,7 @@ Return ONLY the improved content.`;
     }
 
     if (action === "year2_article_pass") {
-      if (!geminiKey) throw new Error("GEMINI_API_KEY not set");
+      if (!geminiKey && !omniRouteConfigured()) throw new Error("No AI provider configured. Set OMNIROUTE_BASE_URL/OMNIROUTE_API_KEY secrets or a GEMINI_API_KEY.");
       const batchSize = Math.min(Math.max(Number(body?.batch_size || 4), 1), 8);
       const cursor = typeof body?.cursor === "string" && body.cursor ? body.cursor : null;
       let query = sb
@@ -466,7 +481,7 @@ Style requirements:
 
     // Generate SEO metadata for articles using Gemini
     if (action === "generate_seo") {
-      if (!geminiKey) throw new Error("GEMINI_API_KEY not set");
+      if (!geminiKey && !omniRouteConfigured()) throw new Error("No AI provider configured. Set OMNIROUTE_BASE_URL/OMNIROUTE_API_KEY secrets or a GEMINI_API_KEY.");
 
       const yearFilter = body?.year || null;
       const batchSize = Math.min(Math.max(Number(body?.batch_size || 10), 1), 25);
@@ -570,7 +585,7 @@ Content: ${contentSnippet}`;
 
     // Generate SEO for a single article
     if (action === "generate_seo_single") {
-      if (!geminiKey) throw new Error("GEMINI_API_KEY not set");
+      if (!geminiKey && !omniRouteConfigured()) throw new Error("No AI provider configured. Set OMNIROUTE_BASE_URL/OMNIROUTE_API_KEY secrets or a GEMINI_API_KEY.");
 
       const id = body?.id;
       if (!id) throw new Error("Missing article id");
@@ -632,7 +647,7 @@ Content preview: ${contentSnippet}`;
     }
 
     if (action === "bulk_seo") {
-      if (!geminiKey) throw new Error("GEMINI_API_KEY not set");
+      if (!geminiKey && !omniRouteConfigured()) throw new Error("No AI provider configured. Set OMNIROUTE_BASE_URL/OMNIROUTE_API_KEY secrets or a GEMINI_API_KEY.");
 
       const { data: articles, error: fetchError } = await sb
         .from("articles")

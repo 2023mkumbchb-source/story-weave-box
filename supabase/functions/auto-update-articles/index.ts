@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callOmniRoute, omniRouteConfig, omniRouteConfigured } from "../_shared/omniroute.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,6 +26,19 @@ function clipNotes(notes: string, maxChars = 28000): string {
 }
 
 async function callGemini(prompt: string, apiKey: string): Promise<string> {
+  // Prefer the OmniRoute combo (free providers) when configured; fall back to Gemini.
+  const omni = omniRouteConfig();
+  if (omni) {
+    try {
+      return await callOmniRoute(omni, {
+        messages: [{ role: "user", content: prompt }],
+        maxTokens: 4000,
+      });
+    } catch (e: any) {
+      console.log("OmniRoute unavailable, falling back to Gemini:", e?.message || String(e));
+    }
+  }
+
   const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
   for (const model of models) {
     try {
@@ -69,7 +83,7 @@ serve(async (req) => {
       const v = Deno.env.get(name);
       if (v && !apiKeys.includes(v)) apiKeys.push(v);
     }
-    if (!apiKeys.length) throw new Error("No Gemini API key configured");
+    if (!apiKeys.length && !omniRouteConfigured()) throw new Error("No AI provider configured. Set OMNIROUTE_BASE_URL/OMNIROUTE_API_KEY secrets or a Gemini API key.");
 
     // Get last updated cursor from app_settings
     const { data: cursorSetting } = await supabase.from("app_settings").select("value").eq("key", "auto_update_cursor").maybeSingle();
@@ -100,7 +114,7 @@ serve(async (req) => {
     }
 
     const results: { id: string; title: string; status: string }[] = [];
-    const apiKey = apiKeys[Math.floor(Math.random() * apiKeys.length)];
+    const apiKey = apiKeys.length ? apiKeys[Math.floor(Math.random() * apiKeys.length)] : "";
 
     for (const article of articles) {
       try {
