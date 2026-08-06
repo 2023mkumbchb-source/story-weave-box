@@ -281,7 +281,6 @@ export default function Index() {
                   </div>
                   <div className="flex flex-wrap gap-1.5 p-4">
                     {group.categories.slice(0, 6).map(cat => {
-                      const key = getSubjectKey(cat.name);
                       return (
                         <span
                           key={cat.name}
@@ -329,7 +328,6 @@ export default function Index() {
               {filteredRecent.slice(0, recentShown).map(item => {
                 const meta = typeMeta[item.type];
                 const Icon = meta.icon;
-                const subject = getSubjectKey(`${item.category} ${item.title}`);
                 return (
                   <Link key={`${item.type}-${item.id}`} to={getItemLink(item)}
                     className="group relative flex items-center gap-3 border-b border-border px-3 py-3 transition-colors last:border-b-0 hover:bg-muted/50 sm:gap-4 sm:px-4">
