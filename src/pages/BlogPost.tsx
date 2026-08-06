@@ -1862,40 +1862,6 @@ function ArticleJumpLinks({ items }: { items: TocItem[] }) {
   );
 }
 
-function SourcePaperGallery({ originalNotes }: { originalNotes?: string | null }) {
-  const pages = useMemo(
-    () => [...String(originalNotes || "").matchAll(/!\[[^\]]*\]\((https?:[^)]+)\)/g)].map((match) => match[1]),
-    [originalNotes],
-  );
-  if (!pages.length) return null;
-  return (
-    <section className="not-prose mb-7 overflow-hidden rounded-xl border border-border bg-card">
-      <details>
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 sm:px-5 [&::-webkit-details-marker]:hidden">
-          <span className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary"><FileText className="h-4 w-4" /></span>
-            <span>
-              <span className="block text-sm font-bold text-foreground">View original paper scans</span>
-              <span className="mt-0.5 block text-xs text-muted-foreground">Tap any page to open the full-size original.</span>
-            </span>
-          </span>
-          <span className="shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground">{pages.length} pages</span>
-        </summary>
-        <div className="border-t border-border bg-muted/20 p-3 sm:p-4">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {pages.map((src, index) => (
-              <a key={src} href={src} target="_blank" rel="noopener noreferrer" className="group overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-primary/50">
-                <img src={src} alt={`Original pathology paper page ${index + 1}`} loading="lazy" className="aspect-[3/4] w-full object-cover object-top" />
-                <span className="block px-2 py-1.5 text-xs font-semibold text-muted-foreground group-hover:text-primary">Page {index + 1}</span>
-              </a>
-            ))}
-          </div>
-        </div>
-      </details>
-    </section>
-  );
-}
-
 /* ─── Main BlogPost component ─── */
 export default function BlogPost() {
   const { slug } = useParams();
