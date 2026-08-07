@@ -15,8 +15,11 @@ const imageUrls = (article: QueueArticle): string[] => {
   const seen = new Set<string>();
   const urls: string[] = [];
   for (const source of [article.original_notes || "", article.content || ""]) {
-    for (const match of source.matchAll(/!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g)) {
-      const url = match[1].replace(/^https:\/\/ompathstudy\.com\//i, "https://cdn.ompathstudy.com/");
+    const decoded = source.replace(/\\\//g, "/").replace(/&amp;/g, "&");
+    for (const match of decoded.matchAll(/https?:\/\/[^\s)"'<>]+/gi)) {
+      const candidate = match[0].replace(/[\],.;:!?]+$/, "");
+      if (!/(?:\/uploads\/|\.(?:jpe?g|png|webp|gif|avif)(?:\?|$))/i.test(candidate)) continue;
+      const url = candidate.replace(/^https:\/\/(?:www\.)?ompathstudy\.com\/uploads\//i, "https://cdn.ompathstudy.com/uploads/");
       if (!seen.has(url)) { seen.add(url); urls.push(url); }
     }
   }
@@ -127,6 +130,23 @@ export default function UneditedUploads() {
     } finally { setBusy(null); }
   };
 
+  const copyOneImage = async (url: string, page: number) => {
+    setBusy(`copy-${page}`);
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Image request failed (${response.status})`);
+      const original = await response.blob();
+      const bitmap = await createImageBitmap(original);
+      const canvas = document.createElement("canvas"); canvas.width = bitmap.width; canvas.height = bitmap.height;
+      canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
+      const png = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error("Image conversion failed")), "image/png"));
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
+      toast({ title: `Page ${page} copied`, description: "Paste it directly into Claude." });
+    } catch (error) {
+      toast({ title: `Could not copy page ${page}`, description: error instanceof Error ? `${error.message}. Click the image to open it, then copy it from the browser.` : "Open the image and copy it from the browser.", variant: "destructive" });
+    } finally { setBusy(null); }
+  };
+
   const downloadZip = async (article: QueueArticle) => {
     const urls = imageUrls(article);
     if (!urls.length) return toast({ title: "No source images found", variant: "destructive" });
@@ -190,8 +210,8 @@ export default function UneditedUploads() {
           <section>
             <div className="mb-3 flex items-center justify-between"><h2 className="font-bold">Original pages</h2><span className="text-xs text-muted-foreground">All selected automatically</span></div>
             <div className="max-h-[75vh] space-y-3 overflow-y-auto rounded-xl border border-border bg-muted/20 p-3">
-              {urls.map((url, index) => <figure key={url} className="overflow-hidden rounded-lg border border-border bg-card"><img src={url} alt={`Page ${index + 1}`} loading="lazy" className="w-full" /><figcaption className="px-3 py-2 text-xs font-semibold text-muted-foreground">Page {index + 1} of {urls.length}</figcaption></figure>)}
-              {!urls.length && <p className="p-8 text-center text-sm text-muted-foreground">No source images were attached to this article.</p>}
+              {urls.map((url, index) => <figure key={url} className="overflow-hidden rounded-lg border border-border bg-card"><a href={url} target="_blank" rel="noreferrer" title="Open full-size image"><img src={url} alt={`Page ${index + 1}`} loading="lazy" className="w-full cursor-zoom-in" /></a><figcaption className="flex items-center justify-between gap-2 px-3 py-2 text-xs font-semibold text-muted-foreground"><span>Page {index + 1} of {urls.length}</span><Button size="sm" variant="outline" disabled={!!busy} onClick={() => void copyOneImage(url, index + 1)}>{busy === `copy-${index + 1}` ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Clipboard className="mr-1.5 h-3.5 w-3.5" />}Copy image</Button></figcaption></figure>)}
+              {!urls.length && <div className="p-8 text-center text-sm text-muted-foreground"><p>No source images were detected in this article.</p><p className="mt-2">Refresh once; if this remains empty, that paper still needs its scans attached.</p></div>}
             </div>
           </section>
           <section>
