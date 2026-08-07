@@ -82,6 +82,7 @@ const App = () => (
                 <Route path="/account" element={<Account />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/admin/unedited-uploads" element={<UneditedUploads />} />
+                <Route path="/unedited-uploads" element={<UneditedUploads />} />
                 <Route path="/about" element={<About />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

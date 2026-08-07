@@ -5,7 +5,6 @@ import { ArrowLeft, Check, Clipboard, Download, ExternalLink, FileText, Image, L
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { buildBlogPath, type Article } from "@/lib/store";
@@ -76,7 +75,6 @@ const downloadBlob = (blob: Blob, filename: string) => {
 
 export default function UneditedUploads() {
   const navigate = useNavigate();
-  const { isAdmin, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [articles, setArticles] = useState<QueueArticle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,10 +91,7 @@ export default function UneditedUploads() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    if (!authLoading && !isAdmin) navigate("/login", { replace: true });
-    if (!authLoading && isAdmin) void load();
-  }, [authLoading, isAdmin, navigate]);
+  useEffect(() => { void load(); }, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -172,8 +167,7 @@ export default function UneditedUploads() {
     await load();
   };
 
-  if (authLoading || loading) return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
-  if (!isAdmin) return null;
+  if (loading) return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
   if (selected) {
     const urls = imageUrls(selected);
@@ -190,7 +184,7 @@ export default function UneditedUploads() {
         </div>
         <div className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
           <h1 className="font-serif text-xl font-bold text-foreground">{selected.title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{urls.length} source images · {selected.category} · Admin-only review</p>
+          <p className="mt-1 text-sm text-muted-foreground">{urls.length} source images · {selected.category} · Temporary editing workspace</p>
         </div>
         <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           <section>
@@ -216,7 +210,7 @@ export default function UneditedUploads() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div><h1 className="font-serif text-2xl font-bold text-foreground sm:text-3xl">Unedited Uploads</h1><p className="mt-1 text-sm text-muted-foreground">Private workspace for image-first papers awaiting manual text and answers.</p></div>
+        <div><h1 className="font-serif text-2xl font-bold text-foreground sm:text-3xl">Unedited Uploads</h1><p className="mt-1 text-sm text-muted-foreground">Temporary editing workspace for image-first papers awaiting manual text and answers.</p></div>
         <div className="flex gap-2"><Button variant="outline" onClick={() => navigate("/admin")}><ArrowLeft className="mr-2 h-4 w-4" />Dashboard</Button><Button variant="outline" onClick={() => void load()}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button></div>
       </div>
       <div className="mb-5 grid gap-3 sm:grid-cols-[1fr_auto]">
