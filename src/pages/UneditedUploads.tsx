@@ -235,7 +235,6 @@ export default function UneditedUploads() {
           <Button variant="ghost" onClick={() => setSelected(null)}><ArrowLeft className="mr-2 h-4 w-4" />Queue</Button>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => void copyPrompt(selected)}><FileText className="mr-2 h-4 w-4" />Copy Claude prompt</Button>
-            <Button variant="outline" disabled={!!busy} onClick={() => void copyImages(selected)}>{busy === "copy" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Clipboard className="mr-2 h-4 w-4" />}Copy all images</Button>
             <Button variant="outline" disabled={!!busy} onClick={() => void downloadPdf(selected)}>{busy === "pdf" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}Download pages PDF</Button>
             <Button variant="outline" asChild><a href={buildBlogPath(selected)} target="_blank" rel="noreferrer"><ExternalLink className="mr-2 h-4 w-4" />Open blog</a></Button>
           </div>
@@ -248,7 +247,7 @@ export default function UneditedUploads() {
           <section>
             <div className="mb-3 flex items-center justify-between"><h2 className="font-bold">Original pages</h2><span className="text-xs text-muted-foreground">All selected automatically</span></div>
             <div className="max-h-[75vh] space-y-3 overflow-y-auto rounded-xl border border-border bg-muted/20 p-3">
-              {urls.map((url, index) => <figure key={url} className="overflow-hidden rounded-lg border border-border bg-card"><a href={url} target="_blank" rel="noreferrer" title="Open full-size image"><img src={url} alt={`Page ${index + 1}`} loading="lazy" className="w-full cursor-zoom-in" /></a><figcaption className="flex items-center justify-between gap-2 px-3 py-2 text-xs font-semibold text-muted-foreground"><span>Page {index + 1} of {urls.length}</span><Button size="sm" variant="outline" disabled={!!busy} onClick={() => void copyOneImage(url, index + 1)}>{busy === `copy-${index + 1}` ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Clipboard className="mr-1.5 h-3.5 w-3.5" />}Copy image</Button></figcaption></figure>)}
+              {urls.map((url, index) => <figure key={url} className="overflow-hidden rounded-lg border border-border bg-card"><a href={url} target="_blank" rel="noreferrer" title="Open full-size image"><img src={url} alt={`Page ${index + 1}`} loading="lazy" className="w-full cursor-zoom-in" /></a><figcaption className="px-3 py-2 text-xs font-semibold text-muted-foreground">Page {index + 1} of {urls.length}</figcaption></figure>)}
               {!urls.length && <div className="p-8 text-center text-sm text-muted-foreground"><p>No source images were detected in this article.</p><p className="mt-2">Refresh once; if this remains empty, that paper still needs its scans attached.</p></div>}
             </div>
           </section>
