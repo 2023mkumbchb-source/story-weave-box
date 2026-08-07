@@ -37,6 +37,7 @@ export default function SourceLibrary() {
   const [items, setItems] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState(0);
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState("");
   useEffect(() => { supabase.from("articles").select("*").eq("published", true).eq("is_raw", true).is("deleted_at", null).order("updated_at", { ascending: false }).then(({ data }) => { setItems((data || []) as Article[]); setLoading(false); }); }, []);
@@ -63,24 +64,35 @@ export default function SourceLibrary() {
 
   const downloadPdf = async (article: Article) => {
     setBusy(true);
+    setPdfProgress(0);
     try {
       let pdf: jsPDF | null = null;
-      for (const [index, url] of scanUrls(article).entries()) {
-        const response = await fetch(`/api/image-proxy?url=${encodeURIComponent(url)}`);
-        if (!response.ok) throw new Error(`Page ${index + 1} failed`);
-        const bitmap = await createImageBitmap(await response.blob());
+      const urls = scanUrls(article);
+      const blobs: Blob[] = [];
+      for (let start = 0; start < urls.length; start += 6) {
+        const batch = await Promise.all(urls.slice(start, start + 6).map(async (url, offset) => {
+          const response = await fetch(`/api/image-proxy?url=${encodeURIComponent(url)}`);
+          if (!response.ok) throw new Error(`Page ${start + offset + 1} failed`);
+          return response.blob();
+        }));
+        blobs.push(...batch);
+        setPdfProgress(blobs.length);
+      }
+      for (const [index, blob] of blobs.entries()) {
+        const bitmap = await createImageBitmap(blob);
         const canvas = document.createElement("canvas"); const scale = Math.min(1, 1800 / bitmap.width);
         canvas.width = Math.round(bitmap.width * scale); canvas.height = Math.round(bitmap.height * scale); canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
         const orientation = canvas.width > canvas.height ? "landscape" : "portrait";
         if (!pdf) pdf = new jsPDF({ orientation, unit: "pt", format: "a4", compress: true }); else pdf.addPage("a4", orientation);
         const width = pdf.internal.pageSize.getWidth(), height = pdf.internal.pageSize.getHeight(), ratio = Math.min(width / canvas.width, height / canvas.height), imageWidth = canvas.width * ratio, imageHeight = canvas.height * ratio;
         pdf.addImage(canvas.toDataURL("image/jpeg", .88), "JPEG", (width - imageWidth) / 2, (height - imageHeight) / 2, imageWidth, imageHeight, undefined, "FAST"); bitmap.close();
+        setPdfProgress(index + 1);
       }
       pdf?.save(`${article.title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").slice(0, 80)}-pages.pdf`);
-      toast({ title: "Source pages PDF downloaded" });
+      toast({ title: `Downloaded ${urls.length} pages as PDF` });
     } catch (error) {
       toast({ title: "PDF download failed", description: error instanceof Error ? error.message : "Try again", variant: "destructive" });
-    } finally { setBusy(false); }
+    } finally { setBusy(false); setPdfProgress(0); }
   };
 
   if (loading) return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
