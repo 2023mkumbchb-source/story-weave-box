@@ -1505,6 +1505,8 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (combinedOpts.length >= 2 && !inPractice) {
       if (examMode !== "essay") { flushList(); }
       underSubheading = false;
+      if (examMode !== "essay") choicesLabel(`choices-${i}`);
+      else pendingChoicesLabel = false;
       combinedOpts.forEach((m, n) => {
         const label = m[1].toUpperCase();
         const rawOption = (m[2] || "").replace(/^\*+|\*+$/g, "").trim();
@@ -1544,10 +1546,13 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       const optText = (explanationMatch?.[1] || rawOption).trim();
       // A long lettered line is prose (an answer point), never an MCQ choice.
       if (examMode === "essay" || optText.length > 110) {
+        pendingChoicesLabel = false;
         pushBullet(`**${label}.** ${optText}`, `essay-pt-${i}`);
         if (explanationMatch?.[2]) pushBullet(explanationMatch[2].trim(), `essay-pt-exp-${i}`);
         continue;
       }
+      if (label === "A") choicesLabel(`choices-${i}`);
+      else pendingChoicesLabel = false;
       els.push(
         <div key={`mcqopt-${i}`} className="my-1.5 flex items-start gap-2.5 pl-1">
           <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
