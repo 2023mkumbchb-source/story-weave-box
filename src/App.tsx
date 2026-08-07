@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import Navbar from "@/components/Navbar";
@@ -32,7 +32,6 @@ const Login = lazy(() => import("./pages/Login"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const Account = lazy(() => import("./pages/Account"));
 const Admin = lazy(() => import("./pages/Admin"));
-const UneditedUploads = lazy(() => import("./pages/UneditedUploads"));
 const SourceLibrary = lazy(() => import("./pages/SourceLibrary"));
 const YearHub = lazy(() => import("./pages/YearHub"));
 const CategoryManager = lazy(() => import("./pages/CategoryManager"));
@@ -82,8 +81,8 @@ const App = () => (
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/account" element={<Account />} />
                 <Route path="/admin" element={<Admin />} />
-                <Route path="/admin/unedited-uploads" element={<UneditedUploads />} />
-                <Route path="/unedited-uploads" element={<UneditedUploads />} />
+                <Route path="/admin/unedited-uploads" element={<Navigate to="/source-library" replace />} />
+                <Route path="/unedited-uploads" element={<Navigate to="/source-library" replace />} />
                 <Route path="/source-library" element={<SourceLibrary />} />
                 <Route path="/source-library/:slug" element={<SourceLibrary />} />
                 <Route path="/about" element={<About />} />
