@@ -61,7 +61,11 @@ export default function SourceLibrary() {
   };
 
   const downloadPdf = (article: Article) => {
-    window.location.assign(`/api/source-pdf?slug=${encodeURIComponent(article.slug || article.id)}`);
+    const form = document.createElement("form");
+    form.method = "POST"; form.action = "/api/source-pdf"; form.style.display = "none";
+    const title = document.createElement("input"); title.name = "title"; title.value = article.title;
+    const urls = document.createElement("input"); urls.name = "urls"; urls.value = JSON.stringify(scanUrls(article));
+    form.append(title, urls); document.body.appendChild(form); form.submit(); form.remove();
   };
 
 

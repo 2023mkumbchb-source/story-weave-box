@@ -11,18 +11,24 @@ const fileName = (value) => `${String(value || "source-pages").replace(/[^a-z0-9
 
 export default async function handler(req, res) {
   try {
-    const slug = String(Array.isArray(req.query.slug) ? req.query.slug[0] : req.query.slug || "").trim();
-    if (!slug) return res.status(400).json({ error: "slug required" });
-    if (!SUPABASE_KEY) return res.status(500).json({ error: "Server configuration missing" });
-    const filter = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug)
-      ? `id=eq.${encodeURIComponent(slug)}`
-      : `slug=eq.${encodeURIComponent(slug)}`;
-    const query = `${SUPABASE_URL}/rest/v1/articles?${filter}&select=title,content,original_notes&limit=1`;
-    const articleResponse = await fetch(query, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
-    if (!articleResponse.ok) throw new Error(`Article lookup failed (${articleResponse.status})`);
-    const article = (await articleResponse.json())[0];
-    if (!article) return res.status(404).json({ error: "Source not found" });
-    const urls = scanUrls(article);
+    let article;
+    let urls;
+    if (req.method === "POST" && req.body?.urls) {
+      const parsed = JSON.parse(String(req.body.urls));
+      urls = Array.isArray(parsed) ? parsed.filter(url => typeof url === "string" && url.startsWith("https://cdn.ompathstudy.com/uploads/")) : [];
+      article = { title: String(req.body.title || "source-pages") };
+    } else {
+      const slug = String(Array.isArray(req.query.slug) ? req.query.slug[0] : req.query.slug || "").trim();
+      if (!slug) return res.status(400).json({ error: "slug required" });
+      if (!SUPABASE_KEY) return res.status(500).json({ error: "Server configuration missing" });
+      const filter = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug) ? `id=eq.${encodeURIComponent(slug)}` : `slug=eq.${encodeURIComponent(slug)}`;
+      const query = `${SUPABASE_URL}/rest/v1/articles?${filter}&select=title,content,original_notes&limit=1`;
+      const articleResponse = await fetch(query, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
+      if (!articleResponse.ok) throw new Error(`Article lookup failed (${articleResponse.status})`);
+      article = (await articleResponse.json())[0];
+      if (!article) return res.status(404).json({ error: "Source not found" });
+      urls = scanUrls(article);
+    }
     if (!urls.length) return res.status(404).json({ error: "No source pages" });
     const images = [];
     for (let start = 0; start < urls.length; start += 6) {
