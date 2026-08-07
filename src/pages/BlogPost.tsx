@@ -1457,6 +1457,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         j++;
       }
       while (buf.length && !buf[buf.length - 1].trim()) buf.pop();
+      pendingChoicesLabel = false;
       els.push(examMode === "essay"
         ? <InlineAnswerBlock key={`ans-${i}`} raw={buf.join("\n")} />
         : <McqAnswerBlock key={`mcq-${i}`} raw={buf.join("\n")} />
