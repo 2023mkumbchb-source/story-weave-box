@@ -21,7 +21,7 @@ import { autoIndexUrls, SITE_URL, slugifyText } from "@/lib/seo";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/hooks/useAuth";
 
-type Tab = "create" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo" | "categories" | "editor" | "meta-manager" | "corrections" | "payments";
+type Tab = "create" | "unedited" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo" | "categories" | "editor" | "meta-manager" | "corrections" | "payments";
 type DirectType = "article" | "mcqs" | "flashcards";
 
 export default function Admin() {
@@ -412,6 +412,7 @@ export default function Admin() {
 
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: "create", label: "Create", icon: FileText },
+    { id: "unedited", label: "Unedited Uploads", icon: AlertTriangle },
     { id: "editor", label: "Editor", icon: Edit3 },
     { id: "articles", label: "Articles", icon: FileText },
     { id: "categories", label: "Categories", icon: Layers },
@@ -434,7 +435,7 @@ export default function Admin() {
   const activeTab = tabs.find(t => t.id === tab);
 
   const tabGroups = [
-    { label: "Content", items: tabs.filter(t => ["create","editor","articles","categories","flashcards","mcqs","stories","exams","corrections"].includes(t.id)) },
+    { label: "Content", items: tabs.filter(t => ["create","unedited","editor","articles","categories","flashcards","mcqs","stories","exams","corrections"].includes(t.id)) },
     { label: "Tools", items: tabs.filter(t => ["meta-manager","upgrade","cleanup","seo"].includes(t.id)) },
     { label: "Data", items: tabs.filter(t => ["raw","import"].includes(t.id)) },
     { label: "System", items: tabs.filter(t => ["institutions","payments","settings"].includes(t.id)) },
@@ -477,7 +478,7 @@ export default function Admin() {
               <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{group.label}</p>
               <div className="grid grid-cols-3 gap-1.5">
                 {group.items.map(t => (
-                  <button key={t.id} onClick={() => { if (t.id === "editor") { navigate("/admin/editor"); return; } if (t.id === "categories") { navigate("/admin/categories"); return; } setTabAndHash(t.id); document.getElementById("admin-nav-panel")?.classList.add("hidden"); }}
+                  <button key={t.id} onClick={() => { if (t.id === "unedited") { navigate("/admin/unedited-uploads"); return; } if (t.id === "editor") { navigate("/admin/editor"); return; } if (t.id === "categories") { navigate("/admin/categories"); return; } setTabAndHash(t.id); document.getElementById("admin-nav-panel")?.classList.add("hidden"); }}
                     className={`flex flex-col items-center gap-1 rounded-lg px-2 py-2.5 text-[11px] font-medium transition-colors ${tab === t.id ? "bg-primary/10 text-primary ring-1 ring-primary/30" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                     <t.icon className="h-4 w-4" />
                     <span className="text-center leading-tight">{t.label}</span>
@@ -492,7 +493,7 @@ export default function Admin() {
       {/* Desktop: Horizontal tabs */}
       <div className="mb-8 hidden sm:flex gap-1 rounded-xl border border-border bg-secondary/50 p-1 overflow-x-auto">
         {tabs.map((t) => (
-          <button key={t.id} onClick={() => { if (t.id === "editor") { navigate("/admin/editor"); return; } if (t.id === "categories") { navigate("/admin/categories"); return; } setTabAndHash(t.id); }}
+          <button key={t.id} onClick={() => { if (t.id === "unedited") { navigate("/admin/unedited-uploads"); return; } if (t.id === "editor") { navigate("/admin/editor"); return; } if (t.id === "categories") { navigate("/admin/categories"); return; } setTabAndHash(t.id); }}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${tab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             <t.icon className="h-4 w-4" />{t.label}
           </button>
