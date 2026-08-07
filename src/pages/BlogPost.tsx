@@ -1465,34 +1465,33 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       _sec++;
       const qNum = questionMatch[2];
       let qTitle = questionMatch[3]?.replace(/^\s*[-:]\s*/, "").trim() || "";
-      // Unified MCQ layout: pull the stem onto the "Qn" header row instead of
-      // rendering a bare "Question 1" heading followed by a duplicate stem line.
-      if (!qTitle) {
-        for (let k = i + 1; k < lines.length; k++) {
-          const nt = lines[k].trim();
-          if (!nt) continue;
-          if (/^\*{0,2}\s*[A-E]\s*[\.\)]/.test(nt)) break;
-          if (/^\*{0,2}\s*(✅\s*)?(?:Answer|Model answer|Correct answer|Explanation|Rationale)\s*[:：]/i.test(nt)) break;
-          if (/^#{1,6}\s/.test(nt)) break;
-          if (/^(QUESTION|Question|Q)\s*\d+/i.test(nt)) break;
-          qTitle = cleanDisplayText(nt.replace(/^\*+|\*+$/g, ""));
-          skipUntil = k + 1;
-          break;
-        }
+      // Unified layout across the whole site:
+      //   "Question N"  →  stem paragraph  →  "Choices"  →  A–E rows  →  Reveal
+      // A short ALL-CAPS topic glued onto the header ("Q9 — ABDOMINAL WALL i) …")
+      // stays in the heading; everything after it becomes normal body text so it
+      // never renders as a giant serif wall of prose.
+      qTitle = cleanDisplayText(qTitle.replace(/^\*+|\*+$/g, ""));
+      let topic = "";
+      let stem = qTitle;
+      const capsMatch = qTitle.match(/^([A-Z][A-Z0-9''\/&,\.\-\s]{2,58}?)\s+(?=(?:[ivx]+\)|\(?[a-z]\)|[A-Z][a-z]|[a-z]))/);
+      if (capsMatch) {
+        topic = capsMatch[1].replace(/[\s,.\-]+$/, "").trim();
+        stem = qTitle.slice(capsMatch[0].length).trim();
+      } else if (/^[A-Z0-9''\/&,\.\-\s]{3,60}$/.test(qTitle)) {
+        topic = qTitle.replace(/[\s,.\-]+$/, "").trim();
+        stem = "";
       }
       els.push(
-        <div key={`q-${i}`} id={`section-${_sec}`} className="mt-10 mb-4 scroll-mt-20">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="shrink-0 flex items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm w-10 h-10">
-              Q{qNum}
-            </span>
-            <h2 className="font-serif font-bold text-xl text-foreground leading-snug sm:text-2xl">
-              {qTitle || `Question ${qNum}`}
-            </h2>
-          </div>
-          <hr className="border-border" />
-        </div>
+        <h2 key={`q-${i}`} id={`section-${_sec}`} className="mt-10 mb-3 scroll-mt-20 font-serif text-2xl font-bold leading-snug text-foreground sm:text-3xl">
+          Question {qNum}{topic ? ` — ${topic}` : ""}
+        </h2>
       );
+      if (stem) {
+        els.push(
+          <p key={`q-stem-${i}`} className="mb-4 text-[1.03rem] leading-8 text-foreground/90"><Inline text={stem} /></p>
+        );
+      }
+      pendingChoicesLabel = true;
       continue;
     }
 
