@@ -33,6 +33,7 @@ const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const Account = lazy(() => import("./pages/Account"));
 const Admin = lazy(() => import("./pages/Admin"));
 const UneditedUploads = lazy(() => import("./pages/UneditedUploads"));
+const SourceLibrary = lazy(() => import("./pages/SourceLibrary"));
 const YearHub = lazy(() => import("./pages/YearHub"));
 const CategoryManager = lazy(() => import("./pages/CategoryManager"));
 const About = lazy(() => import("./pages/About"));
@@ -83,6 +84,8 @@ const App = () => (
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/admin/unedited-uploads" element={<UneditedUploads />} />
                 <Route path="/unedited-uploads" element={<UneditedUploads />} />
+                <Route path="/source-library" element={<SourceLibrary />} />
+                <Route path="/source-library/:slug" element={<SourceLibrary />} />
                 <Route path="/about" element={<About />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

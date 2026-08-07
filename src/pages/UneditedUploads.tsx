@@ -28,6 +28,7 @@ const imageUrls = (article: QueueArticle): string[] => {
 };
 
 const safeName = (value: string) => value.toLowerCase().replace(/\.pdf$/i, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "paper";
+const fetchScan = (url: string) => fetch(`/api/image-proxy?url=${encodeURIComponent(url)}`);
 
 const claudePrompt = (article: QueueArticle, pages: number) => `You are editing a medical-school past paper for OmpathStudy.
 
@@ -118,7 +119,7 @@ export default function UneditedUploads() {
     setBusy("copy");
     try {
       const blobs = await Promise.all(urls.map(async url => {
-        const response = await fetch(url);
+        const response = await fetchScan(url);
         if (!response.ok) throw new Error(`Could not fetch ${url}`);
         const original = await response.blob();
         if (original.type === "image/png") return original;
@@ -137,7 +138,7 @@ export default function UneditedUploads() {
   const copyOneImage = async (url: string, page: number) => {
     setBusy(`copy-${page}`);
     try {
-      const response = await fetch(url);
+      const response = await fetchScan(url);
       if (!response.ok) throw new Error(`Image request failed (${response.status})`);
       const original = await response.blob();
       const bitmap = await createImageBitmap(original);
@@ -160,7 +161,7 @@ export default function UneditedUploads() {
       zip.file("CLAUDE-INSTRUCTIONS.txt", claudePrompt(article, urls.length));
       zip.file("README.txt", "Upload every page image to Claude, then paste CLAUDE-INSTRUCTIONS.txt. Paste Claude's Markdown response into the OmpathStudy admin review page.\n");
       await Promise.all(urls.map(async (url, index) => {
-        const response = await fetch(url);
+        const response = await fetchScan(url);
         if (!response.ok) throw new Error(`Page ${index + 1} download failed`);
         const blob = await response.blob();
         const extension = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
@@ -180,7 +181,7 @@ export default function UneditedUploads() {
     try {
       let pdf: jsPDF | null = null;
       for (let index = 0; index < urls.length; index += 1) {
-        const response = await fetch(urls[index]);
+        const response = await fetchScan(urls[index]);
         if (!response.ok) throw new Error(`Page ${index + 1} download failed`);
         const bitmap = await createImageBitmap(await response.blob());
         const canvas = document.createElement("canvas");
