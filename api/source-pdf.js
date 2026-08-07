@@ -1,0 +1,52 @@
+import { jsPDF } from "jspdf";
+
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://lkgfzjwhmfjvntzphbsh.supabase.co";
+const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6ImxrZ2Z6andobWZqdm50enBoYnNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3Nzk5MjIsImV4cCI6MjA4NzM1NTkyMn0.a2QY6TxzKNM2AhuuoDkgdKifI3XhSGhYRlhpqZpvAwo";
+
+const scanUrls = (article) => [...new Set(`${article.original_notes || ""}\n${article.content || ""}`.replace(/\\\//g, "/").match(/https?:\/\/[^\s)"'<>]+/gi) || [])]
+  .map(url => url.replace(/[\],.;:!?]+$/, "").replace(/^https:\/\/(?:www\.)?ompathstudy\.com\/uploads\//i, "https://cdn.ompathstudy.com/uploads/"))
+  .filter(url => url.startsWith("https://cdn.ompathstudy.com/uploads/"));
+
+const fileName = (value) => `${String(value || "source-pages").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").slice(0, 80)}.pdf`;
+
+export default async function handler(req, res) {
+  try {
+    const slug = String(Array.isArray(req.query.slug) ? req.query.slug[0] : req.query.slug || "").trim();
+    if (!slug) return res.status(400).json({ error: "slug required" });
+    if (!SUPABASE_KEY) return res.status(500).json({ error: "Server configuration missing" });
+    const filter = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug)
+      ? `id=eq.${encodeURIComponent(slug)}`
+      : `slug=eq.${encodeURIComponent(slug)}`;
+    const query = `${SUPABASE_URL}/rest/v1/articles?${filter}&select=title,content,original_notes&limit=1`;
+    const articleResponse = await fetch(query, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
+    if (!articleResponse.ok) throw new Error(`Article lookup failed (${articleResponse.status})`);
+    const article = (await articleResponse.json())[0];
+    if (!article) return res.status(404).json({ error: "Source not found" });
+    const urls = scanUrls(article);
+    if (!urls.length) return res.status(404).json({ error: "No source pages" });
+    const images = [];
+    for (let start = 0; start < urls.length; start += 6) {
+      const batch = await Promise.all(urls.slice(start, start + 6).map(async (url, offset) => {
+        const response = await fetch(url, { signal: AbortSignal.timeout(30000) });
+        if (!response.ok) throw new Error(`Page ${start + offset + 1} failed (${response.status})`);
+        return new Uint8Array(await response.arrayBuffer());
+      }));
+      images.push(...batch);
+    }
+    let pdf = null;
+    for (const image of images) {
+      const properties = new jsPDF().getImageProperties(image);
+      const orientation = properties.width > properties.height ? "landscape" : "portrait";
+      if (!pdf) pdf = new jsPDF({ orientation, unit: "pt", format: "a4", compress: true }); else pdf.addPage("a4", orientation);
+      const width = pdf.internal.pageSize.getWidth(), height = pdf.internal.pageSize.getHeight(), ratio = Math.min(width / properties.width, height / properties.height), imageWidth = properties.width * ratio, imageHeight = properties.height * ratio;
+      pdf.addImage(image, "JPEG", (width - imageWidth) / 2, (height - imageHeight) / 2, imageWidth, imageHeight, undefined, "FAST");
+    }
+    const output = Buffer.from(pdf.output("arraybuffer"));
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName(article.title)}"`);
+    res.setHeader("Cache-Control", "private, max-age=0, must-revalidate");
+    return res.status(200).send(output);
+  } catch (error) {
+    return res.status(500).json({ error: error instanceof Error ? error.message : "PDF generation failed" });
+  }
+}
