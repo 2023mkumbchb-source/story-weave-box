@@ -8,7 +8,7 @@ import ShareButtons from "@/components/ShareButtons";
 import ArticleComments from "@/components/ArticleComments";
 import { Countdown, HtmlEmbed, PasswordGate, ContentToc, ReadingTimeBadge } from "@/components/ContentExtras";
 import { motion, AnimatePresence } from "framer-motion";
-import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, buildFlashcardPath, truncateOnWordBoundary, type Article } from "@/lib/store";
+import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildFlashcardPath, truncateOnWordBoundary, type Article } from "@/lib/store";
 import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags, autoIndexUrls } from "@/lib/seo";
 import { useTopicThumbnail } from "@/lib/topicThumbnail";
 import { KeywordLinkProvider, useKeywordLinks, linkifyText } from "@/lib/keyword-link";
@@ -385,7 +385,6 @@ function ClassicHeroInner({
 }: { title: string; image: string; date: string; unit: string; shareUrl: string; description: string; category?: string }) {
   const topicThumb = useTopicThumbnail(title, category, !image);
   const heroImage = image || topicThumb || "";
-  const reviewer = pickReviewer(title);
 
   /* Cinematic hero restored: slow-panning background photograph with the title
      and description overlaid, as the site originally had. Falls back to a clean
@@ -404,7 +403,7 @@ function ClassicHeroInner({
           {description && (
             <p className="mt-3 max-w-[62ch] text-[15px] leading-relaxed text-muted-foreground sm:text-base">{description}</p>
           )}
-          <ReviewedBadge reviewer={reviewer} date={date} />
+          <p className="mt-4 text-xs text-white/70">Last updated on {date}</p>
         </div>
         <ShareButtons url={shareUrl} title={title} description={description} variant="full" className="mt-5" />
       </header>
@@ -436,7 +435,7 @@ function ClassicHeroInner({
           )}
         </div>
       </div>
-      <ReviewedBadge reviewer={reviewer} date={date} />
+      <p className="mt-4 text-xs text-muted-foreground">Last updated on {date}</p>
       <ShareButtons url={shareUrl} title={title} description={description} variant="full" className="mt-5" />
     </header>
   );
@@ -1332,7 +1331,7 @@ function extractToc(content: string): TocItem[] {
 /* ─── Article content renderer ─── */
 let _sec = 0;
 
-const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [] }: { content: string; inlineRelated?: any[] }) {
+const ArticleContent = memo(function ArticleContent({ content }: { content: string }) {
   _sec = 0;
   const lines = preprocessContent(content).split("\n");
   const els: React.ReactNode[] = [];
@@ -1349,7 +1348,6 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   // as its choices rather than as essay sub-parts.
   let inMcqChoices = false;
   const pqs: { number: string; question: string; answer: string }[] = [];
-  let insertedRelated = false;
 
   const flushList = () => {
     if (!listBuf) return;
@@ -1615,14 +1613,10 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (/^#{1,2}\s/.test(t)) {
       flushList(); underSubheading = false; inMcqChoices = false;
       const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").replace(/^\d+\.\s*/, "").replace(/^[IVXLC]+\.\s+/, "").trim();
-      if (/\b(section\s+a|multiple\s+choice|mcqs?)\b/i.test(heading)) examMode = "mcq";
-      if (/\b(section\s+b|section\s+c|essay|short\s+answer|long\s+answer|answer\s+any)\b/i.test(heading)) examMode = "essay";
+      if (/\b(multiple\s+choice|true\s*\/\s*false|mcqs?)\b/i.test(heading)) examMode = "mcq";
+      else if (/\b(section\s+[a-c]|structured|fill[- ]in|matching|essay|short\s+answer|long\s+answer|answer\s+any)\b/i.test(heading)) examMode = "essay";
       if (heading.toLowerCase().includes("practice")) { inPractice = true; continue; }
       flushPractice(); inPractice = false;
-      if (!insertedRelated && inlineRelated.length > 0 && els.length >= 4) {
-        els.push(<InArticleRelated key="in-article-related" articles={inlineRelated} />);
-        insertedRelated = true;
-      }
       _sec++;
       els.push(
         <h2 key={`h2-${i}`} id={slugify(heading) || `section-${_sec}`} data-section={`section-${_sec}`} className="mt-9 mb-4 scroll-mt-20 border-b border-border pb-3 font-serif text-2xl font-bold leading-tight text-foreground sm:text-3xl">
@@ -1630,6 +1624,24 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         </h2>
       );
       continue;
+    }
+
+    if (/^#{3,6}\s/.test(t) && /^\d{1,3}[.)]\s+/.test(t.replace(/^#+\s+/, ""))) {
+      let nextMeaningful = "";
+      for (let k = i + 1; k < lines.length; k++) {
+        if (lines[k].trim()) { nextMeaningful = lines[k].trim(); break; }
+      }
+      if (/^\*{0,2}\s*\(?[A-Ea-e]\)?\s*[.)]\s+/.test(nextMeaningful)) {
+        flushList(); underSubheading = false; inMcqChoices = true;
+        const match = t.replace(/^#+\s+/, "").replace(/\*+/g, "").trim().match(/^(\d{1,3})[.)]\s+(.+)/)!;
+        els.push(
+          <div key={`mcq-card-head-${i}`} className="mt-7 mb-3 flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-4 shadow-sm sm:px-5">
+            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">{match[1]}</span>
+            <p className="flex-1 pt-1 text-[1rem] font-semibold leading-relaxed text-foreground sm:text-[1.05rem]"><Inline text={match[2]} /></p>
+          </div>
+        );
+        continue;
+      }
     }
 
     if (/^#{3,6}\s/.test(t)) {
@@ -1761,9 +1773,6 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   }
 
   flushList(); flushTable(); flushFlow(); flushPractice();
-  if (!insertedRelated && inlineRelated.length > 0 && els.length > 8) {
-    els.splice(Math.max(4, Math.floor(els.length / 2)), 0, <InArticleRelated key="in-article-related" articles={inlineRelated} />);
-  }
   return <div>{els}</div>;
 });
 
@@ -1877,7 +1886,7 @@ export default function BlogPost() {
   const [suggestion, setSuggestion] = useState<{ id: string; title: string; path: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; mcqs: any[]; essays: any[] }>({ articles: [], flashcards: [], mcqs: [], essays: [] });
+  const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; essays: any[] }>({ articles: [], flashcards: [], essays: [] });
   const [activeSection, setActiveSection] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -2276,7 +2285,7 @@ export default function BlogPost() {
   const date = new Date(article.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const unitName = getCategoryDisplayName(article.category);
   const yearName = getYearFromCategory(article.category);
-  const hasRelated = related.flashcards.length > 0 || related.mcqs.length > 0;
+  const hasRelated = related.flashcards.length > 0;
   const articleEssay = related.essays?.[0];
   const essaySaqs: any[] = Array.isArray(articleEssay?.short_answer_questions) ? articleEssay.short_answer_questions : [];
   const essayLaqs: any[] = Array.isArray(articleEssay?.long_answer_questions) ? articleEssay.long_answer_questions : [];
@@ -2428,7 +2437,7 @@ export default function BlogPost() {
                       university={inferUniversity(article)}
                       onPreview={() => setPreviewOpen(true)}
                     />
-                  : <ArticleContent content={article.content} inlineRelated={related.articles || []} />}
+                  : <ArticleContent content={article.content} />}
               </KeywordLinkProvider>
             </div>
 
@@ -2525,20 +2534,6 @@ export default function BlogPost() {
                       </div>
                     </div>
                   )}
-                  {related.mcqs.length > 0 && (
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">MCQ Quizzes</p>
-                      <div className="space-y-1.5">
-                        {related.mcqs.map((m: any) => (
-                          <Link key={m.id} to={buildMcqPath(m)} className="flex items-center gap-3 rounded-lg border border-border p-3 hover:border-primary/40 hover:bg-muted/30 transition-colors">
-                            <ListChecks className="h-4 w-4 text-primary shrink-0" />
-                            <span className="truncate text-sm font-medium text-foreground">{m.title}</span>
-                            <span className="ml-auto text-xs text-muted-foreground">{(m.questions as any[])?.length || 0} Qs</span>
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -2577,19 +2572,11 @@ export default function BlogPost() {
 }
 
 function RelatedMarquee({ articles }: { articles: any[] }) {
-  const [paused, setPaused] = useState(false);
-  const list = [...articles.slice(0, 12), ...articles.slice(0, 12)];
+  const list = articles.slice(0, 8);
   return (
-    <div
-      className="group relative -mx-5 overflow-x-auto overflow-y-hidden"
-      onTouchStart={() => setPaused(true)}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onClick={() => setPaused((p) => !p)}
-    >
+    <div className="group relative -mx-5 overflow-x-auto overflow-y-hidden">
       <div
-        className="flex w-max gap-3 px-5 animate-marquee-slow"
-        style={{ animationPlayState: paused ? "paused" : "running" }}
+        className="flex w-max snap-x snap-mandatory gap-3 px-5"
       >
         {list.map((a: any, i: number) => (
           <RelatedArticleCard key={`${a.id}-${i}`} article={a} compact />
