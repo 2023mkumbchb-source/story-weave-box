@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import JSZip from "jszip";
+import { jsPDF } from "jspdf";
 import { ArrowLeft, Check, Clipboard, Download, ExternalLink, FileText, Image, Loader2, RefreshCw, Save, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,8 +99,11 @@ export default function UneditedUploads() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return q ? articles.filter(article => `${article.title} ${article.category}`.toLowerCase().includes(q)) : articles;
+    const withImages = articles.filter(article => imageUrls(article).length > 0);
+    return q ? withImages.filter(article => `${article.title} ${article.category}`.toLowerCase().includes(q)) : withImages;
   }, [articles, search]);
+
+  const withoutImages = useMemo(() => articles.filter(article => imageUrls(article).length === 0).length, [articles]);
 
   const openEditor = (article: QueueArticle) => { setSelected(article); setDraft(article.content || ""); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
@@ -169,6 +173,40 @@ export default function UneditedUploads() {
     } finally { setBusy(null); }
   };
 
+  const downloadPdf = async (article: QueueArticle) => {
+    const urls = imageUrls(article);
+    if (!urls.length) return toast({ title: "No source images found", variant: "destructive" });
+    setBusy("pdf");
+    try {
+      let pdf: jsPDF | null = null;
+      for (let index = 0; index < urls.length; index += 1) {
+        const response = await fetch(urls[index]);
+        if (!response.ok) throw new Error(`Page ${index + 1} download failed`);
+        const bitmap = await createImageBitmap(await response.blob());
+        const canvas = document.createElement("canvas");
+        const scale = Math.min(1, 1800 / bitmap.width);
+        canvas.width = Math.round(bitmap.width * scale);
+        canvas.height = Math.round(bitmap.height * scale);
+        canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        const image = canvas.toDataURL("image/jpeg", 0.88);
+        const orientation = canvas.width > canvas.height ? "landscape" : "portrait";
+        if (!pdf) pdf = new jsPDF({ orientation, unit: "pt", format: "a4", compress: true });
+        else pdf.addPage("a4", orientation);
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+        const width = canvas.width * ratio;
+        const height = canvas.height * ratio;
+        pdf.addImage(image, "JPEG", (pageWidth - width) / 2, (pageHeight - height) / 2, width, height, undefined, "FAST");
+        bitmap.close();
+      }
+      pdf!.save(`${safeName(article.title)}-source-pages.pdf`);
+      toast({ title: `Downloaded ${urls.length} pages as one PDF` });
+    } catch (error) {
+      toast({ title: "PDF download failed", description: error instanceof Error ? error.message : "Try again", variant: "destructive" });
+    } finally { setBusy(null); }
+  };
+
   const save = async (markEdited: boolean) => {
     if (!selected) return;
     const content = normalizeClaudeMarkdown(draft);
@@ -198,7 +236,7 @@ export default function UneditedUploads() {
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => void copyPrompt(selected)}><FileText className="mr-2 h-4 w-4" />Copy Claude prompt</Button>
             <Button variant="outline" disabled={!!busy} onClick={() => void copyImages(selected)}>{busy === "copy" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Clipboard className="mr-2 h-4 w-4" />}Copy all images</Button>
-            <Button variant="outline" disabled={!!busy} onClick={() => void downloadZip(selected)}>{busy === "zip" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}Download ZIP</Button>
+            <Button variant="outline" disabled={!!busy} onClick={() => void downloadPdf(selected)}>{busy === "pdf" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}Download pages PDF</Button>
             <Button variant="outline" asChild><a href={buildBlogPath(selected)} target="_blank" rel="noreferrer"><ExternalLink className="mr-2 h-4 w-4" />Open blog</a></Button>
           </div>
         </div>
@@ -235,12 +273,12 @@ export default function UneditedUploads() {
       </div>
       <div className="mb-5 grid gap-3 sm:grid-cols-[1fr_auto]">
         <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search title or category" className="pl-9" /></div>
-        <div className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold">{filtered.length} awaiting review</div>
+        <div className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold">{filtered.length} with scans{withoutImages ? ` · ${withoutImages} without scans hidden` : ""}</div>
       </div>
       <div className="space-y-3">
         {filtered.map(article => {
           const pages = imageUrls(article).length;
-          return <article key={article.id} className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center"><div className="min-w-0"><h2 className="font-semibold text-foreground">{article.title}</h2><p className="mt-1 text-xs text-muted-foreground">{article.category} · {pages} page image{pages === 1 ? "" : "s"} · {article.published ? "Public" : "Draft"}</p></div><div className="flex shrink-0 flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => void copyPrompt(article)}><FileText className="mr-1.5 h-3.5 w-3.5" />Prompt</Button><Button size="sm" variant="outline" onClick={() => void downloadZip(article)}><Download className="mr-1.5 h-3.5 w-3.5" />ZIP</Button><Button size="sm" onClick={() => openEditor(article)}><Image className="mr-1.5 h-3.5 w-3.5" />Open & edit</Button></div></div></article>;
+          return <article key={article.id} className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center"><div className="min-w-0"><h2 className="font-semibold text-foreground">{article.title}</h2><p className="mt-1 text-xs text-muted-foreground">{article.category} · {pages} page image{pages === 1 ? "" : "s"} · {article.published ? "Public" : "Draft"}</p></div><div className="flex shrink-0 flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => void copyPrompt(article)}><FileText className="mr-1.5 h-3.5 w-3.5" />Prompt</Button><Button size="sm" variant="outline" disabled={!!busy} onClick={() => void downloadPdf(article)}><Download className="mr-1.5 h-3.5 w-3.5" />Pages PDF</Button><Button size="sm" onClick={() => openEditor(article)}><Image className="mr-1.5 h-3.5 w-3.5" />Open & edit</Button></div></div></article>;
         })}
         {!filtered.length && <div className="rounded-xl border border-dashed border-border p-12 text-center text-muted-foreground">No unedited uploads match this search.</div>}
       </div>
