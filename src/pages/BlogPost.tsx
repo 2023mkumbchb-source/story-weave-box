@@ -983,6 +983,19 @@ function cleanHeadingText(value: string): string {
 function splitMalformedHeading(raw: string): { heading: string; extras: string[] } {
   let text = cleanHeadingText(raw.replace(/^HOW\s+TO\s+OPEN>\s*"?/i, "").replace(/^say\s*:?>\s*"?/i, ""));
   const extras: string[] = [];
+  // "Q7 — CSF FLOW Production: choroid plexus …" — an all-caps topic title with
+  // the body prose glued onto it. Keep the title as the heading and push the
+  // prose back into the body so it never renders as a giant serif wall.
+  const capsTitle = text.match(
+    /^((?:Q(?:uestion)?\s*\d+\s*[—–\-:]\s*)?[A-Z][A-Z0-9''\/&,\.\s\-]{2,60}?)\s+(?=(?:[ivxl]+\)|\(?[a-z]\)|[A-Z][a-z]|[a-z]))/,
+  );
+  if (capsTitle && capsTitle[1].replace(/[^A-Za-z]/g, "").length >= 4) {
+    const rest = text.slice(capsTitle[0].length).trim();
+    if (rest.length > 8) {
+      extras.push(rest);
+      text = capsTitle[1].replace(/[\s,.\-—–:]+$/, "").trim();
+    }
+  }
   const inlineBulletIdx = text.search(/[:—-]\s+-\s+/);
   if (inlineBulletIdx > 3) {
     const bullet = text.slice(inlineBulletIdx).replace(/^[:—-]\s*/, "").trim();
@@ -1014,6 +1027,18 @@ function splitMalformedHeading(raw: string): { heading: string; extras: string[]
     text = sentence[1].replace(/[:\s]+$/, "").trim();
   }
 
+  // Last resort: a heading this long is body copy, so keep only the first
+  // sentence (or nothing) in the heading slot.
+  if (text.length > 110) {
+    const dot = text.indexOf(". ");
+    if (dot > 8 && dot < 90) {
+      extras.unshift(text.slice(dot + 1).trim());
+      text = text.slice(0, dot).trim();
+    } else {
+      extras.unshift(text);
+      text = "";
+    }
+  }
   return { heading: text.replace(/^\d+\.\s*/, "").trim(), extras };
 }
 
@@ -1175,8 +1200,8 @@ export function preprocessContent(raw: string): string {
       const hashes = t.match(/^#{1,6}/)?.[0] || "##";
       const rawHeading = t.replace(/^#{1,6}\s*/, "");
       const { heading, extras } = splitMalformedHeading(rawHeading);
-      if (!heading || META_HEADING.test(heading)) continue;
-      out.push(`${hashes.length === 1 ? "##" : hashes} ${heading}`);
+      if (heading && META_HEADING.test(heading)) continue;
+      if (heading) out.push(`${hashes.length === 1 ? "##" : hashes} ${heading}`);
       extras.forEach((extra) => out.push(extra));
       continue;
     }
