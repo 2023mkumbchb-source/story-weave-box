@@ -12,9 +12,16 @@ const scanUrls = (article: Article) => {
   const found = new Set<string>();
   for (const source of [article.original_notes || "", article.content || ""]) for (const match of source.replace(/\\\//g, "/").matchAll(/https?:\/\/[^\s)"'<>]+/gi)) {
     const value = match[0].replace(/[\],.;:!?]+$/, "");
-    if (/(?:\/uploads\/|\.(?:jpe?g|png|webp)(?:\?|$))/i.test(value)) found.add(value.replace(/^https:\/\/(?:www\.)?ompathstudy\.com\/uploads\//i, "https://cdn.ompathstudy.com/uploads/"));
+    if (!/\.pdf(?:\?|$)/i.test(value) && /(?:\/uploads\/|\.(?:jpe?g|png|webp)(?:\?|$))/i.test(value)) found.add(value.replace(/^https:\/\/(?:www\.)?ompathstudy\.com\/uploads\//i, "https://cdn.ompathstudy.com/uploads/"));
   }
   return [...found];
+};
+
+const sourcePdfUrl = (article: Article) => {
+  for (const source of [article.original_notes || "", article.content || ""]) for (const match of source.replace(/\\\//g, "/").matchAll(/https?:\/\/[^\s)"'<>]+/gi)) {
+    const value = match[0].replace(/[\],.;:!?]+$/, "").replace(/^https:\/\/(?:www\.)?ompathstudy\.com\/uploads\//i, "https://cdn.ompathstudy.com/uploads/");
+    if (/^https:\/\/cdn\.ompathstudy\.com\/uploads\/.+\.pdf(?:\?|$)/i.test(value)) return value;
+  }
 };
 
 const classify = (article: Article) => {
@@ -61,6 +68,16 @@ export default function SourceLibrary() {
   };
 
   const downloadPdf = (article: Article) => {
+    const readyPdf = sourcePdfUrl(article);
+    if (readyPdf) {
+      const link = document.createElement("a");
+      link.href = readyPdf;
+      link.download = `${article.slug || "source-paper"}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      return;
+    }
     const form = document.createElement("form");
     form.method = "POST"; form.action = "/api/source-pdf"; form.style.display = "none";
     const title = document.createElement("input"); title.name = "title"; title.value = article.title;
