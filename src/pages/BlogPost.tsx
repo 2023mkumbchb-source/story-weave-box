@@ -1392,6 +1392,16 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
 
   let codeBuf: string[] | null = null;
   let skipUntil = -1;
+  // Unified MCQ layout: after a "Question N" header we render the stem as a
+  // paragraph and label the first option group with "Choices".
+  let pendingChoicesLabel = false;
+  const choicesLabel = (key: string) => {
+    if (!pendingChoicesLabel) return;
+    pendingChoicesLabel = false;
+    els.push(
+      <h3 key={key} className="mt-5 mb-2 font-serif text-lg font-bold text-foreground">Choices</h3>
+    );
+  };
   for (let i = 0; i < lines.length; i++) {
     if (i < skipUntil) continue;
     const line = lines[i];
