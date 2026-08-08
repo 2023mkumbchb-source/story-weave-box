@@ -363,6 +363,37 @@ export function getCategoryDisplayName(category: string): string {
   return parts.length > 1 ? parts[1].trim() : category;
 }
 
+/**
+ * Content kind shown on cards/rows: past papers and CATs are "Exam",
+ * question banks are "MCQ", everything else reads as "Notes".
+ */
+export function getContentKind(title: string, category = ""): "Exam" | "CAT" | "MCQ" | "Flashcards" | "Notes" {
+  const t = `${title || ""} ${category || ""}`.toLowerCase();
+  if (/\bcat\s*\d|\bcat\b/.test(t)) return "CAT";
+  if (/exam|past paper|supplementary|end of semester|mid[- ]semester/.test(t)) return "Exam";
+  if (/\bmcq|quiz|questions?\b|saq|laq/.test(t)) return "MCQ";
+  if (/flashcard/.test(t)) return "Flashcards";
+  return "Notes";
+}
+
+/**
+ * Human breadcrumb for a piece of content, e.g.
+ * ["Year 3", "Sem 2", "Cardiovascular System Pathology", "Exam"].
+ */
+export function getCategoryTrail(category: string, title = ""): string[] {
+  const trail: string[] = [];
+  const year = getYearFromCategory(category);
+  if (year) trail.push(year);
+  const unit = getCategoryDisplayName(category);
+  if (getYearNumber(category) === 3) {
+    const sem = getYear3Semester(unit);
+    if (sem) trail.push(`Sem ${sem}`);
+  }
+  if (unit && unit !== "Uncategorized") trail.push(unit);
+  trail.push(getContentKind(title, category));
+  return trail;
+}
+
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function extractArticleIdFromParam(value: string): string | null {
