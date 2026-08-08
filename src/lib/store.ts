@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { extractFirstImageFromContent, stripRichText, autoIndexUrls, SITE_URL } from "@/lib/seo";
+import { getYear3Semester } from "@/lib/year3Semesters";
 
 export interface Article {
   id: string;
