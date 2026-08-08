@@ -1167,6 +1167,7 @@ export function preprocessContent(raw: string): string {
       out.push("");
       continue;
     }
+    if (isOcrNoiseLine(t)) { out.push(""); continue; }
     if (!t) { out.push(""); continue; }
 
     if (/^#{1,6}$/.test(t) && sourceLines[idx + 1]?.trim()) {
