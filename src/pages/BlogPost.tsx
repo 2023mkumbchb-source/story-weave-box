@@ -1806,7 +1806,11 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
-    els.push(<p key={`p-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
+    els.push(
+      <p key={`p-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90">
+        <Inline text={t.replace(/^#+\s*/, "").replace(/^[.·•]\s+/, "")} />
+      </p>
+    );
   }
 
   if (codeBuf && codeBuf.length) {
