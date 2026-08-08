@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import type { Article } from "@/lib/store";
-import { buildBlogPath, getCategoryDisplayName, getYearFromCategory } from "@/lib/store";
+import { buildBlogPath, getCategoryTrail } from "@/lib/store";
 
 /**
  * Dense, quiet index row. No colour rails, no per-subject tint — just a numbered
@@ -24,8 +24,8 @@ function cleanTitle(t: string): string {
 
 export default function NoteRow({ article, index }: { article: Article; index?: number }) {
   const location = useLocation();
-  const unit = getCategoryDisplayName(article.category);
-  const year = getYearFromCategory(article.category);
+  const trail = getCategoryTrail(article.category, article.title);
+  const kind = trail[trail.length - 1];
   const date = new Date(article.updated_at || article.created_at).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
@@ -47,8 +47,10 @@ export default function NoteRow({ article, index }: { article: Article; index?: 
           {cleanTitle(article.title)}
         </h3>
         <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[11.5px] text-muted-foreground">
-          <span className="truncate">{unit}</span>
-          {year && <span className="hidden sm:inline">· {year}</span>}
+          <span className="rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-bold uppercase tracking-wide text-primary">
+            {kind}
+          </span>
+          <span className="truncate">{trail.slice(0, -1).join(" · ")}</span>
           <span>· {date}</span>
         </div>
       </div>
