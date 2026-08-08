@@ -1328,7 +1328,7 @@ export function preprocessContent(raw: string): string {
     out.push(t);
   }
 
-  return out.join("\n");
+  return dropEmptySections(out).join("\n");
 }
 
 /* ─── Extract TOC from content ─── */
