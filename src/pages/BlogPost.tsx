@@ -953,6 +953,48 @@ function isCourseBrandingLine(s: string): boolean {
   return false;
 }
 
+/**
+ * Scanner/OCR leftovers that carry no teaching value and only hurt the page
+ * (and its SEO): watermark lines, "Page 3 of 11" footers, bare punctuation
+ * fragments left by the OCR pass.
+ */
+function isOcrNoiseLine(s: string): boolean {
+  const t = s.trim();
+  if (!t) return false;
+  if (/^[-–—_.,;:'"`~^°|\\\/()\[\]{}<>*+=\s]+$/.test(t)) return true;
+  if (/^(?:scanned\s+by\s+camscanner|camscanner)\b/i.test(t)) return true;
+  if (/^page\s*\d*\s*of\s*\d+\.?$/i.test(t)) return true;
+  if (/^page\s*\d+\s*of\s*[a-z]{1,3}\.?$/i.test(t)) return true;
+  // Lines that are mostly OCR garbage: very few real letters among symbols.
+  const letters = t.replace(/[^A-Za-z]/g, "").length;
+  if (t.length >= 6 && letters / t.length < 0.35) return true;
+  return false;
+}
+
+/** Remove headings that have no real content beneath them (empty scan pages). */
+function dropEmptySections(lines: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i].trim();
+    if (/^#{1,6}\s/.test(t)) {
+      let j = i + 1;
+      let hasBody = false;
+      while (j < lines.length && !/^#{1,6}\s/.test(lines[j].trim())) {
+        const b = lines[j].trim();
+        if (b && !isOcrNoiseLine(b)) { hasBody = true; break; }
+        j++;
+      }
+      if (!hasBody) {
+        // Skip the heading and its empty body entirely.
+        while (i + 1 < lines.length && !/^#{1,6}\s/.test(lines[i + 1].trim())) i++;
+        continue;
+      }
+    }
+    out.push(lines[i]);
+  }
+  return out;
+}
+
 function cleanHeadingText(value: string): string {
   return value
     .replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, "")
