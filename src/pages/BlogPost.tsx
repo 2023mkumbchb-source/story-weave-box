@@ -2194,6 +2194,15 @@ export default function BlogPost() {
     const metaDesc = cleanMetaDescription(article);
     const ogImage = article.og_image_url || extractFirstImageFromContent(article.content || "") || `${SITE_URL}/og-default.png`;
     const canonicalUrl = `${SITE_URL}${buildBlogPath(article)}`;
+    const plain = stripRichText(article.content || "");
+    const year = getYearFromCategory(article.category || "");
+    const unit = getCategoryDisplayName(article.category || "") || "Medical Notes";
+    const keywords = [
+      unit, `${unit} notes`, `${unit} MCQs`, `${unit} past paper`,
+      year ? `Year ${year} MBChB` : "MBChB",
+      "Mount Kenya University", "MKU", "UON", "KU", "Moi University",
+      "medical school Kenya", "past papers with answers", "revision notes",
+    ].filter(Boolean) as string[];
 
     updateMetaTags({
       title: metaTitle,
@@ -2201,7 +2210,19 @@ export default function BlogPost() {
       image: ogImage,
       url: canonicalUrl,
       type: "article",
+      keywords,
     });
+
+    // Thin/scan-only pages are noise for search engines — keep them readable for
+    // humans but out of the index so real pages rank instead.
+    let robots = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+    if (!robots) {
+      robots = document.createElement("meta");
+      robots.setAttribute("name", "robots");
+      document.head.appendChild(robots);
+    }
+    const isThin = plain.length < 600 || /scanned by camscanner/i.test(article.content || "");
+    robots.setAttribute("content", isThin ? "noindex, follow" : "index, follow, max-image-preview:large, max-snippet:-1");
 
     let ldScript = document.querySelector("script[data-article-ld]") as HTMLScriptElement | null;
     if (!ldScript) {
@@ -2210,17 +2231,44 @@ export default function BlogPost() {
       ldScript.setAttribute("data-article-ld", "true");
       document.head.appendChild(ldScript);
     }
-    ldScript.textContent = JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "Article",
-      "headline": metaTitle,
-      "description": metaDesc,
-      "image": ogImage,
-      "url": canonicalUrl,
-      "datePublished": article.created_at,
-      "author": { "@type": "Organization", "name": "Ompath Study" },
-      "publisher": { "@type": "Organization", "name": "Ompath Study" },
-    });
+    ldScript.textContent = JSON.stringify([
+      {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": metaTitle.slice(0, 110),
+        "description": metaDesc,
+        "image": ogImage,
+        "url": canonicalUrl,
+        "mainEntityOfPage": { "@type": "WebPage", "@id": canonicalUrl },
+        "inLanguage": "en",
+        "isAccessibleForFree": true,
+        "keywords": keywords.join(", "),
+        "articleSection": unit,
+        "wordCount": plain.split(/\s+/).filter(Boolean).length,
+        "educationalLevel": year ? `Year ${year} (MBChB)` : "Undergraduate medicine",
+        "learningResourceType": "Study notes and past paper questions",
+        "datePublished": article.created_at,
+        "dateModified": (article as { updated_at?: string }).updated_at || article.created_at,
+        "author": { "@type": "Organization", "name": "Ompath Study", "url": SITE_URL },
+        "publisher": {
+          "@type": "Organization",
+          "name": "Ompath Study",
+          "url": SITE_URL,
+          "logo": { "@type": "ImageObject", "url": `${SITE_URL}/favicon.png` },
+        },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+          { "@type": "ListItem", position: 2, name: "Notes", item: `${SITE_URL}/blog` },
+          ...(year ? [{ "@type": "ListItem", position: 3, name: `Year ${year}`, item: `${SITE_URL}/year/${year}` }] : []),
+          { "@type": "ListItem", position: year ? 4 : 3, name: unit, item: `${SITE_URL}/blog?category=${encodeURIComponent(article.category || "")}` },
+          { "@type": "ListItem", position: year ? 5 : 4, name: metaTitle.slice(0, 110), item: canonicalUrl },
+        ],
+      },
+    ]);
 
     autoIndexUrls([canonicalUrl]);
 
