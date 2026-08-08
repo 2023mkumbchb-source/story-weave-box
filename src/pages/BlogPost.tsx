@@ -953,6 +953,48 @@ function isCourseBrandingLine(s: string): boolean {
   return false;
 }
 
+/**
+ * Scanner/OCR leftovers that carry no teaching value and only hurt the page
+ * (and its SEO): watermark lines, "Page 3 of 11" footers, bare punctuation
+ * fragments left by the OCR pass.
+ */
+function isOcrNoiseLine(s: string): boolean {
+  const t = s.trim();
+  if (!t) return false;
+  if (/^[-–—_.,;:'"`~^°|\\\/()\[\]{}<>*+=\s]+$/.test(t)) return true;
+  if (/^(?:scanned\s+by\s+camscanner|camscanner)\b/i.test(t)) return true;
+  if (/^page\s*\d*\s*of\s*\d+\.?$/i.test(t)) return true;
+  if (/^page\s*\d+\s*of\s*[a-z]{1,3}\.?$/i.test(t)) return true;
+  // Lines that are mostly OCR garbage: very few real letters among symbols.
+  const letters = t.replace(/[^A-Za-z]/g, "").length;
+  if (t.length >= 6 && letters / t.length < 0.35) return true;
+  return false;
+}
+
+/** Remove headings that have no real content beneath them (empty scan pages). */
+function dropEmptySections(lines: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i].trim();
+    if (/^#{1,6}\s/.test(t)) {
+      let j = i + 1;
+      let hasBody = false;
+      while (j < lines.length && !/^#{1,6}\s/.test(lines[j].trim())) {
+        const b = lines[j].trim();
+        if (b && !isOcrNoiseLine(b)) { hasBody = true; break; }
+        j++;
+      }
+      if (!hasBody) {
+        // Skip the heading and its empty body entirely.
+        while (i + 1 < lines.length && !/^#{1,6}\s/.test(lines[i + 1].trim())) i++;
+        continue;
+      }
+    }
+    out.push(lines[i]);
+  }
+  return out;
+}
+
 function cleanHeadingText(value: string): string {
   return value
     .replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, "")
@@ -1125,6 +1167,7 @@ export function preprocessContent(raw: string): string {
       out.push("");
       continue;
     }
+    if (isOcrNoiseLine(t)) { out.push(""); continue; }
     if (!t) { out.push(""); continue; }
 
     if (/^#{1,6}$/.test(t) && sourceLines[idx + 1]?.trim()) {
@@ -1286,7 +1329,7 @@ export function preprocessContent(raw: string): string {
     out.push(t);
   }
 
-  return out.join("\n");
+  return dropEmptySections(out).join("\n");
 }
 
 /* ─── Extract TOC from content ─── */
@@ -1486,11 +1529,52 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
 
     const questionMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)[:\s-]*(.*)/i);
+    // ── Exam-paper front matter → compact meta card ──
+    // "Programme: …", "Assessment: …", "Unit Code: …", "Date: …", "Reg No: …"
+    const metaFieldRe = /^\*{0,2}\s*(Programme|Program|Course|Assessment|Exam|Paper|Unit Code|Unit|Subject|Date|Time|Duration|Venue|Marks|Instructions?|Reg\.?\s*No\.?|Registration\s*No\.?|Year|Semester|University|School)\s*\*{0,2}\s*[:：]\s*(.+)$/i;
+    if (!questionMatch && metaFieldRe.test(t)) {
+      const rows: { label: string; value: string }[] = [];
+      let j = i;
+      while (j < lines.length) {
+        const lt = lines[j].trim();
+        if (!lt) { j++; continue; }
+        const m = lt.match(metaFieldRe);
+        if (!m) break;
+        rows.push({
+          label: cleanDisplayText(m[1]).replace(/\s+/g, " ").trim(),
+          value: cleanDisplayText(m[2].replace(/^\*+|\*+$/g, "")).trim(),
+        });
+        j++;
+      }
+      if (rows.length >= 2) {
+        flushList(); flushTable(); flushFlow(); underSubheading = false;
+        els.push(
+          <dl
+            key={`meta-card-${i}`}
+            className="my-6 grid grid-cols-1 gap-x-6 gap-y-3 rounded-xl border border-primary/20 bg-primary/[0.04] p-5 sm:grid-cols-2"
+          >
+            {rows.map((r, n) => (
+              <div key={`meta-row-${i}-${n}`} className="min-w-0">
+                <dt className="text-[11px] font-semibold uppercase tracking-wider text-primary/80">{r.label}</dt>
+                <dd className="mt-0.5 text-[15px] font-medium leading-snug text-foreground break-words">
+                  <Inline text={r.value} />
+                </dd>
+              </div>
+            ))}
+          </dl>
+        );
+        skipUntil = j;
+        continue;
+      }
+    }
     if (questionMatch) {
       flushList(); flushPractice(); inPractice = false; underSubheading = false;
       _sec++;
       const qNum = questionMatch[2];
       let qTitle = questionMatch[3]?.replace(/^\s*[-:]\s*/, "").trim() || "";
+      // Drop the orphan punctuation OCR/imports leave after the number
+      // ("Question 1 . 66-year-old man …").
+      qTitle = qTitle.replace(/^[.·•,;:）)\-–—\s]+/, "").trim();
       // Unified layout across the whole site:
       //   "Question N"  →  stem paragraph  →  "Choices"  →  A–E rows  →  Reveal
       // A short ALL-CAPS topic glued onto the header ("Q9 — ABDOMINAL WALL i) …")
@@ -1521,9 +1605,15 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
-    if (/^\*{0,2}\s*(?:Question\s*)?\d+[a-z]?[\.)]\s+.{4,}/i.test(t) && examMode === "essay") {
+    if (/^\*{0,2}\s*(?:Question\s*)?\d+[a-z]?[\.)]\s+.{4,}/i.test(t) && examMode === "essay" && t.length <= 150) {
       flushList(); underSubheading = false;
       els.push(<p key={`essay-q-${i}`} className="mb-4 font-serif text-xl font-bold leading-snug text-foreground"><Inline text={cleanDisplayText(t)} /></p>);
+      continue;
+    }
+    // A long numbered stem is prose, not a display heading — keep it readable.
+    if (/^\*{0,2}\s*(?:Question\s*)?\d+[a-z]?[\.)]\s+.{4,}/i.test(t) && examMode === "essay") {
+      flushList(); underSubheading = false;
+      els.push(<p key={`essay-q-long-${i}`} className="mb-4 text-[1.03rem] leading-8 text-foreground/90"><Inline text={cleanDisplayText(t)} /></p>);
       continue;
     }
 
@@ -1700,7 +1790,11 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         continue;
       }
       underSubheading = false;
-      els.push(<p key={`p-sub-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
+      els.push(
+        <p key={`p-sub-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90">
+          <Inline text={t.replace(/^#+\s*/, "").replace(/^[.·•]\s+/, "")} />
+        </p>
+      );
       continue;
     }
 
@@ -1716,7 +1810,11 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
-    els.push(<p key={`p-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
+    els.push(
+      <p key={`p-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90">
+        <Inline text={t.replace(/^#+\s*/, "").replace(/^[.·•]\s+/, "")} />
+      </p>
+    );
   }
 
   if (codeBuf && codeBuf.length) {
@@ -2096,6 +2194,15 @@ export default function BlogPost() {
     const metaDesc = cleanMetaDescription(article);
     const ogImage = article.og_image_url || extractFirstImageFromContent(article.content || "") || `${SITE_URL}/og-default.png`;
     const canonicalUrl = `${SITE_URL}${buildBlogPath(article)}`;
+    const plain = stripRichText(article.content || "");
+    const year = getYearFromCategory(article.category || "");
+    const unit = getCategoryDisplayName(article.category || "") || "Medical Notes";
+    const keywords = [
+      unit, `${unit} notes`, `${unit} MCQs`, `${unit} past paper`,
+      year ? `Year ${year} MBChB` : "MBChB",
+      "Mount Kenya University", "MKU", "UON", "KU", "Moi University",
+      "medical school Kenya", "past papers with answers", "revision notes",
+    ].filter(Boolean) as string[];
 
     updateMetaTags({
       title: metaTitle,
@@ -2103,7 +2210,19 @@ export default function BlogPost() {
       image: ogImage,
       url: canonicalUrl,
       type: "article",
+      keywords,
     });
+
+    // Thin/scan-only pages are noise for search engines — keep them readable for
+    // humans but out of the index so real pages rank instead.
+    let robots = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+    if (!robots) {
+      robots = document.createElement("meta");
+      robots.setAttribute("name", "robots");
+      document.head.appendChild(robots);
+    }
+    const isThin = plain.length < 600 || /scanned by camscanner/i.test(article.content || "");
+    robots.setAttribute("content", isThin ? "noindex, follow" : "index, follow, max-image-preview:large, max-snippet:-1");
 
     let ldScript = document.querySelector("script[data-article-ld]") as HTMLScriptElement | null;
     if (!ldScript) {
@@ -2112,17 +2231,44 @@ export default function BlogPost() {
       ldScript.setAttribute("data-article-ld", "true");
       document.head.appendChild(ldScript);
     }
-    ldScript.textContent = JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "Article",
-      "headline": metaTitle,
-      "description": metaDesc,
-      "image": ogImage,
-      "url": canonicalUrl,
-      "datePublished": article.created_at,
-      "author": { "@type": "Organization", "name": "Ompath Study" },
-      "publisher": { "@type": "Organization", "name": "Ompath Study" },
-    });
+    ldScript.textContent = JSON.stringify([
+      {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": metaTitle.slice(0, 110),
+        "description": metaDesc,
+        "image": ogImage,
+        "url": canonicalUrl,
+        "mainEntityOfPage": { "@type": "WebPage", "@id": canonicalUrl },
+        "inLanguage": "en",
+        "isAccessibleForFree": true,
+        "keywords": keywords.join(", "),
+        "articleSection": unit,
+        "wordCount": plain.split(/\s+/).filter(Boolean).length,
+        "educationalLevel": year ? `Year ${year} (MBChB)` : "Undergraduate medicine",
+        "learningResourceType": "Study notes and past paper questions",
+        "datePublished": article.created_at,
+        "dateModified": (article as { updated_at?: string }).updated_at || article.created_at,
+        "author": { "@type": "Organization", "name": "Ompath Study", "url": SITE_URL },
+        "publisher": {
+          "@type": "Organization",
+          "name": "Ompath Study",
+          "url": SITE_URL,
+          "logo": { "@type": "ImageObject", "url": `${SITE_URL}/favicon.png` },
+        },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+          { "@type": "ListItem", position: 2, name: "Notes", item: `${SITE_URL}/blog` },
+          ...(year ? [{ "@type": "ListItem", position: 3, name: `Year ${year}`, item: `${SITE_URL}/year/${year}` }] : []),
+          { "@type": "ListItem", position: year ? 4 : 3, name: unit, item: `${SITE_URL}/blog?category=${encodeURIComponent(article.category || "")}` },
+          { "@type": "ListItem", position: year ? 5 : 4, name: metaTitle.slice(0, 110), item: canonicalUrl },
+        ],
+      },
+    ]);
 
     autoIndexUrls([canonicalUrl]);
 
