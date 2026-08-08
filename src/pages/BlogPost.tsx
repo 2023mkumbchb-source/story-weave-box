@@ -1529,6 +1529,44 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
 
     const questionMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)[:\s-]*(.*)/i);
+    // ── Exam-paper front matter → compact meta card ──
+    // "Programme: …", "Assessment: …", "Unit Code: …", "Date: …", "Reg No: …"
+    const metaFieldRe = /^\*{0,2}\s*(Programme|Program|Course|Assessment|Exam|Paper|Unit Code|Unit|Subject|Date|Time|Duration|Venue|Marks|Instructions?|Reg\.?\s*No\.?|Registration\s*No\.?|Year|Semester|University|School)\s*\*{0,2}\s*[:：]\s*(.+)$/i;
+    if (!questionMatch && metaFieldRe.test(t)) {
+      const rows: { label: string; value: string }[] = [];
+      let j = i;
+      while (j < lines.length) {
+        const lt = lines[j].trim();
+        if (!lt) { j++; continue; }
+        const m = lt.match(metaFieldRe);
+        if (!m) break;
+        rows.push({
+          label: cleanDisplayText(m[1]).replace(/\s+/g, " ").trim(),
+          value: cleanDisplayText(m[2].replace(/^\*+|\*+$/g, "")).trim(),
+        });
+        j++;
+      }
+      if (rows.length >= 2) {
+        flushList(); flushTable(); flushFlow(); underSubheading = false;
+        els.push(
+          <dl
+            key={`meta-card-${i}`}
+            className="my-6 grid grid-cols-1 gap-x-6 gap-y-3 rounded-xl border border-primary/20 bg-primary/[0.04] p-5 sm:grid-cols-2"
+          >
+            {rows.map((r, n) => (
+              <div key={`meta-row-${i}-${n}`} className="min-w-0">
+                <dt className="text-[11px] font-semibold uppercase tracking-wider text-primary/80">{r.label}</dt>
+                <dd className="mt-0.5 text-[15px] font-medium leading-snug text-foreground break-words">
+                  <Inline text={r.value} />
+                </dd>
+              </div>
+            ))}
+          </dl>
+        );
+        skipUntil = j;
+        continue;
+      }
+    }
     if (questionMatch) {
       flushList(); flushPractice(); inPractice = false; underSubheading = false;
       _sec++;
