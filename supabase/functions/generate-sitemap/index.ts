@@ -87,6 +87,21 @@ function extractContentImages(content: string | null): { loc: string; caption: s
   return out.slice(0, 900); // Google caps at 1000 images per <url>
 }
 
+/**
+ * Thin pages are what Google reports as "Crawled - currently not indexed".
+ * Never submit near-empty sets/notes in the sitemap.
+ */
+function textLength(content: string | null | undefined): number {
+  return String(content || "")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/<[^>]+>/g, "")
+    .trim().length;
+}
+
+function hasImages(content: string | null | undefined): boolean {
+  return /!\[[^\]]*\]\(|<img/i.test(String(content || ""));
+}
+
 const EXCLUDED_PATHS = new Set<string>([
   "/sitemap.xml",
   "/sitemap-dynamic.xml",
@@ -146,8 +161,8 @@ serve(async (req) => {
 
     const [articles, mcqs, flashcards, stories] = await Promise.all([
       fetchAllPublished(supabase, "articles", "id, title, slug, created_at, updated_at, category, og_image_url, content"),
-      fetchAllPublished(supabase, "mcq_sets", "id, title, slug, og_image_url, created_at, updated_at, category"),
-      fetchAllPublished(supabase, "flashcard_sets", "id, title, slug, created_at, updated_at, category"),
+      fetchAllPublished(supabase, "mcq_sets", "id, title, slug, og_image_url, created_at, updated_at, category, questions"),
+      fetchAllPublished(supabase, "flashcard_sets", "id, title, slug, created_at, updated_at, category, cards"),
       fetchAllPublished(supabase, "stories", "id, title, slug, created_at, category, cover_image_url", "created_at"),
     ]);
 
@@ -192,6 +207,8 @@ serve(async (req) => {
     // Articles
     for (const a of (articles || []) as any[]) {
       if (!includeBlog || !matchesYear(a.category, filter.year)) continue;
+      // Skip thin notes: too little text and no scanned pages to index.
+      if (textLength(a.content) < 400 && !hasImages(a.content)) continue;
       const articleSlug = cleanPublicSlug(a.slug, a.title, "article");
       const path = `/blog/${articleSlug}`;
       if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
@@ -238,6 +255,7 @@ serve(async (req) => {
     // MCQs
     for (const m of (mcqs || []) as any[]) {
       if (!includeMcqs || !matchesYear(m.category, filter.year)) continue;
+      if (!Array.isArray(m.questions) || m.questions.length < 5) continue;
       const mcqSlug = cleanPublicSlug(m.slug, m.title, "quiz");
       const path = `/mcqs/${mcqSlug}`;
       if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
@@ -255,6 +273,7 @@ serve(async (req) => {
     // Flashcards
     for (const f of (flashcards || []) as any[]) {
       if (!includeFlashcards || !matchesYear(f.category, filter.year)) continue;
+      if (!Array.isArray(f.cards) || f.cards.length < 5) continue;
       const flashcardSlug = cleanPublicSlug(f.slug, f.title, "flashcards");
       const path = `/flashcards/${flashcardSlug}`;
       if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
