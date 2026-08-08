@@ -1534,6 +1534,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       _sec++;
       const qNum = questionMatch[2];
       let qTitle = questionMatch[3]?.replace(/^\s*[-:]\s*/, "").trim() || "";
+      // Drop the orphan punctuation OCR/imports leave after the number
+      // ("Question 1 . 66-year-old man …").
+      qTitle = qTitle.replace(/^[.·•,;:）)\-–—\s]+/, "").trim();
       // Unified layout across the whole site:
       //   "Question N"  →  stem paragraph  →  "Choices"  →  A–E rows  →  Reveal
       // A short ALL-CAPS topic glued onto the header ("Q9 — ABDOMINAL WALL i) …")
@@ -1564,9 +1567,15 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
-    if (/^\*{0,2}\s*(?:Question\s*)?\d+[a-z]?[\.)]\s+.{4,}/i.test(t) && examMode === "essay") {
+    if (/^\*{0,2}\s*(?:Question\s*)?\d+[a-z]?[\.)]\s+.{4,}/i.test(t) && examMode === "essay" && t.length <= 150) {
       flushList(); underSubheading = false;
       els.push(<p key={`essay-q-${i}`} className="mb-4 font-serif text-xl font-bold leading-snug text-foreground"><Inline text={cleanDisplayText(t)} /></p>);
+      continue;
+    }
+    // A long numbered stem is prose, not a display heading — keep it readable.
+    if (/^\*{0,2}\s*(?:Question\s*)?\d+[a-z]?[\.)]\s+.{4,}/i.test(t) && examMode === "essay") {
+      flushList(); underSubheading = false;
+      els.push(<p key={`essay-q-long-${i}`} className="mb-4 text-[1.03rem] leading-8 text-foreground/90"><Inline text={cleanDisplayText(t)} /></p>);
       continue;
     }
 
