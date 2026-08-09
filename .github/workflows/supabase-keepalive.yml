@@ -1,0 +1,35 @@
+name: Supabase keep-alive
+
+on:
+  schedule:
+    # External database activity four times per day keeps the free project warm.
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Query the public database API
+        env:
+          # These are public browser credentials, not privileged server secrets.
+          SUPABASE_URL: https://dekyjrfwvavtoivqivno.supabase.co
+          SUPABASE_KEY: sb_publishable_jOXeiFMWJj1z_M-zShimXA_cG9f2QxL
+        run: |
+          test -n "$SUPABASE_URL"
+          test -n "$SUPABASE_KEY"
+          curl --fail --silent --show-error \
+            --retry 4 --retry-all-errors --retry-delay 10 \
+            --connect-timeout 20 --max-time 60 \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY" \
+            "$SUPABASE_URL/rest/v1/articles?select=id&published=eq.true&limit=1" \
+            > /dev/null

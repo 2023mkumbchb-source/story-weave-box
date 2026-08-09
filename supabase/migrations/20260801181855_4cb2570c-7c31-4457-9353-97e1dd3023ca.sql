@@ -6,6 +6,29 @@ CREATE POLICY "Admins can manage essays" ON public.essays
   WITH CHECK (public.has_role(auth.uid(), 'admin'::app_role));
 
 -- 2. Security: institution moderation restricted to admins
+-- Lovable originally created this table outside the checked-in migration history.
+-- Define it here so a clean Supabase project can reproduce the application schema.
+CREATE TABLE IF NOT EXISTS public.pending_institutions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  type text NOT NULL CHECK (type IN ('university', 'course')),
+  value text NOT NULL,
+  submitted_by text,
+  submitted_at timestamptz NOT NULL DEFAULT now(),
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  reviewed_at timestamptz,
+  CONSTRAINT pending_institutions_type_value_key UNIQUE (type, value)
+);
+
+ALTER TABLE public.pending_institutions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can read approved institutions" ON public.pending_institutions
+  FOR SELECT TO anon, authenticated
+  USING (status = 'approved' OR public.has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Anyone can submit institutions" ON public.pending_institutions
+  FOR INSERT TO anon, authenticated
+  WITH CHECK (status = 'pending' AND reviewed_at IS NULL);
+
 DROP POLICY IF EXISTS "Admin can manage all institutions" ON public.pending_institutions;
 CREATE POLICY "Admins can manage all institutions" ON public.pending_institutions
   FOR ALL TO authenticated
