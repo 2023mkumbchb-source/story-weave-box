@@ -2,9 +2,392 @@
 
 # Pelvis & Hip
 
-## Q1: Name two structures attached at the part of the pelvis pointed
+## Q1: State the anatomical basis of a positive Trendelenburg sign
 
-![Q1 - probe on the pelvis at a bony landmark](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q01-0c5d273a.jpg)
+![Normal and positive Trendelenburg stance](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-msaun-week-one-q01-534762e8.jpg)
+
+**Answer:**
+- Weakness or paralysis of the hip abductors, principally gluteus medius and gluteus minimus, on the supporting side
+- The pelvis drops on the unsupported side because the abductors cannot keep it level
+- Common causes include superior gluteal nerve injury or hip disease
+
+
+---
+
+## Q2: State two non-neural contents of the lesser sciatic foramen
+
+**Answer:**
+- Internal pudendal vessels
+- Tendon of obturator internus
+- Neural contents for comparison are the pudendal nerve and nerve to obturator internus
+
+
+---
+
+## Q3: Name two arterial sources supplying the tagged sciatic nerve
+
+![Gluteal and posterior-thigh dissection with the sciatic nerve tagged](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-msaun-week-one-q04-9792b809.jpg)
+
+**Answer:**
+- Inferior gluteal artery, historically called the ischiadic artery
+- Longitudinal arterial anastomosis along the sciatic nerve, supplied chiefly by perforating branches of profunda femoris with contributions from the medial circumflex femoral and internal pudendal arteries
+
+
+---
+
+## Q4: State the attachment of structure S
+
+![Gluteal dissection with piriformis marked S](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-msaun-week-one-q05-fa2c788a.jpg)
+
+**Answer:**
+- S is piriformis
+- Inserts on the superior border/tip of the greater trochanter
+- Originates from the pelvic surface of the sacrum
+
+
+---
+
+## Q5: Name the nerve for which the probed landmark is used and state its roots
+
+![Hip bone with the ischial spine probed](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-msaun-week-one-q06-320d1076.jpg)
+
+**Answer:**
+- Pudendal nerve
+- Root value: S2-S4
+- The ischial spine is a landmark for a pudendal nerve block
+
+
+---
+
+## Q6: State two muscles that insert into structure X
+
+![Lateral thigh dissection with the iliotibial tract labelled X](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-msaun-week-one-q07-02b65c18.jpg)
+
+**Answer:**
+- Tensor fasciae latae
+- Gluteus maximus
+- X is the iliotibial tract
+
+
+---
+
+## Q7: Identify the highlighted vessel
+
+![Gluteal arterial anatomy with one vessel highlighted](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-msaun-week-one-q08-c3722779.jpg)
+
+**Answer:**
+- Inferior gluteal artery
+
+
+---
+
+## Q8: State two actions of the highlighted muscle
+
+![Gluteus medius highlighted at the lateral hip](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-msaun-week-one-q09-b1606bb4.jpg)
+
+**Answer:**
+- Abducts the thigh at the hip
+- Anterior fibres medially rotate the thigh
+- Stabilizes the pelvis during single-leg stance
+
+
+---
+
+## Q9: Identify the highlighted nerve
+
+![Posterior thigh with a cutaneous nerve highlighted](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-msaun-week-one-q10-07484212.jpg)
+
+**Answer:**
+- Posterior cutaneous nerve of the thigh
+
+
+---
+
+## Q10: State the insertion of muscle X and the roots of its supplying nerve
+
+![Deep gluteal dissection with quadratus femoris marked X](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-msaun-week-one-q11-83c9d722.jpg)
+
+**Answer:**
+- X is quadratus femoris
+- Inserts on the quadrate tubercle and adjacent intertrochanteric crest
+- Nerve to quadratus femoris: L4-S1
+
+
+---
+
+## Q11: Identify A and B
+
+![Pelvic radiograph with two bony landmarks marked](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-msaun-week-one-q14-cd22f5fb.jpg)
+
+**Answer:**
+- A: ischial tuberosity
+- B: greater trochanter
+
+
+---
+
+## Q12: State the innervation of A and B
+
+![Gluteal dissection with muscles A and B marked](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-msaun-week-one-q15-6dbf614e.jpg)
+
+**Answer:**
+- A, gluteus medius/minimus region: superior gluteal nerve (L4-S1)
+- B, gluteus maximus: inferior gluteal nerve (L5-S2)
+
+
+---
+
+## Q13: List muscles that laterally rotate the thigh at the hip
+
+**Answer:**
+- Piriformis
+- Obturator internus and obturator externus
+- Superior and inferior gemelli
+- Quadratus femoris
+- Gluteus maximus
+- Sartorius
+
+
+---
+
+## Q14: Which ligaments convert the sciatic notches into the greater and lesser sciatic foramina?
+
+**Answer:**
+- Sacrotuberous ligament
+- Sacrospinous ligament
+
+
+---
+
+## Q15: Why are ventrogluteal injections placed in the highlighted muscle?
+
+![Ventrogluteal injection site over gluteus medius](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-msaun-week-one-q20-55e558e2.jpg)
+
+**Answer:**
+- The highlighted muscle is gluteus medius
+- The ventrogluteal site provides a thick muscle mass away from the sciatic nerve and major vessels
+
+
+---
+
+## Q16: State the root values of the tibial nerve and nerve to obturator internus
+
+**Answer:**
+- Tibial nerve: L4-S3
+- Nerve to obturator internus: L5-S2
+
+
+---
+
+## Q17: State two suprapiriform contents of the greater sciatic foramen
+
+**Answer:**
+- Superior gluteal nerve
+- Superior gluteal vessels
+
+
+---
+
+## Q18: State the anatomical basis of a waddling gait
+
+**Answer:**
+- Bilateral weakness or denervation of the hip abductors, especially gluteus medius and gluteus minimus
+- The trunk shifts from side to side to compensate for pelvic instability
+
+
+---
+
+## Q19: All major gluteal muscles are supplied by the superior gluteal nerve except which muscle?
+
+**Answer:**
+- Gluteus maximus, supplied by the inferior gluteal nerve
+
+
+---
+
+## Q20: State the landmark of structure A
+
+![Femoral triangle dissection with structure A marked](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week2-anatomy-review-q01-edecf509.jpg)
+
+**Answer:**
+- A is the femoral artery at the mid-inguinal point
+- The mid-inguinal point lies midway between the pubic symphysis and the anterior superior iliac spine
+
+
+---
+
+## Q21: State the two neural contents and the vascular contents of the adductor canal
+
+**Answer:**
+- Neural contents: saphenous nerve and nerve to vastus medialis
+- Vascular contents: femoral artery and femoral vein
+
+
+---
+
+## Q22: State the pattern of blood supply to the adult femoral head and its clinical implication
+
+![Arterial supply to the femoral head and neck](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week2-anatomy-review-q03-4126d9e5.jpg)
+
+**Answer:**
+- The adult femoral head is supplied mainly by retinacular branches, especially from the medial circumflex femoral artery
+- A fracture of the femoral neck can disrupt this retrograde blood supply and cause avascular necrosis of the femoral head
+
+
+---
+
+## Q23: Name structures A-C
+
+![Femoral triangle dissection with A, B, and C tagged](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week2-anatomy-review-q04-76f495e0.jpg)
+
+**Answer:**
+- A: pectineus muscle
+- B: femoral sheath
+- C: lateral femoral cutaneous nerve
+
+
+---
+
+## Q24: Side bone X
+
+![Distal femur specimen marked X](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week2-anatomy-review-q05-b7f8d4f5.jpg)
+
+**Answer:**
+- Right femur
+
+
+---
+
+## Q25: State two structures attached to the highlighted region
+
+![Hip bone with the anterior inferior iliac spine highlighted](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week2-anatomy-review-q06-f59c0448.jpg)
+
+**Answer:**
+- Straight head of rectus femoris
+- Iliofemoral ligament
+
+
+---
+
+## Q26: Name artery A and state the main region it supplies
+
+![Posterior thigh dissection with artery A marked](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week2-anatomy-review-q07-8ade219e.jpg)
+
+**Answer:**
+- A: profunda femoris artery
+- Its perforating branches are the principal arterial supply of the posterior thigh
+
+
+---
+
+## Q27: Identify the highlighted ligament and state its function
+
+![Hip joint with the pubofemoral ligament highlighted](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week2-anatomy-review-q08-e16c0b68.jpg)
+
+**Answer:**
+- Pubofemoral ligament
+- Limits excessive abduction and extension/hyperextension of the hip
+
+
+---
+
+## Q28: Identify A and B
+
+![Medial thigh dissection with A and B marked](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week2-anatomy-review-q09-5c16182d.jpg)
+
+**Answer:**
+- A: anterior division of the obturator nerve
+- B: adductor brevis muscle
+
+
+---
+
+## Q29: Identify space X
+
+![Axial section through the thigh with space X highlighted](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week2-anatomy-review-q10-de1571c3.jpg)
+
+**Answer:**
+- X: adductor canal
+
+
+---
+
+## Q30: Identify A-E
+
+![Anterior thigh dissection with A-E marked](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week2-anatomy-review-q12-2bf11f10.jpg)
+
+**Answer:**
+- A: sartorius
+- B: gracilis
+- C: adductor longus
+- D: rectus femoris
+- E: iliotibial tract
+
+
+---
+
+## Q31: State two bilaterally innervated muscles in the thigh
+
+**Answer:**
+- Pectineus: femoral nerve, with possible obturator/accessory obturator contribution
+- Adductor magnus: obturator nerve to the adductor part and tibial division of the sciatic nerve to the hamstring part
+- Biceps femoris is also dual-innervated: tibial division to the long head and common fibular division to the short head
+
+
+---
+
+## Q32: Identify A and B
+
+![Pelvic radiograph with A and B marked](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week2-anatomy-review-q14-ed6663a5.jpg)
+
+**Answer:**
+- A: pubic symphysis
+- B: lesser trochanter
+
+
+---
+
+## Q33: State two contents of the lateral compartment of the femoral sheath
+
+**Answer:**
+- Femoral artery
+- Femoral branch of the genitofemoral nerve
+
+
+---
+
+## Q34: State two modifications of the fascia lata
+
+**Answer:**
+- Iliotibial tract
+- Intermuscular septa
+- Cribriform fascia is another modification
+
+
+---
+
+## Q35: State the nerves forming the subsartorial plexus
+
+**Answer:**
+- Saphenous nerve
+- Medial femoral cutaneous nerve
+- Anterior division of the obturator nerve
+
+
+---
+
+## Q36: State the two fasciae that form the femoral sheath
+
+**Answer:**
+- Fascia transversalis anteriorly
+- Fascia iliaca posteriorly
+
+
+---
+
+## Q37: Name two structures attached at the part of the pelvis pointed
+
+![Q1 - probe on the pelvis at a bony landmark](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q01-0c5d273a.jpg)
 
 **Answer:**
 - Iliofemoral ligament
@@ -13,9 +396,9 @@
 
 ---
 
-## Q2: (a) State the blood supply to the femoral head (D) and its clinical relevance. (b) State the attachment and innervation of the iliopsoas tendon
+## Q38: (a) State the blood supply to the femoral head (D) and its clinical relevance. (b) State the attachment and innervation of the iliopsoas tendon
 
-![Q2 - femoral head with a landmark tagged D](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q02-37b446b8.jpg)
+![Q2 - femoral head with a landmark tagged D](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q02-37b446b8.jpg)
 
 **Answer:**
 - Retinacular vessels supply the femoral head
@@ -29,9 +412,9 @@
 
 ---
 
-## Q3: (a) State two actions of the muscle Y. (b) Name the muscles inserting at X and their innervation
+## Q39: (a) State two actions of the muscle Y. (b) Name the muscles inserting at X and their innervation
 
-![Q3 - thigh dissection with Y and X labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q03-f1c5c407.jpg)
+![Q3 - thigh dissection with Y and X labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q03-f1c5c407.jpg)
 
 **Answer:**
 - Y: rectus femoris
@@ -44,9 +427,9 @@
 
 ---
 
-## Q4: (a) Identify N and its distribution. (b) Name one other muscle that forms the floor of Hunter's canal, apart from M
+## Q40: (a) Identify N and its distribution. (b) Name one other muscle that forms the floor of Hunter's canal, apart from M
 
-![Q5 - femoral triangle dissection with M and N labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q05-32850b14.jpg)
+![Q5 - femoral triangle dissection with M and N labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q05-32850b14.jpg)
 
 **Answer:**
 - N: profunda femoris artery
@@ -58,9 +441,9 @@
 
 ---
 
-## Q5: (a) Name the landmark tagged and its clinical significance. (b) Identify tendon "PINT." (c) Identify G
+## Q41: (a) Name the landmark tagged and its clinical significance. (b) Identify tendon "PINT." (c) Identify G
 
-![Q6 - ischial region with landmarks tagged](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q06-fdee1ff8.jpg)
+![Q6 - ischial region with landmarks tagged](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q06-fdee1ff8.jpg)
 
 **Answer:**
 - Ischial spine
@@ -71,9 +454,9 @@
 
 ---
 
-## Q6: (a) Identify nerve L. (b) Name two modifications of the fascia lata apart from the iliotibial tract. (c) Give a cause of a positive Trendelenburg test
+## Q42: (a) Identify nerve L. (b) Name two modifications of the fascia lata apart from the iliotibial tract. (c) Give a cause of a positive Trendelenburg test
 
-![Q7 - posterior thigh dissection with nerve L tagged](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q07-283aea39.jpg)
+![Q7 - posterior thigh dissection with nerve L tagged](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q07-283aea39.jpg)
 
 **Answer:**
 - L: posterior cutaneous nerve of the thigh (lies superficial to biceps femoris)
@@ -84,9 +467,9 @@
 
 ---
 
-## Q7: (a) State two sources of blood supply to R. (b) State the attachment of muscle S
+## Q43: (a) State two sources of blood supply to R. (b) State the attachment of muscle S
 
-![Q8 - gluteal region with R and S labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q08-65f90925.jpg)
+![Q8 - gluteal region with R and S labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q08-65f90925.jpg)
 
 **Answer:**
 - Blood supply is segmental
@@ -101,9 +484,9 @@
 
 ---
 
-## Q8: (a) State the origin of the muscle tagged. (b) State its innervation and actions
+## Q44: (a) State the origin of the muscle tagged. (b) State its innervation and actions
 
-![Q13 - back dissection with a muscle tagged F](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q13-f165a891.jpg)
+![Q13 - back dissection with a muscle tagged F](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q13-f165a891.jpg)
 
 **Answer:**
 - Note: the source answer key mixes two muscles here — the origin given (external occipital protuberance, superior nuchal line, ligamentum nuchae, spinous processes of C7–T12) matches trapezius, while the innervation/actions given (thoracodorsal nerve; adduction, medial rotation, extension of the arm) match latissimus dorsi. Verify which muscle is actually tagged in the source image before publishing.
@@ -112,9 +495,9 @@
 
 ---
 
-## Q9: (a) Identify the nerve associated with the clinical features shown in A and B. (b) Describe the clinical grouping of the axillary nodes and its importance
+## Q45: (a) Identify the nerve associated with the clinical features shown in A and B. (b) Describe the clinical grouping of the axillary nodes and its importance
 
-![Q15 - winged scapula (A) and clawed hand (B)](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q15-403dea14.jpg)
+![Q15 - winged scapula (A) and clawed hand (B)](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q15-403dea14.jpg)
 
 **Answer:**
 - A: winged scapula — long thoracic nerve injury (serratus anterior paralysis)
@@ -125,9 +508,9 @@
 
 ---
 
-## Q10: Identify the structure probed; state its clinical significance
+## Q46: Identify the structure probed; state its clinical significance
 
-![Hip bone specimen with a probe pointing to a bony spine on the ischium](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q01-2695fc03.jpg)
+![Hip bone specimen with a probe pointing to a bony spine on the ischium](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q01-2695fc03.jpg)
 
 **Answer:**
 - Structure probed: ischial spine
@@ -135,9 +518,9 @@
 
 ---
 
-## Q11: Identify A and B; two non-neural contents of the lesser sciatic foramen
+## Q47: Identify A and B; two non-neural contents of the lesser sciatic foramen
 
-![Gluteal dissection with muscle A and nerve B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q02-48e55ad4.jpg)
+![Gluteal dissection with muscle A and nerve B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q02-48e55ad4.jpg)
 
 **Answer:**
 - A — piriformis muscle
@@ -148,9 +531,9 @@
 
 ---
 
-## Q12: Identify the condition displayed; two nerves involved
+## Q48: Identify the condition displayed; two nerves involved
 
-![Illustration of a winged scapula seen from behind](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q09-31bc4e76.jpg)
+![Illustration of a winged scapula seen from behind](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q09-31bc4e76.jpg)
 
 **Answer:**
 - Condition displayed: winged scapula
@@ -160,9 +543,9 @@
 
 ---
 
-## Q13: Identify A, B, C
+## Q49: Identify A, B, C
 
-![Femoral triangle dissection with femoral artery (A), pectineus (B), and sartorius (C) labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q14-ccfb542e.jpg)
+![Femoral triangle dissection with femoral artery (A), pectineus (B), and sartorius (C) labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q14-ccfb542e.jpg)
 
 **Answer:**
 - A — femoral artery
@@ -171,9 +554,9 @@
 
 ---
 
-## Q14: Muscle A — insertion; root value and distribution of nerve B (2+2 marks)
+## Q50: Muscle A — insertion; root value and distribution of nerve B (2+2 marks)
 
-![Gluteal/thigh dissection with muscle A and nerve B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q01-f8ec0c81.jpg)
+![Gluteal/thigh dissection with muscle A and nerve B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q01-f8ec0c81.jpg)
 
 **Answer:**
 - Insertion of muscle A (tensor fasciae latae):
@@ -183,9 +566,9 @@
 
 ---
 
-## Q15: Muscle Y — two actions; cutaneous innervation of the medial thigh (2+2 marks)
+## Q51: Muscle Y — two actions; cutaneous innervation of the medial thigh (2+2 marks)
 
-![Thigh dissection with muscle Y labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q02-48c34cba.jpg)
+![Thigh dissection with muscle Y labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q02-48c34cba.jpg)
 
 **Answer:**
 - Two actions of muscle Y (adductor group):
@@ -195,9 +578,9 @@
 
 ---
 
-## Q16: Pelvis — two structures attaching at regions Y and Z
+## Q52: Pelvis — two structures attaching at regions Y and Z
 
-![Hip bone specimen with regions X, Y, Z labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q05-57a1960b.jpg)
+![Hip bone specimen with regions X, Y, Z labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q05-57a1960b.jpg)
 
 **Answer:**
 - Structures attaching at Y: inguinal ligament; sartorius muscle
@@ -205,9 +588,9 @@
 
 ---
 
-## Q17: Hip joint — name A–C; main stability factor of the hip joint (3+1 marks)
+## Q53: Hip joint — name A–C; main stability factor of the hip joint (3+1 marks)
 
-![Coronal illustration of the hip joint with A, B, C labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q06-1be66571.jpg)
+![Coronal illustration of the hip joint with A, B, C labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q06-1be66571.jpg)
 
 **Answer:**
 - A — lunate (articular) surface of the acetabulum
@@ -220,9 +603,9 @@
 
 ---
 
-## Q18: Muscle displayed — two actions; source of blood supply to the sciatic nerve (2+2 marks)
+## Q54: Muscle displayed — two actions; source of blood supply to the sciatic nerve (2+2 marks)
 
-![Posterior knee illustration showing popliteus muscle](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q07-68553ee6.jpg)
+![Posterior knee illustration showing popliteus muscle](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q07-68553ee6.jpg)
 
 **Answer:**
 - Two actions of the muscle displayed (popliteus):
@@ -232,9 +615,9 @@
 
 ---
 
-## Q19: (a) Identify A and B. (b) Name the two nerves supplying the region shown
+## Q55: (a) Identify A and B. (b) Name the two nerves supplying the region shown
 
-![Q19 - femoral triangle dissection labelled "FEMORAL TRIANGLE"](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q19-89247f4f.jpg)
+![Q19 - femoral triangle dissection labelled "FEMORAL TRIANGLE"](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q19-89247f4f.jpg)
 
 **Answer:**
 - A: femoral nerve
@@ -247,9 +630,120 @@
 
 # Thigh & Knee
 
-## Q20: (a) Identify the structure tagged Q and its distribution. (b) Name two factors that prevent the natural tendency of patellar dislocation, apart from Q
+## Q56: State two structures that pierce the roof of the popliteal fossa
 
-![Q4 - thigh dissection with a structure tagged Q](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q04-e820cd0c.jpg)
+**Answer:**
+- Small saphenous vein
+- Posterior cutaneous nerve of the thigh (S1-S3)
+
+
+---
+
+## Q57: Identify A-E in the popliteal fossa
+
+![Popliteal fossa dissection labelled A-E](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-msaun-week-one-q12-2f6abfbf.jpg)
+
+**Answer:**
+- A: semimembranosus
+- B: biceps femoris
+- C: common fibular (peroneal) nerve
+- D: lateral head of gastrocnemius
+- E: popliteal vein
+
+
+---
+
+## Q58: Which muscle reinforces the inferolateral boundary of the popliteal fossa?
+
+**Answer:**
+- Plantaris
+- The principal muscular boundary is the lateral head of gastrocnemius
+
+
+---
+
+## Q59: State two features unique to biceps femoris among the hamstrings
+
+**Answer:**
+- Its short head arises from the linea aspera and is not a true hamstring
+- The short head is supplied by the common fibular division of the sciatic nerve, whereas the long head is supplied by the tibial division
+
+
+---
+
+## Q60: Identify the muscle attaching to the labelled bony landmark
+
+![Femur with the adductor tubercle indicated](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-msaun-week-one-q19-028f5156.jpg)
+
+**Answer:**
+- Hamstring (ischiocondylar) part of adductor magnus
+- Its tendon inserts on the adductor tubercle
+
+
+---
+
+## Q61: State two hamstring muscles that share a common tendinous origin
+
+**Answer:**
+- Semitendinosus
+- Long head of biceps femoris
+
+
+---
+
+## Q62: State the nerves supplying regions F and G
+
+![Cutaneous innervation map of the lower limb with F and G](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week2-anatomy-review-q11-b81a2499.jpg)
+
+**Answer:**
+- F: obturator nerve
+- G: lateral femoral cutaneous nerve
+
+
+---
+
+## Q63: State the dermatomes of the femoral triangle and anterior knee
+
+![Lower-limb dermatome map](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week2-anatomy-review-q15-bd701461.jpg)
+
+**Answer:**
+- Femoral triangle: L1-L2
+- Anterior knee: L3
+
+
+---
+
+## Q64: State the root values of the lateral femoral cutaneous and obturator nerves
+
+**Answer:**
+- Lateral femoral cutaneous nerve: L2-L3
+- Obturator nerve: L2-L4
+
+
+---
+
+## Q65: State two non-hamstring flexors of the knee
+
+**Answer:**
+- Sartorius
+- Gracilis
+- Gastrocnemius and plantaris also flex the knee
+
+
+---
+
+## Q66: Give the origin and termination of the great saphenous vein
+
+**Answer:**
+- Origin: medial end of the dorsal venous arch of the foot, continuing from the medial marginal vein
+- Termination: femoral vein at the saphenous opening
+
+
+---
+
+## Q67: (a) Identify the structure tagged Q and its distribution. (b) Name two factors that prevent the natural tendency of patellar dislocation, apart from Q
+
+![Q4 - thigh dissection with a structure tagged Q](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q04-e820cd0c.jpg)
 
 **Answer:**
 - Note: the source question calls Q a "nerve," but the tagged region visually corresponds to a muscle belly (most consistent with vastus medialis / VMO) — flagging this mismatch for you to verify against the original image
@@ -260,9 +754,9 @@
 
 ---
 
-## Q21: (a) Name two branches of X, proximal to the tagged point. (b) State the direction of dislocation of the distal fragment after a supracondylar femoral fracture
+## Q68: (a) Name two branches of X, proximal to the tagged point. (b) State the direction of dislocation of the distal fragment after a supracondylar femoral fracture
 
-![Q9 - popliteal fossa dissection with X tagged](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q09-f1341b18.jpg)
+![Q9 - popliteal fossa dissection with X tagged](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q09-f1341b18.jpg)
 
 **Answer:**
 - X: sural nerve (in the popliteal fossa)
@@ -275,9 +769,9 @@
 
 ---
 
-## Q22: Name the structures involved in the "unhappy triad" of O'Donoghue
+## Q69: Name the structures involved in the "unhappy triad" of O'Donoghue
 
-![Q21 - knee injury context photo](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q21-9701cca3.jpg)
+![Q21 - knee injury context photo](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q21-9701cca3.jpg)
 
 **Answer:**
 - Anterior cruciate ligament
@@ -286,9 +780,9 @@
 
 ---
 
-## Q23: Identify A and B; two mechanisms of venous return from the lower limb
+## Q70: Identify A and B; two mechanisms of venous return from the lower limb
 
-![Posterior knee dissection with hamstring muscles A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q03-f7d9c9e6.jpg)
+![Posterior knee dissection with hamstring muscles A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q03-f7d9c9e6.jpg)
 
 **Answer:**
 - A — semimembranosus
@@ -299,9 +793,9 @@
 
 ---
 
-## Q24: Identify A and B; two bursae around the knee
+## Q71: Identify A and B; two bursae around the knee
 
-![Knee joint dissection with lateral meniscus (A) and anterior cruciate ligament (B) labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q17-d82075cb.jpg)
+![Knee joint dissection with lateral meniscus (A) and anterior cruciate ligament (B) labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q17-d82075cb.jpg)
 
 **Answer:**
 - A — lateral meniscus
@@ -311,9 +805,9 @@
 
 ---
 
-## Q25: Bone region X — two attachments; two modifications of the fascia lata (2+2 marks)
+## Q72: Bone region X — two attachments; two modifications of the fascia lata (2+2 marks)
 
-![Femur specimen with region X labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q03-dc6df019.jpg)
+![Femur specimen with region X labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q03-dc6df019.jpg)
 
 **Answer:**
 - Two structures attaching at region X (lateral femoral condyle area):
@@ -325,9 +819,9 @@
 
 ---
 
-## Q26: Bone A — two stability factors; two attachments on area X of bone B (2+2 marks)
+## Q73: Bone A — two stability factors; two attachments on area X of bone B (2+2 marks)
 
-![Tibial plateau specimen A and femoral condyle specimen B with region X](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q04-5f707622.jpg)
+![Tibial plateau specimen A and femoral condyle specimen B with region X](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q04-5f707622.jpg)
 
 **Answer:**
 - Two stability factors of bone A (tibial plateau/knee):
@@ -339,9 +833,9 @@
 
 ---
 
-## Q27: Structures deep to A and B (1+3 marks)
+## Q74: Structures deep to A and B (1+3 marks)
 
-![Groin dissection with A and B labelled, ASIS marked](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q08-47c809d3.jpg)
+![Groin dissection with A and B labelled, ASIS marked](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q08-47c809d3.jpg)
 
 **Answer:**
 - Structure deep to A: articularis genu muscle; suprapatellar bursa
@@ -349,9 +843,9 @@
 
 ---
 
-## Q28: (a) Identify the fracture, its basis and a complication. (b) State the root values of the superficial peroneal and pudendal nerves
+## Q75: (a) Identify the fracture, its basis and a complication. (b) State the root values of the superficial peroneal and pudendal nerves
 
-![Q20 - knee X-ray, two views](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q20-00defd31.jpg)
+![Q20 - knee X-ray, two views](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q20-00defd31.jpg)
 
 **Answer:**
 - Supracondylar femoral fracture
@@ -362,9 +856,9 @@
 
 ---
 
-## Q29: Identify the muscle below and its innervation
+## Q76: Identify the muscle below and its innervation
 
-![Q29 - thenar eminence dissection](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q29-ce128871.jpg)
+![Q29 - thenar eminence dissection](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q29-ce128871.jpg)
 
 **Answer:**
 - Abductor pollicis brevis
@@ -375,9 +869,9 @@
 
 # Leg, Ankle & Foot
 
-## Q30: (a) Identify the tendon tagged. (b) Describe the stability factors of the ankle joint
+## Q77: (a) Identify the tendon tagged. (b) Describe the stability factors of the ankle joint
 
-![Q10 - ankle dissection with a tendon tagged](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q10-b35a1650.jpg)
+![Q10 - ankle dissection with a tendon tagged](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q10-b35a1650.jpg)
 
 **Answer:**
 - Peroneus tertius
@@ -390,9 +884,9 @@
 
 ---
 
-## Q31: (a) Identify the muscle tagged and its actions. (b) Describe the pattern of blood supply to N and its clinical relevance
+## Q78: (a) Identify the muscle tagged and its actions. (b) Describe the pattern of blood supply to N and its clinical relevance
 
-![Q11 - sole of the foot with N labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q11-802e7ddb.jpg)
+![Q11 - sole of the foot with N labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q11-802e7ddb.jpg)
 
 **Answer:**
 - Tibialis posterior
@@ -405,9 +899,9 @@
 
 ---
 
-## Q32: (a) Identify and side the bone shown. (b) Name a muscle inserting on its body and the clinical relevance. (c) Name two joints where inversion/eversion occur
+## Q79: (a) Identify and side the bone shown. (b) Name a muscle inserting on its body and the clinical relevance. (c) Name two joints where inversion/eversion occur
 
-![Q12 - isolated tarsal bone specimen](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q12-41f50b29.jpg)
+![Q12 - isolated tarsal bone specimen](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q12-41f50b29.jpg)
 
 **Answer:**
 - Left talus
@@ -420,9 +914,9 @@
 
 ---
 
-## Q33: (a) Identify K and its terminal distribution. (b) Give two causes of injury to L
+## Q80: (a) Identify K and its terminal distribution. (b) Give two causes of injury to L
 
-![Q16 - right axilla and arm dissection with K and L labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q16-99fad664.jpg)
+![Q16 - right axilla and arm dissection with K and L labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q16-99fad664.jpg)
 
 **Answer:**
 - K: musculocutaneous nerve
@@ -433,9 +927,9 @@
 
 ---
 
-## Q34: Identify the bone displayed; its pattern of blood supply
+## Q81: Identify the bone displayed; its pattern of blood supply
 
-![Illustration of the right talus](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q15-c95f6151.jpg)
+![Illustration of the right talus](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q15-c95f6151.jpg)
 
 **Answer:**
 - Bone displayed: right talus
@@ -443,9 +937,9 @@
 
 ---
 
-## Q35: Foot — nerves supplying regions A and B; two structures behind the lateral malleolus (2+2 marks)
+## Q82: Foot — nerves supplying regions A and B; two structures behind the lateral malleolus (2+2 marks)
 
-![Dorsum of the foot with cutaneous regions A and B colour-coded](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q09-672bd9e8.jpg)
+![Dorsum of the foot with cutaneous regions A and B colour-coded](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q09-672bd9e8.jpg)
 
 **Answer:**
 - A — superficial fibular (peroneal) nerve
@@ -454,9 +948,9 @@
 
 ---
 
-## Q36: Two arteries forming X; attachments of Y (2+2 marks)
+## Q83: Two arteries forming X; attachments of Y (2+2 marks)
 
-![Deep plantar dissection with X and Y labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q10-0dbc15e4.jpg)
+![Deep plantar dissection with X and Y labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q10-0dbc15e4.jpg)
 
 **Answer:**
 - X (plantar arterial arch) is formed by: the dorsalis pedis artery and the lateral plantar artery
@@ -464,9 +958,9 @@
 
 ---
 
-## Q37: Forearm — identify muscle X and nerve Y; two causes of claw hand (2+2 marks)
+## Q84: Forearm — identify muscle X and nerve Y; two causes of claw hand (2+2 marks)
 
-![Forearm dissection with muscle X and nerve Y labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q20-536264fd.jpg)
+![Forearm dissection with muscle X and nerve Y labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q20-536264fd.jpg)
 
 **Answer:**
 - X — supinator muscle
@@ -475,9 +969,9 @@
 
 ---
 
-## Q38: (a) State the clinical effect and basis of the nerve injury shown. (b) Name two other sources forming the arterial anastomosis around A
+## Q85: (a) State the clinical effect and basis of the nerve injury shown. (b) Name two other sources forming the arterial anastomosis around A
 
-![Q15 - humerus specimen with A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q15-0344ee22.jpg)
+![Q15 - humerus specimen with A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q15-0344ee22.jpg)
 
 **Answer:**
 - Clinical effect: claw hand
@@ -488,9 +982,9 @@
 
 ---
 
-## Q39: (a) Identify tendons A and B. (b) Name the bony landmark at this site and two ligaments attaching there
+## Q86: (a) Identify tendons A and B. (b) Name the bony landmark at this site and two ligaments attaching there
 
-![Q21 - ankle dissection with A, B, C labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q21-86547d42.jpg)
+![Q21 - ankle dissection with A, B, C labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q21-86547d42.jpg)
 
 **Answer:**
 - A: peroneus tertius
@@ -502,9 +996,9 @@
 
 ---
 
-## Q40: State the communications of the space labelled X
+## Q87: State the communications of the space labelled X
 
-![Q23 - diagram of the palm with a fascial space labelled X](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q23-2e7d4981.jpg)
+![Q23 - diagram of the palm with a fascial space labelled X](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q23-2e7d4981.jpg)
 
 **Answer:**
 - Midpalmar space
@@ -514,9 +1008,9 @@
 
 ---
 
-## Q41: State (a) the site of entrapment of the nerve below at the wrist, (b) its nerve roots
+## Q88: State (a) the site of entrapment of the nerve below at the wrist, (b) its nerve roots
 
-![Q30 - nerve at the wrist crease](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q30-c4fc2e6a.jpg)
+![Q30 - nerve at the wrist crease](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q30-c4fc2e6a.jpg)
 
 **Answer:**
 - Median nerve
@@ -532,64 +1026,64 @@
 
 ### Pelvis
 
-![Posterior view of the pelvis with ligaments labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-pelvis-ligaments-d06c307e.jpg)
+![Posterior view of the pelvis with ligaments labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-pelvis-ligaments-d06c307e.jpg)
 
 ### Posterior Thigh (Hamstrings)
 
-![Posterior thigh dissection with semitendinosus, semimembranosus and biceps femoris labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-hamstrings-b8bfa6c9.jpg)
+![Posterior thigh dissection with semitendinosus, semimembranosus and biceps femoris labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-hamstrings-b8bfa6c9.jpg)
 
 ### Anterior Thigh & Femoral Triangle
 
-![Femoral triangle dissection with its boundaries and contents labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-femoral-triangle-32e03421.jpg)
+![Femoral triangle dissection with its boundaries and contents labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-femoral-triangle-32e03421.jpg)
 
 ### Quadriceps Femoris
 
-![Anterior thigh illustration with rectus femoris, vastus intermedius, vastus medialis and vastus lateralis labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-femur-c7bb3ba9.jpg)
+![Anterior thigh illustration with rectus femoris, vastus intermedius, vastus medialis and vastus lateralis labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-femur-c7bb3ba9.jpg)
 
 ### Tibia and Fibula
 
-![Anterior view of the tibia and fibula with landmarks labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-leg-bones-4b866632.jpg)
+![Anterior view of the tibia and fibula with landmarks labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-leg-bones-4b866632.jpg)
 
 ### Fascial Compartments of the Leg
 
-![Cross-section of the leg showing the anterior, lateral (peroneal), superficial posterior and deep posterior compartments](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-leg-compartments-0f7a58e0.jpg)
+![Cross-section of the leg showing the anterior, lateral (peroneal), superficial posterior and deep posterior compartments](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-leg-compartments-0f7a58e0.jpg)
 
 ### Anterior/Lateral Leg Dissection
 
-![Anterolateral leg dissection with extensor and peroneal compartment muscles, nerves and vessels labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-anterior-leg-e207648a.jpg)
+![Anterolateral leg dissection with extensor and peroneal compartment muscles, nerves and vessels labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-anterior-leg-e207648a.jpg)
 
 ### Popliteal Fossa
 
-![Popliteal fossa dissection with its boundaries, nerves and vessels labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-popliteal-fossa-a7d3f1fa.jpg)
+![Popliteal fossa dissection with its boundaries, nerves and vessels labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-popliteal-fossa-a7d3f1fa.jpg)
 
 ### Posterior Leg (Triceps Surae)
 
-![Posterior leg dissection with gastrocnemius, soleus and deep posterior compartment structures labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-posterior-leg-d7570d02.jpg)
+![Posterior leg dissection with gastrocnemius, soleus and deep posterior compartment structures labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-posterior-leg-d7570d02.jpg)
 
 ### Genicular (Peri-Patellar) Anastomosis
 
-![Diagram of the arterial anastomosis around the knee joint](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-genicular-anastomosis-cafa458e.jpg)
+![Diagram of the arterial anastomosis around the knee joint](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-genicular-anastomosis-cafa458e.jpg)
 
 ### Sole of the Foot (Four Layers)
 
-![Four dissection panels showing the first through fourth muscle layers of the sole of the foot](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-sole-of-foot-c03483d9.jpg)
+![Four dissection panels showing the first through fourth muscle layers of the sole of the foot](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-sole-of-foot-c03483d9.jpg)
 
 ### Plantar Arterial Arch
 
-![Dissection of the plantar arch with the medial and lateral plantar arteries and their branches labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-plantar-arch-8cda4ae9.jpg)
+![Dissection of the plantar arch with the medial and lateral plantar arteries and their branches labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-plantar-arch-8cda4ae9.jpg)
 
 ### Superficial Venous Drainage
 
-![Illustration of the greater and small saphenous veins of the lower limb](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-venous-drainage-f7a7f12c.jpg)
+![Illustration of the greater and small saphenous veins of the lower limb](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-venous-drainage-f7a7f12c.jpg)
 
 
 ---
 
 # Vertebral Column & Spine
 
-## Q42: (a) State the root value of M. (b) Describe the anatomical basis of gallbladder pain referral to the right shoulder
+## Q89: (a) State the root value of M. (b) Describe the anatomical basis of gallbladder pain referral to the right shoulder
 
-![Q14 - shoulder/neck dissection with M tagged](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q14-f32c2be5.jpg)
+![Q14 - shoulder/neck dissection with M tagged](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q14-f32c2be5.jpg)
 
 **Answer:**
 - M: phrenic nerve
@@ -599,9 +1093,9 @@
 
 ---
 
-## Q43: Identify A and B; two stability factors of the spinal cord
+## Q90: Identify A and B; two stability factors of the spinal cord
 
-![Illustration of the spinal cord in the vertebral canal with denticulate ligament (A) and dorsal nerve root (B) labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q08-1cfd96e9.jpg)
+![Illustration of the spinal cord in the vertebral canal with denticulate ligament (A) and dorsal nerve root (B) labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q08-1cfd96e9.jpg)
 
 **Answer:**
 - A — denticulate ligament
@@ -615,9 +1109,9 @@
 
 ---
 
-## Q44: Vertebra — name X and Y; two ligaments attaching to Z (2+2 marks)
+## Q91: Vertebra — name X and Y; two ligaments attaching to Z (2+2 marks)
 
-![Vertebra illustration with X, Y, Z labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q12-4d11d6f0.jpg)
+![Vertebra illustration with X, Y, Z labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q12-4d11d6f0.jpg)
 
 **Answer:**
 - X — transverse process
@@ -626,9 +1120,9 @@
 
 ---
 
-## Q45: Outline four actions of the intervertebral disc, A (4 marks)
+## Q92: Outline four actions of the intervertebral disc, A (4 marks)
 
-![Vertebra with intervertebral disc A labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q11-0af43e6c.jpg)
+![Vertebra with intervertebral disc A labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q11-0af43e6c.jpg)
 
 **Answer:**
 - Separates adjacent vertebral bodies
@@ -638,9 +1132,9 @@
 
 ---
 
-## Q46: (a) Identify the vertebra shown and its region. (b) State the level of termination of the spinal cord and one related clinical feature
+## Q93: (a) Identify the vertebra shown and its region. (b) State the level of termination of the spinal cord and one related clinical feature
 
-![Q18 - isolated vertebra specimen](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q18-ba230faa.jpg)
+![Q18 - isolated vertebra specimen](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q18-ba230faa.jpg)
 
 **Answer:**
 - Cervical vertebra
@@ -650,9 +1144,9 @@
 
 ---
 
-## Q47: Cervical rib — symptoms of B; varieties of D (2+2 marks)
+## Q94: Cervical rib — symptoms of B; varieties of D (2+2 marks)
 
-![Cervical rib (B) on a skeleton and a soft-tissue swelling in a neonate (D)](https://ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q07-8436586f.jpg)
+![Cervical rib (B) on a skeleton and a soft-tissue swelling in a neonate (D)](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q07-8436586f.jpg)
 
 **Answer:**
 - Symptoms of a cervical rib (B) — thoracic outlet compression:
@@ -666,9 +1160,9 @@
 
 ---
 
-## Q48: Reflex arc neurons — functional and structural types of A, B, C (3 marks)
+## Q95: Reflex arc neurons — functional and structural types of A, B, C (3 marks)
 
-![Reflex arc diagram with receptor, spinal cord, and effector; A, B, C labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q10-d6c1d660.jpg)
+![Reflex arc diagram with receptor, spinal cord, and effector; A, B, C labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q10-d6c1d660.jpg)
 
 **Answer:**
 - A — efferent (motor) neuron — structurally multipolar
@@ -677,9 +1171,9 @@
 
 ---
 
-## Q49: Vertebrae identification — A and B; structure through X; attachment at Y (2+1+1 marks)
+## Q96: Vertebrae identification — A and B; structure through X; attachment at Y (2+1+1 marks)
 
-![Three vertebra specimens labelled A, B, with foramen X and process Y marked](https://ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q11-5f3d44d9.jpg)
+![Three vertebra specimens labelled A, B, with foramen X and process Y marked](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q11-5f3d44d9.jpg)
 
 **Answer:**
 - A — lumbar vertebra
@@ -691,9 +1185,9 @@
 
 # Skull, Scalp & Face
 
-## Q50: Identify A–D; two contents of A
+## Q97: Identify A–D; two contents of A
 
-![Sagittal skull illustration with dural venous sinuses A, B, C, D labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q12-e4e80bc6.jpg)
+![Sagittal skull illustration with dural venous sinuses A, B, C, D labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q12-e4e80bc6.jpg)
 
 **Answer:**
 - A — superior sagittal sinus
@@ -704,9 +1198,9 @@
 
 ---
 
-## Q51: Identify the basis for the skin conditions displayed, A and B
+## Q98: Identify the basis for the skin conditions displayed, A and B
 
-![Two clinical photos: A, thickened scaly skin over the knees; B, a man with excessive body and facial hair](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q36-ba96b196.jpg)
+![Two clinical photos: A, thickened scaly skin over the knees; B, a man with excessive body and facial hair](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q36-ba96b196.jpg)
 
 **Answer:**
 - A — ichthyosis vulgaris: basis is hyperkeratinisation
@@ -714,9 +1208,9 @@
 
 ---
 
-## Q52: Cranial fossa — identify A and B; two structures through C (2+2 marks)
+## Q99: Cranial fossa — identify A and B; two structures through C (2+2 marks)
 
-![Base of skull, anterior cranial fossa with A, B, C labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q08-c90b327f.jpg)
+![Base of skull, anterior cranial fossa with A, B, C labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q08-c90b327f.jpg)
 
 **Answer:**
 - A — frontal air sinus
@@ -727,9 +1221,9 @@
 
 ---
 
-## Q53: Fontanelles and facial prominences — closure times of A and B; name C and D (2+2 marks)
+## Q100: Fontanelles and facial prominences — closure times of A and B; name C and D (2+2 marks)
 
-![Infant skull showing fontanelles A, B and facial prominences C, D](https://ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q14-fb575414.jpg)
+![Infant skull showing fontanelles A, B and facial prominences C, D](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q14-fb575414.jpg)
 
 **Answer:**
 - A (anterior fontanelle) closes: 12–18 months
@@ -739,9 +1233,9 @@
 
 ---
 
-## Q54: Cavernous sinus region — identify G and H; foramen of exit of E and F (2+2 marks)
+## Q101: Cavernous sinus region — identify G and H; foramen of exit of E and F (2+2 marks)
 
-![Coronal section through cavernous sinus region with A–H labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q16-57a88cbf.jpg)
+![Coronal section through cavernous sinus region with A–H labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q16-57a88cbf.jpg)
 
 **Answer:**
 - G — optic chiasma
@@ -751,9 +1245,9 @@
 
 ---
 
-## Q55: Scalp sensory territories — sensory innervation of C and D; lymph drainage of the scalp (2+2 marks)
+## Q102: Scalp sensory territories — sensory innervation of C and D; lymph drainage of the scalp (2+2 marks)
 
-![Head diagram with colour-coded sensory regions A, B, C, D](https://ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q17-397cdcfc.jpg)
+![Head diagram with colour-coded sensory regions A, B, C, D](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q17-397cdcfc.jpg)
 
 **Answer:**
 - Sensory innervation of C: mandibular branch of the trigeminal nerve (V3); also dorsal rami of the cervical spinal nerves supply the region behind it
@@ -764,9 +1258,9 @@
 
 ---
 
-## Q56: Facial/scalp veins — name A and B; termination of C and D (2+2 marks)
+## Q103: Facial/scalp veins — name A and B; termination of C and D (2+2 marks)
 
-![Lateral head diagram with veins A, B, C, D and the facial vein/internal jugular vein labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q18-d3346d79.jpg)
+![Lateral head diagram with veins A, B, C, D and the facial vein/internal jugular vein labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q18-d3346d79.jpg)
 
 **Answer:**
 - A — retromandibular vein
@@ -776,9 +1270,9 @@
 
 ---
 
-## Q57: Dural venous sinuses — identify A and B; nerve to tentorium cerebelli; artery to posterior cranial dura (2+1+1 marks)
+## Q104: Dural venous sinuses — identify A and B; nerve to tentorium cerebelli; artery to posterior cranial dura (2+1+1 marks)
 
-![Base of skull with dural venous sinuses A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q19-b213d652.jpg)
+![Base of skull with dural venous sinuses A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q19-b213d652.jpg)
 
 **Answer:**
 - A — confluence of sinuses
@@ -790,9 +1284,9 @@
 
 # Breast & Thoracic Wall
 
-## Q58: Identify A and B; two actions of C on the arm
+## Q105: Identify A and B; two actions of C on the arm
 
-![Shoulder dissection with deltoid (A), pectoralis major (B), and muscle C labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q06-a8a4fb89.jpg)
+![Shoulder dissection with deltoid (A), pectoralis major (B), and muscle C labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q06-a8a4fb89.jpg)
 
 **Answer:**
 - A — deltoid muscle
@@ -801,9 +1295,9 @@
 
 ---
 
-## Q59: Identify the shaded muscle; its clinical/surgical utility
+## Q106: Identify the shaded muscle; its clinical/surgical utility
 
-![Anterior chest wall dissection with pectoralis minor shaded](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q10-ce5efec6.jpg)
+![Anterior chest wall dissection with pectoralis minor shaded](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q10-ce5efec6.jpg)
 
 **Answer:**
 - Shaded muscle: pectoralis minor
@@ -813,9 +1307,9 @@
 
 ---
 
-## Q60: Nerve supply to muscles A and B; two sites of radial nerve injury in the arm (2+2 marks)
+## Q107: Nerve supply to muscles A and B; two sites of radial nerve injury in the arm (2+2 marks)
 
-![Back dissection with muscles A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q14-d20a85e7.jpg)
+![Back dissection with muscles A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q14-d20a85e7.jpg)
 
 **Answer:**
 - A — spinal accessory nerve
@@ -824,9 +1318,9 @@
 
 ---
 
-## Q61: (a) Identify A, B and C. (b) State the pain referral pattern of B
+## Q108: (a) Identify A, B and C. (b) State the pain referral pattern of B
 
-![Q14 - axilla dissection with A, B, C labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q14-528ad527.jpg)
+![Q14 - axilla dissection with A, B, C labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q14-528ad527.jpg)
 
 **Answer:**
 - A: medial pectoral nerve
@@ -837,9 +1331,9 @@
 
 ---
 
-## Q62: Name the vessel tagged and state its extents
+## Q109: Name the vessel tagged and state its extents
 
-![Q3 - forceps tagging a vessel in the axilla](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q03-ca042ce5.jpg)
+![Q3 - forceps tagging a vessel in the axilla](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q03-ca042ce5.jpg)
 
 **Answer:**
 - Axillary artery
@@ -850,9 +1344,9 @@
 
 ---
 
-## Q63: State the root value of the nerve tagged and its distribution
+## Q110: State the root value of the nerve tagged and its distribution
 
-![Q5 - probe tagging a nerve in the axilla](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q05-0908090f.jpg)
+![Q5 - probe tagging a nerve in the axilla](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q05-0908090f.jpg)
 
 **Answer:**
 - Intercostobrachial nerve
@@ -864,9 +1358,9 @@
 
 ---
 
-## Q64: Name two contents of the space probed
+## Q111: Name two contents of the space probed
 
-![Q8 - probe in the deltopectoral triangle](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q08-b87598bf.jpg)
+![Q8 - probe in the deltopectoral triangle](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q08-b87598bf.jpg)
 
 **Answer:**
 - Deltopectoral triangle
@@ -877,9 +1371,9 @@
 
 ---
 
-## Q65: Name a muscle that (a) originates and (b) inserts on the part probed, and state their innervation
+## Q112: Name a muscle that (a) originates and (b) inserts on the part probed, and state their innervation
 
-![Q9 - scapula specimen with a probed point](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q09-aa456bee.jpg)
+![Q9 - scapula specimen with a probed point](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q09-aa456bee.jpg)
 
 **Answer:**
 - (a) Coracobrachialis
@@ -891,9 +1385,9 @@
 
 ---
 
-## Q66: Name the nerve labelled N and state its root value
+## Q113: Name the nerve labelled N and state its root value
 
-![Q1 - dissection of the axilla with a nerve tagged N](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q01-88b04357.jpg)
+![Q1 - dissection of the axilla with a nerve tagged N](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q01-88b04357.jpg)
 
 **Answer:**
 - Musculocutaneous nerve
@@ -906,9 +1400,9 @@
 
 ---
 
-## Q67: Name the vessel tagged and state its extents
+## Q114: Name the vessel tagged and state its extents
 
-![Q3 - forceps tagging a vessel in the deltopectoral/axillary region](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q03-8ad56e2c.jpg)
+![Q3 - forceps tagging a vessel in the deltopectoral/axillary region](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q03-8ad56e2c.jpg)
 
 **Answer:**
 - Cephalic vein
@@ -921,9 +1415,9 @@
 
 ---
 
-## Q68: Name two contents of the space probed
+## Q115: Name two contents of the space probed
 
-![Q8 - probe inserted between two converging fan-shaped muscles](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q08-c2fb7668.jpg)
+![Q8 - probe inserted between two converging fan-shaped muscles](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q08-c2fb7668.jpg)
 
 **Answer:**
 - Axillary artery
@@ -933,9 +1427,9 @@
 
 ---
 
-## Q69: Identify structure A and ligament B
+## Q116: Identify structure A and ligament B
 
-![Q11 - labelled dissection, structures A and B](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q11-d763c4ff.jpg)
+![Q11 - labelled dissection, structures A and B](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q11-d763c4ff.jpg)
 
 **Answer:**
 - A: a branch/cord of the brachial plexus in the axilla
@@ -946,9 +1440,9 @@
 
 # Shoulder, Axilla & Brachial Plexus
 
-## Q70: (a) Identify the nerve injuries shown in A and B. (b) Explain why the scapular anastomosis pulsates in coarctation of the aorta
+## Q117: (a) Identify the nerve injuries shown in A and B. (b) Explain why the scapular anastomosis pulsates in coarctation of the aorta
 
-![Q18 - shoulder drop (A) and wrist drop (B)](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q18-fe2cb4d7.jpg)
+![Q18 - shoulder drop (A) and wrist drop (B)](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q18-fe2cb4d7.jpg)
 
 **Answer:**
 - A: axillary nerve injury — shoulder drop, paraesthesia over the "regimental badge" area of the arm
@@ -959,9 +1453,9 @@
 
 ---
 
-## Q71: Identify the space tagged A; the structure that traverses it
+## Q118: Identify the space tagged A; the structure that traverses it
 
-![Posterior arm illustration with the triangular interval (A) labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q11-9beba286.jpg)
+![Posterior arm illustration with the triangular interval (A) labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q11-9beba286.jpg)
 
 **Answer:**
 - A — triangular interval
@@ -969,9 +1463,9 @@
 
 ---
 
-## Q72: Arm specimen — name A and B; two branches of the lateral cord of the brachial plexus (2+2 marks)
+## Q119: Arm specimen — name A and B; two branches of the lateral cord of the brachial plexus (2+2 marks)
 
-![Anterior arm dissection with A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q18-5d093eef.jpg)
+![Anterior arm dissection with A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q18-5d093eef.jpg)
 
 **Answer:**
 - A — brachialis muscle
@@ -980,9 +1474,9 @@
 
 ---
 
-## Q73: (a) Give the origin of the muscle F. (b) State its innervation and actions
+## Q120: (a) Give the origin of the muscle F. (b) State its innervation and actions
 
-![Q13 - back dissection with muscle F labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q13-5bf7b55b.jpg)
+![Q13 - back dissection with muscle F labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q13-5bf7b55b.jpg)
 
 **Answer:**
 - F: trapezius
@@ -995,9 +1489,9 @@
 
 ---
 
-## Q74: Name the tagged nerve and state its root value
+## Q121: Name the tagged nerve and state its root value
 
-![Q1 - dissection of the arm with a nerve tagged](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q01-d9580f8c.jpg)
+![Q1 - dissection of the arm with a nerve tagged](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q01-d9580f8c.jpg)
 
 **Answer:**
 - Medial brachial cutaneous nerve
@@ -1008,9 +1502,9 @@
 
 ---
 
-## Q75: State the root value of the nerve tagged and two muscles it innervates
+## Q122: State the root value of the nerve tagged and two muscles it innervates
 
-![Q4 - probe tagging a nerve at the shoulder](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q04-77b7426c.jpg)
+![Q4 - probe tagging a nerve at the shoulder](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q04-77b7426c.jpg)
 
 **Answer:**
 - Axillary nerve
@@ -1022,9 +1516,9 @@
 
 ---
 
-## Q76: State innervation and two actions of the muscle that inserts in the part shown
+## Q123: State innervation and two actions of the muscle that inserts in the part shown
 
-![Q6 - humerus with an attachment site pinned](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q06-6980d6c3.jpg)
+![Q6 - humerus with an attachment site pinned](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q06-6980d6c3.jpg)
 
 **Answer:**
 - Latissimus dorsi
@@ -1036,9 +1530,9 @@
 
 ---
 
-## Q77: Identify A and B
+## Q124: Identify A and B
 
-![Q11 - shoulder dissection with A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q11-e961ff80.jpg)
+![Q11 - shoulder dissection with A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q11-e961ff80.jpg)
 
 **Answer:**
 - A: long head of biceps brachii tendon
@@ -1047,9 +1541,9 @@
 
 ---
 
-## Q78: State 2 actions of E and origin of F
+## Q125: State 2 actions of E and origin of F
 
-![Q12 - arm dissection, E and F labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q12-c6412fee.jpg)
+![Q12 - arm dissection, E and F labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q12-c6412fee.jpg)
 
 **Answer:**
 - E: biceps brachii
@@ -1060,9 +1554,9 @@
 
 ---
 
-## Q79: Identify structures A and B
+## Q126: Identify structures A and B
 
-![Q16 - shoulder MRI with A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q16-4e0f32ca.jpg)
+![Q16 - shoulder MRI with A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q16-4e0f32ca.jpg)
 
 **Answer:**
 - A: supraspinatus (tendon)
@@ -1071,9 +1565,9 @@
 
 ---
 
-## Q80: State the root value of the nerve tagged and two muscles it innervates
+## Q127: State the root value of the nerve tagged and two muscles it innervates
 
-![Q4 - probe tagging a nerve root at the supraclavicular fossa](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q04-ed946b8a.jpg)
+![Q4 - probe tagging a nerve root at the supraclavicular fossa](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q04-ed946b8a.jpg)
 
 **Answer:**
 - Suprascapular nerve
@@ -1085,9 +1579,9 @@
 
 ---
 
-## Q81: State the root value of the nerve tagged and its distribution
+## Q128: State the root value of the nerve tagged and its distribution
 
-![Q5 - probe tagging a nerve root near the brachial plexus roots](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q05-31014400.jpg)
+![Q5 - probe tagging a nerve root near the brachial plexus roots](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q05-31014400.jpg)
 
 **Answer:**
 - Long thoracic nerve
@@ -1100,9 +1594,9 @@
 
 ---
 
-## Q82: State innervation and two actions of the muscle that inserts in the part shown
+## Q129: State innervation and two actions of the muscle that inserts in the part shown
 
-![Q6 - proximal humerus with an attachment site pinned](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q06-0a1646f1.jpg)
+![Q6 - proximal humerus with an attachment site pinned](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q06-0a1646f1.jpg)
 
 **Answer:**
 - Muscle: supraspinatus
@@ -1114,9 +1608,9 @@
 
 ---
 
-## Q83: Name the muscle X and state its innervation
+## Q130: Name the muscle X and state its innervation
 
-![Q7 - digitated muscle on the lateral chest wall marked X](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q07-1d5ccfa7.jpg)
+![Q7 - digitated muscle on the lateral chest wall marked X](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q07-1d5ccfa7.jpg)
 
 **Answer:**
 - Serratus anterior
@@ -1126,9 +1620,9 @@
 
 ---
 
-## Q84: State the neurovascular structure most at risk due to a fracture at the tagged part and give the basis
+## Q131: State the neurovascular structure most at risk due to a fracture at the tagged part and give the basis
 
-![Q15 - humerus with the surgical neck pinned](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q15-a659dd4b.jpg)
+![Q15 - humerus with the surgical neck pinned](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q15-a659dd4b.jpg)
 
 **Answer:**
 - Axillary nerve
@@ -1139,9 +1633,9 @@
 
 ---
 
-## Q85: Identify structures A and B
+## Q132: Identify structures A and B
 
-![Q16 - shoulder MRI with A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q16-c9f9e97c.jpg)
+![Q16 - shoulder MRI with A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q16-c9f9e97c.jpg)
 
 **Answer:**
 - A: subscapularis tendon
@@ -1150,9 +1644,9 @@
 
 ---
 
-## Q86: Identify the muscle tagged and its action
+## Q133: Identify the muscle tagged and its action
 
-![Q22 - probe on a fan-shaped chest wall muscle](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q22-3eea8537.jpg)
+![Q22 - probe on a fan-shaped chest wall muscle](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q22-3eea8537.jpg)
 
 **Answer:**
 - Serratus anterior
@@ -1164,9 +1658,9 @@
 
 # Arm & Cubital Fossa
 
-## Q87: (a) State the insertion and actions of the muscle tagged. (b) What is "tennis elbow"?
+## Q134: (a) State the insertion and actions of the muscle tagged. (b) What is "tennis elbow"?
 
-![Q17 - forearm dissection with a muscle tagged](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q17-2aaf7e6d.jpg)
+![Q17 - forearm dissection with a muscle tagged](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q17-2aaf7e6d.jpg)
 
 **Answer:**
 - Brachioradialis
@@ -1177,9 +1671,9 @@
 
 ---
 
-## Q88: (a) Identify the muscle tagged. (b) Name one non-neurovascular content of the cubital fossa. (c) What is Tinel's sign?
+## Q135: (a) Identify the muscle tagged. (b) Name one non-neurovascular content of the cubital fossa. (c) What is Tinel's sign?
 
-![Q19 - forearm dissection at the elbow](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q19-3b4f4193.jpg)
+![Q19 - forearm dissection at the elbow](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q19-3b4f4193.jpg)
 
 **Answer:**
 - Pronator quadratus
@@ -1189,9 +1683,9 @@
 
 ---
 
-## Q89: Identify the nerves A and B; two dually innervated muscles in the upper limb
+## Q136: Identify the nerves A and B; two dually innervated muscles in the upper limb
 
-![Cubital fossa dissection with nerves A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q05-430fb92f.jpg)
+![Cubital fossa dissection with nerves A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q05-430fb92f.jpg)
 
 **Answer:**
 - A — ulnar nerve
@@ -1203,9 +1697,9 @@
 
 ---
 
-## Q90: Humerus — root value of nerves in A and B; motor distribution of nerve in C in the forearm (2+2 marks)
+## Q137: Humerus — root value of nerves in A and B; motor distribution of nerve in C in the forearm (2+2 marks)
 
-![Posterior view of the humerus with A, B, C labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q16-7d1d0fde.jpg)
+![Posterior view of the humerus with A, B, C labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q16-7d1d0fde.jpg)
 
 **Answer:**
 - A (axillary nerve, surgical neck region) root value: C5, C6
@@ -1214,9 +1708,9 @@
 
 ---
 
-## Q91: (a) Identify A and B. (b) Name the muscle that also flexes the elbow, apart from those shown
+## Q138: (a) Identify A and B. (b) Name the muscle that also flexes the elbow, apart from those shown
 
-![Q16 - elbow region dissection with A, B, C labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q16-f383f071.jpg)
+![Q16 - elbow region dissection with A, B, C labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q16-f383f071.jpg)
 
 **Answer:**
 - A: radial nerve
@@ -1226,9 +1720,9 @@
 
 ---
 
-## Q92: State two muscles innervated by the nerve tagged
+## Q139: State two muscles innervated by the nerve tagged
 
-![Q2 - axillary dissection, nerve tagged](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q02-394292c3.jpg)
+![Q2 - axillary dissection, nerve tagged](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q02-394292c3.jpg)
 
 **Answer:**
 - Coracobrachialis
@@ -1237,9 +1731,9 @@
 
 ---
 
-## Q93: State 4 sites of entrapment of A
+## Q140: State 4 sites of entrapment of A
 
-![Q13 - probe tagging a nerve at the arm, labelled A](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q13-f56f3218.jpg)
+![Q13 - probe tagging a nerve at the arm, labelled A](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q13-f56f3218.jpg)
 
 **Answer:**
 - A: radial nerve
@@ -1251,9 +1745,9 @@
 
 ---
 
-## Q94: State the termination of the artery labelled V
+## Q141: State the termination of the artery labelled V
 
-![Q14 - artery labelled V in a forearm dissection](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q14-022b41d4.jpg)
+![Q14 - artery labelled V in a forearm dissection](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q14-022b41d4.jpg)
 
 **Answer:**
 - Brachial artery
@@ -1263,9 +1757,9 @@
 
 ---
 
-## Q95: State the neurovascular structure most at risk due to a fracture at the tagged part and give the basis
+## Q142: State the neurovascular structure most at risk due to a fracture at the tagged part and give the basis
 
-![Q15 - humerus with a fracture site pinned](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q15-18c24fbe.jpg)
+![Q15 - humerus with a fracture site pinned](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q15-18c24fbe.jpg)
 
 **Answer:**
 - Brachial artery
@@ -1275,9 +1769,9 @@
 
 ---
 
-## Q96: State the structure tagged and its clinical utility
+## Q143: State the structure tagged and its clinical utility
 
-![Q17 - pin at the cubital fossa](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q17-3385bb5a.jpg)
+![Q17 - pin at the cubital fossa](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q17-3385bb5a.jpg)
 
 **Answer:**
 - Median cubital vein
@@ -1286,9 +1780,9 @@
 
 ---
 
-## Q97: State two muscles that form the floor of the space below
+## Q144: State two muscles that form the floor of the space below
 
-![Q25 - labelled cubital fossa prosection](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q25-de439715.jpg)
+![Q25 - labelled cubital fossa prosection](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q25-de439715.jpg)
 
 **Answer:**
 - Brachialis
@@ -1297,9 +1791,9 @@
 
 ---
 
-## Q98: State two muscles innervated by the nerve tagged
+## Q145: State two muscles innervated by the nerve tagged
 
-![Q2 - same axillary dissection, nerve tagged](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q02-56b123af.jpg)
+![Q2 - same axillary dissection, nerve tagged](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q02-56b123af.jpg)
 
 **Answer:**
 - Coracobrachialis
@@ -1308,9 +1802,9 @@
 
 ---
 
-## Q99: State 2 actions of E and origin of F
+## Q146: State 2 actions of E and origin of F
 
-![Q12 - forearm dissection, E and F labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q12-7010638f.jpg)
+![Q12 - forearm dissection, E and F labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q12-7010638f.jpg)
 
 **Answer:**
 - E: biceps brachii
@@ -1322,9 +1816,9 @@
 
 ---
 
-## Q100: State the termination of the artery labelled V
+## Q147: State the termination of the artery labelled V
 
-![Q14 - artery labelled V in a forearm/cubital fossa dissection](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q14-9cfbe777.jpg)
+![Q14 - artery labelled V in a forearm/cubital fossa dissection](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q14-9cfbe777.jpg)
 
 **Answer:**
 - Brachial artery
@@ -1336,9 +1830,9 @@
 
 ---
 
-## Q101: State the structure tagged and its clinical utility
+## Q148: State the structure tagged and its clinical utility
 
-![Q17 - pin at the cubital fossa](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q17-5d5bccac.jpg)
+![Q17 - pin at the cubital fossa](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q17-5d5bccac.jpg)
 
 **Answer:**
 - Median cubital vein
@@ -1347,9 +1841,9 @@
 
 ---
 
-## Q102: State two muscles that form the floor of the space below
+## Q149: State two muscles that form the floor of the space below
 
-![Q25 - labelled cubital fossa prosection](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q25-5fc28a1e.jpg)
+![Q25 - labelled cubital fossa prosection](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q25-5fc28a1e.jpg)
 
 **Answer:**
 - Cubital fossa
@@ -1362,9 +1856,9 @@
 
 # Forearm, Wrist & Hand
 
-## Q103: (a) Name the terminal branches of the radial artery. (b) Describe the surface landmark of the deep palmar arch
+## Q150: (a) Name the terminal branches of the radial artery. (b) Describe the surface landmark of the deep palmar arch
 
-![Q20 - palmar dissection](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q20-13a29282.jpg)
+![Q20 - palmar dissection](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q20-13a29282.jpg)
 
 **Answer:**
 - Radialis indicis artery
@@ -1375,9 +1869,9 @@
 
 ---
 
-## Q104: Identify A, B, C; clinical utility of X
+## Q151: Identify A, B, C; clinical utility of X
 
-![Dorsum of the hand and wrist with tendons A, B, C and region X labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q04-8a3928a1.jpg)
+![Dorsum of the hand and wrist with tendons A, B, C and region X labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q04-8a3928a1.jpg)
 
 **Answer:**
 - A — abductor pollicis longus
@@ -1387,9 +1881,9 @@
 
 ---
 
-## Q105: Identify A and G; terminal branches of the radial artery
+## Q152: Identify A and G; terminal branches of the radial artery
 
-![Wrist and hand radiograph with carpal bones A-H labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q16-74cba8c8.jpg)
+![Wrist and hand radiograph with carpal bones A-H labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q16-74cba8c8.jpg)
 
 **Answer:**
 - A — scaphoid
@@ -1398,9 +1892,9 @@
 
 ---
 
-## Q106: Wrist radiograph — identify A and B; two actions of the hand lumbricals (2+2 marks)
+## Q153: Wrist radiograph — identify A and B; two actions of the hand lumbricals (2+2 marks)
 
-![Wrist radiograph with A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q17-3d5c5c6b.jpg)
+![Wrist radiograph with A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q17-3d5c5c6b.jpg)
 
 **Answer:**
 - A — wrist joint (radiocarpal joint line)
@@ -1409,9 +1903,9 @@
 
 ---
 
-## Q107: Palm dissection — nerve supply to muscle A; identify B and C (2+2 marks)
+## Q154: Palm dissection — nerve supply to muscle A; identify B and C (2+2 marks)
 
-![Palm dissection with A, B, C labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q19-351c087a.jpg)
+![Palm dissection with A, B, C labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q19-351c087a.jpg)
 
 **Answer:**
 - Nerve supply to muscle A (thenar muscles): recurrent branch of the median nerve
@@ -1420,9 +1914,9 @@
 
 ---
 
-## Q108: (a) Identify the structure circled and its two components. (b) Describe its blood supply pattern and a related clinical point
+## Q155: (a) Identify the structure circled and its two components. (b) Describe its blood supply pattern and a related clinical point
 
-![Q17 - hand dissection with the fingertip circled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q17-bc569e02.jpg)
+![Q17 - hand dissection with the fingertip circled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q17-bc569e02.jpg)
 
 **Answer:**
 - Extensor expansion (extensor hood) of the finger
@@ -1433,9 +1927,9 @@
 
 ---
 
-## Q109: Identify structures 3, 4, 5 and 7
+## Q156: Identify structures 3, 4, 5 and 7
 
-![Q19 - wrist X-ray with carpal bones numbered](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q19-a0e6b469.jpg)
+![Q19 - wrist X-ray with carpal bones numbered](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q19-a0e6b469.jpg)
 
 **Answer:**
 - 3: pisiform
@@ -1446,9 +1940,9 @@
 
 ---
 
-## Q110: Name the structures A, B, C and D
+## Q157: Name the structures A, B, C and D
 
-![Q20 - forearm dissection with A, B, C, D labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q20-7707bd73.jpg)
+![Q20 - forearm dissection with A, B, C, D labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q20-7707bd73.jpg)
 
 **Answer:**
 - A: pronator quadratus
@@ -1459,9 +1953,9 @@
 
 ---
 
-## Q111: Name the terminal branches of the structure below
+## Q158: Name the terminal branches of the structure below
 
-![Q21 - palmar dissection with a probe](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q21-83b88df3.jpg)
+![Q21 - palmar dissection with a probe](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q21-83b88df3.jpg)
 
 **Answer:**
 - Radial artery
@@ -1472,9 +1966,9 @@
 
 ---
 
-## Q112: Identify the muscle tagged and its action
+## Q159: Identify the muscle tagged and its action
 
-![Q22 - probe on a forearm muscle](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q22-d2e4167a.jpg)
+![Q22 - probe on a forearm muscle](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q22-d2e4167a.jpg)
 
 **Answer:**
 - Brachioradialis
@@ -1484,9 +1978,9 @@
 
 ---
 
-## Q113: State the communications of the space labelled X
+## Q160: State the communications of the space labelled X
 
-![Q23 - diagram of the palm with a fascial space labelled X](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q23-96bdf16d.jpg)
+![Q23 - diagram of the palm with a fascial space labelled X](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q23-96bdf16d.jpg)
 
 **Answer:**
 - Web space (interdigital)
@@ -1495,9 +1989,9 @@
 
 ---
 
-## Q114: Identify the nerve below and its nerve roots
+## Q161: Identify the nerve below and its nerve roots
 
-![Q24 - forearm dissection, central nerve](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q24-1a707cb9.jpg)
+![Q24 - forearm dissection, central nerve](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q24-1a707cb9.jpg)
 
 **Answer:**
 - Radial nerve
@@ -1505,9 +1999,9 @@
 
 ---
 
-## Q115: Name the branches of the structure labelled X
+## Q162: Name the branches of the structure labelled X
 
-![Q26 - probe tagging a vessel in the proximal forearm](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q26-c02fdd92.jpg)
+![Q26 - probe tagging a vessel in the proximal forearm](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q26-c02fdd92.jpg)
 
 **Answer:**
 - Ulnar artery
@@ -1517,9 +2011,9 @@
 
 ---
 
-## Q116: Identify the tagged bone and a muscular attachment to it
+## Q163: Identify the tagged bone and a muscular attachment to it
 
-![Q27 - wrist skeleton with a carpal bone tagged X](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q27-645c5f9d.jpg)
+![Q27 - wrist skeleton with a carpal bone tagged X](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q27-645c5f9d.jpg)
 
 **Answer:**
 - Pisiform
@@ -1528,9 +2022,9 @@
 
 ---
 
-## Q117: State two actions of the tagged muscle
+## Q164: State two actions of the tagged muscle
 
-![Q28 - probe in the palm](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q28-442d1642.jpg)
+![Q28 - probe in the palm](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q28-442d1642.jpg)
 
 **Answer:**
 - Lumbricals
@@ -1540,9 +2034,9 @@
 
 ---
 
-## Q118: Identify the muscle below and its innervation
+## Q165: Identify the muscle below and its innervation
 
-![Q29 - thenar eminence dissection](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q29-e9e22496.jpg)
+![Q29 - thenar eminence dissection](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q29-e9e22496.jpg)
 
 **Answer:**
 - Abductor pollicis brevis
@@ -1550,9 +2044,9 @@
 
 ---
 
-## Q119: State (a) the site of entrapment of the nerve below at the wrist, (b) its nerve roots
+## Q166: State (a) the site of entrapment of the nerve below at the wrist, (b) its nerve roots
 
-![Q30 - nerve at the wrist crease](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q30-01ed0694.jpg)
+![Q30 - nerve at the wrist crease](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q30-01ed0694.jpg)
 
 **Answer:**
 - Ulnar nerve
@@ -1561,9 +2055,9 @@
 
 ---
 
-## Q120: State 4 sites of entrapment of A
+## Q167: State 4 sites of entrapment of A
 
-![Q13 - probe tagging a nerve at the medial elbow, labelled A](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q13-53842c96.jpg)
+![Q13 - probe tagging a nerve at the medial elbow, labelled A](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q13-53842c96.jpg)
 
 **Answer:**
 - A: ulnar nerve
@@ -1575,9 +2069,9 @@
 
 ---
 
-## Q121: Identify structures 3, 4, 5 and 7
+## Q168: Identify structures 3, 4, 5 and 7
 
-![Q19 - wrist X-ray with carpal bones numbered](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q19-f1ce7ac3.jpg)
+![Q19 - wrist X-ray with carpal bones numbered](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q19-f1ce7ac3.jpg)
 
 **Answer:**
 - 3: triquetrum
@@ -1589,9 +2083,9 @@
 
 ---
 
-## Q122: Name the structures A, B, C and D
+## Q169: Name the structures A, B, C and D
 
-![Q20 - forearm dissection with A, B, C, D labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q20-06ed5994.jpg)
+![Q20 - forearm dissection with A, B, C, D labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q20-06ed5994.jpg)
 
 **Answer:**
 - A: median nerve
@@ -1601,9 +2095,9 @@
 
 ---
 
-## Q123: Name the terminal branches of the structure below
+## Q170: Name the terminal branches of the structure below
 
-![Q21 - palmar dissection with a probe](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q21-6ecfa162.jpg)
+![Q21 - palmar dissection with a probe](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q21-6ecfa162.jpg)
 
 **Answer:**
 - Superficial palmar arch
@@ -1614,9 +2108,9 @@
 
 ---
 
-## Q124: Identify the nerve below and its nerve roots
+## Q171: Identify the nerve below and its nerve roots
 
-![Q24 - forearm dissection, central nerve](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q24-c43f73b7.jpg)
+![Q24 - forearm dissection, central nerve](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q24-c43f73b7.jpg)
 
 **Answer:**
 - Median nerve
@@ -1626,9 +2120,9 @@
 
 ---
 
-## Q125: Name the branches of the structure labelled X
+## Q172: Name the branches of the structure labelled X
 
-![Q26 - probe tagging a nerve/vessel in the proximal forearm](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q26-7129a8b3.jpg)
+![Q26 - probe tagging a nerve/vessel in the proximal forearm](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q26-7129a8b3.jpg)
 
 **Answer:**
 - Radial nerve
@@ -1639,9 +2133,9 @@
 
 ---
 
-## Q126: Identify the tagged bone and a muscular attachment to it
+## Q173: Identify the tagged bone and a muscular attachment to it
 
-![Q27 - wrist skeleton with a carpal bone tagged X](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q27-3fef12b9.jpg)
+![Q27 - wrist skeleton with a carpal bone tagged X](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q27-3fef12b9.jpg)
 
 **Answer:**
 - Pisiform
@@ -1651,9 +2145,9 @@
 
 ---
 
-## Q127: State two actions of the tagged muscle
+## Q174: State two actions of the tagged muscle
 
-![Q28 - probe on a wrist tendon](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q28-f1293c3b.jpg)
+![Q28 - probe on a wrist tendon](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q28-f1293c3b.jpg)
 
 **Answer:**
 - Flexor carpi radialis
@@ -1669,15 +2163,15 @@
 
 ### Pectoral Region
 
-![Anterior chest wall dissection with pectoralis major, pectoralis minor and serratus anterior labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-pectoral-region-d2df6bfd.jpg)
+![Anterior chest wall dissection with pectoralis major, pectoralis minor and serratus anterior labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-pectoral-region-d2df6bfd.jpg)
 
 ### Scapula
 
-![Posterior view of the scapula with its processes and borders labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-scapula-25685adf.jpg)
+![Posterior view of the scapula with its processes and borders labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-scapula-25685adf.jpg)
 
 ### Humerus
 
-![Anterior and posterior views of a numbered humerus specimen (numbered points, anterior view unless noted)](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-humerus-specimen-21cf3eb6.jpg)
+![Anterior and posterior views of a numbered humerus specimen (numbered points, anterior view unless noted)](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-humerus-specimen-21cf3eb6.jpg)
 
 **Answer:**
 - 1, 8 — medial and lateral epicondyles
@@ -1690,44 +2184,44 @@
 
 ### Breast Surface Anatomy
 
-![Clinical photo of the breast divided into four quadrants, plus the tail of Spence](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-breast-quadrants-7e0fb27b.jpg)
+![Clinical photo of the breast divided into four quadrants, plus the tail of Spence](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-breast-quadrants-7e0fb27b.jpg)
 
 ### Breast Lymphatic Drainage
 
-![Diagram of the axillary, supraclavicular and internal mammary lymph node chains draining the breast](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-breast-lymphatics-278390a8.jpg)
+![Diagram of the axillary, supraclavicular and internal mammary lymph node chains draining the breast](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-breast-lymphatics-278390a8.jpg)
 
 ### Shoulder (Glenohumeral) Joint
 
-![Illustration of the bones of the shoulder joint and surrounding ribs](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-shoulder-joint-0293f4f3.jpg)
+![Illustration of the bones of the shoulder joint and surrounding ribs](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-shoulder-joint-0293f4f3.jpg)
 
 ### Axilla
 
-![Netter illustration of the axilla with the axillary artery, brachial plexus cords and branches labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-axilla-brachial-plexus-8bbd2991.jpg)
+![Netter illustration of the axilla with the axillary artery, brachial plexus cords and branches labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-axilla-brachial-plexus-8bbd2991.jpg)
 
 ### Brachial Plexus Schema
 
-![Full schematic of the brachial plexus from roots to terminal branches](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-brachial-plexus-schema-2a927059.jpg)
+![Full schematic of the brachial plexus from roots to terminal branches](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-brachial-plexus-schema-2a927059.jpg)
 
 ### Median, Ulnar and Radial Nerve Course
 
-![Diagram of the median, ulnar and radial nerves running down the arm and forearm into the hand](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-upper-limb-nerves-4ae92dc1.jpg)
+![Diagram of the median, ulnar and radial nerves running down the arm and forearm into the hand](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-upper-limb-nerves-4ae92dc1.jpg)
 
 ### Cubital Fossa
 
-![Dissection of the cubital fossa with the biceps tendon, brachial artery and median nerve labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-cubital-fossa-7631981f.jpg)
+![Dissection of the cubital fossa with the biceps tendon, brachial artery and median nerve labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-cubital-fossa-7631981f.jpg)
 
 ### Wrist / Carpal Bones
 
-![Photo of the distal carpal row with the trapezium, trapezoid and capitate labelled A, B, C](https://ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-wrist-bones-1a022838.jpg)
+![Photo of the distal carpal row with the trapezium, trapezoid and capitate labelled A, B, C](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-limb-anatomy-revision-wrist-bones-1a022838.jpg)
 
 
 ---
 
 # Other / General
 
-## Q128: (a) Classify the radio-ulnar joints. (b) Name two features contributing to the high mobility of the 1st carpometacarpal joint
+## Q175: (a) Classify the radio-ulnar joints. (b) Name two features contributing to the high mobility of the 1st carpometacarpal joint
 
-![Q22 - dissection specimen](https://ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q22-a07785ec.jpg)
+![Q22 - dissection specimen](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-marathon1-q22-a07785ec.jpg)
 
 **Answer:**
 - Radio-ulnar joints are pivot (uniaxial) synovial joints
@@ -1741,9 +2235,9 @@
 
 ---
 
-## Q129: (a) Identify A and B. (b) State the innervation of B
+## Q176: (a) Identify A and B. (b) State the innervation of B
 
-![Q12 - back dissection with A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q12-39c61aa7.jpg)
+![Q12 - back dissection with A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q12-39c61aa7.jpg)
 
 **Answer:**
 - A: latissimus dorsi
@@ -1753,9 +2247,9 @@
 
 ---
 
-## Q130: (a) Identify the papilla shown and give two identifying features. (b) Name two structures found in the roof of the nasal cavity
+## Q177: (a) Identify the papilla shown and give two identifying features. (b) Name two structures found in the roof of the nasal cavity
 
-![Q22 - tongue papilla histology](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q22-39438f1b.jpg)
+![Q22 - tongue papilla histology](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q22-39438f1b.jpg)
 
 **Answer:**
 - Circumvallate papilla
@@ -1765,9 +2259,9 @@
 
 ---
 
-## Q131: (a) Identify the structure and give two features. (b) Name the two nerve ending patterns seen here
+## Q178: (a) Identify the structure and give two features. (b) Name the two nerve ending patterns seen here
 
-![Q26 - muscle spindle histology](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q26-5fc14173.jpg)
+![Q26 - muscle spindle histology](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q26-5fc14173.jpg)
 
 **Answer:**
 - Neuromuscular spindle (muscle spindle)
@@ -1777,9 +2271,9 @@
 
 ---
 
-## Q132: (a) Identify the gland type and its two secretory classes. (b) State the two modes of bone growth
+## Q179: (a) Identify the gland type and its two secretory classes. (b) State the two modes of bone growth
 
-![Q29 - sweat gland histology](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q29-6b412f88.jpg)
+![Q29 - sweat gland histology](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q29-6b412f88.jpg)
 
 **Answer:**
 - Sweat glands
@@ -1789,9 +2283,9 @@
 
 ---
 
-## Q133: Name the muscle X and state its innervation
+## Q180: Name the muscle X and state its innervation
 
-![Q7 - back dissection, muscle marked X](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q07-81f99162.jpg)
+![Q7 - back dissection, muscle marked X](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q07-81f99162.jpg)
 
 **Answer:**
 - Longissimus
@@ -1801,9 +2295,9 @@
 
 ---
 
-## Q134: State the origin and innervation of the muscle probed
+## Q181: State the origin and innervation of the muscle probed
 
-![Q10 - probe on a chest wall muscle](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q10-66f6c599.jpg)
+![Q10 - probe on a chest wall muscle](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q10-66f6c599.jpg)
 
 **Answer:**
 - Subclavius
@@ -1813,9 +2307,9 @@
 
 ---
 
-## Q135: State 2 ligaments associated with the joint probed
+## Q182: State 2 ligaments associated with the joint probed
 
-![Q18 - probe at the elbow joint](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q18-ac5c4284.jpg)
+![Q18 - probe at the elbow joint](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q18-ac5c4284.jpg)
 
 **Answer:**
 - Quadrate ligament
@@ -1824,9 +2318,9 @@
 
 ---
 
-## Q136: Identify zones labelled A and D
+## Q183: Identify zones labelled A and D
 
-![Q34 - growth plate histology with zones a and d](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q34-6a5d973f.jpg)
+![Q34 - growth plate histology with zones a and d](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q34-6a5d973f.jpg)
 
 **Answer:**
 - A: resting zone
@@ -1835,9 +2329,9 @@
 
 ---
 
-## Q137: State 2 ligaments associated with the joint probed
+## Q184: State 2 ligaments associated with the joint probed
 
-![Q18 - probe at the elbow joint](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q18-3d0ac088.jpg)
+![Q18 - probe at the elbow joint](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q18-3d0ac088.jpg)
 
 **Answer:**
 - Ulnar (medial) collateral ligament
@@ -1846,9 +2340,9 @@
 
 ---
 
-## Q138: Identify A and B
+## Q185: Identify A and B
 
-![Q33 - skeletal muscle fibres with A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q33-1042ada0.jpg)
+![Q33 - skeletal muscle fibres with A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q33-1042ada0.jpg)
 
 **Answer:**
 - A: peripheral nucleus of a skeletal muscle fibre
@@ -1857,9 +2351,9 @@
 
 ---
 
-## Q139: Identify zones labelled A and D
+## Q186: Identify zones labelled A and D
 
-![Q34 - epidermis histology with zones a and d](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q34-68a52e61.jpg)
+![Q34 - epidermis histology with zones a and d](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q34-68a52e61.jpg)
 
 **Answer:**
 - A: stratum granulosum
@@ -1872,7 +2366,7 @@
 
 *From the "example of question" prompts given throughout Dr. Anne Pulei's lecture.*
 
-## Q140: Name the muscles attached to a labelled area of a bone, and give two structures passing through an adjacent foramen (generic hip-bone template).
+## Q187: Name the muscles attached to a labelled area of a bone, and give two structures passing through an adjacent foramen (generic hip-bone template).
 
 **Answer:**
 - Muscles typically asked about at the anterior superior iliac spine (ASIS): sartorius and part of the inguinal ligament
@@ -1881,7 +2375,7 @@
 
 ---
 
-## Q141: Name the muscle attaching to a labelled hamstring origin; state two actions of biceps femoris.
+## Q188: Name the muscle attaching to a labelled hamstring origin; state two actions of biceps femoris.
 
 **Answer:**
 - Hamstring origin: ischial tuberosity
@@ -1889,7 +2383,7 @@
 
 ---
 
-## Q142: (a) Identify the parts labelled A and B on a knee radiograph. (b) Name two structures attached to the anterior intercondylar area of the tibia.
+## Q189: (a) Identify the parts labelled A and B on a knee radiograph. (b) Name two structures attached to the anterior intercondylar area of the tibia.
 
 **Answer:**
 - A and B on a knee radiograph typically mark the medial and lateral tibial condyles/intercondylar eminences
@@ -1897,7 +2391,7 @@
 
 ---
 
-## Q143: State the nerve supply and actions of the muscle whose tendon is tagged (posterior ankle/calcaneal tendon).
+## Q190: State the nerve supply and actions of the muscle whose tendon is tagged (posterior ankle/calcaneal tendon).
 
 **Answer:**
 - Muscle: gastrocnemius (forming part of the calcaneal/Achilles tendon)
@@ -1906,7 +2400,7 @@
 
 ---
 
-## Q144: Describe the course of the popliteal artery (5 marks). Name two structures found in the popliteal fossa.
+## Q191: Describe the course of the popliteal artery (5 marks). Name two structures found in the popliteal fossa.
 
 **Answer:**
 - Course: continuation of the femoral artery at the adductor hiatus; runs through the popliteal fossa deep to the popliteal vein and tibial nerve; gives off genicular branches around the knee; ends at the lower border of popliteus by dividing into the anterior tibial artery and the tibiofibular trunk (which becomes the posterior tibial and fibular arteries)
@@ -1915,7 +2409,7 @@
 
 ---
 
-## Q145: Name two muscles that cause eversion of the foot, and two that cause inversion.
+## Q192: Name two muscles that cause eversion of the foot, and two that cause inversion.
 
 **Answer:**
 - Eversion: fibularis (peroneus) longus; fibularis (peroneus) brevis
@@ -1923,7 +2417,7 @@
 
 ---
 
-## Q146: Name the muscles attached to two labelled areas of the humerus.
+## Q193: Name the muscles attached to two labelled areas of the humerus.
 
 **Answer:**
 - Greater tubercle: supraspinatus, infraspinatus, teres minor (upper to lower facets)
@@ -1934,7 +2428,7 @@
 
 ---
 
-## Q147: Name two structures that attach to the area labelled A on a shoulder radiograph (greater tubercle). State the components of the rotator cuff.
+## Q194: Name two structures that attach to the area labelled A on a shoulder radiograph (greater tubercle). State the components of the rotator cuff.
 
 **Answer:**
 - Two structures attaching at the greater tubercle: supraspinatus tendon; infraspinatus tendon
@@ -1942,7 +2436,7 @@
 
 ---
 
-## Q148: List the contents of the axilla (5 marks).
+## Q195: List the contents of the axilla (5 marks).
 
 **Answer:**
 - Axillary artery and its branches
@@ -1953,7 +2447,7 @@
 
 ---
 
-## Q149: Describe the formation and branches of the brachial plexus (10 marks).
+## Q196: Describe the formation and branches of the brachial plexus (10 marks).
 
 **Answer:**
 - Formation: ventral rami of C5–T1 → form the upper (C5, C6), middle (C7), and lower (C8, T1) trunks → each trunk splits into anterior and posterior divisions → divisions recombine into the lateral, posterior, and medial cords (named for their relation to the axillary artery)
@@ -1964,7 +2458,7 @@
 
 ---
 
-## Q150: State the motor distribution of the median, ulnar and radial nerves.
+## Q197: State the motor distribution of the median, ulnar and radial nerves.
 
 **Answer:**
 - Median nerve: most forearm flexors and pronators (except flexor carpi ulnaris and the ulnar half of flexor digitorum profundus); thenar muscles; the two lateral lumbricals
@@ -1973,7 +2467,7 @@
 
 ---
 
-## Q151: State the boundaries and contents of the cubital fossa (6 marks).
+## Q198: State the boundaries and contents of the cubital fossa (6 marks).
 
 **Answer:**
 - Boundaries: laterally, brachioradialis; medially, pronator teres; superiorly, an imaginary line between the humeral epicondyles; floor formed by brachialis and supinator; roof formed by deep fascia and the bicipital aponeurosis
@@ -1981,7 +2475,7 @@
 
 ---
 
-## Q152: (a) State the attachments (origin and insertion) of a labelled forearm muscle. (b) Name two muscles that cause medial (ulnar) deviation at the wrist.
+## Q199: (a) State the attachments (origin and insertion) of a labelled forearm muscle. (b) Name two muscles that cause medial (ulnar) deviation at the wrist.
 
 **Answer:**
 - A commonly tagged forearm muscle here is flexor carpi ulnaris — origin: common flexor origin (medial epicondyle) and the olecranon/posterior ulna; insertion: pisiform, hamate, and base of the 5th metacarpal
@@ -1989,7 +2483,7 @@
 
 ---
 
-## Q153: Identify the bones labelled X and Y on a hand radiograph (distal carpal row).
+## Q200: Identify the bones labelled X and Y on a hand radiograph (distal carpal row).
 
 **Answer:**
 - X — trapezium
@@ -1997,7 +2491,7 @@
 
 ---
 
-## Q154: State the boundaries and contents of the carpal tunnel (4 marks).
+## Q201: State the boundaries and contents of the carpal tunnel (4 marks).
 
 **Answer:**
 - Boundaries: floor formed by the carpal bones; roof formed by the flexor retinaculum
@@ -2005,7 +2499,7 @@
 
 ---
 
-## Q155: (a) State two movements impaired by injury to the median nerve at the wrist. (b) State the cutaneous distribution of the median, radial and ulnar nerves in the hand.
+## Q202: (a) State two movements impaired by injury to the median nerve at the wrist. (b) State the cutaneous distribution of the median, radial and ulnar nerves in the hand.
 
 **Answer:**
 - Two movements impaired by median nerve injury at the wrist: thumb opposition; abduction of the thumb (thenar muscle weakness)
@@ -2015,4 +2509,4 @@
 
 ---
 
-*Compiled from the Aponeurosis SPOT collection (Limb Anatomy: Revision lecture by Dr. Anne Pulei; Anatomy Marathon 1; Anatomy Spot Revision; PAT 3 Marathon (20 Nov 2015); PAT 8 Slideshow (2 Mar 2012); SDL Revision Mock Marathon; Week 12 Review; PAT III (8 Nov 2019)), originally compiled by Jose Kariuki (Jitu), 2021. Used here with permission for the Ompath Study revision series.*
+*Compiled from the Aponeurosis SPOT collection (MSAUN Anatomy Review: Week One by Mohamed Farhaan Ahmed; Week 2 Anatomy Review by Talha Chaudhry; Limb Anatomy: Revision lecture by Dr. Anne Pulei; Anatomy Marathon 1; Anatomy Spot Revision; PAT 3 Marathon (20 Nov 2015); PAT 8 Slideshow (2 Mar 2012); SDL Revision Mock Marathon; Week 12 Review; PAT III (8 Nov 2019)), originally compiled by Jose Kariuki (Jitu), 2021. Used here with permission for the Ompath Study revision series.*

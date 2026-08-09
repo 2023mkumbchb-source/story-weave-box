@@ -2,9 +2,9 @@
 
 # Gametogenesis & Ovarian/Uterine Cycle
 
-## Q85: State the basis for A; state the basis for C
+## Q1: State the basis for A; state the basis for C
 
-![Diagram of the endometrial cycle with the proliferative phase (A) and secretory phase (C) labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-menstrual-cycl-7838a842.jpg)
+![Diagram of the endometrial cycle with the proliferative phase (A) and secretory phase (C) labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-menstrual-cycl-7838a842.jpg)
 
 **Answer:**
 - Basis for A (proliferative phase): oestrogen presence
@@ -12,9 +12,9 @@
 
 ---
 
-## Q1: Identify the structure shown; its basis; functions of the zona pellucida
+## Q2: Identify the structure shown; its basis; functions of the zona pellucida
 
-![Gross photo of grape-like vesicles from a molar pregnancy](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q32-cdd8c07f.jpg)
+![Gross photo of grape-like vesicles from a molar pregnancy](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q32-cdd8c07f.jpg)
 
 **Answer:**
 - Structure shown: molar pregnancy (hydatidiform mole)
@@ -23,9 +23,9 @@
 
 ---
 
-## Q2: Identify the hormones plotted X, Y, Z, W (menstrual cycle correlation)
+## Q3: Identify the hormones plotted X, Y, Z, W (menstrual cycle correlation)
 
-![Graph of four hormone curves across a 28-day cycle, labelled X, Y, Z, W, beside a reference diagram of the ovarian and uterine cycles](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q33-ec345aa7.jpg)
+![Graph of four hormone curves across a 28-day cycle, labelled X, Y, Z, W, beside a reference diagram of the ovarian and uterine cycles](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q33-ec345aa7.jpg)
 
 **Answer:**
 - X (sharp, tallest peak exactly at day 14): luteinizing hormone (LH) — the LH surge that triggers ovulation
@@ -35,9 +35,9 @@
 
 ---
 
-## Q3: Spermatogenesis — identify A–G
+## Q4: Spermatogenesis — identify A–G
 
-![Number 1 - diagram of spermatogenesis stages A to G](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n01-246e1fa3.jpg)
+![Number 1 - diagram of spermatogenesis stages A to G](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n01-246e1fa3.jpg)
 
 **Answer:**
 - A: spermatocytogenesis/mitosis
@@ -50,9 +50,9 @@
 
 ---
 
-## Q4: Mature Graafian follicle — identify A–G
+## Q5: Mature Graafian follicle — identify A–G
 
-![Number 2 - histology of a mature Graafian follicle A to G](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n02-7c97d34b.jpg)
+![Number 2 - histology of a mature Graafian follicle A to G](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n02-7c97d34b.jpg)
 
 **Answer:**
 - A: corona radiata
@@ -65,9 +65,9 @@
 
 ---
 
-## Q5: Identify A–C
+## Q6: Identify A–C
 
-![Number 3 - fertilised oocyte and blastocyst diagrams A to C](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n03-aef8a4ee.jpg)
+![Number 3 - fertilised oocyte and blastocyst diagrams A to C](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n03-aef8a4ee.jpg)
 
 **Answer:**
 - Left image — A: zona pellucida
@@ -79,9 +79,9 @@
 
 ---
 
-## Q6: Hormonal basis of events A and B; two phases of spermatogenesis (2+2 marks)
+## Q7: Hormonal basis of events A and B; two phases of spermatogenesis (2+2 marks)
 
-![Diagram of the ovarian and uterine cycles with events A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q31-84b98935.jpg)
+![Diagram of the ovarian and uterine cycles with events A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q31-84b98935.jpg)
 
 **Answer:**
 - Event A (endometrial shedding/menstruation) hormonal basis: withdrawal of oestrogen and progesterone following corpus luteum regression
@@ -90,9 +90,9 @@
 
 ---
 
-## Q7: Identify the types of conjoined twins displayed; two meiotic arrests during oogenesis (2+2 marks)
+## Q8: Identify the types of conjoined twins displayed; two meiotic arrests during oogenesis (2+2 marks)
 
-![Two clinical photos of conjoined twin anomalies, A and B](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q35-c600c092.jpg)
+![Two clinical photos of conjoined twin anomalies, A and B](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q35-c600c092.jpg)
 
 **Answer:**
 - A — craniopagus (twins conjoined at the head)
@@ -103,18 +103,18 @@
 
 # Fertilization & Early Development
 
-## Q86: Identify the condition
+## Q9: Identify the condition
 
-![Ultrasound image of an empty gestational sac](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-blighted-ovum-1fa51103.jpg)
+![Ultrasound image of an empty gestational sac](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-blighted-ovum-1fa51103.jpg)
 
 **Answer:**
 - Blighted ovum (anembryonic pregnancy)
 
 ---
 
-## Q8: State the stage at which this congenital anomaly forms; two sources of amniotic fluid
+## Q10: State the stage at which this congenital anomaly forms; two sources of amniotic fluid
 
-![Clinical photo of conjoined twins](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q19-3ec0298d.jpg)
+![Clinical photo of conjoined twins](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q19-3ec0298d.jpg)
 
 **Answer:**
 - Stage at which conjoined twinning forms: the primitive streak stage
@@ -125,9 +125,9 @@
 
 ---
 
-## Q9: State two fates of B; four results of longitudinal folding
+## Q11: State two fates of B; four results of longitudinal folding
 
-![Diagram of the trilaminar embryo showing amniotic cavity (A), yolk sac (B), and connecting stalk (C), with the chorion labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q37-e3b178a8.jpg)
+![Diagram of the trilaminar embryo showing amniotic cavity (A), yolk sac (B), and connecting stalk (C), with the chorion labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q37-e3b178a8.jpg)
 
 **Answer:**
 - Two fates of B (yolk sac):
@@ -143,9 +143,9 @@
 
 ---
 
-## Q10: Implantation — identify A–H
+## Q12: Implantation — identify A–H
 
-![Number 4 - implanting blastocyst diagram A to H](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n04-e4f22725.jpg)
+![Number 4 - implanting blastocyst diagram A to H](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n04-e4f22725.jpg)
 
 **Answer:**
 - A: trophoblastic lacunae
@@ -159,9 +159,9 @@
 
 ---
 
-## Q11: Trilaminar disc (epiblast) — identify A–D
+## Q13: Trilaminar disc (epiblast) — identify A–D
 
-![Number 5 - trilaminar embryonic disc diagram A to D](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n05-819a3284.jpg)
+![Number 5 - trilaminar embryonic disc diagram A to D](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n05-819a3284.jpg)
 
 **Answer:**
 - A: notochord
@@ -171,9 +171,9 @@
 
 ---
 
-## Q12: State the anomaly and its basis
+## Q14: State the anomaly and its basis
 
-![Number 6 - newborn with a sacrococcygeal mass](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n06-2c0619af.jpg)
+![Number 6 - newborn with a sacrococcygeal mass](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n06-2c0619af.jpg)
 
 **Answer:**
 - Sacrococcygeal teratoma
@@ -182,9 +182,9 @@
 
 ---
 
-## Q13: One derivative and one anomaly of B; one function and one anomaly associated with D (2+2 marks)
+## Q15: One derivative and one anomaly of B; one function and one anomaly associated with D (2+2 marks)
 
-![Cross-section of a trilaminar embryo with notochord (B) and primitive gut tube (D) labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q32-47d6a184.jpg)
+![Cross-section of a trilaminar embryo with notochord (B) and primitive gut tube (D) labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q32-47d6a184.jpg)
 
 **Answer:**
 - B — notochord. Derivative: nucleus pulposus of the intervertebral disc. Anomaly: chordoma (tumour of notochordal remnants)
@@ -192,9 +192,9 @@
 
 ---
 
-## Q14: State the anomaly depicted and give its basis
+## Q16: State the anomaly depicted and give its basis
 
-![Q41 - grape-like translucent vesicles](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q41-5c3eafb7.jpg)
+![Q41 - grape-like translucent vesicles](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q41-5c3eafb7.jpg)
 
 **Answer:**
 - Molar pregnancy / hydatidiform mole
@@ -204,9 +204,9 @@
 
 ---
 
-## Q15: State the anomaly depicted and give its basis
+## Q17: State the anomaly depicted and give its basis
 
-![Q42 - conjoined infants](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q42-9889c9a1.jpg)
+![Q42 - conjoined infants](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q42-9889c9a1.jpg)
 
 **Answer:**
 - Conjoined twins (here: omphalopagus)
@@ -215,9 +215,9 @@
 
 ---
 
-## Q16: State 2 functions of B
+## Q18: State 2 functions of B
 
-![Q48 - trilaminar embryonic disc diagram, primitive node, A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q48-b7d911ea.jpg)
+![Q48 - trilaminar embryonic disc diagram, primitive node, A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q48-b7d911ea.jpg)
 
 **Answer:**
 - B: endoderm
@@ -227,9 +227,9 @@
 
 ---
 
-## Q17: State the anomaly depicted and give its basis
+## Q19: State the anomaly depicted and give its basis
 
-![Q41 - grape-like translucent vesicles](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q41-2ee98213.jpg)
+![Q41 - grape-like translucent vesicles](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q41-2ee98213.jpg)
 
 **Answer:**
 - Hydatidiform mole (molar pregnancy)
@@ -240,9 +240,9 @@
 
 ---
 
-## Q18: State 2 functions of B
+## Q20: State 2 functions of B
 
-![Q48 - trilaminar embryonic disc diagram, primitive node, A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q48-40d984c6.jpg)
+![Q48 - trilaminar embryonic disc diagram, primitive node, A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q48-40d984c6.jpg)
 
 **Answer:**
 - B: (intraembryonic) mesoderm
@@ -256,9 +256,9 @@
 
 # Fetal Membranes, Placenta & Twinning
 
-## Q90: Identify A; identify B
+## Q21: Identify A; identify B
 
-![Two placental specimens: A shows a centrally-inserted cord, B shows a cord inserting at the placental margin with a fan of vessels](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-placenta-anoma-caacbef6.jpg)
+![Two placental specimens: A shows a centrally-inserted cord, B shows a cord inserting at the placental margin with a fan of vessels](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-placenta-anoma-caacbef6.jpg)
 
 **Answer:**
 - A — battledore placenta (marginal cord insertion)
@@ -266,9 +266,9 @@
 
 ---
 
-## Q89: Identify the procedure; state 2 foetal causes of polyhydramnios
+## Q22: Identify the procedure; state 2 foetal causes of polyhydramnios
 
-![Diagram of a needle sampling the amniotic cavity under ultrasound guidance](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-amniocentesis-a62315f3.jpg)
+![Diagram of a needle sampling the amniotic cavity under ultrasound guidance](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-amniocentesis-a62315f3.jpg)
 
 **Answer:**
 - Procedure: amniocentesis
@@ -276,9 +276,9 @@
 
 ---
 
-## Q19: Identify the congenital anomaly; state its basis
+## Q23: Identify the congenital anomaly; state its basis
 
-![Photo of an intestinal segment with a small blind-ended outpouching](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q20-fa79df5f.jpg)
+![Photo of an intestinal segment with a small blind-ended outpouching](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q20-fa79df5f.jpg)
 
 **Answer:**
 - Anomaly: Meckel's diverticulum
@@ -286,9 +286,9 @@
 
 ---
 
-## Q20: Identify A and B; two hormones released from the placenta
+## Q24: Identify A and B; two hormones released from the placenta
 
-![Diagram of an abnormally adherent placenta with regions A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q38-1d26aa43.jpg)
+![Diagram of an abnormally adherent placenta with regions A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q38-1d26aa43.jpg)
 
 **Answer:**
 - A — placenta increta
@@ -298,9 +298,9 @@
 
 ---
 
-## Q21: Identify the anomaly; state its basis
+## Q25: Identify the anomaly; state its basis
 
-![Clinical photo of a neonate with a flattened, mummified co-twin attached at the membranes](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q39-5a028cc5.jpg)
+![Clinical photo of a neonate with a flattened, mummified co-twin attached at the membranes](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q39-5a028cc5.jpg)
 
 **Answer:**
 - Anomaly: fetus papyraceus
@@ -308,9 +308,9 @@
 
 ---
 
-## Q22: Fetal membranes — identify labelled structures
+## Q26: Fetal membranes — identify labelled structures
 
-![Number 13 - fetal membranes and decidua diagram](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n13-52531c87.jpg)
+![Number 13 - fetal membranes and decidua diagram](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n13-52531c87.jpg)
 
 **Answer:**
 - Left diagram — A: smooth chorion
@@ -326,9 +326,9 @@
 
 ---
 
-## Q23: Identify the placental specimens
+## Q27: Identify the placental specimens
 
-![Number 14 - several placenta specimens, normal and abnormal](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n14-1ba0e02e.jpg)
+![Number 14 - several placenta specimens, normal and abnormal](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n14-1ba0e02e.jpg)
 
 **Answer:**
 - First row: bilobed (membranacea) placenta
@@ -340,9 +340,9 @@
 
 ---
 
-## Q24: The placenta
+## Q28: The placenta
 
-![Number 16 - placenta specimen with the fetal membranes doubled back at the margin](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n18-b629eea4.jpg)
+![Number 16 - placenta specimen with the fetal membranes doubled back at the margin](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n18-b629eea4.jpg)
 
 **Answer:**
 - Circumvallate placenta
@@ -350,9 +350,9 @@
 
 ---
 
-## Q25: Identify the conjoined twin types
+## Q29: Identify the conjoined twin types
 
-![Number 18 - four sets of conjoined twins](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n20-1cde1df8.jpg)
+![Number 18 - four sets of conjoined twins](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n20-1cde1df8.jpg)
 
 **Answer:**
 - Craniopagus
@@ -364,9 +364,9 @@
 
 ---
 
-## Q26: Identify the placental anomalies displayed; two hormones secreted by the placenta (2+2 marks)
+## Q30: Identify the placental anomalies displayed; two hormones secreted by the placenta (2+2 marks)
 
-![Diagram of a fetus with the umbilical cord, A, beside a placenta with an accessory lobe, B](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q37-489b5645.jpg)
+![Diagram of a fetus with the umbilical cord, A, beside a placenta with an accessory lobe, B](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q37-489b5645.jpg)
 
 **Answer:**
 - A — velamentous insertion of the umbilical cord (the cord inserts into the fetal membranes rather than directly onto the placental mass)
@@ -375,9 +375,9 @@
 
 ---
 
-## Q27: (a) Identify structures A and B. (b) Name the two components of the chorion
+## Q31: (a) Identify structures A and B. (b) Name the two components of the chorion
 
-![Q38 - amnion specimen (A) and yolk sac specimen (B)](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q38-033b77bc.jpg)
+![Q38 - amnion specimen (A) and yolk sac specimen (B)](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q38-033b77bc.jpg)
 
 **Answer:**
 - A: amnion
@@ -387,9 +387,9 @@
 
 ---
 
-## Q28: (a) Identify the twin type (A) and condition (B). (b) Name two features of the condition in B
+## Q32: (a) Identify the twin type (A) and condition (B). (b) Name two features of the condition in B
 
-![Q39 - conjoined twins (A) and a child with a parasitic twin (B)](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q39-e4fea726.jpg)
+![Q39 - conjoined twins (A) and a child with a parasitic twin (B)](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q39-e4fea726.jpg)
 
 **Answer:**
 - A: pyopagus (conjoined twins joined at the pelvis/buttocks)
@@ -400,9 +400,9 @@
 
 ---
 
-## Q29: Identify A and B
+## Q33: Identify A and B
 
-![Q45 - two placental specimens](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q45-9958d1b6.jpg)
+![Q45 - two placental specimens](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q45-9958d1b6.jpg)
 
 **Answer:**
 - A: battledore placenta (marginal cord insertion)
@@ -411,9 +411,9 @@
 
 ---
 
-## Q30: Identify placental attachment depicted in A & B
+## Q34: Identify placental attachment depicted in A & B
 
-![Q47 - diagram of abnormal placental adherence](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q47-9dadeb21.jpg)
+![Q47 - diagram of abnormal placental adherence](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q47-9dadeb21.jpg)
 
 **Answer:**
 - A: placenta increta
@@ -422,9 +422,9 @@
 
 ---
 
-## Q31: Identify the anomaly and state its basis
+## Q35: Identify the anomaly and state its basis
 
-![Q49 - compressed, mummified fetus](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q49-c8d6b904.jpg)
+![Q49 - compressed, mummified fetus](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q49-c8d6b904.jpg)
 
 **Answer:**
 - Fetus papyraceus
@@ -433,9 +433,9 @@
 
 ---
 
-## Q32: Identify the anomaly and state its basis
+## Q36: Identify the anomaly and state its basis
 
-![Q50 - H-shaped diagram of the gut tube and a fistulous tract](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q50-d620ee81.jpg)
+![Q50 - H-shaped diagram of the gut tube and a fistulous tract](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q50-d620ee81.jpg)
 
 **Answer:**
 - Vitelline fistula
@@ -448,9 +448,9 @@
 
 ---
 
-## Q33: State the anomaly depicted and give its basis
+## Q37: State the anomaly depicted and give its basis
 
-![Q42 - conjoined infants](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q42-3a731e0b.jpg)
+![Q42 - conjoined infants](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q42-3a731e0b.jpg)
 
 **Answer:**
 - Conjoined twins
@@ -460,9 +460,9 @@
 
 ---
 
-## Q34: Identify A and B
+## Q38: Identify A and B
 
-![Q45 - two placental specimens](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q45-7eb4fcc7.jpg)
+![Q45 - two placental specimens](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q45-7eb4fcc7.jpg)
 
 **Answer:**
 - A: fetal (chorionic) surface of the placenta
@@ -472,9 +472,9 @@
 
 ---
 
-## Q35: Identify placental attachment depicted in A & B
+## Q39: Identify placental attachment depicted in A & B
 
-![Q47 - diagram of umbilical cord insertion sites on the placenta](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q47-45d285c7.jpg)
+![Q47 - diagram of umbilical cord insertion sites on the placenta](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q47-45d285c7.jpg)
 
 **Answer:**
 - A: eccentric (paracentral) cord insertion
@@ -483,9 +483,9 @@
 
 ---
 
-## Q36: Identify the anomaly and state its basis
+## Q40: Identify the anomaly and state its basis
 
-![Q50 - H-shaped diagram of the gut tube and a diverticulum](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q50-ab5e3a3b.jpg)
+![Q50 - H-shaped diagram of the gut tube and a diverticulum](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q50-ab5e3a3b.jpg)
 
 **Answer:**
 - Meckel's diverticulum
@@ -498,9 +498,9 @@
 
 ---
 
-## Q37: Fetal membranes — identify C and D; two abnormalities of E (2+2 marks)
+## Q41: Fetal membranes — identify C and D; two abnormalities of E (2+2 marks)
 
-![Cross-section through chorionic villus with labels C, D, E](https://ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q01-b7f6e64f.jpg)
+![Cross-section through chorionic villus with labels C, D, E](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q01-b7f6e64f.jpg)
 
 **Answer:**
 - C — amniotic sac (amnion)
@@ -513,9 +513,9 @@
 
 # Folding & Body Plan
 
-## Q87: Identify A; state its basis
+## Q42: Identify A; state its basis
 
-![MRI of the sacrum showing a mass labelled A](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-chordoma-b31343a4.jpg)
+![MRI of the sacrum showing a mass labelled A](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-chordoma-b31343a4.jpg)
 
 **Answer:**
 - A — chordoma
@@ -523,9 +523,9 @@
 
 ---
 
-## Q38: Identify A; two fates of B
+## Q43: Identify A; two fates of B
 
-![Cross-section of an embryo with neural tube (A) and notochord (B) labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q18-837d93c4.jpg)
+![Cross-section of an embryo with neural tube (A) and notochord (B) labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q18-837d93c4.jpg)
 
 **Answer:**
 - A — neural tube
@@ -533,9 +533,9 @@
 
 ---
 
-## Q39: Identify A–L
+## Q44: Identify A–L
 
-![Number 7 - embryonic folding diagram A to L](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n07-71535fa7.jpg)
+![Number 7 - embryonic folding diagram A to L](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n07-71535fa7.jpg)
 
 **Answer:**
 - A: exocoelomic (Heuser's) membrane
@@ -553,9 +553,9 @@
 
 ---
 
-## Q40: Identify A–D
+## Q45: Identify A–D
 
-![Number 8 - neural tube formation diagram A to D](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n08-84a1f017.jpg)
+![Number 8 - neural tube formation diagram A to D](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n08-84a1f017.jpg)
 
 **Answer:**
 - A: surface ectoderm
@@ -565,9 +565,9 @@
 
 ---
 
-## Q41: Chorionic villi and embryonic folding — identify labelled structures
+## Q46: Chorionic villi and embryonic folding — identify labelled structures
 
-![Number 11 - chorionic villi diagram and craniocaudal folding diagram](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n11-35bb9684.jpg)
+![Number 11 - chorionic villi diagram and craniocaudal folding diagram](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n11-35bb9684.jpg)
 
 **Answer:**
 - A: secondary chorionic villi
@@ -580,7 +580,7 @@
 - H: cytotrophoblast
 - I: syncytiotrophoblast
 
-![Number 11 (continued) - result of craniocaudal and lateral folding](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n11b-83508a24.jpg)
+![Number 11 (continued) - result of craniocaudal and lateral folding](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n11b-83508a24.jpg)
 
 **Answer (continued):**
 - Right diagram (results of craniocaudal and lateral folding)
@@ -591,9 +591,9 @@
 
 ---
 
-## Q42: Skin development — identify labelled layers
+## Q47: Skin development — identify labelled layers
 
-![Number 19 - developing epidermis diagram](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n19-cf46d23e.jpg)
+![Number 19 - developing epidermis diagram](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n19-cf46d23e.jpg)
 
 **Answer:**
 - A: surface ectoderm
@@ -604,9 +604,9 @@
 
 ---
 
-## Q43: Mammary ridge and breast development
+## Q48: Mammary ridge and breast development
 
-![Number 21 - milk line diagram and mammary bud development](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n21-99abd307.jpg)
+![Number 21 - milk line diagram and mammary bud development](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n21-99abd307.jpg)
 
 **Answer:**
 - A: milk line / mammary ridge (mammary crest)
@@ -618,9 +618,9 @@
 
 ---
 
-## Q44: Curvatures A and B; embryonic origin of X and Y (2+2 marks)
+## Q49: Curvatures A and B; embryonic origin of X and Y (2+2 marks)
 
-![Spinal column lateral view with curvatures A, B and intervertebral disc regions X, Y](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q11-0af43e6c.jpg)
+![Spinal column lateral view with curvatures A, B and intervertebral disc regions X, Y](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q11-0af43e6c.jpg)
 
 **Answer:**
 - A — kyphosis (a primary curvature)
@@ -630,9 +630,9 @@
 
 ---
 
-## Q45: Name the parts of the ectoderm labelled A and B; two derivatives of the sclerotome (2+2 marks)
+## Q50: Name the parts of the ectoderm labelled A and B; two derivatives of the sclerotome (2+2 marks)
 
-![Diagram of fusing palatal shelves with ectoderm A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q34-25d6c296.jpg)
+![Diagram of fusing palatal shelves with ectoderm A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q34-25d6c296.jpg)
 
 **Answer:**
 - A — oral/nasal epithelium of the palatal shelf
@@ -641,9 +641,9 @@
 
 ---
 
-## Q46: (a) Name two notochord derivatives shown. (b) State the myotome subdivision and its nerve supply
+## Q51: (a) Name two notochord derivatives shown. (b) State the myotome subdivision and its nerve supply
 
-![Q33 - vertebral cross-section diagram with A and B labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q33-2f571963.jpg)
+![Q33 - vertebral cross-section diagram with A and B labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q33-2f571963.jpg)
 
 **Answer:**
 - Notochord derivatives: nucleus pulposus of the intervertebral disc
@@ -653,9 +653,9 @@
 
 ---
 
-## Q47: (a) Identify the anomalies in A and B. (b) Name two structures that pattern limb bud growth, apart from the AER
+## Q52: (a) Identify the anomalies in A and B. (b) Name two structures that pattern limb bud growth, apart from the AER
 
-![Q36 - clubfoot (A) and phocomelia (B) photos](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q36-67a93df2.jpg)
+![Q36 - clubfoot (A) and phocomelia (B) photos](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q36-67a93df2.jpg)
 
 **Answer:**
 - A: club foot (congenital talipes equinovarus, CTEV)
@@ -666,9 +666,9 @@
 
 ---
 
-## Q48: Identify anomaly X and state an embryonic structure related to its formation
+## Q53: Identify anomaly X and state an embryonic structure related to its formation
 
-![Q43 - sagittal MRI of the lower spine showing a mass](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q43-080ec811.jpg)
+![Q43 - sagittal MRI of the lower spine showing a mass](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q43-080ec811.jpg)
 
 **Answer:**
 - X: chordoma
@@ -678,9 +678,9 @@
 
 ---
 
-## Q49: Limb bud/somite embryo and pigmentation disorders — identify A, B; embryological basis of C, D (2+2 marks)
+## Q54: Limb bud/somite embryo and pigmentation disorders — identify A, B; embryological basis of C, D (2+2 marks)
 
-![Embryo with limb bud (A) and somites (B) alongside photos of albinism (C) and a scaly-skin condition (D)](https://ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q03-e6e9815a.jpg)
+![Embryo with limb bud (A) and somites (B) alongside photos of albinism (C) and a scaly-skin condition (D)](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q03-e6e9815a.jpg)
 
 **Answer:**
 - A — limb bud
@@ -690,9 +690,9 @@
 
 ---
 
-## Q50: Somite differentiation — identify D and E; derivatives of C (2+2 marks)
+## Q55: Somite differentiation — identify D and E; derivatives of C (2+2 marks)
 
-![Cross-section through developing somite/myotome region with C, D, E labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q06-f83a706e.jpg)
+![Cross-section through developing somite/myotome region with C, D, E labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q06-f83a706e.jpg)
 
 **Answer:**
 - D — ventral rami of spinal nerves
@@ -704,9 +704,9 @@
 
 ---
 
-## Q51: Vertebral ligaments — name A and B; embryonic origin of C; two structures through E (2+1+2 marks)
+## Q56: Vertebral ligaments — name A and B; embryonic origin of C; two structures through E (2+1+2 marks)
 
-![Sagittal section of vertebral column with A, B, C, D, E labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q09-1dd49266.jpg)
+![Sagittal section of vertebral column with A, B, C, D, E labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q09-1dd49266.jpg)
 
 **Answer:**
 - A — ligamentum flavum
@@ -721,9 +721,9 @@
 
 # Neural Tube, CNS & Neural Crest
 
-## Q88: Identify the anomaly; state the deficiency that leads to this; identify 2 types of neurulation
+## Q57: Identify the anomaly; state the deficiency that leads to this; identify 2 types of neurulation
 
-![Clinical photo of a large fluctuant swelling over the lower spine](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-spina-bifida-ea48ec73.jpg)
+![Clinical photo of a large fluctuant swelling over the lower spine](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-spina-bifida-ea48ec73.jpg)
 
 **Answer:**
 - Anomaly: spina bifida cystica
@@ -732,9 +732,9 @@
 
 ---
 
-## Q52: Identify the basis of the anomaly shown; two neural crest derivatives in the skin
+## Q58: Identify the basis of the anomaly shown; two neural crest derivatives in the skin
 
-![Clinical photo of a neonate with a lower-body/sacral congenital anomaly](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q34-61300c82.jpg)
+![Clinical photo of a neonate with a lower-body/sacral congenital anomaly](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q34-61300c82.jpg)
 
 **Answer:**
 - Basis: disturbed caudal mesodermal migration
@@ -742,9 +742,9 @@
 
 ---
 
-## Q53: Neural tube and brain vesicles — identify labelled structures
+## Q59: Neural tube and brain vesicles — identify labelled structures
 
-![Number 26 - neuropore diagram and forebrain-midbrain-hindbrain diagram](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n26-e22494a4.jpg)
+![Number 26 - neuropore diagram and forebrain-midbrain-hindbrain diagram](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n26-e22494a4.jpg)
 
 **Answer:**
 - Left diagram — A: cranial neuropore
@@ -759,9 +759,9 @@
 
 ---
 
-## Q54: Name the neural tube/cranial anomalies (left to right)
+## Q60: Name the neural tube/cranial anomalies (left to right)
 
-![Number 27 - eight photos of neural tube and cranial anomalies](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n27-0e216c8a.jpg)
+![Number 27 - eight photos of neural tube and cranial anomalies](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n27-0e216c8a.jpg)
 
 **Answer:**
 - Raschisis
@@ -778,9 +778,9 @@
 
 ---
 
-## Q55: Foetal membrane associated with these malformations; two causes of polyhydramnios (2+2 marks)
+## Q61: Foetal membrane associated with these malformations; two causes of polyhydramnios (2+2 marks)
 
-![Clinical photo of talipes (clubfoot), A, beside an intraoperative photo of exteriorized bowel, B](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q36-0530232d.jpg)
+![Clinical photo of talipes (clubfoot), A, beside an intraoperative photo of exteriorized bowel, B](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q36-0530232d.jpg)
 
 **Answer:**
 - A (talipes/clubfoot) — associated foetal membrane: amnion (oligohydramnios from reduced amniotic fluid can compress and deform the developing limb)
@@ -789,9 +789,9 @@
 
 ---
 
-## Q56: Identify the methods labelled A and B; embryonic origin of oligodendrocytes and Schwann cells (2+2 marks)
+## Q62: Identify the methods labelled A and B; embryonic origin of oligodendrocytes and Schwann cells (2+2 marks)
 
-![Diagrams of amniocentesis (A) and chorionic villus sampling (B)](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q38-94c2061a.jpg)
+![Diagrams of amniocentesis (A) and chorionic villus sampling (B)](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q38-94c2061a.jpg)
 
 **Answer:**
 - A — amniocentesis
@@ -801,9 +801,9 @@
 
 ---
 
-## Q57: (a) Identify the two anomalies shown. (b) State the preventive measure and its timing
+## Q63: (a) Identify the two anomalies shown. (b) State the preventive measure and its timing
 
-![Q34 - newborn with a spinal mass](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q34-c813a6bf.jpg)
+![Q34 - newborn with a spinal mass](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q34-c813a6bf.jpg)
 
 **Answer:**
 - Meningocele and meningomyelocele (spina bifida cystica spectrum)
@@ -812,9 +812,9 @@
 
 ---
 
-## Q58: (a) Name the neural tube region tagged A and an adjacent region. (b) Name two anomalies of forebrain development
+## Q64: (a) Name the neural tube region tagged A and an adjacent region. (b) Name two anomalies of forebrain development
 
-![Q35 - cross-section of the neural tube, region A tagged](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q35-ebfd44c4.jpg)
+![Q35 - cross-section of the neural tube, region A tagged](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q35-ebfd44c4.jpg)
 
 **Answer:**
 - A: basal plate — gives rise to the anterior horn (motor neurons)
@@ -826,9 +826,9 @@
 
 ---
 
-## Q59: State the anomalies labelled A and B
+## Q65: State the anomalies labelled A and B
 
-![Q44 - diagram comparing two spina bifida variants](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q44-8f243611.jpg)
+![Q44 - diagram comparing two spina bifida variants](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q44-8f243611.jpg)
 
 **Answer:**
 - A: spina bifida — meningocele
@@ -836,9 +836,9 @@
 
 ---
 
-## Q60: Identify X and state a structure related to its formation
+## Q66: Identify X and state a structure related to its formation
 
-![Q43 - sagittal MRI of the lower spine showing a sac-like mass](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q43-e20a3955.jpg)
+![Q43 - sagittal MRI of the lower spine showing a sac-like mass](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q43-e20a3955.jpg)
 
 **Answer:**
 - X: spina bifida cystica sac (meningocele/myelomeningocele)
@@ -848,9 +848,9 @@
 
 ---
 
-## Q61: State the anomalies labelled A and B
+## Q67: State the anomalies labelled A and B
 
-![Q44 - diagram comparing two spina bifida variants](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q44-bb177b7f.jpg)
+![Q44 - diagram comparing two spina bifida variants](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q44-bb177b7f.jpg)
 
 **Answer:**
 - A: meningocele (meninges and CSF only, no neural tissue)
@@ -859,9 +859,9 @@
 
 ---
 
-## Q62: Neural tube — differentiation of A; anomalies of B and C (2+2 marks)
+## Q68: Neural tube — differentiation of A; anomalies of B and C (2+2 marks)
 
-![Sagittal embryo section with neural tube cross-sections labelled A, B, C](https://ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q02-95f39478.jpg)
+![Sagittal embryo section with neural tube cross-sections labelled A, B, C](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q02-95f39478.jpg)
 
 **Answer:**
 - A (neural tube) gives rise to:
@@ -872,9 +872,9 @@
 
 ---
 
-## Q63: Skull/facial anomalies — name A and C; sutures involved in B and D (2+2 marks)
+## Q69: Skull/facial anomalies — name A and C; sutures involved in B and D (2+2 marks)
 
-![Four clinical photos of infants with skull/facial anomalies A, B, C, D](https://ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q15-d70e4b57.jpg)
+![Four clinical photos of infants with skull/facial anomalies A, B, C, D](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q15-d70e4b57.jpg)
 
 **Answer:**
 - A — anencephaly coupled with acrania
@@ -886,9 +886,9 @@
 
 # Skull & Facial Development
 
-## Q64: Limb bud development — identify labelled structures
+## Q70: Limb bud development — identify labelled structures
 
-![Number 23 - limb bud and pharyngeal arch diagram](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n23-b2968039.jpg)
+![Number 23 - limb bud and pharyngeal arch diagram](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n23-b2968039.jpg)
 
 **Answer:**
 - Left diagram — A: pharyngeal arches
@@ -902,9 +902,9 @@
 
 ---
 
-## Q65: Identify the parts labeled A and B; embryological basis of syndactyly and amelia (2+2 marks)
+## Q71: Identify the parts labeled A and B; embryological basis of syndactyly and amelia (2+2 marks)
 
-![Cross-section through pharyngeal arches with arch muscle mass (A) and arch cartilage (B) labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q40-b1453eb4.jpg)
+![Cross-section through pharyngeal arches with arch muscle mass (A) and arch cartilage (B) labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q40-b1453eb4.jpg)
 
 **Answer:**
 - A — pharyngeal (branchial) arch muscle mass (mesodermal core of the arch)
@@ -920,9 +920,9 @@
 
 # Skin & Integument Development
 
-## Q66: Name the skin anomalies (top row, then bottom row)
+## Q72: Name the skin anomalies (top row, then bottom row)
 
-![Number 22 - seven photographs of congenital skin and hair anomalies](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n22-b432260b.jpg)
+![Number 22 - seven photographs of congenital skin and hair anomalies](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n22-b432260b.jpg)
 
 **Answer:**
 - Port-wine stain (naevus flammeus)
@@ -935,9 +935,9 @@
 
 ---
 
-## Q67: Name the breast anomalies (top row, then bottom row)
+## Q73: Name the breast anomalies (top row, then bottom row)
 
-![Number 24 - six photographs of congenital breast anomalies](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n24-31656e18.jpg)
+![Number 24 - six photographs of congenital breast anomalies](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n24-31656e18.jpg)
 
 **Answer:**
 - Amastia — congenital absence of breast tissue on one side
@@ -949,9 +949,9 @@
 
 ---
 
-## Q68: Milk line — identify structure A and its fate; effect of abnormal persistence (3+1 marks)
+## Q74: Milk line — identify structure A and its fate; effect of abnormal persistence (3+1 marks)
 
-![Fetus and adult torso showing the mammary/milk line (A)](https://ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q04-39d69fa1.jpg)
+![Fetus and adult torso showing the mammary/milk line (A)](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-week-12-review-q04-39d69fa1.jpg)
 
 **Answer:**
 - A — the milk line (mammary ridge)
@@ -962,9 +962,9 @@
 
 # Limb Development
 
-## Q69: Identify A, B, C; the anomaly associated with a defective A
+## Q75: Identify A, B, C; the anomaly associated with a defective A
 
-![Diagram of a developing limb bud with zone of proliferation (A), apical ectodermal ridge (B), and zone of polarising activity (C) labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q35-2da97707.jpg)
+![Diagram of a developing limb bud with zone of proliferation (A), apical ectodermal ridge (B), and zone of polarising activity (C) labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q35-2da97707.jpg)
 
 **Answer:**
 - A — zone of proliferation
@@ -974,7 +974,7 @@
 
 ---
 
-## Q70: Name the limb anomalies
+## Q76: Name the limb anomalies
 
 *Source answer key entry; the original plate for this item is missing from the scanned set.*
 
@@ -989,9 +989,9 @@
 
 ---
 
-## Q71: Name the skeletal anomalies (left to right)
+## Q77: Name the skeletal anomalies (left to right)
 
-![Number 25 - child with short stature, hip X-ray, hand anomaly photos](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n25-6f87840a.jpg)
+![Number 25 - child with short stature, hip X-ray, hand anomaly photos](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n25-6f87840a.jpg)
 
 **Answer:**
 - Achondroplasia
@@ -1004,9 +1004,9 @@
 
 # Genetic & Chromosomal Anomalies
 
-## Q84: Identify A; identify B
+## Q78: Identify A; identify B
 
-![Two karyotypes, A showing a single X chromosome and B showing a normal male complement](https://ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-karyotype-0782a5b6.jpg)
+![Two karyotypes, A showing a single X chromosome and B showing a normal male complement](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-histology-embryology-spot-review-e-karyotype-0782a5b6.jpg)
 
 **Answer:**
 - A — 45,X0: Turner's syndrome
@@ -1014,9 +1014,9 @@
 
 ---
 
-## Q72: Syndromes depicted by the karyotypes displayed; most vulnerable period for congenital anomalies (2+2 marks)
+## Q79: Syndromes depicted by the karyotypes displayed; most vulnerable period for congenital anomalies (2+2 marks)
 
-![Two karyotypes, A showing trisomy 21 and B showing an extra sex chromosome](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q33-7a5ac325.jpg)
+![Two karyotypes, A showing trisomy 21 and B showing an extra sex chromosome](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat3-2015-q33-7a5ac325.jpg)
 
 **Answer:**
 - A — Down syndrome (trisomy 21)
@@ -1027,9 +1027,9 @@
 
 # Other / General
 
-## Q73: Identify the anomaly displayed; the basis for this anomaly
+## Q80: Identify the anomaly displayed; the basis for this anomaly
 
-![Clinical photo of a large mass arising from the oropharyngeal region of a neonate](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q31-1cfc877d.jpg)
+![Clinical photo of a large mass arising from the oropharyngeal region of a neonate](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q31-1cfc877d.jpg)
 
 **Answer:**
 - Anomaly: oropharyngeal teratoma
@@ -1037,9 +1037,9 @@
 
 ---
 
-## Q74: Identify the anomaly; two complications of oligohydramnios
+## Q81: Identify the anomaly; two complications of oligohydramnios
 
-![Clinical photo of a neonate's limbs with constriction bands](https://ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q40-c533ca96.jpg)
+![Clinical photo of a neonate's limbs with constriction bands](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-anatomy-spot-revision-q40-c533ca96.jpg)
 
 **Answer:**
 - Anomaly: amniotic band syndrome
@@ -1052,9 +1052,9 @@
 
 ---
 
-## Q75: Identify labelled structures
+## Q82: Identify labelled structures
 
-![Number 9 - myotome diagram, epimere and hypomere](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n09-5ca187ad.jpg)
+![Number 9 - myotome diagram, epimere and hypomere](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n09-5ca187ad.jpg)
 
 **Answer:**
 - Left diagram — A: epimere
@@ -1065,9 +1065,9 @@
 
 ---
 
-## Q76: Name the anomalies (left to right)
+## Q83: Name the anomalies (left to right)
 
-![Number 10 - three anterior abdominal wall anomaly photos](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n10-d76a557e.jpg)
+![Number 10 - three anterior abdominal wall anomaly photos](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n10-d76a557e.jpg)
 
 **Answer:**
 - Prune belly syndrome — failure of migration/fusion of the anterior abdominal wall muscles
@@ -1076,9 +1076,9 @@
 
 ---
 
-## Q77: Developing urogenital system — identify labelled structures
+## Q84: Developing urogenital system — identify labelled structures
 
-![Number 26 continued - developing kidney, ureter and bladder diagram](https://ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n26b-369061b0.jpg)
+![Number 26 continued - developing kidney, ureter and bladder diagram](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-embryology-slide-review-n26b-369061b0.jpg)
 
 **Answer:**
 - Not separately keyed in the original source
@@ -1087,9 +1087,9 @@
 
 ---
 
-## Q78: (a) Identify brain vesicles B and the flexure C. (b) Name the adult derivatives of the metencephalon
+## Q85: (a) Identify brain vesicles B and the flexure C. (b) Name the adult derivatives of the metencephalon
 
-![Q37 - diagram of developing brain vesicles, A-D labelled](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q37-fea36323.jpg)
+![Q37 - diagram of developing brain vesicles, A-D labelled](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q37-fea36323.jpg)
 
 **Answer:**
 - B: mesencephalon
@@ -1099,9 +1099,9 @@
 
 ---
 
-## Q79: (a) Identify structure A and its adult derivative. (b) Name conditions affecting the knee that produce an abnormal angle, apart from genu valgum
+## Q86: (a) Identify structure A and its adult derivative. (b) Name conditions affecting the knee that produce an abnormal angle, apart from genu valgum
 
-![Q40 - diagram of Rathke's pouch formation](https://ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q40-1fd136fd.jpg)
+![Q40 - diagram of Rathke's pouch formation](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-pat8-2012-q40-1fd136fd.jpg)
 
 **Answer:**
 - A: Rathke's pouch
@@ -1116,9 +1116,9 @@
 
 ---
 
-## Q80: State the procedures labelled A and B
+## Q87: State the procedures labelled A and B
 
-![Q46 - diagrams of two prenatal sampling procedures](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q46-2fdbcd15.jpg)
+![Q46 - diagrams of two prenatal sampling procedures](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-pat3-2019-q46-2fdbcd15.jpg)
 
 **Answer:**
 - A: amniocentesis
@@ -1128,9 +1128,9 @@
 
 ---
 
-## Q81: State the procedures labeled A and B
+## Q88: State the procedures labeled A and B
 
-![Q46 - diagrams of two prenatal sampling procedures](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q46-79c8962d.jpg)
+![Q46 - diagrams of two prenatal sampling procedures](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q46-79c8962d.jpg)
 
 **Answer:**
 - A: transabdominal chorionic villus sampling
@@ -1140,9 +1140,9 @@
 
 ---
 
-## Q82: Identify the anomaly and state its basis
+## Q89: Identify the anomaly and state its basis
 
-![Q49 - newborn with a large umbilical mass](https://ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q49-cd59b7a4.jpg)
+![Q49 - newborn with a large umbilical mass](https://cdn.ompathstudy.com/uploads/2026/08/y1-anatomy-cropped-sdl-mock-marathon-q49-cd59b7a4.jpg)
 
 **Answer:**
 - Omphalocele (exomphalos)
@@ -1153,7 +1153,7 @@
 
 ---
 
-## Q83: Q21 (bonus essay): Outline the spinal cord — external features, support structures, arterial supply, venous drainage, extents, internal features at T2, development and congenital anomalies
+## Q90: Q21 (bonus essay): Outline the spinal cord — external features, support structures, arterial supply, venous drainage, extents, internal features at T2, development and congenital anomalies
 
 **Answer:**
 - **Support structures:**
