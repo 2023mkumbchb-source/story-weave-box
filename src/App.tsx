@@ -9,6 +9,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Navbar from "@/components/Navbar";
 import SiteFooter from "@/components/SiteFooter";
 import ScrollToTop from "@/components/ScrollToTop";
+import { ScrollProgressBar, BackToTopButton } from "@/components/ScrollFX";
 import ContentProtection from "@/components/ContentProtection";
 import PurchaseResume from "@/components/PurchaseResume";
 import { Loader2 } from "lucide-react";
@@ -53,6 +54,8 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <ScrollToTop />
+            <ScrollProgressBar />
+            <BackToTopButton />
             <ContentProtection />
             <PurchaseResume />
             <Navbar />

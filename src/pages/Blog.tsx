@@ -533,9 +533,9 @@ export default function Blog() {
         <div className="min-w-0">
       {/* Hero header with gradient */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+        transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
         className="mb-6 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/5 via-card to-primary/10 shadow-sm"
       >
         <div className="relative px-5 py-6 sm:px-7 sm:py-7">
@@ -554,7 +554,7 @@ export default function Blog() {
             <motion.p
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2, duration: 0.4 }}
+              transition={{ delay: 0.05, duration: 0.3 }}
               className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary"
             >
               {selectedYear === "All" ? "MBChB study library" : selectedYear}
@@ -562,7 +562,7 @@ export default function Blog() {
             <motion.h1
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3, duration: 0.4 }}
+              transition={{ delay: 0.1, duration: 0.3 }}
               className="mt-1 font-serif text-3xl font-bold leading-tight text-foreground sm:text-[2.35rem]"
             >
               Study Notes
@@ -570,7 +570,7 @@ export default function Blog() {
             <motion.p
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4, duration: 0.4 }}
+              transition={{ delay: 0.15, duration: 0.3 }}
               className="mt-1.5 max-w-xl text-sm text-muted-foreground"
             >
               High-yield notes, CATs and past papers, organised by year, semester and unit.
@@ -579,7 +579,7 @@ export default function Blog() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5, duration: 0.4 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
             className="flex shrink-0 gap-5 border-l border-border pl-5 text-right"
           >
             <div>
@@ -595,7 +595,7 @@ export default function Blog() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.4 }}
+          transition={{ delay: 0.25, duration: 0.3 }}
           className={`relative mt-5 flex max-w-2xl items-center overflow-hidden rounded-xl border bg-background shadow-sm transition-all duration-300 ${searchFocused ? "border-primary ring-2 ring-primary/15 shadow-md" : "border-border"}`}
         >
           <Search className="ml-3 h-4 w-4 shrink-0 text-muted-foreground" />
@@ -628,7 +628,8 @@ export default function Blog() {
         <motion.div
           variants={containerVariants}
           initial="hidden"
-          animate="visible"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
         >
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
@@ -672,7 +673,7 @@ export default function Blog() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.25 }}
       >
       {/* Continue reading */}
       {!search.trim() && selectedYear !== "All" && !selectedUnit && filteredRecentArticles.length > 0 && (
@@ -743,7 +744,8 @@ export default function Blog() {
               <motion.button
                 key={opt.value}
                 initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.4 }}
                 transition={{ delay: i * 0.1, duration: 0.3 }}
                 whileHover={cardHover}
                 whileTap={{ scale: 0.98 }}
@@ -851,7 +853,8 @@ export default function Blog() {
           <motion.div
             variants={containerVariants}
             initial="hidden"
-            animate="visible"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.1 }}
             className="mb-8"
           >
             <p className="mb-2.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -938,7 +941,8 @@ export default function Blog() {
         <motion.div
           variants={containerVariants}
           initial="hidden"
-          animate="visible"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.02, margin: "0px 0px -60px 0px" }}
           className="space-y-9"
         >
           {groupedArticles.map(group => {

@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { motion, useScroll, useTransform } from "framer-motion";
 import {
   BookOpen, GraduationCap, Loader2,
   ArrowRight, Trophy, BookMarked, Phone, MessageCircle, Clock, Check, Search,
@@ -41,8 +42,34 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 7)}w ago`;
 }
 
+// Shared reveal easing
+const REVEAL_EASE = [0.22, 1, 0.36, 1] as const;
+
+const sectionReveal = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: REVEAL_EASE } },
+};
+
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+};
+
+const tileReveal = {
+  hidden: { opacity: 0, y: 20, scale: 0.98 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.5, ease: REVEAL_EASE } },
+};
+
 export default function Index() {
   const navigate = useNavigate();
+  const heroRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"],
+  });
+  // Subtle parallax: hero content drifts up slightly while the band stays put
+  const heroY = useTransform(scrollYProgress, [0, 1], [0, 70]);
+  const heroFade = useTransform(scrollYProgress, [0, 0.75], [1, 0.4]);
   const [categories, setCategories] = useState<{ name: string; articles: number; flashcards: number; mcqs: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [recentlyUploaded, setRecentlyUploaded] = useState<RecentItem[]>([]);
@@ -121,8 +148,12 @@ export default function Index() {
     <div className="min-h-dvh bg-background">
       {/* ── Hero: split colour band (Osmosis/Lecturio) + checkable proof points
              (TeachMeAnatomy) + a search bar as the primary action (AMBOSS). ── */}
-      <section className="band-ink relative overflow-hidden">
-        <div className="relative mx-auto grid max-w-6xl gap-10 px-5 py-12 sm:py-16 lg:grid-cols-[1.1fr,0.9fr] lg:items-center lg:py-20">
+      <section ref={heroRef} className="band-ink relative overflow-hidden">
+        <div className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-primary/20 blur-3xl" aria-hidden />
+        <motion.div
+          style={{ y: heroY, opacity: heroFade }}
+          className="relative mx-auto grid max-w-6xl gap-10 px-5 py-12 sm:py-16 lg:grid-cols-[1.1fr,0.9fr] lg:items-center lg:py-20"
+        >
           <div>
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-white/80">
               Free medical library · Kenya
@@ -168,7 +199,12 @@ export default function Index() {
           </div>
 
           {/* Proof card */}
-          <div className="rounded-2xl border border-white/15 bg-white/[0.06] p-6 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.5, ease: REVEAL_EASE }}
+            className="rounded-2xl border border-white/15 bg-white/[0.06] p-6 backdrop-blur-sm"
+          >
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/60">Why students use it</p>
             <ul className="mt-4 space-y-3">
               {PROOF.map((p) => (
@@ -190,36 +226,51 @@ export default function Index() {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </section>
 
       {/* ── Resource tiles ── */}
       <section className="mx-auto max-w-6xl px-5 py-10 sm:py-14">
-        <h2 className="rule-heading mb-5 font-serif text-xl font-bold text-foreground sm:text-2xl">Explore the library</h2>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <motion.div
+          variants={sectionReveal}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.4 }}
+          className="rule-heading mb-5 font-serif text-xl font-bold text-foreground sm:text-2xl"
+        >
+          Explore the library
+        </motion.div>
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4"
+        >
           {RESOURCES.map((r) => {
             const key = getSubjectKey(r.subject);
             return (
+              <motion.div key={r.to} variants={tileReveal} className="h-full">
               <Link
-                key={r.to}
                 to={r.to}
-                className="group relative overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-elevated)]"
+                className="group relative block h-full overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-[var(--shadow-elevated)]"
               >
                 <div
-                  className="flex h-24 items-end p-4 transition-transform duration-500 group-hover:scale-[1.04] sm:h-32"
+                  className="flex h-24 items-end p-4 transition-transform duration-500 group-hover:scale-[1.06] sm:h-32"
                   style={{ background: `linear-gradient(140deg, ${subjectColor(key, 0.95)}, ${subjectColor(key, 0.55)})` }}
                 >
-                  <r.icon className="h-7 w-7 text-white/90 sm:h-8 sm:w-8" />
+                  <r.icon className="h-7 w-7 text-white/90 transition-transform duration-300 group-hover:scale-110 sm:h-8 sm:w-8" />
                 </div>
                 <div className="p-4">
                   <h3 className="text-sm font-bold text-foreground sm:text-base">{r.label}</h3>
                   <p className="mt-1 text-[11px] leading-snug text-muted-foreground sm:text-xs">{r.desc}</p>
                 </div>
               </Link>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       </section>
 
       <section className="band-surface">
@@ -252,7 +303,13 @@ export default function Index() {
         )}
 
         {/* Browse by Year */}
-        <div className="mb-10">
+        <motion.div
+          variants={sectionReveal}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          className="mb-10"
+        >
           <div className="mb-5 flex items-end justify-between gap-4">
             <div className="min-w-0">
               <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground">Browse by year</h2>
@@ -268,12 +325,18 @@ export default function Index() {
               <p className="text-muted-foreground">No study materials yet. Content is being added regularly!</p>
             </div>
           ) : (
-            <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.1 }}
+              className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3"
+            >
               {yearGroups.map((group) => (
+                <motion.div key={group.year} variants={tileReveal} className="h-full">
                 <Link
-                  key={group.year}
                   to={`/blog?year=${encodeURIComponent(group.year)}`}
-                  className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-card-hover)]"
+                  className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[var(--shadow-card-hover)]"
                 >
                   <div className="flex items-baseline justify-between border-b border-border px-5 py-4">
                     <span className="font-serif text-xl font-bold text-foreground">{group.year}</span>
@@ -302,13 +365,19 @@ export default function Index() {
                     Open {group.year} <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                   </span>
                 </Link>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
 
         {/* Recently Added */}
-        <div>
+        <motion.div
+          variants={sectionReveal}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.1 }}
+        >
           <div className="mb-5">
             <h2 className="font-serif text-xl font-bold text-foreground sm:text-2xl">Recently added</h2>
             <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">Fresh notes, MCQs, flashcards &amp; clinical stories</p>
@@ -332,7 +401,7 @@ export default function Index() {
                 const Icon = meta.icon;
                 return (
                   <Link key={`${item.type}-${item.id}`} to={getItemLink(item)}
-                    className="group relative flex items-center gap-3 border-b border-border px-3 py-3 transition-colors last:border-b-0 hover:bg-muted/50 sm:gap-4 sm:px-4">
+                    className="row-cv group relative flex items-center gap-3 border-b border-border px-3 py-3 transition-colors last:border-b-0 hover:bg-muted/50 sm:gap-4 sm:px-4">
                     <span className="absolute left-0 top-0 h-full w-[3px] bg-primary/60" aria-hidden />
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground/70">
                       <Icon className="h-4 w-4" />
@@ -361,7 +430,7 @@ export default function Index() {
               </button>
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
       </section>
 

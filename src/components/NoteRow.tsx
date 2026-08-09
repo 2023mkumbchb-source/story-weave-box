@@ -42,7 +42,7 @@ export default function NoteRow({ article, index }: { article: Article; index?: 
     <Link
       to={buildBlogPath(article)}
       state={{ from: `${location.pathname}${location.search}` }}
-      className="group flex items-center gap-3 border-b border-border/70 bg-card px-4 py-3.5 transition-all duration-200 last:border-b-0 hover:bg-muted/50 hover:shadow-sm sm:gap-4 sm:px-5"
+      className="row-cv group flex items-center gap-3 border-b border-border/70 bg-card px-4 py-3.5 transition-all duration-200 last:border-b-0 hover:bg-muted/50 hover:shadow-sm sm:gap-4 sm:px-5"
     >
       {typeof index === "number" && (
         <span className="w-6 shrink-0 text-right font-serif text-[13px] tabular-nums text-muted-foreground/50 group-hover:text-primary/60 transition-colors">

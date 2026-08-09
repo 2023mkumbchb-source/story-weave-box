@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700;8..60,800&display=swap');
+/* Google Fonts now load async via <link> in index.html (not a render-blocking
+   CSS @import), so first paint is instant with system-ui fallbacks. */
 
 @layer base {
   :root {
@@ -141,6 +142,16 @@
   * {
     @apply border-border;
   }
+  html {
+    /* Butter-smooth anchor scrolling (TOC / jump links), auto for reduced-motion */
+    scroll-behavior: smooth;
+    scroll-padding-top: 5.5rem; /* keep sticky navbar from covering jump targets */
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
   html, body {
     overflow-x: hidden;
     max-width: 100vw;
@@ -246,13 +257,28 @@
   }
 }
 
+/* ── Scroll performance ─────────────────────────────────────────────────────
+   content-visibility skips rendering for off-screen rows, so long lists
+   (notes library, recently-added) paint only what's visible while scrolling.
+   contain-intrinsic-size reserves ~72px so the scrollbar doesn't jump. */
+.row-cv {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 72px;
+}
+
+/* Reveal-on-scroll for elements without JS (progressive enhancement); the
+   framer-motion whileInView animations drive the main experience. */
 @media (prefers-reduced-motion: reduce) {
   .animate-hero-kenburns,
   .animate-hero-fade,
   .animate-hero-rise,
   .animate-marquee,
-  .animate-marquee-slow {
+  .animate-marquee-slow,
+  .animate-hero-pan {
     animation: none !important;
+  }
+  * {
+    scroll-behavior: auto !important;
   }
 }
 
