@@ -3,7 +3,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
+import PageTransition from "@/components/PageTransition";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import Navbar from "@/components/Navbar";
@@ -45,6 +47,43 @@ const RouteLoader = () => (
   </div>
 );
 
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <PageTransition key={location.pathname}>
+        <Suspense fallback={<RouteLoader />}>
+          <Routes location={location}>
+            <Route path="/" element={<Index />} />
+            <Route path="/year/:yearNumber" element={<YearHub />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/flashcards" element={<Flashcards />} />
+            <Route path="/flashcards/:id" element={<FlashcardStudy />} />
+            <Route path="/mcqs" element={<Mcqs />} />
+            <Route path="/mcqs/:id" element={<McqStudy />} />
+            <Route path="/exams" element={<Exams />} />
+            <Route path="/exams/:id/start" element={<ExamStart />} />
+            <Route path="/admin/editor" element={<AdminEditor />} />
+            <Route path="/admin/categories" element={<CategoryManager />} />
+            <Route path="/stories" element={<Stories />} />
+            <Route path="/stories/:id" element={<StoryRead />} />
+            <Route path="/submit-story" element={<SubmitStory />} />
+            <Route path="/essays" element={<Essays />} />
+            <Route path="/essays/:slug" element={<EssayStudy />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/account" element={<Account />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/about" element={<About />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </PageTransition>
+    </AnimatePresence>
+  );
+};
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
     <QueryClientProvider client={queryClient}>
@@ -57,33 +96,7 @@ const App = () => (
             <ContentProtection />
             <PurchaseResume />
             <Navbar />
-            <Suspense fallback={<RouteLoader />}>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/year/:yearNumber" element={<YearHub />} />
-                <Route path="/blog" element={<Blog />} />
-                <Route path="/blog/:slug" element={<BlogPost />} />
-                <Route path="/flashcards" element={<Flashcards />} />
-                <Route path="/flashcards/:id" element={<FlashcardStudy />} />
-                <Route path="/mcqs" element={<Mcqs />} />
-                <Route path="/mcqs/:id" element={<McqStudy />} />
-                <Route path="/exams" element={<Exams />} />
-                <Route path="/exams/:id/start" element={<ExamStart />} />
-                <Route path="/admin/editor" element={<AdminEditor />} />
-                <Route path="/admin/categories" element={<CategoryManager />} />
-                <Route path="/stories" element={<Stories />} />
-                <Route path="/stories/:id" element={<StoryRead />} />
-                <Route path="/submit-story" element={<SubmitStory />} />
-                <Route path="/essays" element={<Essays />} />
-                <Route path="/essays/:slug" element={<EssayStudy />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/account" element={<Account />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/about" element={<About />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+            <AnimatedRoutes />
             <SiteFooter />
           </BrowserRouter>
         </TooltipProvider>

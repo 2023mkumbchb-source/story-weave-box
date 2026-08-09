@@ -226,6 +226,26 @@ function EssayQuestion({ number, question, answer }: { number: string; question:
   );
 }
 
+/** Pull a leaked inline answer — e.g. "(repeat — Answer: b, inverse stretch reflex)"
+ *  — out of a question stem so it renders behind a Reveal button instead. */
+function splitLeakedAnswer(text: string): { text: string; answer: string } {
+  const m = text.match(/[（(]\s*(?:repeat\s*[—–-]\s*)?(?:Ans(?:wer)?|Correct answer)\s*[:：]?\s*([^)）]+)[)）]\s*$/i);
+  if (!m) return { text: text.trim(), answer: "" };
+  return { text: text.slice(0, m.index).trim().replace(/[,;:—–-]+$/, "").trim(), answer: m[1].trim() };
+}
+
+/** Paragraph renderer: strips OCR orphan punctuation and hides leaked answers. */
+function renderProse(t: string, key: string) {
+  const cleaned = t.replace(/^#+\s*/, "").replace(/^[.·•,;:]+\s*/, "").trim();
+  if (!cleaned) return [];
+  const { text, answer } = splitLeakedAnswer(cleaned);
+  const out = [
+    <p key={key} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={text} /></p>,
+  ];
+  if (answer) out.push(<McqAnswerBlock key={`${key}-ans`} raw={answer} />);
+  return out;
+}
+
 function McqAnswerBlock({ raw }: { raw: string }) {
   const [open, setOpen] = useState(false);
   const access = useAccess();
@@ -1425,7 +1445,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (!pendingChoicesLabel) return;
     pendingChoicesLabel = false;
     els.push(
-      <h3 key={key} className="mt-5 mb-2 font-serif text-lg font-bold text-foreground">Choices</h3>
+      <p key={key} className="not-prose mt-4 mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Choices</p>
     );
   };
   for (let i = 0; i < lines.length; i++) {
@@ -1592,14 +1612,25 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         stem = "";
       }
       els.push(
-        <h2 key={`q-${i}`} id={`section-${_sec}`} className="mt-10 mb-3 scroll-mt-20 font-serif text-2xl font-bold leading-snug text-foreground sm:text-3xl">
-          Question {qNum}{topic ? ` — ${topic}` : ""}
-        </h2>
+        <div key={`q-${i}`} id={`section-${_sec}`} className="not-prose mt-8 scroll-mt-24 border-t border-border pt-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-md bg-primary px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-primary-foreground">
+              Question {qNum}
+            </span>
+            {topic && (
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{topic}</span>
+            )}
+          </div>
+        </div>
       );
       if (stem) {
+        const leaked = splitLeakedAnswer(stem);
         els.push(
-          <p key={`q-stem-${i}`} className="mb-4 text-[1.03rem] leading-8 text-foreground/90"><Inline text={stem} /></p>
+          <p key={`q-stem-${i}`} className="mb-4 mt-3 text-[1.05rem] font-medium leading-[1.7] text-foreground">
+            <Inline text={leaked.text} />
+          </p>
         );
+        if (leaked.answer) els.push(<McqAnswerBlock key={`q-stem-ans-${i}`} raw={leaked.answer} />);
       }
       pendingChoicesLabel = true;
       continue;
@@ -1637,9 +1668,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           return;
         }
         els.push(
-          <div key={`mcqopt-combo-${i}-${n}`} className="my-1.5 flex items-start gap-2.5 pl-1">
-            <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
-            <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
+          <div key={`mcqopt-combo-${i}-${n}`} className="not-prose my-1 flex items-start gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 transition-colors hover:border-primary/40">
+            <span className="mt-px shrink-0 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-[11px] font-bold text-primary">{label}</span>
+            <p className="min-w-0 flex-1 text-[15px] leading-[1.55] text-foreground"><Inline text={optText} /></p>
           </div>
         );
         if (explanationMatch?.[2]) {
@@ -1670,9 +1701,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       if (label === "A") choicesLabel(`choices-${i}`);
       else pendingChoicesLabel = false;
       els.push(
-        <div key={`mcqopt-${i}`} className="my-1.5 flex items-start gap-2.5 pl-1">
-          <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
-          <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
+        <div key={`mcqopt-${i}`} className="not-prose my-1 flex items-start gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 transition-colors hover:border-primary/40">
+          <span className="mt-px shrink-0 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-[11px] font-bold text-primary">{label}</span>
+          <p className="min-w-0 flex-1 text-[15px] leading-[1.55] text-foreground"><Inline text={optText} /></p>
         </div>
       );
       if (explanationMatch?.[2]) {
@@ -1790,11 +1821,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         continue;
       }
       underSubheading = false;
-      els.push(
-        <p key={`p-sub-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90">
-          <Inline text={t.replace(/^#+\s*/, "").replace(/^[.·•]\s+/, "")} />
-        </p>
-      );
+      els.push(...renderProse(t, `p-sub-${i}`));
       continue;
     }
 
@@ -1810,11 +1837,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
-    els.push(
-      <p key={`p-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90">
-        <Inline text={t.replace(/^#+\s*/, "").replace(/^[.·•]\s+/, "")} />
-      </p>
-    );
+    els.push(...renderProse(t, `p-${i}`));
   }
 
   if (codeBuf && codeBuf.length) {
