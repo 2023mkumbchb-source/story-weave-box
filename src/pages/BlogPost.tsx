@@ -34,13 +34,18 @@ function ArticleSubscribeGate({ hasMcqs }: { hasMcqs: boolean }) {
   return <SubscribeModal settings={access.settings} onUnlocked={access.applyPass} />;
 }
 
-/* ─── Inline text: bold/italic ─── */
+/* ─── Inline text: bold/italic/links ─── */
+const MD_LINK_FULL_RE = /^\[([^\]]+)\]\((\/[^\s)]+)\)$/;
+
 const Inline = forwardRef<HTMLSpanElement, { text: string }>(({ text }, ref) => {
   const linkCtx = useKeywordLinks();
-  const parts = text.replace(/⭐+/g, "").split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  const parts = text.replace(/⭐+/g, "").split(/(\[[^\]]+\]\(\/[^\s)]+\)|\*\*[^*]+\*\*|\*[^*]+\*)/g);
   return (
     <span ref={ref}>
       {parts.map((part, j) => {
+        const linkMatch = part.match(MD_LINK_FULL_RE);
+        if (linkMatch)
+          return <Link key={j} to={linkMatch[2]} className="font-semibold text-primary underline underline-offset-2 hover:text-primary/80">{linkMatch[1]}</Link>;
         if (part.startsWith("**") && part.endsWith("**"))
           return <strong key={j} className="font-semibold text-foreground">{linkifyText(part.slice(2, -2), linkCtx, `s${j}`)}</strong>;
         if (part.startsWith("*") && part.endsWith("*") && part.length > 2)
