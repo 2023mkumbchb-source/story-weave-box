@@ -1592,14 +1592,25 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         stem = "";
       }
       els.push(
-        <h2 key={`q-${i}`} id={`section-${_sec}`} className="mt-10 mb-3 scroll-mt-20 font-serif text-2xl font-bold leading-snug text-foreground sm:text-3xl">
-          Question {qNum}{topic ? ` — ${topic}` : ""}
-        </h2>
+        <div key={`q-${i}`} id={`section-${_sec}`} className="not-prose mt-8 scroll-mt-24 border-t border-border pt-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-md bg-primary px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-primary-foreground">
+              Question {qNum}
+            </span>
+            {topic && (
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{topic}</span>
+            )}
+          </div>
+        </div>
       );
       if (stem) {
+        const leaked = splitLeakedAnswer(stem);
         els.push(
-          <p key={`q-stem-${i}`} className="mb-4 text-[1.03rem] leading-8 text-foreground/90"><Inline text={stem} /></p>
+          <p key={`q-stem-${i}`} className="mb-4 mt-3 text-[1.05rem] font-medium leading-[1.7] text-foreground">
+            <Inline text={leaked.text} />
+          </p>
         );
+        if (leaked.answer) els.push(<McqAnswerBlock key={`q-stem-ans-${i}`} raw={leaked.answer} />);
       }
       pendingChoicesLabel = true;
       continue;
