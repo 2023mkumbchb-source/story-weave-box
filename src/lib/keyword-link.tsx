@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { buildBlogPath, buildFlashcardPath, buildMcqPath, type Article, type FlashcardSet, type McqSet, type Story } from "@/lib/store";
+import { buildBlogPath, buildFlashcardPath, type Article, type FlashcardSet, type Story } from "@/lib/store";
 import { slugify } from "@/lib/deep-link";
 import { buildStoryPath, stripRichText } from "@/lib/seo";
 
@@ -30,10 +30,9 @@ async function loadEntries(): Promise<LinkEntry[]> {
   if (cachePromise) return cachePromise;
   cachePromise = (async () => {
     try {
-      const [{ data: articles }, { data: flashcards }, { data: mcqs }, { data: stories }] = await Promise.all([
+      const [{ data: articles }, { data: flashcards }, { data: stories }] = await Promise.all([
         supabase.from("articles").select("id,title,slug,meta_title,meta_description,tags,category").eq("published", true).is("deleted_at", null).limit(1500),
         supabase.from("flashcard_sets").select("id,title,slug,meta_title,meta_description").eq("published", true).is("deleted_at", null).limit(1200),
-        supabase.from("mcq_sets").select("id,title,slug,meta_title,meta_description,tags,category").eq("published", true).is("deleted_at", null).limit(1200),
         supabase.from("stories").select("id,title,meta_title,meta_description").eq("published", true).limit(500),
       ]);
       const entries: LinkEntry[] = [];
@@ -69,7 +68,6 @@ async function loadEntries(): Promise<LinkEntry[]> {
       };
       (articles as Partial<Article>[] || []).forEach((a) => addAliases(a.meta_title || a.title, a.meta_description, null, buildBlogPath(a as Article), (a as any).tags, a.category));
       (flashcards as Partial<FlashcardSet>[] || []).forEach((f) => addAliases(f.meta_title || f.title, f.meta_description, null, buildFlashcardPath(f as FlashcardSet)));
-      (mcqs as Partial<McqSet>[] || []).forEach((m) => addAliases(m.meta_title || m.title, m.meta_description, null, buildMcqPath(m as McqSet), (m as any).tags, m.category));
       (stories as Partial<Story>[] || []).forEach((s) => addAliases(s.meta_title || s.title, s.meta_description, null, buildStoryPath(s as Story)));
       // longer terms first so they match before shorter substrings
       entries.sort((a, b) => b.term.length - a.term.length);

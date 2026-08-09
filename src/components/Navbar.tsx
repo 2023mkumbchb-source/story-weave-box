@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, FileText, GraduationCap, Home, LayoutDashboard, ListChecks, Menu, BookOpenCheck, Trophy, ChevronRight, UserRound } from "lucide-react";
+import { BookOpen, FileText, GraduationCap, Home, LayoutDashboard, Menu, BookOpenCheck, Trophy, ChevronRight, UserRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import ThemeToggle from "./ThemeToggle";
@@ -12,7 +12,6 @@ const STORAGE_KEY = "nav_year_filter";
 const YEAR_SECTIONS = [
   { label: "Blog", path: "blog", icon: BookOpen },
   { label: "Flashcards", path: "flashcards", icon: GraduationCap },
-  { label: "MCQs", path: "mcqs", icon: ListChecks },
   { label: "Exams", path: "exams", icon: Trophy },
 ];
 

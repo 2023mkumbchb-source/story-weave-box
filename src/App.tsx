@@ -18,8 +18,6 @@ const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const Flashcards = lazy(() => import("./pages/Flashcards"));
 const FlashcardStudy = lazy(() => import("./pages/FlashcardStudy"));
-const Mcqs = lazy(() => import("./pages/Mcqs"));
-const McqStudy = lazy(() => import("./pages/McqStudy"));
 const Exams = lazy(() => import("./pages/Exams"));
 const ExamStart = lazy(() => import("./pages/ExamStart"));
 const AdminEditor = lazy(() => import("./pages/AdminEditor"));
@@ -66,8 +64,10 @@ const App = () => (
                 <Route path="/blog/:slug" element={<BlogPost />} />
                 <Route path="/flashcards" element={<Flashcards />} />
                 <Route path="/flashcards/:id" element={<FlashcardStudy />} />
-                <Route path="/mcqs" element={<Mcqs />} />
-                <Route path="/mcqs/:id" element={<McqStudy />} />
+                {/* MCQs now live inside blog articles (with the subscription reveal gate) — old
+                    quiz-bank links redirect to the blog so bookmarks/search results don't 404. */}
+                <Route path="/mcqs" element={<Navigate to="/blog" replace />} />
+                <Route path="/mcqs/:id" element={<Navigate to="/blog" replace />} />
                 <Route path="/exams" element={<Exams />} />
                 <Route path="/exams/:id/start" element={<ExamStart />} />
                 <Route path="/admin/editor" element={<AdminEditor />} />

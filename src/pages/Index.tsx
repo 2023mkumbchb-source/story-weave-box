@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  BookOpen, GraduationCap, ListChecks, Loader2,
+  BookOpen, GraduationCap, Loader2,
   ArrowRight, Trophy, BookMarked, Phone, MessageCircle, Clock, Check, Search,
 } from "lucide-react";
-import { getAllCategories, getCategoryDisplayName, getYearFromCategory, YEAR_CATEGORIES, buildBlogPath, buildMcqPath, buildFlashcardPath } from "@/lib/store";
+import { getAllCategories, getCategoryDisplayName, getYearFromCategory, YEAR_CATEGORIES, buildBlogPath, buildFlashcardPath } from "@/lib/store";
 import { buildStoryPath, updateMetaTags } from "@/lib/seo";
 import { supabase } from "@/integrations/supabase/client";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
@@ -13,8 +13,7 @@ import { getSubjectKey, subjectColor } from "@/components/subjectTheme";
 /* Resource tiles — the Geeky Medics "Explore our resources" block: a small number
    of large, colour-blocked entry points instead of a wall of small links. */
 const RESOURCES = [
-  { to: "/blog", label: "Study Notes", desc: "High-yield notes by year & unit", icon: BookOpen, subject: "pathology" },
-  { to: "/mcqs", label: "MCQ Bank", desc: "Clinical vignette questions, free", icon: ListChecks, subject: "microbiology" },
+  { to: "/blog", label: "Study Notes & MCQs", desc: "Notes and quiz questions by year & unit", icon: BookOpen, subject: "pathology" },
   { to: "/exams", label: "Past Papers & CATs", desc: "Timed exam mode, real papers", icon: Trophy, subject: "exam" },
   { to: "/flashcards", label: "Flashcards", desc: "Rapid recall before the ward", icon: GraduationCap, subject: "anatomy" },
 ];
@@ -28,7 +27,7 @@ const PROOF = [
   "Written for Kenyan medical schools — MKU, UoN, KU, JKUAT",
 ];
 
-type RecentItem = { id: string; title: string; type: "article" | "mcq" | "flashcard" | "story"; category: string; created_at: string; slug?: string | null };
+type RecentItem = { id: string; title: string; type: "article" | "flashcard" | "story"; category: string; created_at: string; slug?: string | null };
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -48,7 +47,7 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
   const [recentlyUploaded, setRecentlyUploaded] = useState<RecentItem[]>([]);
   const [lastRead, setLastRead] = useState<RecentArticle[]>([]);
-  const [activeTab, setActiveTab] = useState<"all" | "articles" | "mcqs" | "flashcards" | "stories">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "articles" | "flashcards" | "stories">("all");
   const [query, setQuery] = useState("");
   const [recentShown, setRecentShown] = useState(10);
 
@@ -70,14 +69,19 @@ export default function Index() {
     (supabase as any)
       .rpc("home_recent", { limit_n: 40 })
       .then(({ data }: { data: any[] | null }) => {
-        const items: RecentItem[] = (data || []).map((r) => ({
-          id: r.id,
-          title: r.title,
-          category: r.category,
-          created_at: r.created_at,
-          slug: r.slug,
-          type: r.kind as RecentItem["type"],
-        }));
+        // "mcq" rows are leftover quiz-bank sets (weekly exam content only, now that
+        // the rest have been migrated into articles) — they have no public page to
+        // link to since the /mcqs bank was retired, so they're dropped here.
+        const items: RecentItem[] = (data || [])
+          .filter((r) => r.kind !== "mcq")
+          .map((r) => ({
+            id: r.id,
+            title: r.title,
+            category: r.category,
+            created_at: r.created_at,
+            slug: r.slug,
+            type: r.kind as RecentItem["type"],
+          }));
         setRecentlyUploaded(items);
       });
   }, []);
@@ -97,12 +101,11 @@ export default function Index() {
     { notes: 0, mcqs: 0, units: 0 },
   );
 
-  const filteredRecent = recentlyUploaded.filter(item => activeTab === "all" || (activeTab === "articles" && item.type === "article") || (activeTab === "mcqs" && item.type === "mcq") || (activeTab === "flashcards" && item.type === "flashcard") || (activeTab === "stories" && item.type === "story"));
+  const filteredRecent = recentlyUploaded.filter(item => activeTab === "all" || (activeTab === "articles" && item.type === "article") || (activeTab === "flashcards" && item.type === "flashcard") || (activeTab === "stories" && item.type === "story"));
 
   function getItemLink(item: RecentItem) {
     switch (item.type) {
       case "article": return buildBlogPath(item);
-      case "mcq": return buildMcqPath(item);
       case "flashcard": return buildFlashcardPath(item);
       case "story": return buildStoryPath(item);
     }
@@ -110,7 +113,6 @@ export default function Index() {
 
   const typeMeta = {
     article: { label: "Article", short: "ART", icon: BookOpen, badge: "bg-purple-500/10 text-purple-700 dark:text-purple-300" },
-    mcq:     { label: "MCQ Set", short: "MCQ", icon: ListChecks, badge: "bg-primary/10 text-primary" },
     flashcard:{ label: "Flashcards", short: "FC", icon: GraduationCap, badge: "bg-blue-500/10 text-blue-700 dark:text-blue-300" },
     story:   { label: "Story",   short: "STY", icon: BookMarked, badge: "bg-amber-500/10 text-amber-700 dark:text-amber-300" },
   } as const;
@@ -159,8 +161,8 @@ export default function Index() {
               <Link to="/blog" className="rounded-lg bg-white px-6 py-3 text-sm font-bold text-[hsl(var(--ink))] transition hover:bg-white/90">
                 Browse by year
               </Link>
-              <Link to="/mcqs" className="rounded-lg border border-white/25 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10">
-                Practise MCQs
+              <Link to="/exams" className="rounded-lg border border-white/25 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10">
+                Practise timed exams
               </Link>
             </div>
           </div>
@@ -312,7 +314,7 @@ export default function Index() {
             <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">Fresh notes, MCQs, flashcards &amp; clinical stories</p>
           </div>
           <div className="flex gap-2 mb-5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-            {(["all", "articles", "mcqs", "flashcards", "stories"] as const).map(tab => (
+            {(["all", "articles", "flashcards", "stories"] as const).map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition-all capitalize ${activeTab === tab ? "bg-foreground text-background" : "border border-border bg-card text-muted-foreground hover:text-foreground"}`}>
                 {tab}

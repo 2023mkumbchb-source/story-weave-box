@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { ArrowRight, BookMarked, BookOpen, Clock, GraduationCap, ListChecks, Trophy } from "lucide-react";
+import { ArrowRight, BookMarked, BookOpen, Clock, GraduationCap, Trophy } from "lucide-react";
 import {
   YEAR_CATEGORIES,
   getPublishedArticleSummaries,
@@ -77,12 +77,6 @@ export default function YearHub() {
       description: "Quick review cards for this year",
       to: `/flashcards?year=${encodeURIComponent(yearLabel)}`,
       icon: GraduationCap,
-    },
-    {
-      title: "MCQs",
-      description: "Practice quizzes for this year",
-      to: `/mcqs?year=${encodeURIComponent(yearLabel)}`,
-      icon: ListChecks,
     },
     {
       title: "Exams",

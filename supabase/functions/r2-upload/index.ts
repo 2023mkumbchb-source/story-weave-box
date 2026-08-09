@@ -22,7 +22,7 @@ const r2 = new AwsClient({
   region: "auto",
 });
 
-const ALLOWED = ["image/png", "image/jpeg", "image/webp", "image/gif", "image/avif", "image/svg+xml"];
+const ALLOWED = ["image/png", "image/jpeg", "image/webp", "image/gif", "image/avif", "image/svg+xml", "application/pdf"];
 const MAX_BYTES = 15 * 1024 * 1024;
 
 Deno.serve(async (req) => {
@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
 
-    const ext = contentType === "image/jpeg" ? "jpg" : contentType.split("/")[1].replace(/[^a-z0-9]/g, "");
+    const ext = contentType === "image/jpeg" ? "jpg" : contentType === "application/pdf" ? "pdf" : contentType.split("/")[1].replace(/[^a-z0-9]/g, "");
     const base = String(filename || "image")
       .replace(/\.[^.]+$/, "")
       .toLowerCase()

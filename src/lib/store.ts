@@ -438,11 +438,6 @@ export function buildBlogPath(article: Pick<Article, "id" | "title"> & { slug?: 
   return `/blog/${cleanPublicSlug(article.slug || "", article.title, "article")}`;
 }
 
-export function buildMcqPath(set: { id: string; title: string; slug?: string | null }): string {
-  const rawSlug = typeof set.slug === "string" ? set.slug.trim() : "";
-  return `/mcqs/${cleanPublicSlug(rawSlug, set.title, "quiz")}`;
-}
-
 export function buildFlashcardPath(set: { id: string; title: string; slug?: string | null }): string {
   const rawSlug = typeof set.slug === "string" ? set.slug.trim() : "";
   return `/flashcards/${cleanPublicSlug(rawSlug, set.title, "flashcards")}`;
@@ -571,61 +566,6 @@ export async function getPublishedArticleSummaries(year?: string): Promise<Artic
 
   if (!year) setCachedSummaries(result);
   return result;
-}
-
-const MCQ_SUMMARY_CACHE_KEY = "mcq_summaries_cache_v1";
-let memoryMcqSummaryCache: { data: McqSet[]; ts: number } | null = null;
-
-function readTimedCache<T>(key: string): { data: T; ts: number } | null {
-  try {
-    const raw = sessionStorage.getItem(key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed?.ts && Date.now() - parsed.ts < SUMMARY_CACHE_TTL ? parsed : null;
-  } catch { return null; }
-}
-
-function writeTimedCache<T>(key: string, data: T) {
-  try { sessionStorage.setItem(key, JSON.stringify({ data, ts: Date.now() })); } catch {}
-}
-
-export async function getPublishedMcqSetSummaries(): Promise<McqSet[]> {
-  if (memoryMcqSummaryCache && Date.now() - memoryMcqSummaryCache.ts < SUMMARY_CACHE_TTL) return memoryMcqSummaryCache.data;
-  const cached = readTimedCache<McqSet[]>(MCQ_SUMMARY_CACHE_KEY);
-  if (cached) {
-    memoryMcqSummaryCache = cached;
-    return cached.data;
-  }
-  const { data, error } = await supabase
-    .from("mcq_sets")
-    .select("id, title, category, slug, meta_title, meta_description, og_image_url, created_at, updated_at, published")
-    .eq("published", true)
-    .is("deleted_at", null)
-    .order("updated_at", { ascending: false });
-  if (error) throw error;
-  const result = (data || []).map((row: any) => ({ ...row, questions: [] })) as McqSet[];
-  memoryMcqSummaryCache = { data: result, ts: Date.now() };
-  writeTimedCache(MCQ_SUMMARY_CACHE_KEY, result);
-  return result;
-}
-
-export async function searchPublishedMcqSets(queryText: string, year?: string): Promise<McqSet[]> {
-  const q = queryText.trim().toLowerCase();
-  if (!q) return [];
-  let query = supabase
-    .from("mcq_sets")
-    .select("id, title, category, slug, meta_title, meta_description, og_image_url, created_at, updated_at, published, questions")
-    .eq("published", true)
-    .is("deleted_at", null)
-    .order("updated_at", { ascending: false })
-    .limit(300);
-  if (year && /^Year [1-6]$/.test(year)) query = query.like("category", `${year}:%`);
-  const { data, error } = await query;
-  if (error) throw error;
-  return ((data || []) as any[]).filter((set) => {
-    const hay = `${set.title || ""} ${set.category || ""} ${JSON.stringify(set.questions || [])}`.toLowerCase();
-    return hay.includes(q);
-  }) as McqSet[];
 }
 
 export async function searchPublishedArticles(queryText: string, year?: string, unit?: string): Promise<Article[]> {
@@ -929,62 +869,6 @@ export async function getMcqSets(): Promise<McqSet[]> {
   return (data || []) as unknown as McqSet[];
 }
 
-export async function getPublishedMcqSets(): Promise<McqSet[]> {
-  const { data, error } = await supabase
-    .from("mcq_sets")
-    .select("*")
-    .eq("published", true)
-    .is("deleted_at", null)
-    .order("updated_at", { ascending: false });
-  if (error) throw error;
-  return (data || []) as unknown as McqSet[];
-}
-
-export async function getMcqSetById(id: string): Promise<McqSet | null> {
-  const { data, error } = await supabase
-    .from("mcq_sets")
-    .select("*")
-    .eq("id", id)
-    .eq("published", true)
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (error) throw error;
-  return data as unknown as McqSet | null;
-}
-
-export async function getMcqSetBySlugOrId(param: string): Promise<McqSet | null> {
-  const v = decodeURIComponent(String(param || "")).trim();
-  if (!v) return null;
-  const id = extractIdFromParam(v);
-  if (id) return getMcqSetById(id);
-  const { data } = await supabase
-    .from("mcq_sets")
-    .select("*")
-    .eq("slug", v)
-    .eq("published", true)
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (data) return data as unknown as McqSet;
-  const titlePart = v.replace(/-[0-9a-f]{6}$/, "");
-  const { data: list } = await supabase
-    .from("mcq_sets")
-    .select("*")
-    .or(`slug.ilike.${titlePart}%,slug.ilike.%${titlePart}%`)
-    .eq("published", true)
-    .is("deleted_at", null)
-    .limit(1);
-  if (list && list[0]) return list[0] as unknown as McqSet;
-  const titleSearch = titlePart.replace(/-/g, " ");
-  const { data: byTitle } = await supabase
-    .from("mcq_sets")
-    .select("*")
-    .ilike("title", `%${titleSearch}%`)
-    .eq("published", true)
-    .is("deleted_at", null)
-    .limit(1);
-  return (byTitle && byTitle[0]) ? (byTitle[0] as unknown as McqSet) : null;
-}
-
 export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Promise<McqSet> {
   const balancedQuestions = normalizeMcqQuestions((set.questions || []) as any[]);
   const cat = set.category ? set.category.replace(/^Year\s*\d+:\s*/i, "").trim() : "";
@@ -1033,8 +917,6 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
       .select()
       .single();
     if (error) throw error;
-    memoryMcqSummaryCache = null;
-    try { sessionStorage.removeItem(MCQ_SUMMARY_CACHE_KEY); } catch {}
     return data as unknown as McqSet;
   } else {
     const { data, error } = await supabase
@@ -1043,8 +925,6 @@ export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Pro
       .select()
       .single();
     if (error) throw error;
-    memoryMcqSummaryCache = null;
-    try { sessionStorage.removeItem(MCQ_SUMMARY_CACHE_KEY); } catch {}
     return data as unknown as McqSet;
   }
 }
@@ -1056,10 +936,9 @@ export async function deleteMcqSet(id: string) {
 
 // Related content by category
 export async function getRelatedContent(category: string, excludeArticleId?: string) {
-  const [{ data: articles }, { data: flashcards }, { data: mcqs }, { data: essays }] = await Promise.all([
+  const [{ data: articles }, { data: flashcards }, { data: essays }] = await Promise.all([
     supabase.from("articles").select("id, title, category, content, meta_description, og_image_url, slug, updated_at, created_at").eq("published", true).eq("category", category).is("deleted_at", null).order("updated_at", { ascending: false }).limit(16),
     supabase.from("flashcard_sets").select("id, title, category, cards").eq("published", true).eq("category", category),
-    supabase.from("mcq_sets").select("id, title, category, questions, slug").eq("published", true).eq("category", category),
     excludeArticleId
       ? supabase
           .from("essays")
@@ -1072,7 +951,6 @@ export async function getRelatedContent(category: string, excludeArticleId?: str
   return {
     articles: (articles || []).filter((a: any) => a.id !== excludeArticleId),
     flashcards: flashcards || [],
-    mcqs: mcqs || [],
     essays: essays || [],
   };
 }

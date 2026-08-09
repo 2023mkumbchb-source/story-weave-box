@@ -141,15 +141,15 @@ D) fourth choice
 E) fifth choice
 ✅ Answer: C
 
-4. EVERY multiple-choice question must have FIVE choices A–E (four only if the scan clearly shows a four-option question). If the scan is cut off, faded or a choice is unreadable, reconstruct the missing choice as a medically plausible distractor of similar length so the set is complete. Never leave a question with two or three choices.
+4. Never invent or reconstruct text. Transcribe only what is visible. If a word or option is genuinely unreadable, write [unreadable] in its exact position. Preserve the number of choices shown on the page.
 5. The answer line is mandatory for every multiple-choice question:
    - If the scan shows the answer marked (tick, cross, circle, underline, shading, handwriting, bold), report THAT letter and prefix the line with "✅ Answer: ".
    - If nothing is marked, work out the correct answer yourself from medical knowledge and write "Answer: " (no tick) followed by the letter.
    - Add a second line "Explanation: " with one short sentence justifying the answer.
-6. Keep all choices similar in length — do not make the correct one obviously the longest.
+6. Preserve the source choices exactly; do not rewrite them to equalize length or style.
 7. For essay / short-answer questions: write the numbered question, keep mark allocations like "(5 marks)", then give "Answer: " followed by a concise model answer in short bullet lines starting with "- ". Use arrows (→) for sequences and life cycles, never commas.
 8. Reproduce tables as Markdown tables. Never output raw "###", stray asterisks, or quotation-mark scaffolding.
-9. Skip cover pages, instruction pages, blank pages and answer-sheet grids — questions only.
+9. Skip cover pages, instruction pages, blank pages and answer-sheet grids — questions only. Never output placeholders such as "Full question stem here" or claim that an unseen question exists.
 
 Output the transcription now.`;
 

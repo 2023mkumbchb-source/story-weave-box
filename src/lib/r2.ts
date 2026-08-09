@@ -1,5 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 
+const normalizeR2PublicUrl = (url: string): string =>
+  url.replace(
+    /^https?:\/\/(?:www\.)?ompathstudy\.com(?=\/uploads\/)/i,
+    "https://cdn.ompathstudy.com",
+  );
+
 function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -22,7 +28,9 @@ export async function uploadImageToR2(file: File): Promise<string> {
     });
     if (error) throw error;
     if (!data?.url) throw new Error(data?.error || "no url returned");
-    return data.url as string;
+    // The deployed edge function may briefly lag behind source changes. Never
+    // persist the SPA hostname for R2 objects: it serves HTML for /uploads/*.
+    return normalizeR2PublicUrl(data.url as string);
   } catch (e) {
     console.error("R2 upload failed, keeping inline image", e);
     return dataUrl;
