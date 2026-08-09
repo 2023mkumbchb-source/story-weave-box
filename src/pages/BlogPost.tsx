@@ -928,9 +928,27 @@ function splitInlineTable(s: string): string[] {
 
 const META_HEADING = /^(key points|detailed notes|summary)$/i;
 
+// Repair UTF-8 text that older OCR imports accidentally decoded as
+// Windows-1252. Escapes keep these replacements source-encoding independent.
+function repairMojibake(value: string): string {
+  return value
+    .replaceAll("\u00C2\u00B7", "\u00B7")
+    .replaceAll("\u00C2\u00A0", " ")
+    .replaceAll("\u00E2\u20AC\u201D", "\u2014")
+    .replaceAll("\u00E2\u20AC\u201C", "\u2013")
+    .replaceAll("\u00E2\u20AC\u2122", "'")
+    .replaceAll("\u00E2\u20AC\u0153", "\u201C")
+    .replaceAll("\u00E2\u20AC\u009D", "\u201D")
+    .replaceAll("\u00E2\u20AC\u00A6", "\u2026")
+    .replaceAll("\u00E2\u2020\u2019", "\u2192")
+    .replaceAll("\u00E2\u2020\u201C", "\u2193")
+    .replaceAll("\u00EF\u00BC\u009A", ":")
+    .replaceAll("\u00EF\u00BF\u00BD", "");
+}
+
 function decodeEntities(s: string): string {
   if (!s) return s;
-  let text = s;
+  let text = repairMojibake(s);
   for (let i = 0; i < 2; i++) {
     text = text
     .replace(/&amp;nbsp;/gi, " ")
@@ -949,7 +967,7 @@ function decodeEntities(s: string): string {
     .replace(/&ldquo;/gi, "\u201C")
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)));
   }
-  return text;
+  return repairMojibake(text);
 }
 
 function stripBranding(s: string): string {
@@ -2230,6 +2248,14 @@ export default function BlogPost() {
 
   const toc = useMemo(() => article ? extractToc(article.content) : [], [article]);
   const slideDeck = useMemo(() => (article ? parseSlideDeck(article.content || "") : null), [article]);
+  const questionOnlyPaper = useMemo(() => {
+    if (!article) return false;
+    const text = article.content || "";
+    const looksLikePaper = /(?:past paper|question paper|\bexam(?:ination)?\b|\bmcqs?\b)/i.test(`${article.title} ${article.meta_description || ""}`);
+    const hasQuestions = /(?:^|\n)\s*(?:#{1,5}\s*)?(?:question\s*)?\d{1,3}[.)]/im.test(text);
+    const hasAnswers = /(?:^|\n)\s*(?:[-*]\s*)?(?:\*\*)?(?:answer|correct answer)\s*[:：]/im.test(text);
+    return looksLikePaper && hasQuestions && !hasAnswers;
+  }, [article]);
 
   useEffect(() => {
     if (!toc.length) return;
@@ -2466,6 +2492,13 @@ export default function BlogPost() {
             {!slideDeck && <ArticleJumpLinks items={toc} />}
 
             {(article as any).toc_enabled && <ContentToc content={article.content} />}
+
+            {questionOnlyPaper && (
+              <aside className="not-prose mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-foreground">
+                <strong className="block font-semibold">Question paper only</strong>
+                This source does not include a verified answer key. The questions are preserved for practice; answers have not been invented.
+              </aside>
+            )}
 
             <div className="prose-custom article-reader">
               <KeywordLinkProvider currentPath={buildBlogPath(article)}>
