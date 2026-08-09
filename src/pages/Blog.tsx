@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, X, BookOpen, Clock, ArrowLeft, ChevronDown, LayoutGrid, List, ArrowRight, SlidersHorizontal } from "lucide-react";
+import { Search, X, BookOpen, Clock, ArrowLeft, ChevronDown, LayoutGrid, List, ArrowRight, SlidersHorizontal, Sparkles, TrendingUp, Star, Zap } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   getCategoryDisplayName,
   getYearFromCategory,
@@ -20,6 +21,16 @@ import { getYear3Semester, OTHER_UNITS_LABEL, semesterGroupSortKey } from "@/lib
 const YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
 const INITIAL_PER_GROUP = 6;
 const LOAD_MORE_STEP = 12;
+
+// Subject-themed gradient colors for year cards
+const YEAR_THEMES: Record<string, { gradient: string; icon: string; accent: string }> = {
+  "Year 1": { gradient: "from-emerald-500/90 via-teal-500/80 to-cyan-500/70", icon: "🫀", accent: "emerald" },
+  "Year 2": { gradient: "from-blue-500/90 via-indigo-500/80 to-violet-500/70", icon: "🧬", accent: "blue" },
+  "Year 3": { gradient: "from-purple-500/90 via-fuchsia-500/80 to-pink-500/70", icon: "🔬", accent: "purple" },
+  "Year 4": { gradient: "from-orange-500/90 via-amber-500/80 to-yellow-500/70", icon: "💊", accent: "orange" },
+  "Year 5": { gradient: "from-rose-500/90 via-red-500/80 to-pink-500/70", icon: "🏥", accent: "rose" },
+  "Year 6": { gradient: "from-slate-600/90 via-gray-600/80 to-zinc-600/70", icon: "⚕️", accent: "slate" },
+};
 
 function normalizeYear(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -52,12 +63,6 @@ function getCoreUnitGroup(category: string): string {
   return getCategoryDisplayName(category || "Uncategorized") || "Other";
 }
 
-/**
- * Year 3 has a confirmed semester-by-semester course structure, so it gets grouped
- * by Semester 1/2/3 instead of the generic keyword-matched core-unit buckets (which
- * dumped almost everything into one giant "Pathology" bucket). Other years keep the
- * old grouping until their own semester breakdowns are confirmed.
- */
 function getGroupLabel(year: string, category: string): string {
   if (year === "Year 3") {
     const subunit = getCategoryDisplayName(category || "");
@@ -67,10 +72,6 @@ function getGroupLabel(year: string, category: string): string {
   return getCoreUnitGroup(category);
 }
 
-// Every real course unit now maps to a semester (see year3Semesters.ts). Only
-// non-course documents (exam timetables, admin docs) are unmapped, and they
-// don't get a tab here — they still show up as their own section when
-// browsing "All Semesters" (see getGroupLabel/OTHER_UNITS_LABEL).
 const YEAR3_SEMESTER_OPTIONS = [
   { value: "1", label: "Semester 1" },
   { value: "2", label: "Semester 2" },
@@ -82,6 +83,26 @@ function unitMatchesSemester(unitName: string, semester: string | null): boolean
   const sem = getYear3Semester(unitName);
   return semester === "other" ? !sem : String(sem) === semester;
 }
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06, delayChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as const } }
+};
+
+const cardHover = {
+  scale: 1.02,
+  y: -4,
+  transition: { duration: 0.2, ease: "easeOut" as const }
+};
 
 export default function Blog() {
   useEffect(() => {
@@ -173,9 +194,6 @@ export default function Blog() {
   const selectedUnit = searchParams.get("unit");
   const selectedSemester = selectedYear === "Year 3" ? searchParams.get("sem") : null;
 
-  // Scroll the results into view when the user changes year/unit filters
-  // (categorized clicks used to leave the page scrolled wherever it was,
-  // or get reset to y=0 by ScrollToTop, forcing a manual scroll to find results).
   const resultsAnchorRef = useRef<HTMLDivElement>(null);
   const isFirstFilterRender = useRef(true);
   useEffect(() => {
@@ -246,8 +264,6 @@ export default function Blog() {
     if (selectedYear !== "All") params.year = selectedYear;
     if (selectedYear === "Year 3") {
       if (unit) {
-        // Always carry the unit's own semester so the semester tab stays in sync,
-        // whether the unit was picked from the scoped chip row or the sidebar.
         const sem = getYear3Semester(getCategoryDisplayName(unit));
         params.sem = sem ? String(sem) : "other";
       } else if (selectedSemester) {
@@ -266,7 +282,6 @@ export default function Blog() {
     setVisibleCount(20);
   };
 
-  // Helper: get the latest updated/created date across a list of articles
   function latestDate(arts: Article[]): number {
     return Math.max(
       ...arts.map(a => new Date(a.updated_at || a.created_at).getTime())
@@ -288,7 +303,6 @@ export default function Blog() {
           return matchesYear && matchesUnit && matchesSemester;
         });
 
-    // Content-kind filter (MCQs / essays / plain notes)
     const kindOf = (a: any) => {
       const k = (a.content_kind || "").toLowerCase();
       if (k.includes("mcq") && k.includes("essay")) return "both";
@@ -317,7 +331,6 @@ export default function Blog() {
       );
     });
 
-    // Deduplicate by article id
     const seen = new Set<string>();
     return sorted.filter(a => {
       if (seen.has(a.id)) return false;
@@ -326,8 +339,6 @@ export default function Blog() {
     });
   }, [articles, search, searchMatches, selectedYear, selectedUnit, selectedSemester, sortBy, kindFilter, recentArticles]);
 
-  // Per-year totals for the "choose your year" landing step, shown when no
-  // year has been picked yet (fresh arrival from "Start Studying").
   const yearTotals = useMemo(() => {
     const totals: Record<string, number> = {};
     if (selectedYear !== "All") return totals;
@@ -355,7 +366,6 @@ export default function Blog() {
     });
   }, [articles, recentArticles, selectedYear]);
 
-  // Unit chips — sorted by most recently updated, matching group order
   const unitsForYear = useMemo(() => {
     if (selectedYear === "All") return [];
     const units = new Map<string, Article[]>();
@@ -375,14 +385,11 @@ export default function Blog() {
       .sort((a, b) => b.latest - a.latest);
   }, [articles, selectedYear]);
 
-  // Units scoped to the currently selected semester (Year 3 only) — this is what
-  // actually drives the drill-down: pick a semester first, then only its units show up.
   const unitsForSelection = useMemo(() => {
     if (selectedYear !== "Year 3" || !selectedSemester) return unitsForYear;
     return unitsForYear.filter(u => unitMatchesSemester(u.name, selectedSemester));
   }, [unitsForYear, selectedYear, selectedSemester]);
 
-  // Article counts per semester, for the semester tab row.
   const year3SemesterCounts = useMemo(() => {
     const counts: Record<string, number> = { "1": 0, "2": 0, "3": 0, other: 0 };
     if (selectedYear !== "Year 3") return counts;
@@ -458,13 +465,13 @@ export default function Blog() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <div className="grid gap-8 lg:grid-cols-[260px,1fr]">
-        {/* Desktop-only sidebar (Jaypee-style specialty index) */}
+        {/* Desktop-only sidebar */}
         <aside className="hidden lg:block">
-          <div className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border border-border bg-card p-4">
+          <div className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-sm">
             <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Browse</p>
             <button
               onClick={() => { setYear("All"); setUnit(null); }}
-              className={`mb-3 block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors ${selectedYear === "All" ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted"}`}
+              className={`mb-3 block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold transition-all duration-200 ${selectedYear === "All" ? "bg-primary/10 text-primary shadow-sm" : "text-foreground hover:bg-muted hover:shadow-sm"}`}
             >
               All Years
             </button>
@@ -472,39 +479,51 @@ export default function Blog() {
               const coreGroups = sidebarGroups[y] || [];
               if (coreGroups.length === 0) return null;
               const isOpen = selectedYear === y;
+              const theme = YEAR_THEMES[y];
               return (
                 <div key={y} className="mb-2">
                   <button
                     onClick={() => setYear(isOpen ? "All" : y)}
-                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors ${isOpen ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted"}`}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold transition-all duration-200 ${isOpen ? "bg-primary/10 text-primary shadow-sm" : "text-foreground hover:bg-muted hover:shadow-sm"}`}
                   >
-                    <span>{y}</span>
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                    <span className="flex items-center gap-2">
+                      <span className="text-base">{theme?.icon}</span>
+                      {y}
+                    </span>
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
                   </button>
-                  {isOpen && (
-                    <ul className="mt-1 space-y-0.5 border-l border-border pl-3">
-                      {coreGroups.map(group => (
-                        <li key={group.group} className="py-1">
-                          <div className="mb-1 flex items-center justify-between px-2 text-[10px] font-bold uppercase tracking-wider text-foreground/70">
-                            <span className="truncate">{group.group}</span>
-                            <span>{group.count}</span>
-                          </div>
-                          <div className="space-y-0.5 pl-2">
-                            {group.units.map(u => (
-                              <button
-                                key={u.category}
-                                onClick={() => setUnit(selectedUnit === u.category ? null : u.category)}
-                                className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs transition-colors ${selectedUnit === u.category ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
-                              >
-                                <span className="truncate">{u.name}</span>
-                                <span className="ml-2 shrink-0 text-[10px] text-muted-foreground">{u.count}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.ul
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="mt-1 space-y-0.5 border-l border-border pl-3 overflow-hidden"
+                      >
+                        {coreGroups.map(group => (
+                          <li key={group.group} className="py-1">
+                            <div className="mb-1 flex items-center justify-between px-2 text-[10px] font-bold uppercase tracking-wider text-foreground/70">
+                              <span className="truncate">{group.group}</span>
+                              <span>{group.count}</span>
+                            </div>
+                            <div className="space-y-0.5 pl-2">
+                              {group.units.map(u => (
+                                <button
+                                  key={u.category}
+                                  onClick={() => setUnit(selectedUnit === u.category ? null : u.category)}
+                                  className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs transition-all duration-200 ${selectedUnit === u.category ? "bg-primary/15 text-primary font-semibold shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground hover:shadow-sm"}`}
+                                >
+                                  <span className="truncate">{u.name}</span>
+                                  <span className="ml-2 shrink-0 text-[10px] text-muted-foreground">{u.count}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </li>
+                        ))}
+                      </motion.ul>
+                    )}
+                  </AnimatePresence>
                 </div>
               );
             })}
@@ -512,10 +531,16 @@ export default function Blog() {
         </aside>
 
         <div className="min-w-0">
-      {/* Page header — quiet, paper-like. Type does the work; no colour band. */}
-      <div className="mb-6 overflow-hidden rounded-2xl border border-border bg-card">
+      {/* Hero header with gradient */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className="mb-6 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/5 via-card to-primary/10 shadow-sm"
+      >
         <div className="relative px-5 py-6 sm:px-7 sm:py-7">
           <div className="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full bg-primary/[0.07] blur-2xl" />
+          <div className="pointer-events-none absolute -left-10 -bottom-16 h-32 w-32 rounded-full bg-primary/[0.05] blur-2xl" />
         {yearRoute && (
           <button
             onClick={() => navigate(`/year/${yearRoute}`)}
@@ -526,15 +551,37 @@ export default function Blog() {
         )}
         <div className="relative flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
+            <motion.p
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+              className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary"
+            >
               {selectedYear === "All" ? "MBChB study library" : selectedYear}
-            </p>
-            <h1 className="mt-1 font-serif text-3xl font-bold leading-tight text-foreground sm:text-[2.35rem]">Study Notes</h1>
-            <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
+            </motion.p>
+            <motion.h1
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+              className="mt-1 font-serif text-3xl font-bold leading-tight text-foreground sm:text-[2.35rem]"
+            >
+              Study Notes
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4, duration: 0.4 }}
+              className="mt-1.5 max-w-xl text-sm text-muted-foreground"
+            >
               High-yield notes, CATs and past papers, organised by year, semester and unit.
-            </p>
+            </motion.p>
           </div>
-          <div className="flex shrink-0 gap-5 border-l border-border pl-5 text-right">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5, duration: 0.4 }}
+            className="flex shrink-0 gap-5 border-l border-border pl-5 text-right"
+          >
             <div>
               <p className="font-serif text-xl font-bold text-foreground">{selectedYear === "All" ? catalogueStats.notes : filtered.length}</p>
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{selectedYear === "All" ? "notes" : "in view"}</p>
@@ -543,9 +590,14 @@ export default function Blog() {
               <p className="font-serif text-xl font-bold text-foreground">{catalogueStats.units}</p>
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">units</p>
             </div>}
-          </div>
+          </motion.div>
         </div>
-        <div className={`relative mt-5 flex max-w-2xl items-center overflow-hidden rounded-xl border bg-background shadow-sm transition-shadow ${searchFocused ? "border-primary ring-2 ring-primary/15" : "border-border"}`}>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.4 }}
+          className={`relative mt-5 flex max-w-2xl items-center overflow-hidden rounded-xl border bg-background shadow-sm transition-all duration-300 ${searchFocused ? "border-primary ring-2 ring-primary/15 shadow-md" : "border-border"}`}
+        >
           <Search className="ml-3 h-4 w-4 shrink-0 text-muted-foreground" />
           <input
             id="note-search"
@@ -557,11 +609,11 @@ export default function Blog() {
             className="w-full bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
           {search && (
-            <button onClick={() => setSearch("")} className="mr-3 text-muted-foreground hover:text-foreground" aria-label="Clear search">
+            <button onClick={() => setSearch("")} className="mr-3 text-muted-foreground hover:text-foreground transition-colors" aria-label="Clear search">
               <X className="h-4 w-4" />
             </button>
           )}
-        </div>
+        </motion.div>
         {search.trim() && (
           <p className="mt-2 text-xs text-muted-foreground">
             {searchLoading ? "Searching…" : filtered.length === 0 ? `No results for "${search}"` : `${filtered.length} matching articles`}
@@ -569,12 +621,15 @@ export default function Blog() {
         )}
         {!search.trim() && <p className="mt-2 text-xs text-muted-foreground">Press <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-sans text-[10px]">/</kbd> to search the library.</p>}
         </div>
-      </div>
+      </motion.div>
 
       {showYearPicker ? (
-        /* Step 1: choose a year. This is the dedicated first screen "Start Studying"
-           lands on — no search bar clutter, no tabs, just the one decision. */
-        <>
+        /* Year picker with enhanced cards */
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Start here</p>
@@ -583,81 +638,121 @@ export default function Blog() {
           <span className="hidden text-xs text-muted-foreground sm:block">Select a year to explore its units</span>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {["Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"].map(y => (
-            <button
-              key={y}
-              onClick={() => setYear(y)}
-              className="group rounded-xl border border-border bg-card p-5 text-left transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-[var(--shadow-card-hover)]"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-serif text-xl font-bold text-foreground sm:text-2xl">{y}</span>
-                <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">{yearTotals[y] ?? 0} notes ready to review</p>
-            </button>
-          ))}
+          {["Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"].map(y => {
+            const theme = YEAR_THEMES[y];
+            return (
+              <motion.button
+                key={y}
+                variants={itemVariants}
+                whileHover={cardHover}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setYear(y)}
+                className="group relative overflow-hidden rounded-xl border border-border bg-card text-left transition-all duration-300 hover:border-primary/50 hover:shadow-[var(--shadow-card-hover)]"
+              >
+                {/* Gradient overlay */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                <div className="relative p-5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-3xl">{theme.icon}</span>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground transition-all duration-300 group-hover:translate-x-0.5 group-hover:text-primary group-hover:opacity-0" />
+                  </div>
+                  <span className="mt-3 block font-serif text-xl font-bold text-foreground sm:text-2xl group-hover:text-foreground">{y}</span>
+                  <p className="mt-1 text-xs text-muted-foreground group-hover:text-foreground/80">{yearTotals[y] ?? 0} notes ready to review</p>
+                  {/* Subtle shimmer effect on hover */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                  </div>
+                </div>
+              </motion.button>
+            );
+          })}
         </div>
-        </>
+        </motion.div>
       ) : (
-      <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >
       {/* Continue reading */}
       {!search.trim() && selectedYear !== "All" && !selectedUnit && filteredRecentArticles.length > 0 && (
-        <div className="mb-7 rounded-2xl border border-border bg-card p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mb-7 rounded-2xl border border-border bg-card p-4 shadow-sm"
+        >
           <div className="mb-3 flex items-center gap-2">
             <Clock className="h-3.5 w-3.5 text-primary" />
             <h2 className="text-sm font-semibold text-foreground">Continue Reading</h2>
           </div>
           <div className="space-y-1">
-            {filteredRecentArticles.slice(0, 3).map(ra => (
-              <Link
+            {filteredRecentArticles.slice(0, 3).map((ra, i) => (
+              <motion.div
                 key={ra.id}
-                to={buildBlogPath(ra)}
-                state={{ from: fromPath }}
-                className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/40"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.1, duration: 0.3 }}
               >
-                <BookOpen className="h-3.5 w-3.5 shrink-0 text-primary" />
-                <span className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">{ra.title}</span>
-                <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{timeAgo(ra.visitedAt)}</span>
-              </Link>
+                <Link
+                  to={buildBlogPath(ra)}
+                  state={{ from: fromPath }}
+                  className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-all duration-200 hover:bg-muted/40"
+                >
+                  <BookOpen className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  <span className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">{ra.title}</span>
+                  <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{timeAgo(ra.visitedAt)}</span>
+                </Link>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Year tabs */}
       <div ref={resultsAnchorRef} className="mb-5 flex gap-1 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0" style={{ scrollbarWidth: "none" }}>
-        {YEARS.map(year => (
-          <button
+        {YEARS.map((year, i) => (
+          <motion.button
             key={year}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05, duration: 0.3 }}
             onClick={() => setYear(year)}
-            className={`shrink-0 rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all ${
+            className={`shrink-0 rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${
               selectedYear === year
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
           >
             {year}
-          </button>
+          </motion.button>
         ))}
       </div>
 
-      {/* Semester step — Year 3 only. Before a semester is picked, this is a full
-          step of its own (big cards, matching the Year picker) so it reads as a
-          deliberate decision rather than another row of tabs. Once picked, it
-          collapses to a compact switcher so browsing doesn't lose the space. */}
+      {/* Semester step — Year 3 only */}
       {selectedYear === "Year 3" && !search.trim() && !selectedSemester && !selectedUnit && (
-        <div className="mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mb-6"
+        >
           <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Step 2 — Choose a semester</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {YEAR3_SEMESTER_OPTIONS.map(opt => (
-              <button
+            {YEAR3_SEMESTER_OPTIONS.map((opt, i) => (
+              <motion.button
                 key={opt.value}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1, duration: 0.3 }}
+                whileHover={cardHover}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => setSemester(opt.value)}
-                className="rounded-2xl border border-border bg-card p-5 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-card-hover)]"
+                className="rounded-2xl border border-border bg-card p-5 text-left transition-all duration-300 hover:border-primary/40 hover:shadow-[var(--shadow-card-hover)]"
               >
                 <span className="font-serif text-lg font-bold text-foreground sm:text-xl">{opt.label}</span>
                 <p className="mt-1 text-xs text-muted-foreground">{year3SemesterCounts[opt.value] ?? 0} notes</p>
-              </button>
+              </motion.button>
             ))}
           </div>
           <button
@@ -666,19 +761,19 @@ export default function Blog() {
           >
             Or browse all of Year 3 mixed together →
           </button>
-        </div>
+        </motion.div>
       )}
 
-      {/* Compact semester switcher, shown once a semester (or unit) is already picked. */}
+      {/* Compact semester switcher */}
       {selectedYear === "Year 3" && !search.trim() && (selectedSemester || selectedUnit) && (
         <div className="mb-4">
           <p className="mb-1.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Semester</p>
           <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => setSemester(null)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
                 !selectedSemester
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
@@ -688,9 +783,9 @@ export default function Blog() {
               <button
                 key={opt.value}
                 onClick={() => setSemester(selectedSemester === opt.value ? null : opt.value)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
                   selectedSemester === opt.value
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : "border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
@@ -701,7 +796,7 @@ export default function Blog() {
         </div>
       )}
 
-      {/* Breadcrumb once drilled into a semester and/or unit */}
+      {/* Breadcrumb */}
       {selectedYear === "Year 3" && (selectedSemester || selectedUnit) && !search.trim() && (
         <div className="mb-4 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
           <button onClick={() => setSemester(null)} className="hover:text-foreground hover:underline">Year 3</button>
@@ -725,15 +820,13 @@ export default function Blog() {
         </div>
       )}
 
-      {/* Units. With no unit picked these render as photo tiles (real topic
-          imagery, no generated art); once a unit is open they collapse into a
-          plain switcher row. */}
+      {/* Units */}
       {selectedYear !== "All" && unitsForSelection.length > 0 && (selectedYear !== "Year 3" || selectedSemester || selectedUnit) && (
         selectedUnit ? (
           <div className="mb-6 flex flex-wrap gap-1.5">
             <button
               onClick={() => setUnit(null)}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground"
             >
               ← All units
             </button>
@@ -743,9 +836,9 @@ export default function Blog() {
                 <button
                   key={u.category}
                   onClick={() => setUnit(active ? null : u.category)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
                     active
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary text-primary-foreground shadow-sm"
                       : "border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
@@ -755,27 +848,33 @@ export default function Blog() {
             })}
           </div>
         ) : (
-          <div className="mb-8">
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="mb-8"
+          >
             <p className="mb-2.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
               Choose a unit · {unitsForSelection.length} available
             </p>
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
               {unitsForSelection.map(u => (
-                <UnitTile key={u.category} title={u.name} count={u.count} onClick={() => setUnit(u.category)} />
+                <motion.div key={u.category} variants={itemVariants}>
+                  <UnitTile title={u.name} count={u.count} onClick={() => setUnit(u.category)} />
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
         )
       )}
 
-      {/* View switcher — list (dense index) or grid (cards) */}
+      {/* View switcher */}
       {filtered.length > 0 && (
         <div className="mb-3 flex items-center justify-between gap-3 border-b border-border pb-2">
           <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
             {filtered.length} {filtered.length === 1 ? "note" : "notes"}
           </p>
           <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5">
-            {/* Sort + content-kind filters */}
             <select
               value={kindFilter}
               onChange={(e) => setKindFilter(e.target.value as any)}
@@ -800,14 +899,14 @@ export default function Blog() {
             <button
               onClick={() => setViewMode("list")}
               aria-label="List view"
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${view === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all duration-200 ${view === "list" ? "bg-muted text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
             >
               <List className="h-3.5 w-3.5" /> List
             </button>
             <button
               onClick={() => setViewMode("grid")}
               aria-label="Grid view"
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${view === "grid" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all duration-200 ${view === "grid" ? "bg-muted text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
             >
               <LayoutGrid className="h-3.5 w-3.5" /> Grid
             </button>
@@ -817,27 +916,37 @@ export default function Blog() {
 
       {/* Articles */}
       {filtered.length === 0 ? (
-        <div className="py-16 text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="py-16 text-center"
+        >
           <SlidersHorizontal className="mx-auto mb-3 h-5 w-5 text-muted-foreground" />
           <p className="font-medium text-foreground">No notes found</p>
           <p className="mt-1 text-sm text-muted-foreground">Try a different search or clear your filters.</p>
           {(search || selectedUnit || kindFilter !== "all") && (
             <button
               onClick={() => { setSearch(""); setUnit(null); setKindFilter("all"); }}
-              className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-all duration-200 hover:opacity-90 hover:shadow-md"
             >
               Reset filters <ArrowRight className="h-3.5 w-3.5" />
             </button>
           )}
-        </div>
+        </motion.div>
       ) : groupedArticles && !search.trim() ? (
-        <div className="space-y-9">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-9"
+        >
           {groupedArticles.map(group => {
             const isExpanded = expandedGroups.has(group.category);
             const showCount = isExpanded ? group.articles.length : INITIAL_PER_GROUP;
             const hasMore = group.articles.length > INITIAL_PER_GROUP;
             return (
-              <div key={group.category}>
+              <motion.div key={group.category} variants={itemVariants}>
                 <div className="mb-3 flex items-baseline gap-3">
                   <h2 className="font-serif text-lg font-bold text-foreground sm:text-xl">{group.name}</h2>
                   <span className="shrink-0 text-xs text-muted-foreground">{group.articles.length}</span>
@@ -850,7 +959,7 @@ export default function Blog() {
                     ))}
                   </div>
                 ) : (
-                  <div className="overflow-hidden rounded-lg border border-border bg-card">
+                  <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
                     {group.articles.slice(0, showCount).map((a, i) => (
                       <NoteRow key={a.id} article={a} index={i} />
                     ))}
@@ -871,12 +980,16 @@ export default function Blog() {
                     )}
                   </button>
                 )}
-              </div>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       ) : (
-        <>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
         {view === "grid" ? (
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
             {filtered.slice(0, visibleCount).map(a => (
@@ -884,7 +997,7 @@ export default function Blog() {
             ))}
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
             {filtered.slice(0, visibleCount).map((a, i) => (
               <NoteRow key={a.id} article={a} index={i} />
             ))}
@@ -893,15 +1006,15 @@ export default function Blog() {
         {filtered.length > visibleCount && (
             <button
               onClick={() => setVisibleCount(prev => prev + LOAD_MORE_STEP)}
-              className="mx-auto mt-4 flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+              className="mx-auto mt-4 flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-all duration-200 hover:bg-muted hover:shadow-sm"
             >
               Load more ({filtered.length - visibleCount} remaining)
               <ChevronDown className="h-4 w-4" />
             </button>
           )}
-        </>
+        </motion.div>
       )}
-      </>
+      </motion.div>
       )}
         </div>
       </div>
