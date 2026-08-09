@@ -228,6 +228,7 @@ function EssayQuestion({ number, question, answer }: { number: string; question:
 
 function McqAnswerBlock({ raw }: { raw: string }) {
   const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const access = useAccess();
   const locked = !access.canReveal;
   const normalized = raw
