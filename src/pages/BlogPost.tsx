@@ -234,6 +234,18 @@ function splitLeakedAnswer(text: string): { text: string; answer: string } {
   return { text: text.slice(0, m.index).trim().replace(/[,;:—–-]+$/, "").trim(), answer: m[1].trim() };
 }
 
+/** Paragraph renderer: strips OCR orphan punctuation and hides leaked answers. */
+function renderProse(t: string, key: string) {
+  const cleaned = t.replace(/^#+\s*/, "").replace(/^[.·•,;:]+\s*/, "").trim();
+  if (!cleaned) return [];
+  const { text, answer } = splitLeakedAnswer(cleaned);
+  const out = [
+    <p key={key} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={text} /></p>,
+  ];
+  if (answer) out.push(<McqAnswerBlock key={`${key}-ans`} raw={answer} />);
+  return out;
+}
+
 function McqAnswerBlock({ raw }: { raw: string }) {
   const [open, setOpen] = useState(false);
   const access = useAccess();
