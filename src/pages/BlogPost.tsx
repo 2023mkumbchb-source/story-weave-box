@@ -226,8 +226,15 @@ function EssayQuestion({ number, question, answer }: { number: string; question:
   );
 }
 
+/** Pull a leaked inline answer — e.g. "(repeat — Answer: b, inverse stretch reflex)"
+ *  — out of a question stem so it renders behind a Reveal button instead. */
+function splitLeakedAnswer(text: string): { text: string; answer: string } {
+  const m = text.match(/[（(]\s*(?:repeat\s*[—–-]\s*)?(?:Ans(?:wer)?|Correct answer)\s*[:：]?\s*([^)）]+)[)）]\s*$/i);
+  if (!m) return { text: text.trim(), answer: "" };
+  return { text: text.slice(0, m.index).trim().replace(/[,;:—–-]+$/, "").trim(), answer: m[1].trim() };
+}
+
 function McqAnswerBlock({ raw }: { raw: string }) {
-  const [open, setOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const access = useAccess();
   const locked = !access.canReveal;
