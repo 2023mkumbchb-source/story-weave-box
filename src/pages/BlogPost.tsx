@@ -1433,7 +1433,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (!pendingChoicesLabel) return;
     pendingChoicesLabel = false;
     els.push(
-      <h3 key={key} className="mt-5 mb-2 font-serif text-lg font-bold text-foreground">Choices</h3>
+      <p key={key} className="not-prose mt-4 mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Choices</p>
     );
   };
   for (let i = 0; i < lines.length; i++) {
@@ -1656,9 +1656,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           return;
         }
         els.push(
-          <div key={`mcqopt-combo-${i}-${n}`} className="my-1.5 flex items-start gap-2.5 pl-1">
-            <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
-            <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
+          <div key={`mcqopt-combo-${i}-${n}`} className="not-prose my-1 flex items-start gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 transition-colors hover:border-primary/40">
+            <span className="mt-px shrink-0 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-[11px] font-bold text-primary">{label}</span>
+            <p className="min-w-0 flex-1 text-[15px] leading-[1.55] text-foreground"><Inline text={optText} /></p>
           </div>
         );
         if (explanationMatch?.[2]) {
@@ -1689,9 +1689,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       if (label === "A") choicesLabel(`choices-${i}`);
       else pendingChoicesLabel = false;
       els.push(
-        <div key={`mcqopt-${i}`} className="my-1.5 flex items-start gap-2.5 pl-1">
-          <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
-          <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
+        <div key={`mcqopt-${i}`} className="not-prose my-1 flex items-start gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 transition-colors hover:border-primary/40">
+          <span className="mt-px shrink-0 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-[11px] font-bold text-primary">{label}</span>
+          <p className="min-w-0 flex-1 text-[15px] leading-[1.55] text-foreground"><Inline text={optText} /></p>
         </div>
       );
       if (explanationMatch?.[2]) {
@@ -1809,11 +1809,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         continue;
       }
       underSubheading = false;
-      els.push(
-        <p key={`p-sub-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90">
-          <Inline text={t.replace(/^#+\s*/, "").replace(/^[.·•]\s+/, "")} />
-        </p>
-      );
+      els.push(...renderProse(t, `p-sub-${i}`));
       continue;
     }
 
@@ -1829,11 +1825,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
-    els.push(
-      <p key={`p-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90">
-        <Inline text={t.replace(/^#+\s*/, "").replace(/^[.·•]\s+/, "")} />
-      </p>
-    );
+    els.push(...renderProse(t, `p-${i}`));
   }
 
   if (codeBuf && codeBuf.length) {
