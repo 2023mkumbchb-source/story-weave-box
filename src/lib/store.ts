@@ -477,7 +477,7 @@ function toArticlePreview(row: any): Article {
 }
 
 // ─── Cache ────────────────────────────────────────────────────────────────────
-const SUMMARY_CACHE_KEY = "article_summaries_cache_v2";
+const SUMMARY_CACHE_KEY = "article_summaries_cache_v3";
 const SUMMARY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes — avoids repeated full-list reloads on a large site
 
 let memorySummaryCache: { data: Article[]; ts: number } | null = null;
@@ -490,7 +490,7 @@ function getCachedSummaries(): Article[] | null {
     const raw = sessionStorage.getItem(SUMMARY_CACHE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed.ts && Date.now() - parsed.ts < SUMMARY_CACHE_TTL) {
+      if (parsed.ts && Array.isArray(parsed.data) && parsed.data.length > 0 && Date.now() - parsed.ts < SUMMARY_CACHE_TTL) {
         memorySummaryCache = { data: parsed.data, ts: parsed.ts };
         return parsed.data;
       }
@@ -500,6 +500,9 @@ function getCachedSummaries(): Article[] | null {
 }
 
 function setCachedSummaries(data: Article[]) {
+  // Never persist a transient empty response (for example during a database
+  // migration or brief API outage) as the site's canonical article list.
+  if (data.length === 0) return;
   const entry = { data, ts: Date.now() };
   memorySummaryCache = entry;
   try {

@@ -1,6 +1,7 @@
-// OmpathStudy Service Worker - v6 Network-first JS to avoid stale chunks
-const CACHE_NAME = "ompath-v6";
-const API_CACHE = "ompath-api-v3";
+// OmpathStudy Service Worker - v7. Supabase reads are network-first so an
+// empty response captured during a database migration cannot blank the site.
+const CACHE_NAME = "ompath-v7";
+const API_CACHE = "ompath-api-v4";
 const STATIC_ASSETS = ["/", "/index.html", "/manifest.json"];
 
 // Install: cache shell
@@ -32,19 +33,18 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   if (url.pathname.startsWith("/~oauth")) return;
 
-  // Cache Supabase REST API responses for offline reading (stale-while-revalidate)
+  // Supabase REST API: prefer current database state, then fall back offline.
   if (url.hostname.includes("supabase") && url.pathname.includes("/rest/")) {
     event.respondWith(
       caches.open(API_CACHE).then(async (cache) => {
         const cached = await cache.match(event.request);
-        const networkPromise = fetch(event.request)
-          .then((response) => {
-            if (response.ok) cache.put(event.request, response.clone());
-            return response;
-          })
-          .catch(() => null);
-        // Serve cached immediately if available; revalidate in background
-        return cached || (await networkPromise) || new Response("[]", { headers: { "Content-Type": "application/json" } });
+        try {
+          const response = await fetch(event.request);
+          if (response.ok) await cache.put(event.request, response.clone());
+          return response;
+        } catch {
+          return cached || new Response("[]", { headers: { "Content-Type": "application/json" } });
+        }
       })
     );
     return;
