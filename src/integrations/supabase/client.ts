@@ -2,8 +2,11 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+// Public browser credentials. Environment values take precedence, while the
+// fallback keeps direct Vercel/Cloudflare builds connected without uploading
+// local .env files (which may also contain private development credentials).
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://dekyjrfwvavtoivqivno.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_jOXeiFMWJj1z_M-zShimXA_cG9f2QxL";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";

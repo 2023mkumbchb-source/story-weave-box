@@ -32,3 +32,6 @@ dist-ssr
 # scratch scripts and intermediate renders. Never meant to be committed.
 Uploaded/
 scratch/
+
+# Never commit local credentials or deployment tokens.
+.env*
