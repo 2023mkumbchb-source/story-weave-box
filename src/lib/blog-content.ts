@@ -769,14 +769,103 @@ export function extractToc(content: string): TocItem[] {
 
 export function answerKeyByQuestion(lines: string[]): Map<string, string> {
   const answers = new Map<string, string>();
+  // Some source papers mark the correct choice by bolding the whole option
+  // line ("**D. Pepsinogen …**") instead of printing a separate "Answer:"
+  // line. Collected per-question and only trusted as a fallback (see below)
+  // when a question has exactly one bold-wrapped option -- two or more means
+  // the bolding is just emphasis, not an answer key.
+  const boldCandidates = new Map<string, Set<string>>();
   let current = "";
   for (const raw of lines) {
-    const line = raw.trim().replace(/^[*_#>\s]+/, "");
+    const trimmed = raw.trim();
+    const line = trimmed.replace(/^[*_#>\s]+/, "");
     const q = line.match(/^(?:MCQ|Question|Q)\s*(\d+)/i) || line.match(/^(\d+)[.)]\s+/);
     if (q) current = q[1];
     const answer = line.match(/^(?:✅\s*)?(?:Answer|Correct answer)\s*[:：]\s*\*?\s*([A-E])\b/i);
     if (current && answer) answers.set(current, answer[1].toUpperCase());
+
+    const boldOption = trimmed.match(/^\*\*\s*([A-E])\s*[.)]\s*.+\*\*\s*$/);
+    if (current && boldOption) {
+      const set = boldCandidates.get(current) || new Set<string>();
+      set.add(boldOption[1].toUpperCase());
+      boldCandidates.set(current, set);
+    }
+  }
+  for (const [q, letters] of boldCandidates) {
+    if (!answers.has(q) && letters.size === 1) answers.set(q, [...letters][0]);
   }
   return answers;
+}
+
+/**
+ * Some CAT/past-paper sources give the answer key as one consolidated list
+ * near the end of the document ("1 D, 2 C, 3 D, …") instead of marking each
+ * question individually. Only meant as a last-resort fallback (see
+ * mergeAnswerKeys) for questions nothing more specific could answer, and
+ * only trusted when at least MIN_RUN tightly-packed, strictly-increasing
+ * entries are found in a row -- so a stray "12 B" elsewhere in the article
+ * body can never be misread as a key.
+ */
+export function parseConsolidatedAnswerKey(content: string): Map<string, string> {
+  const MIN_RUN = 5;
+  const MAX_GAP = 12;
+  const pairRe = /\b(\d{1,3})\s+([A-E])(?:\/[A-E])?\b/g;
+  let best: { number: number; letter: string }[] = [];
+  let run: { number: number; letter: string }[] = [];
+  let lastNumber = -1;
+  let lastEnd = -Infinity;
+  let match: RegExpExecArray | null;
+  while ((match = pairRe.exec(content))) {
+    const number = Number(match[1]);
+    const letter = match[2].toUpperCase();
+    const contiguous = match.index - lastEnd < MAX_GAP;
+    if (contiguous && number > lastNumber) {
+      run.push({ number, letter });
+    } else {
+      if (run.length > best.length) best = run;
+      run = [{ number, letter }];
+    }
+    lastNumber = number;
+    lastEnd = pairRe.lastIndex;
+  }
+  if (run.length > best.length) best = run;
+  if (best.length < MIN_RUN) return new Map();
+  return new Map(best.map((p) => [String(p.number), p.letter]));
+}
+
+/** Explicit/bold per-question answers win; a consolidated key only fills in
+ *  questions nothing else could answer. */
+export function mergeAnswerKeys(primary: Map<string, string>, fallback: Map<string, string>): Map<string, string> {
+  const merged = new Map(primary);
+  for (const [q, letter] of fallback) {
+    if (!merged.has(q)) merged.set(q, letter);
+  }
+  return merged;
+}
+
+function isMcqOptionLine(s: string): boolean {
+  return /^\*{0,2}\s*[A-E]\s*[.)]\s*\*{0,2}\s*\S/.test(s);
+}
+
+/**
+ * True when the next couple of non-blank lines after `idx` look like MCQ
+ * options (A/B/C/…). Used to confirm a bare numbered line ("1. …", "### 3.
+ * …") is really the start of a question and not an ordinary numbered
+ * heading or list item elsewhere in an article.
+ */
+export function looksLikeUpcomingMcqOptions(lines: string[], idx: number): boolean {
+  let seen = 0;
+  for (let j = idx + 1; j < Math.min(lines.length, idx + 6); j++) {
+    const nt = lines[j].trim();
+    if (!nt) continue;
+    if (isMcqOptionLine(nt)) {
+      seen++;
+      if (seen >= 2) return true;
+      continue;
+    }
+    if ((nt.match(/(?:^|\s)[A-E][.)]\s/g) || []).length >= 2) return true;
+    break;
+  }
+  return false;
 }
 

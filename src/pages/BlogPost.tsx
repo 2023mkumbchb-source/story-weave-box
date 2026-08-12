@@ -35,7 +35,8 @@ import {
   splitOptionRun, splitStemAndOptions, isQuestionLike, extractExamQuestions,
   splitInlineTable, decodeEntities, dropEmptySections, cleanHeadingText,
   splitMalformedHeading, isTableRow, unwrapHardBreaks, preprocessContent,
-  type TocItem, extractToc, answerKeyByQuestion,
+  type TocItem, extractToc, answerKeyByQuestion, parseConsolidatedAnswerKey,
+  mergeAnswerKeys, looksLikeUpcomingMcqOptions,
 } from "@/lib/blog-content";
 
 /**
@@ -695,7 +696,10 @@ let _sec = 0;
 const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [], articleId, category }: { content: string; inlineRelated?: any[]; articleId: string; category: string }) {
   _sec = 0;
   const lines = preprocessContent(content).split("\n");
-  const answerKeys = answerKeyByQuestion(lines);
+  // Explicit "Answer:" lines and bold-marked options win; a consolidated
+  // "1 D, 2 C, …" key at the end of the document (common in handwritten CAT
+  // scans) only fills in whatever neither of those could answer.
+  const answerKeys = mergeAnswerKeys(answerKeyByQuestion(lines), parseConsolidatedAnswerKey(content));
   const els: React.ReactNode[] = [];
   let listBuf: { type: "ul" | "ol"; items: React.ReactNode[] } | null = null;
   let inPractice = false;
@@ -871,7 +875,14 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
-    const questionMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)[:\s-]*(.*)/i);
+    const explicitQMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)[:\s-]*(.*)/i);
+    // Some source papers number questions plainly ("### 3. …", "1. **…**")
+    // instead of writing out "Question N" -- only treat that as a question
+    // start when it's actually followed by MCQ-style options, so an ordinary
+    // numbered heading/list item elsewhere on the site is never misread.
+    const bareNumMatch = !explicitQMatch ? t.match(/^#{0,6}\s*\**\s*(\d+)[.)]\s+(.*)/) : null;
+    const questionMatch: string[] | null =
+      explicitQMatch || (bareNumMatch && looksLikeUpcomingMcqOptions(lines, i) ? [t, "Question", bareNumMatch[1], bareNumMatch[2]] : null);
     // ── Exam-paper front matter → compact meta card ──
     // "Programme: …", "Assessment: …", "Unit Code: …", "Date: …", "Reg No: …"
     const metaFieldRe = /^\*{0,2}\s*(Programme|Program|Course|Assessment|Exam|Paper|Unit Code|Unit|Subject|Date|Time|Duration|Venue|Marks|Instructions?|Reg\.?\s*No\.?|Registration\s*No\.?|Year|Semester|University|School)\s*\*{0,2}\s*[:：]\s*(.+)$/i;
