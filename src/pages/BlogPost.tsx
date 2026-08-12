@@ -832,6 +832,14 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
 
     if (!t) { flushList(); flushFlow(); underSubheading = false; continue; }
 
+    // Source documents often include their own standalone "Choices:" line.
+    // The renderer adds one compact label before option A, so suppress the
+    // source copy to avoid duplicate headings and the large prose margins.
+    if (/^\*{0,2}\s*Choices\s*:?\s*\*{0,2}$/i.test(t)) {
+      flushList(); flushFlow(); underSubheading = false;
+      continue;
+    }
+
     if (t.startsWith("> ")) {
       flushList(); underSubheading = false;
       els.push(
