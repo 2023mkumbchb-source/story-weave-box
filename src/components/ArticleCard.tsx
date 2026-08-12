@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { ArrowRight, Clock3 } from "lucide-react";
 import type { Article } from "@/lib/store";
 import { buildBlogPath, getCategoryDisplayName, getYearFromCategory } from "@/lib/store";
-import { useTopicThumbnail } from "@/lib/topicThumbnail";
+import { isGenericThumbnail, useTopicThumbnailInfo } from "@/lib/topicThumbnail";
 import anatomyThumb from "@/assets/thumb-anatomy.jpg";
 import physiologyThumb from "@/assets/thumb-physiology.jpg";
 import pharmacologyThumb from "@/assets/thumb-pharmacology.jpg";
@@ -18,9 +18,9 @@ function getCategoryFallback(text: string): string {
 
 function getArticleStaticThumb(article: Article): string | null {
   const og = (article.og_image_url || "").trim();
-  if (og && !og.includes("/og-default") && !og.startsWith("data:image/") && og.length < 2000) return og;
+  if (og && !isGenericThumbnail(og) && og.length < 2000) return og;
   const contentImage = (article.content || "").match(/!\[[^\]]*\]\((.*?)\)/)?.[1]?.trim();
-  if (contentImage && !contentImage.startsWith("data:image/")) return contentImage;
+  if (contentImage && !isGenericThumbnail(contentImage)) return contentImage;
   return null;
 }
 
@@ -39,8 +39,8 @@ export default function ArticleCard({ article }: { article: Article }) {
   // Prefer the clean subunit name (e.g. "Bone and Soft Tissue Pathology") as the
   // Wikipedia lookup key — far more reliable than parsing noisy exam-question titles,
   // and it means every subunit gets one consistent, correct, non-generic thumbnail.
-  const topicCover = useTopicThumbnail(article.title, article.category, !staticCover, unit);
-  const cover = staticCover || topicCover || getCategoryFallback(`${article.category} ${article.title}`.toLowerCase());
+  const topicImage = useTopicThumbnailInfo(article.title, article.category, !staticCover);
+  const cover = staticCover || topicImage?.url || getCategoryFallback(`${article.category} ${article.title}`.toLowerCase());
   const displayDate = new Date(article.updated_at || article.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const location = useLocation();
   const fromPath = `${location.pathname}${location.search}`;
@@ -61,6 +61,14 @@ export default function ArticleCard({ article }: { article: Article }) {
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03] sm:h-48 md:h-full"
           />
+          {article.content_type && /mcq|cat|exam|past paper/i.test(article.content_type) && (
+            <span className="absolute left-1.5 top-1.5 rounded bg-black/75 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+              {/mcq/i.test(article.content_type) ? "MCQs" : article.content_type}
+            </span>
+          )}
+          {!staticCover && topicImage?.pageUrl && (
+            <span className="absolute bottom-1 right-1 rounded bg-black/65 px-1 text-[8px] text-white/90" title={`${topicImage.credit} · ${topicImage.license}`}>Commons</span>
+          )}
         </div>
 
         {/* Content */}
