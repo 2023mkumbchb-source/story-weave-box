@@ -35,6 +35,7 @@ const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const Account = lazy(() => import("./pages/Account"));
 const Admin = lazy(() => import("./pages/Admin"));
 const YearHub = lazy(() => import("./pages/YearHub"));
+const UnitPage = lazy(() => import("./pages/UnitPage"));
 const CategoryManager = lazy(() => import("./pages/CategoryManager"));
 const About = lazy(() => import("./pages/About"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -56,6 +57,7 @@ const AnimatedRoutes = () => {
           <Routes location={location}>
             <Route path="/" element={<Index />} />
             <Route path="/year/:yearNumber" element={<YearHub />} />
+            <Route path="/year/:yearNumber/unit/:unitSlug" element={<UnitPage />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/flashcards" element={<Flashcards />} />
