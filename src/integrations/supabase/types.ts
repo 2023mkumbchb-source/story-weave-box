@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      academic_years: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          published: boolean
+          title: string
+          updated_at: string
+          year_number: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          published?: boolean
+          title: string
+          updated_at?: string
+          year_number: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          published?: boolean
+          title?: string
+          updated_at?: string
+          year_number?: number
+        }
+        Relationships: []
+      }
       access_grants: {
         Row: {
           allow_download: boolean
@@ -150,11 +183,16 @@ export type Database = {
       articles: {
         Row: {
           access_password: string | null
+          answer_key_verified: boolean
           category: string
           comments_enabled: boolean
+          completeness_status: string
+          confidence_score: number | null
+          contains_answer_key: boolean
           content: string
           content_fts: unknown
           content_kind: string | null
+          content_type: string | null
           countdown: Json | null
           created_at: string
           deleted_at: string | null
@@ -172,23 +210,36 @@ export type Database = {
           password_protected: boolean
           published: boolean
           reading_time_minutes: number | null
+          requires_review: boolean
+          reviewed_at: string | null
+          reviewed_by: string | null
           scheduled_at: string | null
           school: string | null
+          semester_number: number | null
           slug: string | null
+          source_reference: string | null
+          source_type: string | null
           tags: string[]
           title: string
           toc_enabled: boolean
           unit: string | null
+          unit_id: string | null
           university: string | null
           updated_at: string
+          verification_status: string
         }
         Insert: {
           access_password?: string | null
+          answer_key_verified?: boolean
           category?: string
           comments_enabled?: boolean
+          completeness_status?: string
+          confidence_score?: number | null
+          contains_answer_key?: boolean
           content?: string
           content_fts?: unknown
           content_kind?: string | null
+          content_type?: string | null
           countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
@@ -206,23 +257,36 @@ export type Database = {
           password_protected?: boolean
           published?: boolean
           reading_time_minutes?: number | null
+          requires_review?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           scheduled_at?: string | null
           school?: string | null
+          semester_number?: number | null
           slug?: string | null
+          source_reference?: string | null
+          source_type?: string | null
           tags?: string[]
           title: string
           toc_enabled?: boolean
           unit?: string | null
+          unit_id?: string | null
           university?: string | null
           updated_at?: string
+          verification_status?: string
         }
         Update: {
           access_password?: string | null
+          answer_key_verified?: boolean
           category?: string
           comments_enabled?: boolean
+          completeness_status?: string
+          confidence_score?: number | null
+          contains_answer_key?: boolean
           content?: string
           content_fts?: unknown
           content_kind?: string | null
+          content_type?: string | null
           countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
@@ -240,15 +304,165 @@ export type Database = {
           password_protected?: boolean
           published?: boolean
           reading_time_minutes?: number | null
+          requires_review?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           scheduled_at?: string | null
           school?: string | null
+          semester_number?: number | null
           slug?: string | null
+          source_reference?: string | null
+          source_type?: string | null
           tags?: string[]
           title?: string
           toc_enabled?: boolean
           unit?: string | null
+          unit_id?: string | null
           university?: string | null
           updated_at?: string
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "articles_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      concept_link_clicks: {
+        Row: {
+          concept_id: string | null
+          created_at: string
+          from_resource_id: string | null
+          from_resource_type: string | null
+          id: string
+          to_article_id: string | null
+        }
+        Insert: {
+          concept_id?: string | null
+          created_at?: string
+          from_resource_id?: string | null
+          from_resource_type?: string | null
+          id?: string
+          to_article_id?: string | null
+        }
+        Update: {
+          concept_id?: string | null
+          created_at?: string
+          from_resource_id?: string | null
+          from_resource_type?: string | null
+          id?: string
+          to_article_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "concept_link_clicks_concept_id_fkey"
+            columns: ["concept_id"]
+            isOneToOne: false
+            referencedRelation: "medical_concepts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      concept_relationships: {
+        Row: {
+          approved: boolean
+          created_at: string
+          id: string
+          relationship_type: string
+          relevance_score: number
+          source_concept_id: string
+          target_concept_id: string
+        }
+        Insert: {
+          approved?: boolean
+          created_at?: string
+          id?: string
+          relationship_type?: string
+          relevance_score?: number
+          source_concept_id: string
+          target_concept_id: string
+        }
+        Update: {
+          approved?: boolean
+          created_at?: string
+          id?: string
+          relationship_type?: string
+          relevance_score?: number
+          source_concept_id?: string
+          target_concept_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "concept_relationships_source_concept_id_fkey"
+            columns: ["source_concept_id"]
+            isOneToOne: false
+            referencedRelation: "medical_concepts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "concept_relationships_target_concept_id_fkey"
+            columns: ["target_concept_id"]
+            isOneToOne: false
+            referencedRelation: "medical_concepts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_reports: {
+        Row: {
+          assigned_admin_id: string | null
+          created_at: string
+          device_info: string | null
+          id: string
+          message: string | null
+          report_type: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resource_id: string
+          resource_type: string
+          resource_url: string | null
+          section_anchor: string | null
+          selected_text: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          assigned_admin_id?: string | null
+          created_at?: string
+          device_info?: string | null
+          id?: string
+          message?: string | null
+          report_type: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resource_id: string
+          resource_type: string
+          resource_url?: string | null
+          section_anchor?: string | null
+          selected_text?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          assigned_admin_id?: string | null
+          created_at?: string
+          device_info?: string | null
+          id?: string
+          message?: string | null
+          report_type?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resource_id?: string
+          resource_type?: string
+          resource_url?: string | null
+          section_anchor?: string | null
+          selected_text?: string | null
+          status?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -301,6 +515,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      exam_attempts: {
+        Row: {
+          answers: Json
+          completed: boolean
+          created_at: string
+          duration_seconds: number | null
+          exam_id: string
+          id: string
+          maximum_score: number | null
+          percentage: number | null
+          score: number | null
+          started_at: string
+          submitted_at: string | null
+          topic_breakdown: Json
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          completed?: boolean
+          created_at?: string
+          duration_seconds?: number | null
+          exam_id: string
+          id?: string
+          maximum_score?: number | null
+          percentage?: number | null
+          score?: number | null
+          started_at?: string
+          submitted_at?: string | null
+          topic_breakdown?: Json
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          completed?: boolean
+          created_at?: string
+          duration_seconds?: number | null
+          exam_id?: string
+          id?: string
+          maximum_score?: number | null
+          percentage?: number | null
+          score?: number | null
+          started_at?: string
+          submitted_at?: string | null
+          topic_breakdown?: Json
+          user_id?: string
+        }
+        Relationships: []
       }
       exam_results: {
         Row: {
@@ -359,9 +621,14 @@ export type Database = {
       flashcard_sets: {
         Row: {
           access_password: string | null
+          answer_key_verified: boolean
           cards: Json
           category: string
           comments_enabled: boolean
+          completeness_status: string
+          confidence_score: number | null
+          contains_answer_key: boolean
+          content_type: string | null
           countdown: Json | null
           created_at: string
           deleted_at: string | null
@@ -373,18 +640,30 @@ export type Database = {
           password_protected: boolean
           published: boolean
           reading_time_minutes: number | null
+          requires_review: boolean
+          reviewed_at: string | null
+          reviewed_by: string | null
           scheduled_at: string | null
           slug: string | null
+          source_reference: string | null
+          source_type: string | null
           tags: string[]
           title: string
           toc_enabled: boolean
+          unit_id: string | null
           updated_at: string
+          verification_status: string
         }
         Insert: {
           access_password?: string | null
+          answer_key_verified?: boolean
           cards?: Json
           category?: string
           comments_enabled?: boolean
+          completeness_status?: string
+          confidence_score?: number | null
+          contains_answer_key?: boolean
+          content_type?: string | null
           countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
@@ -396,18 +675,30 @@ export type Database = {
           password_protected?: boolean
           published?: boolean
           reading_time_minutes?: number | null
+          requires_review?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           scheduled_at?: string | null
           slug?: string | null
+          source_reference?: string | null
+          source_type?: string | null
           tags?: string[]
           title: string
           toc_enabled?: boolean
+          unit_id?: string | null
           updated_at?: string
+          verification_status?: string
         }
         Update: {
           access_password?: string | null
+          answer_key_verified?: boolean
           cards?: Json
           category?: string
           comments_enabled?: boolean
+          completeness_status?: string
+          confidence_score?: number | null
+          contains_answer_key?: boolean
+          content_type?: string | null
           countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
@@ -419,20 +710,40 @@ export type Database = {
           password_protected?: boolean
           published?: boolean
           reading_time_minutes?: number | null
+          requires_review?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           scheduled_at?: string | null
           slug?: string | null
+          source_reference?: string | null
+          source_type?: string | null
           tags?: string[]
           title?: string
           toc_enabled?: boolean
+          unit_id?: string | null
           updated_at?: string
+          verification_status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "flashcard_sets_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mcq_sets: {
         Row: {
           access_password: string
+          answer_key_verified: boolean
           category: string
           comments_enabled: boolean
+          completeness_status: string
+          confidence_score: number | null
+          contains_answer_key: boolean
+          content_type: string | null
           countdown: Json | null
           created_at: string
           deleted_at: string | null
@@ -451,20 +762,33 @@ export type Database = {
           published: boolean
           questions: Json
           reading_time_minutes: number | null
+          requires_review: boolean
+          reviewed_at: string | null
+          reviewed_by: string | null
           scheduled_at: string | null
           school: string | null
+          semester_number: number | null
           slug: string | null
+          source_reference: string | null
+          source_type: string | null
           tags: string[]
           title: string
           toc_enabled: boolean
           unit: string | null
+          unit_id: string | null
           university: string | null
           updated_at: string
+          verification_status: string
         }
         Insert: {
           access_password?: string
+          answer_key_verified?: boolean
           category?: string
           comments_enabled?: boolean
+          completeness_status?: string
+          confidence_score?: number | null
+          contains_answer_key?: boolean
+          content_type?: string | null
           countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
@@ -483,20 +807,33 @@ export type Database = {
           published?: boolean
           questions?: Json
           reading_time_minutes?: number | null
+          requires_review?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           scheduled_at?: string | null
           school?: string | null
+          semester_number?: number | null
           slug?: string | null
+          source_reference?: string | null
+          source_type?: string | null
           tags?: string[]
           title: string
           toc_enabled?: boolean
           unit?: string | null
+          unit_id?: string | null
           university?: string | null
           updated_at?: string
+          verification_status?: string
         }
         Update: {
           access_password?: string
+          answer_key_verified?: boolean
           category?: string
           comments_enabled?: boolean
+          completeness_status?: string
+          confidence_score?: number | null
+          contains_answer_key?: boolean
+          content_type?: string | null
           countdown?: Json | null
           created_at?: string
           deleted_at?: string | null
@@ -515,17 +852,138 @@ export type Database = {
           published?: boolean
           questions?: Json
           reading_time_minutes?: number | null
+          requires_review?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           scheduled_at?: string | null
           school?: string | null
+          semester_number?: number | null
           slug?: string | null
+          source_reference?: string | null
+          source_type?: string | null
           tags?: string[]
           title?: string
           toc_enabled?: boolean
           unit?: string | null
+          unit_id?: string | null
           university?: string | null
           updated_at?: string
+          verification_status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "mcq_sets_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_concept_aliases: {
+        Row: {
+          abbreviation: boolean
+          alias: string
+          approved: boolean
+          concept_id: string
+          created_at: string
+          id: string
+          spelling_variant: boolean
+        }
+        Insert: {
+          abbreviation?: boolean
+          alias: string
+          approved?: boolean
+          concept_id: string
+          created_at?: string
+          id?: string
+          spelling_variant?: boolean
+        }
+        Update: {
+          abbreviation?: boolean
+          alias?: string
+          approved?: boolean
+          concept_id?: string
+          created_at?: string
+          id?: string
+          spelling_variant?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_concept_aliases_concept_id_fkey"
+            columns: ["concept_id"]
+            isOneToOne: false
+            referencedRelation: "medical_concepts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_concepts: {
+        Row: {
+          approved: boolean
+          canonical_term: string
+          click_count: number
+          created_at: string
+          definition: string | null
+          enabled: boolean
+          id: string
+          importance: number
+          preferred_article_id: string | null
+          preferred_topic_id: string | null
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved?: boolean
+          canonical_term: string
+          click_count?: number
+          created_at?: string
+          definition?: string | null
+          enabled?: boolean
+          id?: string
+          importance?: number
+          preferred_article_id?: string | null
+          preferred_topic_id?: string | null
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved?: boolean
+          canonical_term?: string
+          click_count?: number
+          created_at?: string
+          definition?: string | null
+          enabled?: boolean
+          id?: string
+          importance?: number
+          preferred_article_id?: string | null
+          preferred_topic_id?: string | null
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_concepts_preferred_article_id_fkey"
+            columns: ["preferred_article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_concepts_preferred_topic_id_fkey"
+            columns: ["preferred_topic_id"]
+            isOneToOne: false
+            referencedRelation: "syllabus_topics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_concepts_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payments: {
         Row: {
@@ -628,6 +1086,334 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      resource_feedback: {
+        Row: {
+          created_at: string
+          id: string
+          resource_id: string
+          resource_type: string
+          user_id: string | null
+          vote: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          resource_id: string
+          resource_type: string
+          user_id?: string | null
+          vote: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          resource_id?: string
+          resource_type?: string
+          user_id?: string | null
+          vote?: string
+        }
+        Relationships: []
+      }
+      resource_topics: {
+        Row: {
+          approved: boolean
+          created_at: string
+          id: string
+          relationship_type: string
+          relevance_score: number
+          resource_id: string
+          resource_type: string
+          topic_id: string
+        }
+        Insert: {
+          approved?: boolean
+          created_at?: string
+          id?: string
+          relationship_type?: string
+          relevance_score?: number
+          resource_id: string
+          resource_type: string
+          topic_id: string
+        }
+        Update: {
+          approved?: boolean
+          created_at?: string
+          id?: string
+          relationship_type?: string
+          relevance_score?: number
+          resource_id?: string
+          resource_type?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resource_topics_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "syllabus_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revision_plan_items: {
+        Row: {
+          activity: string
+          created_at: string
+          display_order: number
+          estimated_minutes: number
+          id: string
+          plan_id: string
+          resource_id: string | null
+          resource_title: string | null
+          resource_type: string | null
+          scheduled_date: string
+          status: string
+          topic_id: string | null
+          unit_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity?: string
+          created_at?: string
+          display_order?: number
+          estimated_minutes?: number
+          id?: string
+          plan_id: string
+          resource_id?: string | null
+          resource_title?: string | null
+          resource_type?: string | null
+          scheduled_date: string
+          status?: string
+          topic_id?: string | null
+          unit_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity?: string
+          created_at?: string
+          display_order?: number
+          estimated_minutes?: number
+          id?: string
+          plan_id?: string
+          resource_id?: string | null
+          resource_title?: string | null
+          resource_type?: string | null
+          scheduled_date?: string
+          status?: string
+          topic_id?: string | null
+          unit_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revision_plan_items_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "revision_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revision_plan_items_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "syllabus_topics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revision_plan_items_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revision_plans: {
+        Row: {
+          academic_year_id: string | null
+          active: boolean
+          activity_types: string[]
+          confidence_level: number | null
+          created_at: string
+          daily_minutes: number | null
+          exam_date: string | null
+          id: string
+          rest_days: number[]
+          study_days: number | null
+          title: string
+          unit_ids: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          academic_year_id?: string | null
+          active?: boolean
+          activity_types?: string[]
+          confidence_level?: number | null
+          created_at?: string
+          daily_minutes?: number | null
+          exam_date?: string | null
+          id?: string
+          rest_days?: number[]
+          study_days?: number | null
+          title: string
+          unit_ids?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          academic_year_id?: string | null
+          active?: boolean
+          activity_types?: string[]
+          confidence_level?: number | null
+          created_at?: string
+          daily_minutes?: number | null
+          exam_date?: string | null
+          id?: string
+          rest_days?: number[]
+          study_days?: number | null
+          title?: string
+          unit_ids?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revision_plans_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      search_aliases: {
+        Row: {
+          alias: string
+          approved: boolean
+          canonical_term: string
+          created_at: string
+          id: string
+          priority: number
+          topic_id: string | null
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          alias: string
+          approved?: boolean
+          canonical_term: string
+          created_at?: string
+          id?: string
+          priority?: number
+          topic_id?: string | null
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alias?: string
+          approved?: boolean
+          canonical_term?: string
+          created_at?: string
+          id?: string
+          priority?: number
+          topic_id?: string | null
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_aliases_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "syllabus_topics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "search_aliases_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      search_queries: {
+        Row: {
+          clicked_resource_id: string | null
+          clicked_resource_type: string | null
+          created_at: string
+          id: string
+          normalized_query: string | null
+          query: string
+          results_count: number
+          user_id: string | null
+        }
+        Insert: {
+          clicked_resource_id?: string | null
+          clicked_resource_type?: string | null
+          created_at?: string
+          id?: string
+          normalized_query?: string | null
+          query: string
+          results_count?: number
+          user_id?: string | null
+        }
+        Update: {
+          clicked_resource_id?: string | null
+          clicked_resource_type?: string | null
+          created_at?: string
+          id?: string
+          normalized_query?: string | null
+          query?: string
+          results_count?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      semesters: {
+        Row: {
+          academic_year_id: string
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          semester_number: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          academic_year_id: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          semester_number: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          academic_year_id?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          semester_number?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "semesters_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       slide_corrections: {
         Row: {
@@ -751,6 +1537,141 @@ export type Database = {
         }
         Relationships: []
       }
+      syllabus_topics: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          importance: string
+          learning_objectives: string | null
+          parent_topic_id: string | null
+          published: boolean
+          slug: string | null
+          title: string
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          importance?: string
+          learning_objectives?: string | null
+          parent_topic_id?: string | null
+          published?: boolean
+          slug?: string | null
+          title: string
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          importance?: string
+          learning_objectives?: string | null
+          parent_topic_id?: string | null
+          published?: boolean
+          slug?: string | null
+          title?: string
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "syllabus_topics_parent_topic_id_fkey"
+            columns: ["parent_topic_id"]
+            isOneToOne: false
+            referencedRelation: "syllabus_topics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "syllabus_topics_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      units: {
+        Row: {
+          academic_year_id: string
+          color: string | null
+          course_code: string | null
+          created_at: string
+          description: string | null
+          display_order: number
+          exam_information: string | null
+          icon: string | null
+          id: string
+          learning_objectives: string | null
+          legacy_category: string | null
+          name: string
+          published: boolean
+          semester_id: string | null
+          short_name: string | null
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          academic_year_id: string
+          color?: string | null
+          course_code?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          exam_information?: string | null
+          icon?: string | null
+          id?: string
+          learning_objectives?: string | null
+          legacy_category?: string | null
+          name: string
+          published?: boolean
+          semester_id?: string | null
+          short_name?: string | null
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          academic_year_id?: string
+          color?: string | null
+          course_code?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          exam_information?: string | null
+          icon?: string | null
+          id?: string
+          learning_objectives?: string | null
+          legacy_category?: string | null
+          name?: string
+          published?: boolean
+          semester_id?: string | null
+          short_name?: string | null
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "units_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "units_semester_id_fkey"
+            columns: ["semester_id"]
+            isOneToOne: false
+            referencedRelation: "semesters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_answers: {
         Row: {
           correct_answer: number
@@ -795,6 +1716,78 @@ export type Database = {
           },
         ]
       }
+      user_bookmarks: {
+        Row: {
+          collection_name: string | null
+          created_at: string
+          id: string
+          resource_id: string
+          resource_type: string
+          user_id: string
+        }
+        Insert: {
+          collection_name?: string | null
+          created_at?: string
+          id?: string
+          resource_id: string
+          resource_type: string
+          user_id: string
+        }
+        Update: {
+          collection_name?: string | null
+          created_at?: string
+          id?: string
+          resource_id?: string
+          resource_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_resource_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          first_opened_at: string
+          id: string
+          last_opened_at: string
+          last_position: string | null
+          progress_percent: number
+          resource_id: string
+          resource_type: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          first_opened_at?: string
+          id?: string
+          last_opened_at?: string
+          last_position?: string | null
+          progress_percent?: number
+          resource_id: string
+          resource_type: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          first_opened_at?: string
+          id?: string
+          last_opened_at?: string
+          last_position?: string | null
+          progress_percent?: number
+          resource_id?: string
+          resource_type?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -812,6 +1805,110 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_study_activity: {
+        Row: {
+          activity_type: string
+          created_at: string
+          duration_seconds: number
+          id: string
+          resource_id: string | null
+          resource_type: string | null
+          score: number | null
+          topic_id: string | null
+          unit_id: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          resource_id?: string | null
+          resource_type?: string | null
+          score?: number | null
+          topic_id?: string | null
+          unit_id?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          resource_id?: string | null
+          resource_type?: string | null
+          score?: number | null
+          topic_id?: string | null
+          unit_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_study_activity_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "syllabus_topics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_study_activity_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_topic_progress: {
+        Row: {
+          attempted_questions: number
+          completed_at: string | null
+          confidence_level: number
+          correct_answers: number
+          created_at: string
+          id: string
+          last_studied_at: string | null
+          status: string
+          topic_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempted_questions?: number
+          completed_at?: string | null
+          confidence_level?: number
+          correct_answers?: number
+          created_at?: string
+          id?: string
+          last_studied_at?: string | null
+          status?: string
+          topic_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempted_questions?: number
+          completed_at?: string | null
+          confidence_level?: number
+          correct_answers?: number
+          created_at?: string
+          id?: string
+          last_studied_at?: string | null
+          status?: string
+          topic_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_topic_progress_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "syllabus_topics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
