@@ -1,8 +1,9 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, GraduationCap, Home, LayoutDashboard, Menu, Trophy, ChevronRight, UserRound, Search, Target, Database } from "lucide-react";
+import { BookOpen, GraduationCap, Home, LayoutDashboard, Menu, Trophy, ChevronRight, UserRound, Target, Database } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import ThemeToggle from "./ThemeToggle";
+import HeaderSearch from "./HeaderSearch";
 import ompathLogo from "@/assets/ompath-logo.png";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -42,7 +43,6 @@ export default function Navbar() {
   const links = useMemo(() => {
     const base = [
       { to: "/", label: "Home", icon: Home },
-      { to: "/search", label: "Search", icon: Search },
       { to: "/my-revision", label: "My Revision", icon: Target },
       { to: "/account", label: "Account", icon: UserRound },
     ];
@@ -139,6 +139,8 @@ export default function Navbar() {
               ))}
             </div>
 
+            <HeaderSearch variant="desktop" />
+
             {links.map((l) => (
               <Link
                 key={l.to}
@@ -170,6 +172,10 @@ export default function Navbar() {
                 </div>
 
                 <div className="flex flex-col overflow-y-auto h-[calc(100%-65px)]">
+                  <div className="border-b border-white/10 px-3 py-3">
+                    <HeaderSearch variant="mobile" onNavigate={() => setSidebarOpen(false)} />
+                  </div>
+
                   <div className="border-b border-white/10 px-3 py-3">
                     {links.map((l) => (
                       <Link

@@ -873,11 +873,11 @@ export default function Blog() {
 
       {/* View switcher */}
       {filtered.length > 0 && (
-        <div className="mb-3 flex items-center justify-between gap-3 border-b border-border pb-2">
+        <div className="mb-3 flex flex-col gap-2 border-b border-border pb-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
             {filtered.length} {filtered.length === 1 ? "note" : "notes"}
           </p>
-          <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5">
+          <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border p-0.5">
             <select
               value={kindFilter}
               onChange={(e) => setKindFilter(e.target.value as any)}

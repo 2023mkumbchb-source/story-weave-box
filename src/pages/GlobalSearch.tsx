@@ -2,7 +2,8 @@ import { FormEvent, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { BookOpen, Search } from "lucide-react";
-import { globalSearch, groupHits, logSearch, SEARCH_GROUPS, type SearchFilters, type SearchHit } from "@/lib/search";
+import { groupHits, logSearch, SEARCH_GROUPS } from "@/lib/search";
+import { useLiveSearch } from "@/hooks/useLiveSearch";
 import { CONTENT_TYPES } from "@/lib/academic";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -13,43 +14,25 @@ export default function GlobalSearch() {
   const [q, setQ] = useState(params.get("q") || "");
   const [year, setYear] = useState(params.get("year") || "");
   const [contentType, setContentType] = useState(params.get("type") || "");
-  const [hits, setHits] = useState<SearchHit[]>([]);
-  const [related, setRelated] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
 
-  const run = async (value: string, filters: SearchFilters) => {
-    const trimmed = value.trim();
-    if (!trimmed) return;
-    setLoading(true);
-    const next: Record<string, string> = { q: trimmed };
-    if (filters.year) next.year = filters.year;
-    if (filters.contentType) next.type = filters.contentType;
-    setParams(next);
-    const result = await globalSearch(trimmed, filters);
-    setHits(result.hits);
-    setRelated(result.related);
-    setSearched(true);
-    setLoading(false);
-  };
+  const filters = { year: year || undefined, contentType: contentType || undefined };
+  const { hits, related, loading, searched } = useLiveSearch(q, filters);
+
+  // Keep the URL in sync (without spamming browser history) so a search is
+  // shareable/bookmarkable, but don't drive the search itself off it.
+  useEffect(() => {
+    const trimmed = q.trim();
+    const next: Record<string, string> = {};
+    if (trimmed) next.q = trimmed;
+    if (year) next.year = year;
+    if (contentType) next.type = contentType;
+    setParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, year, contentType]);
 
   const onSubmit = (e?: FormEvent) => {
     e?.preventDefault();
-    void run(q, { year: year || undefined, contentType: contentType || undefined });
   };
-
-  // Re-run automatically when a filter changes after a search has already happened,
-  // so adjusting Year/Type feels instant instead of requiring another click on Search.
-  useEffect(() => {
-    if (!searched) return;
-    void run(q, { year: year || undefined, contentType: contentType || undefined });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [year, contentType]);
-
-  useEffect(() => {
-    if (params.get("q")) onSubmit();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const grouped = groupHits(hits);
   const hasFilters = year || contentType;
@@ -82,8 +65,12 @@ export default function GlobalSearch() {
             className="min-w-0 flex-1 bg-transparent px-3 py-3 text-sm outline-none sm:text-base"
             placeholder="Try TB, AGN, virology or MBMM3333"
           />
-          <button type="submit" className="min-h-[44px] shrink-0 bg-primary px-5 text-sm font-bold text-primary-foreground">
-            Search
+          <button
+            type="submit"
+            aria-label="Search"
+            className="flex min-h-[44px] shrink-0 items-center gap-1.5 bg-primary px-5 text-sm font-bold text-primary-foreground"
+          >
+            {loading ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground/40 border-t-primary-foreground" /> : "Search"}
           </button>
         </div>
 
@@ -129,7 +116,7 @@ export default function GlobalSearch() {
             <button
               key={x}
               type="button"
-              onClick={() => { setQ(x); void run(x, { year: year || undefined, contentType: contentType || undefined }); }}
+              onClick={() => setQ(x)}
               className="rounded-full bg-muted px-3 py-1 text-xs transition-colors hover:bg-primary/10 hover:text-primary"
             >
               {x}
