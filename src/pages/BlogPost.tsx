@@ -10,7 +10,7 @@ import { Countdown, HtmlEmbed, PasswordGate, ContentToc, ReadingTimeBadge } from
 import { motion, AnimatePresence } from "framer-motion";
 import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, buildFlashcardPath, type Article } from "@/lib/store";
 import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags } from "@/lib/seo";
-import { useTopicThumbnail } from "@/lib/topicThumbnail";
+import { isGenericThumbnail, useTopicThumbnailInfo } from "@/lib/topicThumbnail";
 import { KeywordLinkProvider, useKeywordLinks, linkifyText } from "@/lib/keyword-link";
 import { slugify, useHashFlash } from "@/lib/deep-link";
 import { Button } from "@/components/ui/button";
@@ -427,8 +427,9 @@ async function findClosestArticle(slugOrParam: string): Promise<{ id: string; ti
 function ClassicHeroInner({
   title, image, date, unit, shareUrl, description, category,
 }: { title: string; image: string; date: string; unit: string; shareUrl: string; description: string; category?: string }) {
-  const topicThumb = useTopicThumbnail(title, category, !image);
-  const heroImage = image || topicThumb || "";
+  const specificImage = image && !isGenericThumbnail(image) ? image : "";
+  const topicImage = useTopicThumbnailInfo(title, category, !specificImage);
+  const heroImage = specificImage || topicImage?.url || "";
   const reviewer = pickReviewer(title);
 
   /* Cinematic hero restored: slow-panning background photograph with the title
@@ -467,6 +468,9 @@ function ClassicHeroInner({
           className="absolute inset-0 h-full w-full animate-hero-pan object-cover object-center"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/20" />
+        {!specificImage && topicImage?.pageUrl && (
+          <a href={topicImage.pageUrl} target="_blank" rel="noreferrer" className="absolute right-2 top-2 z-10 rounded bg-black/60 px-2 py-1 text-[9px] text-white/90" title={`${topicImage.credit} · ${topicImage.license}`}>Image: Commons</a>
+        )}
         <div className="relative flex min-h-[260px] flex-col justify-end p-5 sm:min-h-[340px] sm:p-8">
           {unit && (
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary-foreground/80">{unit}</p>
