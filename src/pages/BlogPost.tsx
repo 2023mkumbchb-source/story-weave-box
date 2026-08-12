@@ -8,7 +8,7 @@ import ShareButtons from "@/components/ShareButtons";
 import ArticleComments from "@/components/ArticleComments";
 import { Countdown, HtmlEmbed, PasswordGate, ContentToc, ReadingTimeBadge } from "@/components/ContentExtras";
 import { motion, AnimatePresence } from "framer-motion";
-import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildFlashcardPath, truncateOnWordBoundary, type Article } from "@/lib/store";
+import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, buildFlashcardPath, type Article } from "@/lib/store";
 import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags, autoIndexUrls } from "@/lib/seo";
 import { useTopicThumbnail } from "@/lib/topicThumbnail";
 import { KeywordLinkProvider, useKeywordLinks, linkifyText } from "@/lib/keyword-link";
@@ -34,18 +34,13 @@ function ArticleSubscribeGate({ hasMcqs }: { hasMcqs: boolean }) {
   return <SubscribeModal settings={access.settings} onUnlocked={access.applyPass} />;
 }
 
-/* ─── Inline text: bold/italic/links ─── */
-const MD_LINK_FULL_RE = /^\[([^\]]+)\]\((\/[^\s)]+)\)$/;
-
+/* ─── Inline text: bold/italic ─── */
 const Inline = forwardRef<HTMLSpanElement, { text: string }>(({ text }, ref) => {
   const linkCtx = useKeywordLinks();
-  const parts = text.replace(/⭐+/g, "").split(/(\[[^\]]+\]\(\/[^\s)]+\)|\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  const parts = text.replace(/⭐+/g, "").split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
   return (
     <span ref={ref}>
       {parts.map((part, j) => {
-        const linkMatch = part.match(MD_LINK_FULL_RE);
-        if (linkMatch)
-          return <Link key={j} to={linkMatch[2]} className="font-semibold text-primary underline underline-offset-2 hover:text-primary/80">{linkMatch[1]}</Link>;
         if (part.startsWith("**") && part.endsWith("**"))
           return <strong key={j} className="font-semibold text-foreground">{linkifyText(part.slice(2, -2), linkCtx, `s${j}`)}</strong>;
         if (part.startsWith("*") && part.endsWith("*") && part.length > 2)
@@ -231,6 +226,26 @@ function EssayQuestion({ number, question, answer }: { number: string; question:
   );
 }
 
+/** Pull a leaked inline answer — e.g. "(repeat — Answer: b, inverse stretch reflex)"
+ *  — out of a question stem so it renders behind a Reveal button instead. */
+function splitLeakedAnswer(text: string): { text: string; answer: string } {
+  const m = text.match(/[（(]\s*(?:repeat\s*[—–-]\s*)?(?:Ans(?:wer)?|Correct answer)\s*[:：]?\s*([^)）]+)[)）]\s*$/i);
+  if (!m) return { text: text.trim(), answer: "" };
+  return { text: text.slice(0, m.index).trim().replace(/[,;:—–-]+$/, "").trim(), answer: m[1].trim() };
+}
+
+/** Paragraph renderer: strips OCR orphan punctuation and hides leaked answers. */
+function renderProse(t: string, key: string) {
+  const cleaned = t.replace(/^#+\s*/, "").replace(/^[.·•,;:]+\s*/, "").trim();
+  if (!cleaned) return [];
+  const { text, answer } = splitLeakedAnswer(cleaned);
+  const out = [
+    <p key={key} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={text} /></p>,
+  ];
+  if (answer) out.push(<McqAnswerBlock key={`${key}-ans`} raw={answer} />);
+  return out;
+}
+
 function McqAnswerBlock({ raw }: { raw: string }) {
   const [open, setOpen] = useState(false);
   const access = useAccess();
@@ -390,6 +405,7 @@ function ClassicHeroInner({
 }: { title: string; image: string; date: string; unit: string; shareUrl: string; description: string; category?: string }) {
   const topicThumb = useTopicThumbnail(title, category, !image);
   const heroImage = image || topicThumb || "";
+  const reviewer = pickReviewer(title);
 
   /* Cinematic hero restored: slow-panning background photograph with the title
      and description overlaid, as the site originally had. Falls back to a clean
@@ -408,7 +424,7 @@ function ClassicHeroInner({
           {description && (
             <p className="mt-3 max-w-[62ch] text-[15px] leading-relaxed text-muted-foreground sm:text-base">{description}</p>
           )}
-          <p className="mt-4 text-xs text-white/70">Last updated on {date}</p>
+          <ReviewedBadge reviewer={reviewer} date={date} />
         </div>
         <ShareButtons url={shareUrl} title={title} description={description} variant="full" className="mt-5" />
       </header>
@@ -440,7 +456,7 @@ function ClassicHeroInner({
           )}
         </div>
       </div>
-      <p className="mt-4 text-xs text-muted-foreground">Last updated on {date}</p>
+      <ReviewedBadge reviewer={reviewer} date={date} />
       <ShareButtons url={shareUrl} title={title} description={description} variant="full" className="mt-5" />
     </header>
   );
@@ -497,7 +513,7 @@ function cleanMetaDescription(article: Article): string {
   const enriched = /\b(Kenya|Africa|MBChB|medical students)\b/i.test(desc)
     ? desc
     : `${desc.replace(/[.\s]+$/, "")}. For MBChB and health students in Kenya and beyond.`;
-  return truncateOnWordBoundary(enriched, 155);
+  return enriched.length <= 155 ? enriched : `${enriched.slice(0, 152).trimEnd()}...`;
 }
 
 function ReviewedBadge({ reviewer, date, onDark }: { reviewer: string; date: string; onDark?: boolean }) {
@@ -802,8 +818,7 @@ function extractExamQuestions(rawContent: string): { mcqs: PreviewMcq[]; essays:
 }
 
 function ExamPreviewModal({ article, open, onClose }: { article: any; open: boolean; onClose: () => void }) {
-  const scans = useMemo(() => extractSourceScans(article?.content || ""), [article?.content]);
-  const data = useMemo(() => (scans.length ? { mcqs: [], essays: [] } : extractExamQuestions(article?.content || "")), [article?.content, scans.length]);
+  const data = useMemo(() => extractExamQuestions(article?.content || ""), [article?.content]);
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -841,27 +856,10 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
               {lecturer && <span>Lecturer: {lecturer}</span>}
               <span>Date: {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</span>
             </div>
-            <p className="mt-4 text-[11px] italic text-neutral-500">
-              {scans.length ? "Exact scan of the original paper, page by page." : "Preview paper — questions only. Answers are hidden."}
-            </p>
+            <p className="mt-4 text-[11px] italic text-neutral-500">Preview paper — questions only. Answers are hidden.</p>
           </div>
 
-          {scans.length > 0 && (
-            <section className="space-y-4">
-              {scans.map((src, i) => (
-                <img
-                  key={src + i}
-                  src={src}
-                  alt={`Page ${i + 1}`}
-                  loading={i < 2 ? "eager" : "lazy"}
-                  decoding="async"
-                  className="w-full rounded border border-neutral-200 object-contain"
-                />
-              ))}
-            </section>
-          )}
-
-          {!scans.length && data.mcqs.length > 0 && (
+          {data.mcqs.length > 0 && (
             <section className="mb-10">
               <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-neutral-700 border-b border-neutral-300 pb-2">Section A: Multiple Choice</h2>
               <ol className="space-y-6">
@@ -884,7 +882,7 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
             </section>
           )}
 
-          {!scans.length && data.essays.length > 0 && (
+          {data.essays.length > 0 && (
             <section>
               <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-neutral-700 border-b border-neutral-300 pb-2">Section B: Essay Questions</h2>
               <ol className="space-y-5">
@@ -897,7 +895,7 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
             </section>
           )}
 
-          {!scans.length && data.mcqs.length === 0 && data.essays.length === 0 && (
+          {data.mcqs.length === 0 && data.essays.length === 0 && (
             <p className="text-center text-sm text-neutral-500">No exam-style questions detected in this article.</p>
           )}
 
@@ -933,27 +931,9 @@ function splitInlineTable(s: string): string[] {
 
 const META_HEADING = /^(key points|detailed notes|summary)$/i;
 
-// Repair UTF-8 text that older OCR imports accidentally decoded as
-// Windows-1252. Escapes keep these replacements source-encoding independent.
-function repairMojibake(value: string): string {
-  return value
-    .replaceAll("\u00C2\u00B7", "\u00B7")
-    .replaceAll("\u00C2\u00A0", " ")
-    .replaceAll("\u00E2\u20AC\u201D", "\u2014")
-    .replaceAll("\u00E2\u20AC\u201C", "\u2013")
-    .replaceAll("\u00E2\u20AC\u2122", "'")
-    .replaceAll("\u00E2\u20AC\u0153", "\u201C")
-    .replaceAll("\u00E2\u20AC\u009D", "\u201D")
-    .replaceAll("\u00E2\u20AC\u00A6", "\u2026")
-    .replaceAll("\u00E2\u2020\u2019", "\u2192")
-    .replaceAll("\u00E2\u2020\u201C", "\u2193")
-    .replaceAll("\u00EF\u00BC\u009A", ":")
-    .replaceAll("\u00EF\u00BF\u00BD", "");
-}
-
 function decodeEntities(s: string): string {
   if (!s) return s;
-  let text = repairMojibake(s);
+  let text = s;
   for (let i = 0; i < 2; i++) {
     text = text
     .replace(/&amp;nbsp;/gi, " ")
@@ -972,7 +952,7 @@ function decodeEntities(s: string): string {
     .replace(/&ldquo;/gi, "\u201C")
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)));
   }
-  return repairMojibake(text);
+  return text;
 }
 
 function stripBranding(s: string): string {
@@ -991,6 +971,48 @@ function isCourseBrandingLine(s: string): boolean {
   const t = s.trim();
   if (!t) return false;
   return false;
+}
+
+/**
+ * Scanner/OCR leftovers that carry no teaching value and only hurt the page
+ * (and its SEO): watermark lines, "Page 3 of 11" footers, bare punctuation
+ * fragments left by the OCR pass.
+ */
+function isOcrNoiseLine(s: string): boolean {
+  const t = s.trim();
+  if (!t) return false;
+  if (/^[-–—_.,;:'"`~^°|\\\/()\[\]{}<>*+=\s]+$/.test(t)) return true;
+  if (/^(?:scanned\s+by\s+camscanner|camscanner)\b/i.test(t)) return true;
+  if (/^page\s*\d*\s*of\s*\d+\.?$/i.test(t)) return true;
+  if (/^page\s*\d+\s*of\s*[a-z]{1,3}\.?$/i.test(t)) return true;
+  // Lines that are mostly OCR garbage: very few real letters among symbols.
+  const letters = t.replace(/[^A-Za-z]/g, "").length;
+  if (t.length >= 6 && letters / t.length < 0.35) return true;
+  return false;
+}
+
+/** Remove headings that have no real content beneath them (empty scan pages). */
+function dropEmptySections(lines: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i].trim();
+    if (/^#{1,6}\s/.test(t)) {
+      let j = i + 1;
+      let hasBody = false;
+      while (j < lines.length && !/^#{1,6}\s/.test(lines[j].trim())) {
+        const b = lines[j].trim();
+        if (b && !isOcrNoiseLine(b)) { hasBody = true; break; }
+        j++;
+      }
+      if (!hasBody) {
+        // Skip the heading and its empty body entirely.
+        while (i + 1 < lines.length && !/^#{1,6}\s/.test(lines[i + 1].trim())) i++;
+        continue;
+      }
+    }
+    out.push(lines[i]);
+  }
+  return out;
 }
 
 function cleanHeadingText(value: string): string {
@@ -1118,25 +1140,12 @@ export function unwrapHardBreaks(raw: string): string {
   return out.join("\n");
 }
 
-/**
- * Original-paper page scans travel inside `content` as a hidden block so
- * they never need a schema change, but they must never render inline —
- * they only feed the "Preview" modal (see extractSourceScans below).
- */
-const SOURCE_SCANS_BLOCK_RE = /<!--SOURCE_SCANS\n([\s\S]*?)\nSOURCE_SCANS-->/;
-
-export function extractSourceScans(raw: string): string[] {
-  const m = (raw || "").match(SOURCE_SCANS_BLOCK_RE);
-  if (!m) return [];
-  return m[1].split("\n").map((l) => l.trim()).filter(Boolean);
-}
-
 export function preprocessContent(raw: string): string {
   const out: string[] = [];
   let inKeyPoints = false;
   let inFence = false;
 
-  const decoded = unwrapHardBreaks(decodeEntities(raw).replace(SOURCE_SCANS_BLOCK_RE, ""));
+  const decoded = unwrapHardBreaks(decodeEntities(raw));
   const sourceLines = decoded.replace(/\r\n?/g, "\n").split("\n");
 
   for (let idx = 0; idx < sourceLines.length; idx++) {
@@ -1155,14 +1164,6 @@ export function preprocessContent(raw: string): string {
     // ── FIX: pass table rows through completely raw (no transforms) ──
     const trimmedRaw = rawLine.trim().replace(/&nbsp;/gi, " ").replace(/\u00A0/g, " ");
     if (isTableRow(trimmedRaw)) {
-      out.push(trimmedRaw);
-      continue;
-    }
-
-    // Pass markdown image lines through raw so the punctuation-spacing pass
-    // below doesn't split "![" into "! [" or "file.jpg" into "file. jpg",
-    // which breaks the ^!\[(.*?)\]\((.*?)\)$ match in the renderer.
-    if (/^!\[.*?\]\(\S+\)$/.test(trimmedRaw)) {
       out.push(trimmedRaw);
       continue;
     }
@@ -1186,6 +1187,7 @@ export function preprocessContent(raw: string): string {
       out.push("");
       continue;
     }
+    if (isOcrNoiseLine(t)) { out.push(""); continue; }
     if (!t) { out.push(""); continue; }
 
     if (/^#{1,6}$/.test(t) && sourceLines[idx + 1]?.trim()) {
@@ -1347,7 +1349,7 @@ export function preprocessContent(raw: string): string {
     out.push(t);
   }
 
-  return out.join("\n");
+  return dropEmptySections(out).join("\n");
 }
 
 /* ─── Extract TOC from content ─── */
@@ -1379,7 +1381,7 @@ function extractToc(content: string): TocItem[] {
 /* ─── Article content renderer ─── */
 let _sec = 0;
 
-const ArticleContent = memo(function ArticleContent({ content }: { content: string }) {
+const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [] }: { content: string; inlineRelated?: any[] }) {
   _sec = 0;
   const lines = preprocessContent(content).split("\n");
   const els: React.ReactNode[] = [];
@@ -1392,10 +1394,8 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
   // A, B, C lines are answer points, so they must read as bullet points.
   let examMode: "mcq" | "essay" | null =
     /\bSAQs?\b|short[- ]answer|essay/i.test(content.slice(0, 3000)) ? "essay" : null;
-  // True once an MCQ stem has been rendered, so lowercase "a) …" lines are read
-  // as its choices rather than as essay sub-parts.
-  let inMcqChoices = false;
   const pqs: { number: string; question: string; answer: string }[] = [];
+  let insertedRelated = false;
 
   const flushList = () => {
     if (!listBuf) return;
@@ -1445,7 +1445,7 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
     if (!pendingChoicesLabel) return;
     pendingChoicesLabel = false;
     els.push(
-      <h3 key={key} className="mt-5 mb-2 font-serif text-lg font-bold text-foreground">Choices</h3>
+      <p key={key} className="not-prose mt-4 mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Choices</p>
     );
   };
   for (let i = 0; i < lines.length; i++) {
@@ -1549,11 +1549,52 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
     }
 
     const questionMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)[:\s-]*(.*)/i);
+    // ── Exam-paper front matter → compact meta card ──
+    // "Programme: …", "Assessment: …", "Unit Code: …", "Date: …", "Reg No: …"
+    const metaFieldRe = /^\*{0,2}\s*(Programme|Program|Course|Assessment|Exam|Paper|Unit Code|Unit|Subject|Date|Time|Duration|Venue|Marks|Instructions?|Reg\.?\s*No\.?|Registration\s*No\.?|Year|Semester|University|School)\s*\*{0,2}\s*[:：]\s*(.+)$/i;
+    if (!questionMatch && metaFieldRe.test(t)) {
+      const rows: { label: string; value: string }[] = [];
+      let j = i;
+      while (j < lines.length) {
+        const lt = lines[j].trim();
+        if (!lt) { j++; continue; }
+        const m = lt.match(metaFieldRe);
+        if (!m) break;
+        rows.push({
+          label: cleanDisplayText(m[1]).replace(/\s+/g, " ").trim(),
+          value: cleanDisplayText(m[2].replace(/^\*+|\*+$/g, "")).trim(),
+        });
+        j++;
+      }
+      if (rows.length >= 2) {
+        flushList(); flushTable(); flushFlow(); underSubheading = false;
+        els.push(
+          <dl
+            key={`meta-card-${i}`}
+            className="my-6 grid grid-cols-1 gap-x-6 gap-y-3 rounded-xl border border-primary/20 bg-primary/[0.04] p-5 sm:grid-cols-2"
+          >
+            {rows.map((r, n) => (
+              <div key={`meta-row-${i}-${n}`} className="min-w-0">
+                <dt className="text-[11px] font-semibold uppercase tracking-wider text-primary/80">{r.label}</dt>
+                <dd className="mt-0.5 text-[15px] font-medium leading-snug text-foreground break-words">
+                  <Inline text={r.value} />
+                </dd>
+              </div>
+            ))}
+          </dl>
+        );
+        skipUntil = j;
+        continue;
+      }
+    }
     if (questionMatch) {
       flushList(); flushPractice(); inPractice = false; underSubheading = false;
       _sec++;
       const qNum = questionMatch[2];
       let qTitle = questionMatch[3]?.replace(/^\s*[-:]\s*/, "").trim() || "";
+      // Drop the orphan punctuation OCR/imports leave after the number
+      // ("Question 1 . 66-year-old man …").
+      qTitle = qTitle.replace(/^[.·•,;:）)\-–—\s]+/, "").trim();
       // Unified layout across the whole site:
       //   "Question N"  →  stem paragraph  →  "Choices"  →  A–E rows  →  Reveal
       // A short ALL-CAPS topic glued onto the header ("Q9 — ABDOMINAL WALL i) …")
@@ -1571,22 +1612,39 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
         stem = "";
       }
       els.push(
-        <h2 key={`q-${i}`} id={`section-${_sec}`} className="mt-10 mb-3 scroll-mt-20 font-serif text-2xl font-bold leading-snug text-foreground sm:text-3xl">
-          Question {qNum}{topic ? ` — ${topic}` : ""}
-        </h2>
+        <div key={`q-${i}`} id={`section-${_sec}`} className="not-prose mt-8 scroll-mt-24 border-t border-border pt-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-md bg-primary px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-primary-foreground">
+              Question {qNum}
+            </span>
+            {topic && (
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{topic}</span>
+            )}
+          </div>
+        </div>
       );
       if (stem) {
+        const leaked = splitLeakedAnswer(stem);
         els.push(
-          <p key={`q-stem-${i}`} className="mb-4 text-[1.03rem] leading-8 text-foreground/90"><Inline text={stem} /></p>
+          <p key={`q-stem-${i}`} className="mb-4 mt-3 text-[1.05rem] font-medium leading-[1.7] text-foreground">
+            <Inline text={leaked.text} />
+          </p>
         );
+        if (leaked.answer) els.push(<McqAnswerBlock key={`q-stem-ans-${i}`} raw={leaked.answer} />);
       }
       pendingChoicesLabel = true;
       continue;
     }
 
-    if (/^\*{0,2}\s*(?:Question\s*)?\d+[a-z]?[\.)]\s+.{4,}/i.test(t) && examMode === "essay") {
-      flushList(); underSubheading = false; inMcqChoices = false;
+    if (/^\*{0,2}\s*(?:Question\s*)?\d+[a-z]?[\.)]\s+.{4,}/i.test(t) && examMode === "essay" && t.length <= 150) {
+      flushList(); underSubheading = false;
       els.push(<p key={`essay-q-${i}`} className="mb-4 font-serif text-xl font-bold leading-snug text-foreground"><Inline text={cleanDisplayText(t)} /></p>);
+      continue;
+    }
+    // A long numbered stem is prose, not a display heading — keep it readable.
+    if (/^\*{0,2}\s*(?:Question\s*)?\d+[a-z]?[\.)]\s+.{4,}/i.test(t) && examMode === "essay") {
+      flushList(); underSubheading = false;
+      els.push(<p key={`essay-q-long-${i}`} className="mb-4 text-[1.03rem] leading-8 text-foreground/90"><Inline text={cleanDisplayText(t)} /></p>);
       continue;
     }
 
@@ -1610,9 +1668,9 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
           return;
         }
         els.push(
-          <div key={`mcqopt-combo-${i}-${n}`} className="my-1.5 flex items-start gap-2.5 pl-9 sm:pl-12">
-            <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
-            <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
+          <div key={`mcqopt-combo-${i}-${n}`} className="not-prose my-1 flex items-start gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 transition-colors hover:border-primary/40">
+            <span className="mt-px shrink-0 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-[11px] font-bold text-primary">{label}</span>
+            <p className="min-w-0 flex-1 text-[15px] leading-[1.55] text-foreground"><Inline text={optText} /></p>
           </div>
         );
         if (explanationMatch?.[2]) {
@@ -1625,9 +1683,8 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
     const subQMatch = t.match(/^(\(?[a-z]\)|[ivx]+\)|\([ivx]+\))\s*(.+)/i);
     // MCQ choice line (A–E) — render uniformly even when wrapped in stray **
     // Handles: "A) text", "**A) text**", "E)** text", "**A.** text", etc.
-    const mcqOptMatch = t.match(/^\*{0,2}\s*\(?([A-Ea-e])\)?\s*[\.\)]\s*\*{0,2}\s*(.+?)\s*\*{0,2}\s*$/);
-    const isLowerChoice = !!mcqOptMatch && /[a-e]/.test(mcqOptMatch[1]);
-    if (mcqOptMatch && !inPractice && (!isLowerChoice || inMcqChoices)) {
+    const mcqOptMatch = t.match(/^\*{0,2}\s*([A-E])\s*[\.\)]\s*\*{0,2}\s*(.+?)\s*\*{0,2}\s*$/);
+    if (mcqOptMatch && !inPractice) {
       if (examMode !== "essay") { flushList(); }
       underSubheading = false;
       const label = mcqOptMatch[1].toUpperCase();
@@ -1644,9 +1701,9 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
       if (label === "A") choicesLabel(`choices-${i}`);
       else pendingChoicesLabel = false;
       els.push(
-        <div key={`mcqopt-${i}`} className="my-1.5 flex items-start gap-2.5 pl-9 sm:pl-12">
-          <span className="shrink-0 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-xs w-7 h-7 mt-0.5">{label}</span>
-          <p className="flex-1 text-[15px] text-foreground leading-relaxed pt-1"><Inline text={optText} /></p>
+        <div key={`mcqopt-${i}`} className="not-prose my-1 flex items-start gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 transition-colors hover:border-primary/40">
+          <span className="mt-px shrink-0 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-[11px] font-bold text-primary">{label}</span>
+          <p className="min-w-0 flex-1 text-[15px] leading-[1.55] text-foreground"><Inline text={optText} /></p>
         </div>
       );
       if (explanationMatch?.[2]) {
@@ -1674,12 +1731,16 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
     }
 
     if (/^#{1,2}\s/.test(t)) {
-      flushList(); underSubheading = false; inMcqChoices = false;
+      flushList(); underSubheading = false;
       const heading = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").replace(/^\d+\.\s*/, "").replace(/^[IVXLC]+\.\s+/, "").trim();
-      if (/\b(multiple\s+choice|true\s*\/\s*false|mcqs?)\b/i.test(heading)) examMode = "mcq";
-      else if (/\b(section\s+[a-c]|structured|fill[- ]in|matching|essay|short\s+answer|long\s+answer|answer\s+any)\b/i.test(heading)) examMode = "essay";
+      if (/\b(section\s+a|multiple\s+choice|mcqs?)\b/i.test(heading)) examMode = "mcq";
+      if (/\b(section\s+b|section\s+c|essay|short\s+answer|long\s+answer|answer\s+any)\b/i.test(heading)) examMode = "essay";
       if (heading.toLowerCase().includes("practice")) { inPractice = true; continue; }
       flushPractice(); inPractice = false;
+      if (!insertedRelated && inlineRelated.length > 0 && els.length >= 4) {
+        els.push(<InArticleRelated key="in-article-related" articles={inlineRelated} />);
+        insertedRelated = true;
+      }
       _sec++;
       els.push(
         <h2 key={`h2-${i}`} id={slugify(heading) || `section-${_sec}`} data-section={`section-${_sec}`} className="mt-9 mb-4 scroll-mt-20 border-b border-border pb-3 font-serif text-2xl font-bold leading-tight text-foreground sm:text-3xl">
@@ -1689,26 +1750,8 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
       continue;
     }
 
-    if (/^#{3,6}\s/.test(t) && /^\d{1,3}[.)]\s+/.test(t.replace(/^#+\s+/, ""))) {
-      let nextMeaningful = "";
-      for (let k = i + 1; k < lines.length; k++) {
-        if (lines[k].trim()) { nextMeaningful = lines[k].trim(); break; }
-      }
-      if (/^\*{0,2}\s*\(?[A-Ea-e]\)?\s*[.)]\s+/.test(nextMeaningful)) {
-        flushList(); underSubheading = false; inMcqChoices = true;
-        const match = t.replace(/^#+\s+/, "").replace(/\*+/g, "").trim().match(/^(\d{1,3})[.)]\s+(.+)/)!;
-        els.push(
-          <div key={`mcq-card-head-${i}`} className="mt-7 mb-3 flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-4 shadow-sm sm:px-5">
-            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">{match[1]}</span>
-            <p className="flex-1 pt-1 text-[1rem] font-semibold leading-relaxed text-foreground sm:text-[1.05rem]"><Inline text={match[2]} /></p>
-          </div>
-        );
-        continue;
-      }
-    }
-
     if (/^#{3,6}\s/.test(t)) {
-      flushList(); underSubheading = true; inMcqChoices = false;
+      flushList(); underSubheading = true;
       const txt = t.replace(/^#+\s+/, "").replace(/\*+/g, "").replace(/⭐+/g, "").trim();
       els.push(<h3 key={`h3-${i}`} id={slugify(txt)} className="mt-6 mb-2 scroll-mt-20 font-serif text-xl font-bold leading-snug text-foreground">{txt}</h3>);
       continue;
@@ -1735,40 +1778,6 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
     if (inPractice && t.startsWith("→")) continue;
 
     if (t.startsWith("- ")) { pushBullet(t.slice(2), `li-${i}`); continue; }
-
-    // ── Numbered MCQ stem ("12. Which of the following …" followed by choices) ──
-    // Rendered as a question header with its own number badge so the literal
-    // paper numbering is preserved and the choices can sit clearly indented
-    // to the right of it instead of sharing the same column.
-    if (/^\*{0,2}\s*\d{1,3}\s*[.)]\s+.{4,}/.test(t) && !inPractice) {
-      let nextMeaningful = "";
-      for (let k = i + 1; k < lines.length; k++) {
-        const nt = lines[k].trim();
-        if (!nt) continue;
-        nextMeaningful = nt;
-        break;
-      }
-      const nextIsChoice = /^\*{0,2}\s*\(?[A-Ea-e]\)?\s*[.)]\s+/.test(nextMeaningful);
-      if (nextIsChoice) {
-        flushList(); flushPractice(); underSubheading = false;
-        inMcqChoices = true;
-        _sec++;
-        const stripped = t.replace(/^\*+|\*+$/g, "");
-        const qNum = stripped.match(/^\s*(\d{1,3})/)?.[1] ?? "";
-        const qStem = cleanDisplayText(stripped.replace(/^\s*\d{1,3}\s*[.)]\s*/, ""));
-        els.push(
-          <div key={`mcqq-${i}`} id={`section-${_sec}`} className="mt-8 mb-3 flex items-start gap-3 scroll-mt-20">
-            <span className="mt-0.5 shrink-0 flex items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm w-9 h-9">
-              {qNum}
-            </span>
-            <p className="flex-1 pt-1.5 font-semibold text-[1.03rem] leading-relaxed text-foreground sm:text-[1.08rem]">
-              <Inline text={qStem} />
-            </p>
-          </div>
-        );
-        continue;
-      }
-    }
 
     if (/^\d+\.\s/.test(t) && !t.includes("→") && !inPractice) {
       if (!listBuf || listBuf.type !== "ol") { flushList(); listBuf = { type: "ol", items: [] }; }
@@ -1812,7 +1821,7 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
         continue;
       }
       underSubheading = false;
-      els.push(<p key={`p-sub-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
+      els.push(...renderProse(t, `p-sub-${i}`));
       continue;
     }
 
@@ -1828,7 +1837,7 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
       continue;
     }
 
-    els.push(<p key={`p-${i}`} className="mb-5 text-[1.03rem] leading-8 text-foreground/90"><Inline text={t.replace(/^#+\s*/, "")} /></p>);
+    els.push(...renderProse(t, `p-${i}`));
   }
 
   if (codeBuf && codeBuf.length) {
@@ -1836,6 +1845,9 @@ const ArticleContent = memo(function ArticleContent({ content }: { content: stri
   }
 
   flushList(); flushTable(); flushFlow(); flushPractice();
+  if (!insertedRelated && inlineRelated.length > 0 && els.length > 8) {
+    els.splice(Math.max(4, Math.floor(els.length / 2)), 0, <InArticleRelated key="in-article-related" articles={inlineRelated} />);
+  }
   return <div>{els}</div>;
 });
 
@@ -1862,78 +1874,6 @@ function SidebarToc({ items, activeId }: { items: TocItem[]; activeId: string })
   );
 }
 
-function SourcePaperGallery({ originalNotes }: { originalNotes?: string | null }) {
-  const pages = useMemo(
-    () => [...String(originalNotes || "").matchAll(/!\[[^\]]*\]\((https?:[^)]+)\)/g)].map((match) => match[1]),
-    [originalNotes],
-  );
-  const [viewerOpen, setViewerOpen] = useState(false);
-
-  useEffect(() => {
-    if (!viewerOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setViewerOpen(false);
-    };
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [viewerOpen]);
-
-  if (!pages.length) return null;
-  return (
-    <>
-      <section className="not-prose mb-7 overflow-hidden rounded-xl border border-border bg-card">
-        <button type="button" onClick={() => setViewerOpen(true)} className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left transition-colors hover:bg-muted/40 sm:px-5">
-          <span className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary"><FileText className="h-4 w-4" /></span>
-            <span>
-              <span className="block text-sm font-bold text-foreground">View original paper scans</span>
-              <span className="mt-0.5 block text-xs text-muted-foreground">Open the complete set in a scrollable viewer.</span>
-            </span>
-          </span>
-          <span className="shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground">{pages.length} pages</span>
-        </button>
-      </section>
-
-      {viewerOpen && (
-        <div className="fixed inset-0 z-[120] bg-background/95 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Original paper scans">
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background/95 px-4 py-3 shadow-sm sm:px-6">
-            <p className="text-sm font-bold text-foreground">Original paper scans <span className="font-normal text-muted-foreground">· Scroll to review all {pages.length} pages</span></p>
-            <button type="button" onClick={() => setViewerOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-muted" aria-label="Close paper scans">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="h-[calc(100dvh-65px)] overflow-y-auto px-3 py-5 sm:px-6">
-            <div className="mx-auto max-w-3xl space-y-5">
-              {pages.map((src, index) => (
-                <figure key={src} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-                  <img src={src} alt={`Original pathology paper page ${index + 1}`} className="w-full" />
-                  <figcaption className="px-3 py-2 text-xs font-semibold text-muted-foreground">Page {index + 1} of {pages.length}</figcaption>
-                </figure>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-function ArticleJumpLinks({ items }: { items: TocItem[] }) {
-  if (!items.length) return null;
-  return (
-    <nav aria-label="Article sections" className="not-prose mb-7 rounded-xl border border-border bg-muted/30 p-4 lg:hidden">
-      <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">In this guide</p>
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {items.slice(0, 8).map((item) => (
-          <a key={item.id} href={`#${item.id}`} className="shrink-0 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary">
-            {item.text}
-          </a>
-        ))}
-      </div>
-    </nav>
-  );
-}
-
 /* ─── Main BlogPost component ─── */
 export default function BlogPost() {
   const { slug } = useParams();
@@ -1949,7 +1889,7 @@ export default function BlogPost() {
   const [suggestion, setSuggestion] = useState<{ id: string; title: string; path: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; essays: any[] }>({ articles: [], flashcards: [], essays: [] });
+  const [related, setRelated] = useState<{ articles: any[]; flashcards: any[]; mcqs: any[]; essays: any[] }>({ articles: [], flashcards: [], mcqs: [], essays: [] });
   const [activeSection, setActiveSection] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -2253,14 +2193,6 @@ export default function BlogPost() {
 
   const toc = useMemo(() => article ? extractToc(article.content) : [], [article]);
   const slideDeck = useMemo(() => (article ? parseSlideDeck(article.content || "") : null), [article]);
-  const questionOnlyPaper = useMemo(() => {
-    if (!article) return false;
-    const text = article.content || "";
-    const looksLikePaper = /(?:past paper|question paper|\bexam(?:ination)?\b|\bmcqs?\b)/i.test(`${article.title} ${article.meta_description || ""}`);
-    const hasQuestions = /(?:^|\n)\s*(?:#{1,5}\s*)?(?:question\s*)?\d{1,3}[.)]/im.test(text);
-    const hasAnswers = /(?:^|\n)\s*(?:[-*]\s*)?(?:\*\*)?(?:answer|correct answer)\s*[:：]/im.test(text);
-    return looksLikePaper && hasQuestions && !hasAnswers;
-  }, [article]);
 
   useEffect(() => {
     if (!toc.length) return;
@@ -2285,6 +2217,15 @@ export default function BlogPost() {
     const metaDesc = cleanMetaDescription(article);
     const ogImage = article.og_image_url || extractFirstImageFromContent(article.content || "") || `${SITE_URL}/og-default.png`;
     const canonicalUrl = `${SITE_URL}${buildBlogPath(article)}`;
+    const plain = stripRichText(article.content || "");
+    const year = getYearFromCategory(article.category || "");
+    const unit = getCategoryDisplayName(article.category || "") || "Medical Notes";
+    const keywords = [
+      unit, `${unit} notes`, `${unit} MCQs`, `${unit} past paper`,
+      year ? `Year ${year} MBChB` : "MBChB",
+      "Mount Kenya University", "MKU", "UON", "KU", "Moi University",
+      "medical school Kenya", "past papers with answers", "revision notes",
+    ].filter(Boolean) as string[];
 
     updateMetaTags({
       title: metaTitle,
@@ -2292,7 +2233,19 @@ export default function BlogPost() {
       image: ogImage,
       url: canonicalUrl,
       type: "article",
+      keywords,
     });
+
+    // Thin/scan-only pages are noise for search engines — keep them readable for
+    // humans but out of the index so real pages rank instead.
+    let robots = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+    if (!robots) {
+      robots = document.createElement("meta");
+      robots.setAttribute("name", "robots");
+      document.head.appendChild(robots);
+    }
+    const isThin = plain.length < 600 || /scanned by camscanner/i.test(article.content || "");
+    robots.setAttribute("content", isThin ? "noindex, follow" : "index, follow, max-image-preview:large, max-snippet:-1");
 
     let ldScript = document.querySelector("script[data-article-ld]") as HTMLScriptElement | null;
     if (!ldScript) {
@@ -2301,17 +2254,44 @@ export default function BlogPost() {
       ldScript.setAttribute("data-article-ld", "true");
       document.head.appendChild(ldScript);
     }
-    ldScript.textContent = JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "Article",
-      "headline": metaTitle,
-      "description": metaDesc,
-      "image": ogImage,
-      "url": canonicalUrl,
-      "datePublished": article.created_at,
-      "author": { "@type": "Organization", "name": "Ompath Study" },
-      "publisher": { "@type": "Organization", "name": "Ompath Study" },
-    });
+    ldScript.textContent = JSON.stringify([
+      {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": metaTitle.slice(0, 110),
+        "description": metaDesc,
+        "image": ogImage,
+        "url": canonicalUrl,
+        "mainEntityOfPage": { "@type": "WebPage", "@id": canonicalUrl },
+        "inLanguage": "en",
+        "isAccessibleForFree": true,
+        "keywords": keywords.join(", "),
+        "articleSection": unit,
+        "wordCount": plain.split(/\s+/).filter(Boolean).length,
+        "educationalLevel": year ? `Year ${year} (MBChB)` : "Undergraduate medicine",
+        "learningResourceType": "Study notes and past paper questions",
+        "datePublished": article.created_at,
+        "dateModified": (article as { updated_at?: string }).updated_at || article.created_at,
+        "author": { "@type": "Organization", "name": "Ompath Study", "url": SITE_URL },
+        "publisher": {
+          "@type": "Organization",
+          "name": "Ompath Study",
+          "url": SITE_URL,
+          "logo": { "@type": "ImageObject", "url": `${SITE_URL}/favicon.png` },
+        },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+          { "@type": "ListItem", position: 2, name: "Notes", item: `${SITE_URL}/blog` },
+          ...(year ? [{ "@type": "ListItem", position: 3, name: `Year ${year}`, item: `${SITE_URL}/year/${year}` }] : []),
+          { "@type": "ListItem", position: year ? 4 : 3, name: unit, item: `${SITE_URL}/blog?category=${encodeURIComponent(article.category || "")}` },
+          { "@type": "ListItem", position: year ? 5 : 4, name: metaTitle.slice(0, 110), item: canonicalUrl },
+        ],
+      },
+    ]);
 
     autoIndexUrls([canonicalUrl]);
 
@@ -2356,7 +2336,7 @@ export default function BlogPost() {
   const date = new Date(article.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const unitName = getCategoryDisplayName(article.category);
   const yearName = getYearFromCategory(article.category);
-  const hasRelated = related.flashcards.length > 0;
+  const hasRelated = related.flashcards.length > 0 || related.mcqs.length > 0;
   const articleEssay = related.essays?.[0];
   const essaySaqs: any[] = Array.isArray(articleEssay?.short_answer_questions) ? articleEssay.short_answer_questions : [];
   const essayLaqs: any[] = Array.isArray(articleEssay?.long_answer_questions) ? articleEssay.long_answer_questions : [];
@@ -2490,20 +2470,9 @@ export default function BlogPost() {
 
             <SourceAttribution article={article} />
 
-            <SourcePaperGallery originalNotes={(article as any).original_notes} />
-
             <HtmlEmbed data={(article as any).html_embed} position="top" />
 
-            {!slideDeck && <ArticleJumpLinks items={toc} />}
-
             {(article as any).toc_enabled && <ContentToc content={article.content} />}
-
-            {questionOnlyPaper && (
-              <aside className="not-prose mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-foreground">
-                <strong className="block font-semibold">Question paper only</strong>
-                This source does not include a verified answer key. The questions are preserved for practice; answers have not been invented.
-              </aside>
-            )}
 
             <div className="prose-custom article-reader">
               <KeywordLinkProvider currentPath={buildBlogPath(article)} currentCategory={article.category}>
@@ -2515,7 +2484,7 @@ export default function BlogPost() {
                       university={inferUniversity(article)}
                       onPreview={() => setPreviewOpen(true)}
                     />
-                  : <ArticleContent content={article.content} />}
+                  : <ArticleContent content={article.content} inlineRelated={related.articles || []} />}
               </KeywordLinkProvider>
             </div>
 
@@ -2612,6 +2581,20 @@ export default function BlogPost() {
                       </div>
                     </div>
                   )}
+                  {related.mcqs.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">MCQ Quizzes</p>
+                      <div className="space-y-1.5">
+                        {related.mcqs.map((m: any) => (
+                          <Link key={m.id} to={buildMcqPath(m)} className="flex items-center gap-3 rounded-lg border border-border p-3 hover:border-primary/40 hover:bg-muted/30 transition-colors">
+                            <ListChecks className="h-4 w-4 text-primary shrink-0" />
+                            <span className="truncate text-sm font-medium text-foreground">{m.title}</span>
+                            <span className="ml-auto text-xs text-muted-foreground">{(m.questions as any[])?.length || 0} Qs</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -2650,11 +2633,19 @@ export default function BlogPost() {
 }
 
 function RelatedMarquee({ articles }: { articles: any[] }) {
-  const list = articles.slice(0, 8);
+  const [paused, setPaused] = useState(false);
+  const list = [...articles.slice(0, 12), ...articles.slice(0, 12)];
   return (
-    <div className="group relative -mx-5 overflow-x-auto overflow-y-hidden">
+    <div
+      className="group relative -mx-5 overflow-x-auto overflow-y-hidden"
+      onTouchStart={() => setPaused(true)}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onClick={() => setPaused((p) => !p)}
+    >
       <div
-        className="flex w-max snap-x snap-mandatory gap-3 px-5"
+        className="flex w-max gap-3 px-5 animate-marquee-slow"
+        style={{ animationPlayState: paused ? "paused" : "running" }}
       >
         {list.map((a: any, i: number) => (
           <RelatedArticleCard key={`${a.id}-${i}`} article={a} compact />

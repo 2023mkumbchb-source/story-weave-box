@@ -3,7 +3,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
+import PageTransition from "@/components/PageTransition";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import Navbar from "@/components/Navbar";
@@ -33,6 +35,7 @@ const Account = lazy(() => import("./pages/Account"));
 const Admin = lazy(() => import("./pages/Admin"));
 const SourceLibrary = lazy(() => import("./pages/SourceLibrary"));
 const YearHub = lazy(() => import("./pages/YearHub"));
+const UnitPage = lazy(() => import("./pages/UnitPage"));
 const CategoryManager = lazy(() => import("./pages/CategoryManager"));
 const About = lazy(() => import("./pages/About"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -44,6 +47,48 @@ const RouteLoader = () => (
     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
   </div>
 );
+
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <PageTransition key={location.pathname}>
+        <Suspense fallback={<RouteLoader />}>
+          <Routes location={location}>
+            <Route path="/" element={<Index />} />
+            <Route path="/year/:yearNumber" element={<YearHub />} />
+            <Route path="/year/:yearNumber/unit/:unitSlug" element={<UnitPage />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/flashcards" element={<Flashcards />} />
+            <Route path="/flashcards/:id" element={<FlashcardStudy />} />
+            <Route path="/mcqs" element={<Navigate to="/blog" replace />} />
+            <Route path="/mcqs/:id" element={<Navigate to="/blog" replace />} />
+            <Route path="/exams" element={<Exams />} />
+            <Route path="/exams/:id/start" element={<ExamStart />} />
+            <Route path="/admin/editor" element={<AdminEditor />} />
+            <Route path="/admin/categories" element={<CategoryManager />} />
+            <Route path="/stories" element={<Stories />} />
+            <Route path="/stories/:id" element={<StoryRead />} />
+            <Route path="/submit-story" element={<SubmitStory />} />
+            <Route path="/essays" element={<Essays />} />
+            <Route path="/essays/:slug" element={<EssayStudy />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/account" element={<Account />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/unedited-uploads" element={<Navigate to="/source-library" replace />} />
+            <Route path="/unedited-uploads" element={<Navigate to="/source-library" replace />} />
+            <Route path="/source-library" element={<SourceLibrary />} />
+            <Route path="/source-library/:slug" element={<SourceLibrary />} />
+            <Route path="/about" element={<About />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </PageTransition>
+    </AnimatePresence>
+  );
+};
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
@@ -59,39 +104,7 @@ const App = () => (
             <ContentProtection />
             <PurchaseResume />
             <Navbar />
-            <Suspense fallback={<RouteLoader />}>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/year/:yearNumber" element={<YearHub />} />
-                <Route path="/blog" element={<Blog />} />
-                <Route path="/blog/:slug" element={<BlogPost />} />
-                <Route path="/flashcards" element={<Flashcards />} />
-                <Route path="/flashcards/:id" element={<FlashcardStudy />} />
-                {/* MCQs now live inside blog articles (with the subscription reveal gate) — old
-                    quiz-bank links redirect to the blog so bookmarks/search results don't 404. */}
-                <Route path="/mcqs" element={<Navigate to="/blog" replace />} />
-                <Route path="/mcqs/:id" element={<Navigate to="/blog" replace />} />
-                <Route path="/exams" element={<Exams />} />
-                <Route path="/exams/:id/start" element={<ExamStart />} />
-                <Route path="/admin/editor" element={<AdminEditor />} />
-                <Route path="/admin/categories" element={<CategoryManager />} />
-                <Route path="/stories" element={<Stories />} />
-                <Route path="/stories/:id" element={<StoryRead />} />
-                <Route path="/submit-story" element={<SubmitStory />} />
-                <Route path="/essays" element={<Essays />} />
-                <Route path="/essays/:slug" element={<EssayStudy />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/account" element={<Account />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/admin/unedited-uploads" element={<Navigate to="/source-library" replace />} />
-                <Route path="/unedited-uploads" element={<Navigate to="/source-library" replace />} />
-                <Route path="/source-library" element={<SourceLibrary />} />
-                <Route path="/source-library/:slug" element={<SourceLibrary />} />
-                <Route path="/about" element={<About />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+            <AnimatedRoutes />
             <SiteFooter />
           </BrowserRouter>
         </TooltipProvider>
