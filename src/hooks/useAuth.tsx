@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
+import { syncLocalProgress } from "@/lib/study";
 
 interface AuthContextType {
   user: User | null;
@@ -39,7 +40,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!active) return;
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
-      if (nextSession?.user) await checkAdmin(nextSession.user.id);
+      if (nextSession?.user) {
+        await Promise.allSettled([
+          checkAdmin(nextSession.user.id),
+          syncLocalProgress(nextSession.user.id),
+        ]);
+      }
       else setIsAdmin(false);
       if (active) setLoading(false);
     };

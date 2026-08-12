@@ -162,7 +162,7 @@ export async function getUnitResources(unit: Unit): Promise<UnitResource[]> {
 }
 
 export function resourcePath(r: UnitResource): string {
-  if (r.kind === "mcq") return `/mcqs/${r.slug || r.id}`;
+  if (r.kind === "mcq") return `/blog?q=${encodeURIComponent(r.title)}`;
   if (r.kind === "flashcard") return `/flashcards/${r.slug || r.id}`;
   return `/blog/${r.slug || r.id}`;
 }

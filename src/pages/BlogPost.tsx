@@ -23,6 +23,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAccess } from "@/lib/access";
 import { SubscribeModal } from "@/components/SubscribeModal";
 import { openSubscribePrompt, useScrollSubscribePrompt } from "@/lib/subscribe-prompt";
+import StudyControls from "@/components/StudyControls";
+import HelpfulVote from "@/components/HelpfulVote";
 
 /**
  * Mounts the subscription prompt for articles that carry MCQs: guests read the
@@ -2468,6 +2470,8 @@ export default function BlogPost() {
               <div className="mb-2"><ReadingTimeBadge minutes={(article as any).reading_time_minutes} /></div>
             ) : null}
 
+            <div className="not-prose mb-5"><StudyControls resourceType="article" resourceId={article.id} title={cleanMetaTitle(article)} /></div>
+
             <SourceAttribution article={article} />
 
             <HtmlEmbed data={(article as any).html_embed} position="top" />
@@ -2513,6 +2517,7 @@ export default function BlogPost() {
             )}
 
             <div className="mt-10 pt-6 border-t border-border">
+              <div className="mb-5"><HelpfulVote resourceType="article" resourceId={article.id} /></div>
               <ShareButtons
                 url={`${SITE_URL}${buildBlogPath(article)}`}
                 title={cleanMetaTitle(article)}

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, FileText, GraduationCap, Home, LayoutDashboard, Menu, BookOpenCheck, Trophy, ChevronRight, UserRound } from "lucide-react";
+import { BookOpen, GraduationCap, Home, LayoutDashboard, Menu, Trophy, ChevronRight, UserRound, Search, Target, Database } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import ThemeToggle from "./ThemeToggle";
@@ -42,11 +42,13 @@ export default function Navbar() {
   const links = useMemo(() => {
     const base = [
       { to: "/", label: "Home", icon: Home },
-      { to: "/stories", label: "Stories", icon: BookOpenCheck },
+      { to: "/search", label: "Search", icon: Search },
+      { to: "/my-revision", label: "My Revision", icon: Target },
       { to: "/account", label: "Account", icon: UserRound },
     ];
     if (isAdmin) {
       base.push({ to: "/admin", label: "Dashboard", icon: LayoutDashboard });
+      base.push({ to: "/admin/study-system", label: "Study System", icon: Database });
     }
     return base;
   }, [isAdmin]);

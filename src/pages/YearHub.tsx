@@ -9,6 +9,7 @@ import {
   type Article,
 } from "@/lib/store";
 import { Helmet } from "react-helmet-async";
+import { getUnitsForYear, unitPath, type Unit } from "@/lib/academic";
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -42,6 +43,7 @@ export default function YearHub() {
   const units = YEAR_CATEGORIES[yearLabel] || [];
   const location2 = location;
   const [recent, setRecent] = useState<Article[]>([]);
+  const [canonicalUnits, setCanonicalUnits] = useState<Unit[]>([]);
   useEffect(() => {
     let alive = true;
     getPublishedArticleSummaries(yearLabel).then(list => {
@@ -54,6 +56,7 @@ export default function YearHub() {
     });
     return () => { alive = false; };
   }, [yearLabel]);
+  useEffect(() => { getUnitsForYear(parsedYear).then(setCanonicalUnits); }, [parsedYear]);
   const ogUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}${location.pathname}${location.search}`
@@ -132,9 +135,9 @@ export default function YearHub() {
           <h2 className="font-serif text-lg font-bold text-foreground">Units in {yearLabel}</h2>
         </div>
         <div className="flex flex-wrap gap-2">
-          {units.map((unit) => (
-            <Link key={unit} to={`/blog?year=${encodeURIComponent(yearLabel)}&unit=${encodeURIComponent(`${yearLabel}: ${unit}`)}`} className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary">
-              {unit}
+          {(canonicalUnits.length ? canonicalUnits : units.map(name => ({ id:name, name, slug:"", legacy_category:`${yearLabel}: ${name}` } as Unit))).map((unit) => (
+            <Link key={unit.id} to={unit.slug ? unitPath(parsedYear, unit.slug) : `/blog?year=${encodeURIComponent(yearLabel)}&unit=${encodeURIComponent(unit.legacy_category || "")}`} className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary">
+              {unit.name}
             </Link>
           ))}
         </div>

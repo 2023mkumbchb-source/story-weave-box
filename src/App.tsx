@@ -36,6 +36,10 @@ const Admin = lazy(() => import("./pages/Admin"));
 const SourceLibrary = lazy(() => import("./pages/SourceLibrary"));
 const YearHub = lazy(() => import("./pages/YearHub"));
 const UnitPage = lazy(() => import("./pages/UnitPage"));
+const MyRevision = lazy(() => import("./pages/MyRevision"));
+const RevisionPlanner = lazy(() => import("./pages/RevisionPlanner"));
+const GlobalSearch = lazy(() => import("./pages/GlobalSearch"));
+const StudySystemAdmin = lazy(() => import("./pages/StudySystemAdmin"));
 const CategoryManager = lazy(() => import("./pages/CategoryManager"));
 const About = lazy(() => import("./pages/About"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -58,6 +62,9 @@ const AnimatedRoutes = () => {
             <Route path="/" element={<Index />} />
             <Route path="/year/:yearNumber" element={<YearHub />} />
             <Route path="/year/:yearNumber/unit/:unitSlug" element={<UnitPage />} />
+            <Route path="/my-revision" element={<MyRevision />} />
+            <Route path="/revision-planner" element={<RevisionPlanner />} />
+            <Route path="/search" element={<GlobalSearch />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/flashcards" element={<Flashcards />} />
@@ -68,6 +75,7 @@ const AnimatedRoutes = () => {
             <Route path="/exams/:id/start" element={<ExamStart />} />
             <Route path="/admin/editor" element={<AdminEditor />} />
             <Route path="/admin/categories" element={<CategoryManager />} />
+            <Route path="/admin/study-system" element={<StudySystemAdmin />} />
             <Route path="/stories" element={<Stories />} />
             <Route path="/stories/:id" element={<StoryRead />} />
             <Route path="/submit-story" element={<SubmitStory />} />
