@@ -4,8 +4,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
-import PageTransition from "@/components/PageTransition";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import Navbar from "@/components/Navbar";
@@ -15,6 +13,7 @@ import { ScrollProgressBar, BackToTopButton } from "@/components/ScrollFX";
 import ContentProtection from "@/components/ContentProtection";
 import PurchaseResume from "@/components/PurchaseResume";
 import { Loader2 } from "lucide-react";
+import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 
 const Index = lazy(() => import("./pages/Index"));
 const Blog = lazy(() => import("./pages/Blog"));
@@ -55,8 +54,8 @@ const RouteLoader = () => (
 const AnimatedRoutes = () => {
   const location = useLocation();
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <PageTransition key={location.pathname}>
+    <RouteErrorBoundary key={location.pathname}>
+      <main className="min-h-[65vh]">
         <Suspense fallback={<RouteLoader />}>
           <Routes location={location}>
             <Route path="/" element={<Index />} />
@@ -93,8 +92,8 @@ const AnimatedRoutes = () => {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
-      </PageTransition>
-    </AnimatePresence>
+      </main>
+    </RouteErrorBoundary>
   );
 };
 
