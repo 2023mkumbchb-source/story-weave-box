@@ -547,6 +547,14 @@ export function preprocessContent(raw: string): string {
       continue;
     }
 
+    // Preserve standalone Markdown images before punctuation-spacing cleanup.
+    // Otherwise `https://...` is rewritten as `https: //...` and the image URL
+    // no longer renders. Keep this exemption ahead of every prose transform.
+    if (/^!\[.*?\]\(\S+\)$/.test(trimmedRaw)) {
+      out.push(trimmedRaw);
+      continue;
+    }
+
     const line = rawLine;
     let t = line
       .trim()

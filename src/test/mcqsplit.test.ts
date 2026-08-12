@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { preprocessContent } from "@/lib/blog-content";
 describe("mcq preprocessing", () => {
+  it("preserves standalone markdown image URLs exactly", () => {
+    const image = "![Blood film](https://cdn.example.org/path/image-one.jpg)";
+    expect(preprocessContent(image)).toBe(image);
+  });
+
   it("splits glued choice runs with inline (a)/(b) references", () => {
     expect(preprocessContent("Entner pathway is NOT found in: A. Aerobic prokaryotesB. Anaerobic prokaryotesC. Both (a) and (b)D. Eukaryotes E. Atypical").split("\n"))
       .toEqual(["Entner pathway is NOT found in", "A) Aerobic prokaryotes", "B) Anaerobic prokaryotes", "C) Both (a) and (b)", "D) Eukaryotes", "E) Atypical"]);
