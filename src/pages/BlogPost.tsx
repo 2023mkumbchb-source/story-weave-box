@@ -2506,7 +2506,7 @@ export default function BlogPost() {
             )}
 
             <div className="prose-custom article-reader">
-              <KeywordLinkProvider currentPath={buildBlogPath(article)}>
+              <KeywordLinkProvider currentPath={buildBlogPath(article)} currentCategory={article.category}>
                 {slideDeck
                   ? <SlideDeckView
                       deck={slideDeck}
