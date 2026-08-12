@@ -5,6 +5,8 @@ import { getFlashcardSetBySlugOrId, getCategoryDisplayName, buildFlashcardPath, 
 import { Button } from "@/components/ui/button";
 import FlashcardViewer from "@/components/FlashcardViewer";
 import ShareButtons from "@/components/ShareButtons";
+import StudyControls from "@/components/StudyControls";
+import HelpfulVote from "@/components/HelpfulVote";
 import { KeywordLinkProvider } from "@/lib/keyword-link";
 import { useHashFlash } from "@/lib/deep-link";
 import { markFlashcardVisited } from "@/lib/progress-store";
@@ -57,6 +59,10 @@ export default function FlashcardStudy() {
         }
       })
       .finally(() => setLoading(false));
+    // Deliberately keyed on `param` alone: `location.pathname` is read only to
+    // decide whether a canonical-URL redirect is needed, and including it (or
+    // `navigate`) here would re-run this fetch on every redirect it triggers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [param]);
 
   if (loading) {
@@ -132,11 +138,18 @@ function FlashcardStudyInner({ set }: { set: FlashcardSet }) {
           )}
         </div>
         <ShareButtons url={shareUrl} title={heroTitle} description={heroDesc} variant="full" className="mt-5 px-5 sm:px-0" />
+        <div className="mt-4 px-5 sm:px-0">
+          <StudyControls resourceType="flashcard" resourceId={set.id} title={heroTitle} />
+        </div>
       </header>
 
       <KeywordLinkProvider currentPath={buildFlashcardPath(set)}>
         <FlashcardViewer cards={set.cards} title={set.title} setId={set.id} />
       </KeywordLinkProvider>
+
+      <div className="mt-8">
+        <HelpfulVote resourceType="flashcard" resourceId={set.id} />
+      </div>
     </div>
   );
 }

@@ -29,7 +29,7 @@ export default function ArticleMcqOption({ articleId, questionKey, questionText,
       firstAttempt: correct && (selection?.wrong.length || 0) === 0,
     };
     window.dispatchEvent(new CustomEvent(eventName, { detail }));
-    if (user) void (supabase as any).from("article_answer_attempts").insert({
+    if (user) void supabase.from("article_answer_attempts").insert({
       user_id: user.id, article_id: articleId, question_key: questionKey, question_text: questionText,
       topic_label: topic || null, category, selected_answer: label, correct_answer: correctLabel, is_correct: correct,
     });

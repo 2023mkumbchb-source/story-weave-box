@@ -26,9 +26,21 @@ export default function HelpfulVote({ resourceType, resourceId }: { resourceType
     if (done || busy) return;
     setBusy(true);
     try {
-      const { error } = await (supabase as unknown as { from: (t: string) => any })
-        .from("resource_feedback")
-        .insert({ resource_type: resourceType, resource_id: resourceId, vote: value, user_id: user?.id ?? null });
+      // Signed-in voters upsert against the DB-level unique constraint on
+      // (user_id, resource_type, resource_id), so changing your mind updates
+      // the same row instead of erroring on a duplicate. Anonymous voters
+      // (user_id null) always insert a fresh row -- NULL never conflicts
+      // with itself in Postgres, so there is nothing to upsert against.
+      const { error } = user
+        ? await supabase
+            .from("resource_feedback")
+            .upsert(
+              { resource_type: resourceType, resource_id: resourceId, vote: value, user_id: user.id },
+              { onConflict: "user_id,resource_type,resource_id" },
+            )
+        : await supabase
+            .from("resource_feedback")
+            .insert({ resource_type: resourceType, resource_id: resourceId, vote: value, user_id: null });
       if (error) throw error;
       setDone(value);
       // Best-effort: prevents this device from voting again on a reload.

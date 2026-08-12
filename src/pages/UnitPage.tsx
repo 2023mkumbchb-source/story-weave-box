@@ -14,6 +14,7 @@ import { SITE_URL } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/hooks/use-toast";
 
 const TABS = ["Overview", "Syllabus", "Notes", "Questions", "CATs", "Past Papers", "Flashcards", "Exams"] as const;
 
@@ -116,6 +117,7 @@ export default function UnitPage() {
       await setTopicProgress(user.id, topic.id, { status: next, completed_at: isDone ? null : new Date().toISOString() });
     } catch {
       setTopicProgressState(previous);
+      toast({ description: "Could not save your progress. Please try again.", variant: "destructive" });
     }
   };
 

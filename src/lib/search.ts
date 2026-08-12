@@ -1,10 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getAcademicYears, type ResourceType } from "./academic";
 
-const db = supabase as unknown as { from: (t: string) => any };
-
 /** Accepts "Year 2", "2", or 2 and returns the numeric year, or null. */
-function parseYearNumber(year: string | number | undefined): number | null {
+export function parseYearNumber(year: string | number | undefined): number | null {
   if (year === undefined || year === null || year === "") return null;
   const match = String(year).match(/\d+/);
   return match ? Number(match[0]) : null;
@@ -38,7 +36,7 @@ let aliasCache: { at: number; rows: { canonical_term: string; alias: string }[] 
 
 async function getAliases() {
   if (aliasCache && Date.now() - aliasCache.at < 10 * 60 * 1000) return aliasCache.rows;
-  const { data } = await db.from("search_aliases").select("canonical_term, alias").eq("approved", true);
+  const { data } = await supabase.from("search_aliases").select("canonical_term, alias").eq("approved", true);
   aliasCache = { at: Date.now(), rows: (data || []) as { canonical_term: string; alias: string }[] };
   return aliasCache.rows;
 }
@@ -95,28 +93,44 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
   const yearNumber = parseYearNumber(filters.year);
   const yearLabel = yearNumber ? `Year ${yearNumber}` : null;
 
-  const applyCommon = (q: any) => {
-    let out = q.eq("published", true).is("deleted_at", null).limit(40);
-    if (yearLabel) out = out.ilike("category", `${yearLabel}:%`);
-    if (filters.unitId) out = out.eq("unit_id", filters.unitId);
-    if (filters.examYear) out = out.eq("exam_year", filters.examYear);
-    if (filters.recentOnly) out = out.gte("updated_at", new Date(Date.now() - 60 * 86400000).toISOString());
-    return out;
-  };
+  const recentSince = new Date(Date.now() - 60 * 86400000).toISOString();
 
-  const articleQ = applyCommon(
-    db.from("articles").select(
+  let articleQ = supabase
+    .from("articles")
+    .select(
       "id, title, slug, category, content_type, exam_year, updated_at, meta_description, tags, verification_status, completeness_status, university, lecturer",
-    ),
-  ).or(orIlike(["title", "meta_description", "category", "unit", "university"], terms));
+    )
+    .eq("published", true)
+    .is("deleted_at", null)
+    .or(orIlike(["title", "meta_description", "category", "unit", "university"], terms))
+    .limit(40);
+  if (yearLabel) articleQ = articleQ.ilike("category", `${yearLabel}:%`);
+  if (filters.unitId) articleQ = articleQ.eq("unit_id", filters.unitId);
+  if (filters.examYear) articleQ = articleQ.eq("exam_year", filters.examYear);
+  if (filters.recentOnly) articleQ = articleQ.gte("updated_at", recentSince);
 
-  const mcqQ = applyCommon(
-    db.from("mcq_sets").select("id, title, slug, category, content_type, exam_year, updated_at"),
-  ).or(orIlike(["title", "category"], terms));
+  let mcqQ = supabase
+    .from("mcq_sets")
+    .select("id, title, slug, category, content_type, exam_year, updated_at")
+    .eq("published", true)
+    .is("deleted_at", null)
+    .or(orIlike(["title", "category"], terms))
+    .limit(40);
+  if (yearLabel) mcqQ = mcqQ.ilike("category", `${yearLabel}:%`);
+  if (filters.unitId) mcqQ = mcqQ.eq("unit_id", filters.unitId);
+  if (filters.examYear) mcqQ = mcqQ.eq("exam_year", filters.examYear);
+  if (filters.recentOnly) mcqQ = mcqQ.gte("updated_at", recentSince);
 
-  const flashQ = applyCommon(
-    db.from("flashcard_sets").select("id, title, slug, category, content_type, updated_at"),
-  ).or(orIlike(["title", "category"], terms));
+  let flashQ = supabase
+    .from("flashcard_sets")
+    .select("id, title, slug, category, content_type, updated_at")
+    .eq("published", true)
+    .is("deleted_at", null)
+    .or(orIlike(["title", "category"], terms))
+    .limit(40);
+  if (yearLabel) flashQ = flashQ.ilike("category", `${yearLabel}:%`);
+  if (filters.unitId) flashQ = flashQ.eq("unit_id", filters.unitId);
+  if (filters.recentOnly) flashQ = flashQ.gte("updated_at", recentSince);
 
   // Reuse the shared, cached academic-years lookup instead of an extra
   // roundtrip on every keystroke — this table rarely changes.
@@ -126,7 +140,7 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
   for (const y of years) { yearsById.set(y.id, y.year_number); idByYear.set(y.year_number, y.id); }
   const yearId = yearNumber ? idByYear.get(yearNumber) : undefined;
 
-  let unitQ = db
+  let unitQ = supabase
     .from("units")
     .select("id, name, slug, course_code, description, academic_year_id")
     .eq("published", true)
@@ -135,7 +149,7 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
   if (filters.unitId) unitQ = unitQ.eq("id", filters.unitId);
   else if (yearId) unitQ = unitQ.eq("academic_year_id", yearId);
 
-  let topicQ = db
+  let topicQ = supabase
     .from("syllabus_topics")
     .select("id, title, unit_id, description")
     .eq("published", true)
@@ -144,14 +158,14 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
   if (filters.unitId) topicQ = topicQ.eq("unit_id", filters.unitId);
 
   const storyQ = filters.includeStories
-    ? db
+    ? supabase
         .from("stories")
         .select("id, title, slug, category, updated_at")
         .eq("published", true)
         .is("deleted_at", null)
         .or(orIlike(["title", "category"], terms))
         .limit(10)
-    : Promise.resolve({ data: [] });
+    : Promise.resolve({ data: [] as { id: string; title: string; slug: string | null; category: string | null; updated_at: string | null }[] });
 
   const [articles, mcqs, flashcards, units, topics, stories] = await Promise.all([
     articleQ, mcqQ, flashQ, unitQ, topicQ, storyQ,
@@ -167,7 +181,7 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
     return "Found in content";
   };
 
-  for (const row of (articles.data || []) as any[]) {
+  for (const row of articles.data || []) {
     if (filters.verifiedOnly && row.verification_status !== "verified") continue;
     if (row.completeness_status === "incomplete") continue;
     const ct = row.content_type || "Notes";
@@ -176,18 +190,18 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
       id: row.id, title: row.title, slug: row.slug, category: row.category, kind: "article",
       contentType: ct, reason: reasonFor(row), updated_at: row.updated_at, exam_year: row.exam_year,
       href: `/blog/${row.slug || row.id}`,
-      score: String(row.title).toLowerCase().includes(primary) ? 100 : 60,
+      score: row.title.toLowerCase().includes(primary) ? 100 : 60,
     });
   }
-  for (const row of (mcqs.data || []) as any[]) {
+  for (const row of mcqs.data || []) {
     if (filters.contentType && filters.contentType !== "MCQ Bank") continue;
     hits.push({
       id: row.id, title: row.title, slug: row.slug, category: row.category, kind: "mcq",
       contentType: "MCQ Bank", reason: reasonFor(row), updated_at: row.updated_at,
-      href: `/blog?q=${encodeURIComponent(row.title)}`, score: 70,
+      href: `/exams/${row.slug || row.id}/start`, score: 70,
     });
   }
-  for (const row of (flashcards.data || []) as any[]) {
+  for (const row of flashcards.data || []) {
     if (filters.contentType && filters.contentType !== "Flashcards") continue;
     hits.push({
       id: row.id, title: row.title, slug: row.slug, category: row.category, kind: "flashcard",
@@ -195,22 +209,22 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
       href: `/flashcards/${row.slug || row.id}`, score: 65,
     });
   }
-  for (const row of (units.data || []) as any[]) {
-    const yr = yearsById.get(row.academic_year_id);
+  for (const row of units.data || []) {
+    const yr = row.academic_year_id ? yearsById.get(row.academic_year_id) : undefined;
     hits.push({
       id: row.id, title: row.name, slug: row.slug, category: yr ? `Year ${yr}` : "",
       kind: "unit", contentType: "Unit", reason: reasonFor(row),
       href: yr ? `/year/${yr}/unit/${row.slug}` : "/", score: 120,
     });
   }
-  for (const row of (topics.data || []) as any[]) {
+  for (const row of topics.data || []) {
     hits.push({
       id: row.id, title: row.title, slug: null, category: "Syllabus topic", kind: "topic",
       contentType: "Syllabus Topic", reason: reasonFor(row), href: `/search?q=${encodeURIComponent(row.title)}`,
       score: 80,
     });
   }
-  for (const row of (stories.data || []) as any[]) {
+  for (const row of stories.data || []) {
     hits.push({
       id: row.id, title: row.title, slug: row.slug, category: row.category || "Stories",
       kind: "story", contentType: "Clinical Story", reason: reasonFor(row),
@@ -225,7 +239,7 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
 
 export async function logSearch(query: string, results: number, clicked?: { type: string; id: string }) {
   try {
-    await db.from("search_queries").insert({
+    await supabase.from("search_queries").insert({
       query,
       normalized_query: query.trim().toLowerCase(),
       results_count: results,

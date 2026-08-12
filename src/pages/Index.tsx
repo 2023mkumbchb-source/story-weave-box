@@ -98,9 +98,9 @@ export default function Index() {
     // Recently added: one aggregated request that returns metadata only. The
     // database already filters out empty shells (no body text / no questions),
     // so the browser never downloads article bodies just to render this list.
-    (supabase as any)
+    supabase
       .rpc("home_recent", { limit_n: 40 })
-      .then(({ data }: { data: any[] | null }) => {
+      .then(({ data }) => {
         // "mcq" rows are leftover quiz-bank sets (weekly exam content only, now that
         // the rest have been migrated into articles) — they have no public page to
         // link to since the /mcqs bank was retired, so they're dropped here.
@@ -290,7 +290,7 @@ export default function Index() {
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {lastRead.slice(0, 3).map(ra => {
                 const cleanTitle = (ra.title || "")
-                  .replace(/^[\p{Extended_Pictographic}\u2600-\u27BF\uFE0F]+/gu, "")
+                  .replace(/^(?:[\p{Extended_Pictographic}\u2600-\u27BF]|\uFE0F)+/gu, "")
                   .trim();
                 return (
                   <Link key={ra.id} to={buildBlogPath(ra)}

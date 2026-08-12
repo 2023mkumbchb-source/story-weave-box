@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { preprocessContent } from "@/pages/BlogPost";
+import { preprocessContent } from "@/lib/blog-content";
 describe("mcq preprocessing", () => {
   it("splits glued choice runs with inline (a)/(b) references", () => {
     expect(preprocessContent("Entner pathway is NOT found in: A. Aerobic prokaryotesB. Anaerobic prokaryotesC. Both (a) and (b)D. Eukaryotes E. Atypical").split("\n"))

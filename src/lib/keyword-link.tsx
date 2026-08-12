@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { buildBlogPath, buildFlashcardPath, type Article, type FlashcardSet, type Story } from "@/lib/store";
+import { buildBlogPath, buildFlashcardPath } from "@/lib/store";
 import { slugify } from "@/lib/deep-link";
 import { buildStoryPath, stripRichText } from "@/lib/seo";
 
@@ -89,9 +89,17 @@ async function loadEntries(): Promise<LinkEntry[]> {
         const haystack = `${title || ""} ${desc || ""}`.toLowerCase();
         HIGH_VALUE_TERMS.forEach(term => { if (haystack.includes(term)) add(term, path, 5, category); });
       };
-      (articles as Partial<Article>[] || []).forEach(a => aliases(a.meta_title || a.title, buildBlogPath(a as Article), a.meta_description, (a as any).tags, a.category, (a as any).exam_type ? 10 : 14));
-      (flashcards as Partial<FlashcardSet>[] || []).forEach(f => aliases(f.meta_title || f.title, buildFlashcardPath(f as FlashcardSet), f.meta_description, [], (f as any).category, 8));
-      (stories as Partial<Story>[] || []).forEach(s => aliases(s.meta_title || s.title, buildStoryPath(s as Story), s.meta_description, [], null, 6));
+      (articles || []).forEach(a => aliases(
+        a.meta_title || a.title,
+        buildBlogPath({ id: a.id, title: a.title, slug: a.slug ?? undefined }),
+        a.meta_description, a.tags, a.category, a.exam_type ? 10 : 14,
+      ));
+      (flashcards || []).forEach(f => aliases(
+        f.meta_title || f.title,
+        buildFlashcardPath({ id: f.id, title: f.title, slug: f.slug }),
+        f.meta_description, [], f.category, 8,
+      ));
+      (stories || []).forEach(s => aliases(s.meta_title || s.title, buildStoryPath(s), s.meta_description, [], null, 6));
       entries.sort((a,b) => b.term.length-a.term.length || b.quality-a.quality); cache=entries; return entries;
     } catch { return []; }
   })();
@@ -105,16 +113,124 @@ export function KeywordLinkProvider({ currentPath, currentCategory, children }: 
   return <KeywordLinkContext.Provider value={ctx}>{children}</KeywordLinkContext.Provider>;
 }
 
-export function linkifyText(text: string, ctx: Ctx | null, keyPrefix="k"): ReactNode {
-  if(!ctx||!ctx.entries.length||!text)return text;
-  const {entries,used,usedTargets,currentPath,currentCategory}=ctx;
-  const pool=entries.filter(e=>!used.has(e.lower)&&e.path!==currentPath&&(!usedTargets.has(e.path)||e.quality>=12))
-    .sort((a,b)=>Number(b.category===currentCategory)-Number(a.category===currentCategory)||b.quality-a.quality||b.term.length-a.term.length).slice(0,5000);
-  const out:ReactNode[]=[];let rest=text,i=0;
-  while(true){const found=findBestMatch(rest,pool);if(!found){out.push(rest);break}const{entry,index,matched}=found;const before=rest.slice(0,index);used.add(entry.lower);usedTargets.add(entry.path);if(before)out.push(<span key={`${keyPrefix}-b-${i}`}>{before}</span>);out.push(<DeepLinkSpan key={`${keyPrefix}-l-${i}`} path={`${entry.path}#${entry.target||slugify(matched)}`} title={entry.term} label={matched}/>);rest=rest.slice(index+matched.length);if(++i>28){out.push(rest);break}}
+export function linkifyText(text: string, ctx: Ctx | null, keyPrefix = "k"): ReactNode {
+  if (!ctx || !ctx.entries.length || !text) return text;
+  const { entries, used, usedTargets, currentPath, currentCategory } = ctx;
+  const pool = entries
+    .filter((e) => !used.has(e.lower) && e.path !== currentPath && (!usedTargets.has(e.path) || e.quality >= 12))
+    .sort((a, b) => Number(b.category === currentCategory) - Number(a.category === currentCategory) || b.quality - a.quality || b.term.length - a.term.length)
+    .slice(0, 5000);
+  const trie = buildLinkTrie(pool);
+
+  const out: ReactNode[] = [];
+  let rest = text;
+  let i = 0;
+  while (true) {
+    const found = findBestMatch(rest, trie);
+    if (!found) {
+      out.push(rest);
+      break;
+    }
+    const { entry, index, matched } = found;
+    const before = rest.slice(0, index);
+    used.add(entry.lower);
+    usedTargets.add(entry.path);
+    if (before) out.push(<span key={`${keyPrefix}-b-${i}`}>{before}</span>);
+    out.push(<DeepLinkSpan key={`${keyPrefix}-l-${i}`} path={`${entry.path}#${entry.target || slugify(matched)}`} title={entry.term} label={matched} />);
+    rest = rest.slice(index + matched.length);
+    if (++i > 28) {
+      out.push(rest);
+      break;
+    }
+  }
   return <>{out}</>;
 }
 
-function DeepLinkSpan({path,title,label}:{path:string;title:string;label:string}){const navigate=useNavigate();return <button type="button" className="deep-link" onClick={e=>{e.preventDefault();try{sessionStorage.setItem("deep_link_return",`${window.location.pathname}${window.location.search}${window.location.hash}|${window.scrollY}`)}catch{}navigate(path)}} aria-label={`${label}: open the detailed ${title} study page`} title={`Study ${title} in detail`}>{label}</button>}
-function findBestMatch(text:string,pool:LinkEntry[]){const lower=text.toLowerCase();let best:{entry:LinkEntry;index:number;matched:string}|null=null;for(const entry of pool){let from=0;while(from<lower.length){const index=lower.indexOf(entry.lower,from);if(index<0)break;const end=index+entry.term.length,before=index===0?"":lower[index-1],after=end>=lower.length?"":lower[end];if(!/[a-z0-9]/i.test(before)&&!/[a-z0-9]/i.test(after)){if(!best||index<best.index||(index===best.index&&(entry.term.length>best.entry.term.length||(entry.term.length===best.entry.term.length&&entry.quality>best.entry.quality))))best={entry,index,matched:text.slice(index,end)};break}from=index+1}}return best}
-export function useKeywordLinks(){return useContext(KeywordLinkContext)}
+function DeepLinkSpan({ path, title, label }: { path: string; title: string; label: string }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      type="button"
+      className="deep-link"
+      onClick={(e) => {
+        e.preventDefault();
+        try {
+          sessionStorage.setItem("deep_link_return", `${window.location.pathname}${window.location.search}${window.location.hash}|${window.scrollY}`);
+        } catch { /* private-browsing / quota — the deep-link still navigates, just without a scroll-back position */ }
+        navigate(path);
+      }}
+      aria-label={`${label}: open the detailed ${title} study page`}
+      title={`Study ${title} in detail`}
+    >
+      {label}
+    </button>
+  );
+}
+
+interface TrieNode {
+  children: Map<string, TrieNode>;
+  entry?: LinkEntry;
+}
+
+/**
+ * Builds a trie over every candidate term's lowercased text. Terms sharing a
+ * prefix (or being identical) share nodes, so a single left-to-right scan of
+ * the text can find the best match at each position in roughly O(text length)
+ * instead of the previous O(pool size × text length) -- which mattered once
+ * the candidate pool and article bodies both grew large. `pool` is expected
+ * to already be sorted by priority (category match, then quality, then term
+ * length); when two entries share the exact same lowercased term, the first
+ * one inserted (i.e. the higher-priority one) wins the node.
+ */
+export function buildLinkTrie(pool: LinkEntry[]): TrieNode {
+  const root: TrieNode = { children: new Map() };
+  for (const entry of pool) {
+    let node = root;
+    for (const ch of entry.lower) {
+      let next = node.children.get(ch);
+      if (!next) {
+        next = { children: new Map() };
+        node.children.set(ch, next);
+      }
+      node = next;
+    }
+    if (!node.entry) node.entry = entry;
+  }
+  return root;
+}
+
+function isWordChar(ch: string | undefined): boolean {
+  return !!ch && /[a-z0-9]/i.test(ch);
+}
+
+export interface LinkMatch {
+  entry: LinkEntry;
+  index: number;
+  matched: string;
+}
+
+/**
+ * Single left-to-right scan for the earliest, then longest, then
+ * highest-priority whole-word match in `trie`. Matches must sit on word
+ * boundaries on both sides, mirroring the previous regex-free boundary check.
+ */
+export function findBestMatch(text: string, trie: TrieNode): LinkMatch | null {
+  const lower = text.toLowerCase();
+  for (let start = 0; start < lower.length; start++) {
+    if (isWordChar(lower[start - 1])) continue;
+    let node = trie;
+    let best: { entry: LinkEntry; end: number } | null = null;
+    for (let end = start; end < lower.length; end++) {
+      const next = node.children.get(lower[end]);
+      if (!next) break;
+      node = next;
+      if (node.entry && !isWordChar(lower[end + 1])) best = { entry: node.entry, end: end + 1 };
+    }
+    if (best) return { entry: best.entry, index: start, matched: text.slice(start, best.end) };
+  }
+  return null;
+}
+
+export function useKeywordLinks() {
+  return useContext(KeywordLinkContext);
+}

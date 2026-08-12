@@ -4,9 +4,12 @@ import { ArrowLeft, Clock, Loader2, Shield, Trophy, User, GraduationCap, BookOpe
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import ExamMode from "@/components/ExamMode";
 import { Helmet } from "react-helmet-async";
 import { extractIdFromParam, getSetting } from "@/lib/store";
+import StudyControls from "@/components/StudyControls";
+import HelpfulVote from "@/components/HelpfulVote";
 
 interface ExamSet {
   id: string;
@@ -33,7 +36,7 @@ function loadCreds(): StudentInfo | null {
   } catch { return null; }
 }
 function saveCreds(info: StudentInfo) {
-  try { localStorage.setItem(STUDENT_CREDS_KEY, JSON.stringify(info)); } catch {}
+  try { localStorage.setItem(STUDENT_CREDS_KEY, JSON.stringify(info)); } catch { /* quota */ }
 }
 
 // ── base lists ───────────────────────────────────────────────
@@ -145,7 +148,7 @@ export default function ExamStart() {
       const raw = localStorage.getItem(UNLOCKED_KEY);
       const set = new Set<string>(raw ? JSON.parse(raw) : []);
       if (set.has(examId)) setIsPaid(true);
-    } catch {}
+    } catch { /* corrupt/unavailable storage — treat as not unlocked */ }
   }, [examId]);
 
   const persistUnlocked = (id: string) => {
@@ -154,7 +157,7 @@ export default function ExamStart() {
       const set = new Set<string>(raw ? JSON.parse(raw) : []);
       set.add(id);
       localStorage.setItem(UNLOCKED_KEY, JSON.stringify([...set]));
-    } catch {}
+    } catch { /* quota */ }
   };
 
   const pollPayment = (txnId: string) => {
@@ -178,7 +181,7 @@ export default function ExamStart() {
           clearInterval(pollId);
           setPaymentStatus("failed");
         }
-      } catch {}
+      } catch { /* transient network error — the interval will retry */ }
     }, 2000);
   };
 
@@ -203,7 +206,7 @@ export default function ExamStart() {
       if (!rawParam) { navigate("/exams"); return; }
       // Resolve by id first, then by slug
       let resolvedId = directId;
-      let data: any = null;
+      let data: Pick<Tables<"mcq_sets">, "id" | "title" | "category" | "questions"> | null = null;
       if (isSampleParam) { setExam(sampleExam()); setExamId("sample-exam"); setLoading(false); return; }
       if (resolvedId) {
         const r = await supabase
@@ -235,14 +238,14 @@ export default function ExamStart() {
 
   // Load approved custom institutions from DB
   useEffect(() => {
-    (supabase as any)
+    supabase
       .from("pending_institutions")
       .select("type, value")
       .eq("status", "approved")
-      .then(({ data }: any) => {
+      .then(({ data }) => {
         if (data) {
-          setExtraUniversities(data.filter((d: any) => d.type === "university").map((d: any) => d.value));
-          setExtraCourses(data.filter((d: any) => d.type === "course").map((d: any) => d.value));
+          setExtraUniversities(data.filter((d) => d.type === "university").map((d) => d.value));
+          setExtraCourses(data.filter((d) => d.type === "course").map((d) => d.value));
         }
       });
   }, []);
@@ -279,7 +282,7 @@ export default function ExamStart() {
     if (!val) return;
     setSubmittingUni(true);
     try {
-      await (supabase as any).from("pending_institutions").upsert(
+      await supabase.from("pending_institutions").upsert(
         { type: "university", value: val, submitted_by: studentInfo.name || "Anonymous", status: "pending" },
         { onConflict: "type,value", ignoreDuplicates: true }
       );
@@ -299,7 +302,7 @@ export default function ExamStart() {
     if (!val) return;
     setSubmittingCourse(true);
     try {
-      await (supabase as any).from("pending_institutions").upsert(
+      await supabase.from("pending_institutions").upsert(
         { type: "course", value: val, submitted_by: studentInfo.name || "Anonymous", status: "pending" },
         { onConflict: "type,value", ignoreDuplicates: true }
       );
@@ -407,6 +410,12 @@ export default function ExamStart() {
               <p className="text-sm font-semibold text-foreground">{exam.questions.length} questions · {totalMinutes} minutes</p>
             </div>
           </div>
+
+          {exam.id !== "sample-exam" && (
+            <div className="mt-5">
+              <StudyControls resourceType="exam" resourceId={exam.id} title={exam.title} />
+            </div>
+          )}
 
           <div className="mt-5 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
             <p className="mb-2 flex items-center gap-2 text-foreground"><Shield className="h-4 w-4 text-primary" /> Exam rules</p>
@@ -568,6 +577,8 @@ export default function ExamStart() {
             </div>
           )}
         </div>
+
+        {exam.id !== "sample-exam" && <HelpfulVote resourceType="exam" resourceId={exam.id} />}
       </div>
     </div>
   );

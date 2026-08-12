@@ -128,41 +128,46 @@ export async function getTopicsForUnit(unitId: string): Promise<SyllabusTopic[]>
 export async function getUnitResources(unit: Unit): Promise<UnitResource[]> {
   const category = unit.legacy_category;
   const filter = category ? `unit_id.eq.${unit.id},category.eq.${category}` : `unit_id.eq.${unit.id}`;
-  const db = supabase as unknown as {
-    from: (t: string) => {
-      select: (c: string) => {
-        eq: (c: string, v: unknown) => any;
-      };
-    };
-  };
 
-  const run = async (table: string, cols: string, limit: number) => {
-    const { data } = await (db
-      .from(table)
-      .select(cols)
-      .eq("published", true) as any)
+  const [articles, mcqs, flashcards] = await Promise.all([
+    supabase
+      .from("articles")
+      .select("id, title, slug, category, content_type, created_at, updated_at, verification_status, completeness_status, exam_year")
+      .eq("published", true)
       .is("deleted_at", null)
       .or(filter)
       .order("created_at", { ascending: false })
-      .limit(limit);
-    return (data || []) as UnitResource[];
-  };
-
-  const [articles, mcqs, flashcards] = await Promise.all([
-    run("articles", "id, title, slug, category, content_type, created_at, updated_at, verification_status, completeness_status, exam_year", 200),
-    run("mcq_sets", "id, title, slug, category, content_type, created_at, updated_at", 100),
-    run("flashcard_sets", "id, title, slug, category, content_type, created_at, updated_at", 100),
+      .limit(200),
+    supabase
+      .from("mcq_sets")
+      .select("id, title, slug, category, content_type, created_at, updated_at")
+      .eq("published", true)
+      .is("deleted_at", null)
+      .or(filter)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("flashcard_sets")
+      .select("id, title, slug, category, content_type, created_at, updated_at")
+      .eq("published", true)
+      .is("deleted_at", null)
+      .or(filter)
+      .order("created_at", { ascending: false })
+      .limit(100),
   ]);
 
   return [
-    ...articles.map((r) => ({ ...r, kind: "article" as const })),
-    ...mcqs.map((r) => ({ ...r, kind: "mcq" as const })),
-    ...flashcards.map((r) => ({ ...r, kind: "flashcard" as const })),
+    ...(articles.data || []).map((r) => ({ ...r, kind: "article" as const })),
+    ...(mcqs.data || []).map((r) => ({ ...r, kind: "mcq" as const })),
+    ...(flashcards.data || []).map((r) => ({ ...r, kind: "flashcard" as const })),
   ];
 }
 
 export function resourcePath(r: UnitResource): string {
-  if (r.kind === "mcq") return `/blog?q=${encodeURIComponent(r.title)}`;
+  // MCQ sets power the timed exam flow directly (see ExamStart.tsx, which
+  // resolves this same slug-or-id against the mcq_sets table) -- link there
+  // instead of a fuzzy title search on the blog.
+  if (r.kind === "mcq") return `/exams/${r.slug || r.id}/start`;
   if (r.kind === "flashcard") return `/flashcards/${r.slug || r.id}`;
   return `/blog/${r.slug || r.id}`;
 }
