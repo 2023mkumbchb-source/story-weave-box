@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { stripCatalogLabel } from "@/lib/keyword-link";
+import { isUsefulTerm, stripCatalogLabel } from "@/lib/keyword-link";
 
 describe("keyword-link catalogue labels", () => {
   it("removes article-type suffixes", () => {
@@ -10,5 +10,13 @@ describe("keyword-link catalogue labels", () => {
   });
   it("preserves medical punctuation", () => {
     expect(stripCatalogLabel("Adrenal Adenoma vs Carcinoma: Diagnostic Criteria")).toBe("Adrenal Adenoma vs Carcinoma: Diagnostic Criteria");
+  });
+  it("keeps medical concepts and rejects ordinary connector words", () => {
+    expect(isUsefulTerm("malaria")).toBe(true);
+    expect(isUsefulTerm("inflammation")).toBe(true);
+    expect(isUsefulTerm("glomerulonephritis")).toBe(true);
+    expect(isUsefulTerm("and")).toBe(false);
+    expect(isUsefulTerm("another")).toBe(false);
+    expect(isUsefulTerm("general")).toBe(false);
   });
 });

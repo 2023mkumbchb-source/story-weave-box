@@ -17,7 +17,16 @@ const HIGH_VALUE_TERMS = [
   "microbiology", "hematopathology", "neuropathology", "inflammation", "neoplasia", "necrosis",
   "thrombosis", "embolism", "granuloma", "tuberculosis", "malaria", "schistosomiasis",
   "university of nairobi", "uon", "kenyatta university", "moi university", "kabarak university", "aga khan",
+  "apoptosis", "metaplasia", "dysplasia", "hyperplasia", "hypertrophy", "atrophy", "ischemia",
+  "infarction", "atherosclerosis", "vasculitis", "amyloidosis", "carcinoma", "sarcoma", "lymphoma",
+  "leukemia", "anaemia", "anemia", "haemostasis", "hemostasis", "coagulation", "immunology",
+  "hypersensitivity", "autoimmunity", "immunodeficiency", "mycology", "virology", "helminthiasis",
+  "toxoplasmosis", "leishmaniasis", "trypanosomiasis", "amoebiasis", "giardiasis", "candidiasis",
+  "cryptococcosis", "aspergillosis", "dermatophytosis", "influenza", "hepatitis", "rabies", "hiv",
+  "streptococcus", "staphylococcus", "clostridium", "mycobacterium", "pseudomonas", "salmonella",
+  "shigella", "cholera", "syphilis", "pharmacology", "pharmacokinetics", "pharmacodynamics",
 ];
+const HIGH_VALUE_SET = new Set(HIGH_VALUE_TERMS);
 
 export function stripCatalogLabel(title: string): string {
   return title
@@ -32,12 +41,19 @@ function cleanTerm(raw: string): string {
     .replace(/\s+/g, " ").trim().replace(/^[-—–:;,.]+|[-—–:;,.]+$/g, "");
 }
 
-function isUsefulTerm(term: string): boolean {
+export function isUsefulTerm(term: string): boolean {
   if (term.length < 5 || term.length > 80 || !/[a-z]/i.test(term) || /^\d+$/.test(term)) return false;
   const words = term.split(/\s+/);
   if (words.length > 8) return false;
   const banned = /^(the|and|but|with|from|into|onto|over|under|this|that|these|those|also|then|than|when|where|while|because|therefore|however|thus|hence|other|another|first|second|third|final|note|notes|definition|overview|introduction|summary|causes|cause|features|feature|management|treatment|diagnosis|classification|types|type|examples|example|important|various|common|general|specific|clinical|study|chapter|section|topic|topics|article|articles|page|pages|year|years|unit|units|method|methods|process|processes|effect|effects|symptom|symptoms|sign|signs|drug|drugs|disease|diseases|patient|patients|test|tests|level|levels|stage|stages|step|steps|number|numbers|name|names|group|groups|case|cases|tissue|tissues|body|organ|organs|cell|cells|blood|fluid|fluids|system|systems|function|functions|structure|structures|action|actions|table|tables|figure|figures|image|images|review)$/i;
-  return words.length !== 1 || !banned.test(term);
+  if (words.length === 1) {
+    if (banned.test(term)) return false;
+    // Single words are highlighted only when they are recognised medical
+    // concepts (or have a strongly medical scientific suffix).
+    return HIGH_VALUE_SET.has(term.toLowerCase()) || /(?:itis|osis|oma|emia|uria|pathy|plasm|cyte|virus|coccus|mycin)$/i.test(term);
+  }
+  const meaningful = words.filter(word => word.length > 3 && !banned.test(word));
+  return meaningful.length > 0;
 }
 
 async function loadEntries(): Promise<LinkEntry[]> {
@@ -65,7 +81,7 @@ async function loadEntries(): Promise<LinkEntry[]> {
       const aliases = (title: string | null | undefined, path: string, desc?: string | null, tags?: string[], category?: string | null, quality = 12) => {
         addTitle(title, path, category, quality);
         add(category, path, 2, category);
-        (tags || []).slice(0, 8).forEach(t => add(t, path, 3, category));
+        (tags || []).slice(0, 8).forEach(t => add(t, path, 4, category));
         const base = stripCatalogLabel(title || "");
         add(base.replace(/\([^)]{2,80}\)/g, " "), path, quality - 2, category);
         base.match(/\(([^)]{3,80})\)/g)?.forEach(m => add(m.slice(1, -1), path, quality - 3, category));
@@ -92,13 +108,13 @@ export function KeywordLinkProvider({ currentPath, currentCategory, children }: 
 export function linkifyText(text: string, ctx: Ctx | null, keyPrefix="k"): ReactNode {
   if(!ctx||!ctx.entries.length||!text)return text;
   const {entries,used,usedTargets,currentPath,currentCategory}=ctx;
-  const pool=entries.filter(e=>!used.has(e.lower)&&e.path!==currentPath)
+  const pool=entries.filter(e=>!used.has(e.lower)&&e.path!==currentPath&&(!usedTargets.has(e.path)||e.quality>=12))
     .sort((a,b)=>Number(b.category===currentCategory)-Number(a.category===currentCategory)||b.quality-a.quality||b.term.length-a.term.length).slice(0,5000);
   const out:ReactNode[]=[];let rest=text,i=0;
-  while(true){const found=findBestMatch(rest,pool);if(!found){out.push(rest);break}const{entry,index,matched}=found;const before=rest.slice(0,index);used.add(entry.lower);usedTargets.add(entry.path);if(before)out.push(<span key={`${keyPrefix}-b-${i}`}>{before}</span>);out.push(<DeepLinkSpan key={`${keyPrefix}-l-${i}`} path={`${entry.path}#${entry.target||slugify(matched)}`} title={entry.term} label={matched}/>);rest=rest.slice(index+matched.length);if(++i>40){out.push(rest);break}}
+  while(true){const found=findBestMatch(rest,pool);if(!found){out.push(rest);break}const{entry,index,matched}=found;const before=rest.slice(0,index);used.add(entry.lower);usedTargets.add(entry.path);if(before)out.push(<span key={`${keyPrefix}-b-${i}`}>{before}</span>);out.push(<DeepLinkSpan key={`${keyPrefix}-l-${i}`} path={`${entry.path}#${entry.target||slugify(matched)}`} title={entry.term} label={matched}/>);rest=rest.slice(index+matched.length);if(++i>28){out.push(rest);break}}
   return <>{out}</>;
 }
 
-function DeepLinkSpan({path,title,label}:{path:string;title:string;label:string}){const navigate=useNavigate();return <button type="button" className="deep-link" onClick={e=>{e.preventDefault();try{sessionStorage.setItem("deep_link_return",`${window.location.pathname}${window.location.search}${window.location.hash}|${window.scrollY}`)}catch{}navigate(path)}} title={`Open ${title}`}>{label}</button>}
+function DeepLinkSpan({path,title,label}:{path:string;title:string;label:string}){const navigate=useNavigate();return <button type="button" className="deep-link" onClick={e=>{e.preventDefault();try{sessionStorage.setItem("deep_link_return",`${window.location.pathname}${window.location.search}${window.location.hash}|${window.scrollY}`)}catch{}navigate(path)}} aria-label={`${label}: open the detailed ${title} study page`} title={`Study ${title} in detail`}>{label}</button>}
 function findBestMatch(text:string,pool:LinkEntry[]){const lower=text.toLowerCase();let best:{entry:LinkEntry;index:number;matched:string}|null=null;for(const entry of pool){let from=0;while(from<lower.length){const index=lower.indexOf(entry.lower,from);if(index<0)break;const end=index+entry.term.length,before=index===0?"":lower[index-1],after=end>=lower.length?"":lower[end];if(!/[a-z0-9]/i.test(before)&&!/[a-z0-9]/i.test(after)){if(!best||index<best.index||(index===best.index&&(entry.term.length>best.entry.term.length||(entry.term.length===best.entry.term.length&&entry.quality>best.entry.quality))))best={entry,index,matched:text.slice(index,end)};break}from=index+1}}return best}
 export function useKeywordLinks(){return useContext(KeywordLinkContext)}
