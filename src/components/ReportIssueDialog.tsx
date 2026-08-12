@@ -100,7 +100,6 @@ export default function ReportIssueDialog({ open, onOpenChange, resourceType, re
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={submit} disabled={busy}>{busy ? "Sending…" : "Send report"}</Button>
         </DialogFooter>
-      </DialogFooter>
       </DialogContent>
     </Dialog>
   );
