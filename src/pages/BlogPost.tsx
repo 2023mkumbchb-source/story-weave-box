@@ -25,6 +25,7 @@ import { SubscribeModal } from "@/components/SubscribeModal";
 import { openSubscribePrompt, useScrollSubscribePrompt } from "@/lib/subscribe-prompt";
 import StudyControls from "@/components/StudyControls";
 import HelpfulVote from "@/components/HelpfulVote";
+import ArticleMcqOption from "@/components/ArticleMcqOption";
 
 /**
  * Mounts the subscription prompt for articles that carry MCQs: guests read the
@@ -248,10 +249,17 @@ function renderProse(t: string, key: string) {
   return out;
 }
 
-function McqAnswerBlock({ raw }: { raw: string }) {
+function McqAnswerBlock({ raw, articleId, questionKey }: { raw: string; articleId?: string; questionKey?: string }) {
   const [open, setOpen] = useState(false);
   const access = useAccess();
   const locked = !access.canReveal;
+  useEffect(() => {
+    if (!articleId || !questionKey || locked) return;
+    const eventName = `ompath:answer:${articleId}:${questionKey}`;
+    const reveal = () => setOpen(true);
+    window.addEventListener(eventName, reveal);
+    return () => window.removeEventListener(eventName, reveal);
+  }, [articleId, questionKey, locked]);
   const normalized = raw
     .replace(/\*+/g, "")
     .replace(/^\s*✅?\s*(?:Answer|Model answer|Correct answer)\s*[:：]?\s*/i, "")
@@ -1385,9 +1393,23 @@ function extractToc(content: string): TocItem[] {
 /* ─── Article content renderer ─── */
 let _sec = 0;
 
-const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [] }: { content: string; inlineRelated?: any[] }) {
+function answerKeyByQuestion(lines: string[]): Map<string, string> {
+  const answers = new Map<string, string>();
+  let current = "";
+  for (const raw of lines) {
+    const line = raw.trim().replace(/^[*_#>\s]+/, "");
+    const q = line.match(/^(?:MCQ|Question|Q)\s*(\d+)/i) || line.match(/^(\d+)[.)]\s+/);
+    if (q) current = q[1];
+    const answer = line.match(/^(?:✅\s*)?(?:Answer|Correct answer)\s*[:：]\s*\*?\s*([A-E])\b/i);
+    if (current && answer) answers.set(current, answer[1].toUpperCase());
+  }
+  return answers;
+}
+
+const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [], articleId, category }: { content: string; inlineRelated?: any[]; articleId: string; category: string }) {
   _sec = 0;
   const lines = preprocessContent(content).split("\n");
+  const answerKeys = answerKeyByQuestion(lines);
   const els: React.ReactNode[] = [];
   let listBuf: { type: "ul" | "ol"; items: React.ReactNode[] } | null = null;
   let inPractice = false;
@@ -1400,6 +1422,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     /\bSAQs?\b|short[- ]answer|essay/i.test(content.slice(0, 3000)) ? "essay" : null;
   const pqs: { number: string; question: string; answer: string }[] = [];
   let insertedRelated = false;
+  let currentQuestionKey = "";
+  let currentQuestionText = "";
+  let currentTopic = "";
 
   const flushList = () => {
     if (!listBuf) return;
@@ -1510,7 +1535,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       pendingChoicesLabel = false;
       els.push(examMode === "essay"
         ? <InlineAnswerBlock key={`ans-${i}`} raw={buf.join("\n")} />
-        : <McqAnswerBlock key={`mcq-${i}`} raw={buf.join("\n")} />
+        : <McqAnswerBlock key={`mcq-${i}`} raw={buf.join("\n")} articleId={articleId} questionKey={currentQuestionKey} />
       );
       skipUntil = j;
       continue;
@@ -1615,6 +1640,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         topic = qTitle.replace(/[\s,.\-]+$/, "").trim();
         stem = "";
       }
+      currentQuestionKey = qNum;
+      currentQuestionText = stem || qTitle;
+      currentTopic = topic || category.replace(/^Year\s*\d+:\s*/i, "");
       els.push(
         <div key={`q-${i}`} id={`section-${_sec}`} className="not-prose mt-8 scroll-mt-24 border-t border-border pt-6">
           <div className="flex flex-wrap items-center gap-2">
@@ -1634,7 +1662,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
             <Inline text={leaked.text} />
           </p>
         );
-        if (leaked.answer) els.push(<McqAnswerBlock key={`q-stem-ans-${i}`} raw={leaked.answer} />);
+        if (leaked.answer) els.push(<McqAnswerBlock key={`q-stem-ans-${i}`} raw={leaked.answer} articleId={articleId} questionKey={currentQuestionKey} />);
       }
       pendingChoicesLabel = true;
       continue;
@@ -1671,14 +1699,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           if (explanationMatch?.[2]) pushBullet(explanationMatch[2].trim(), `essay-pt-exp-${i}-${n}`);
           return;
         }
-        els.push(
-          <div key={`mcqopt-combo-${i}-${n}`} className="not-prose my-1 flex items-start gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 transition-colors hover:border-primary/40">
-            <span className="mt-px shrink-0 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-[11px] font-bold text-primary">{label}</span>
-            <p className="min-w-0 flex-1 text-[15px] leading-[1.55] text-foreground"><Inline text={optText} /></p>
-          </div>
-        );
+        els.push(<ArticleMcqOption key={`mcqopt-combo-${i}-${n}`} articleId={articleId} questionKey={currentQuestionKey || String(i)} questionText={currentQuestionText} category={category} topic={currentTopic} label={label} text={optText} correctLabel={answerKeys.get(currentQuestionKey)}><Inline text={optText} /></ArticleMcqOption>);
         if (explanationMatch?.[2]) {
-          els.push(<McqAnswerBlock key={`mcqopt-combo-exp-${i}-${n}`} raw={`Answer: ${label}. ${optText}\nExplanation: ${explanationMatch[2]}`} />);
+          els.push(<McqAnswerBlock key={`mcqopt-combo-exp-${i}-${n}`} raw={`Answer: ${label}. ${optText}\nExplanation: ${explanationMatch[2]}`} articleId={articleId} questionKey={currentQuestionKey} />);
         }
       });
       continue;
@@ -1704,14 +1727,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       }
       if (label === "A") choicesLabel(`choices-${i}`);
       else pendingChoicesLabel = false;
-      els.push(
-        <div key={`mcqopt-${i}`} className="not-prose my-1 flex items-start gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 transition-colors hover:border-primary/40">
-          <span className="mt-px shrink-0 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-[11px] font-bold text-primary">{label}</span>
-          <p className="min-w-0 flex-1 text-[15px] leading-[1.55] text-foreground"><Inline text={optText} /></p>
-        </div>
-      );
+      els.push(<ArticleMcqOption key={`mcqopt-${i}`} articleId={articleId} questionKey={currentQuestionKey || String(i)} questionText={currentQuestionText} category={category} topic={currentTopic} label={label} text={optText} correctLabel={answerKeys.get(currentQuestionKey)}><Inline text={optText} /></ArticleMcqOption>);
       if (explanationMatch?.[2]) {
-        els.push(<McqAnswerBlock key={`mcqopt-exp-${i}`} raw={`Answer: ${label}. ${optText}\nExplanation: ${explanationMatch[2]}`} />);
+        els.push(<McqAnswerBlock key={`mcqopt-exp-${i}`} raw={`Answer: ${label}. ${optText}\nExplanation: ${explanationMatch[2]}`} articleId={articleId} questionKey={currentQuestionKey} />);
       }
       continue;
     }
@@ -2488,7 +2506,7 @@ export default function BlogPost() {
                       university={inferUniversity(article)}
                       onPreview={() => setPreviewOpen(true)}
                     />
-                  : <ArticleContent content={article.content} inlineRelated={related.articles || []} />}
+                  : <ArticleContent content={article.content} inlineRelated={related.articles || []} articleId={article.id} category={article.category || ""} />}
               </KeywordLinkProvider>
             </div>
 

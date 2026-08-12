@@ -15,6 +15,7 @@ import ContentProtection from "@/components/ContentProtection";
 import PurchaseResume from "@/components/PurchaseResume";
 import { Loader2 } from "lucide-react";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
+import LearnerProfileGate from "@/components/LearnerProfileGate";
 
 const Index = lazy(() => import("./pages/Index"));
 const Blog = lazy(() => import("./pages/Blog"));
@@ -112,6 +113,7 @@ const App = () => (
               <BackToTopButton />
               <ContentProtection />
               <PurchaseResume />
+              <LearnerProfileGate />
               <Navbar />
               <AnimatedRoutes />
               <SiteFooter />

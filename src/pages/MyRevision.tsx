@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Bookmark, BookOpen, CalendarDays, CheckCircle2, Clock, Flame, Target } from "lucide-react";
+import { AlertTriangle, Bookmark, BookOpen, CalendarDays, CheckCircle2, Clock, Flame, Target } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getActivity, getBookmarks, getProgress, computeStreak, type BookmarkRow, type ResourceProgress } from "@/lib/study";
 import { supabase } from "@/integrations/supabase/client";
 import { buildBlogPath } from "@/lib/store";
 import { Skeleton } from "@/components/ui/skeleton";
 
-type ArticleSummary = { id: string; title: string; slug: string | null; category: string; updated_at: string | null; created_at: string };
+type ArticleSummary = { id: string; title: string; slug: string | null; category: string; unit_id?: string | null; updated_at: string | null; created_at: string };
 
 function ResourceList({ items, byId, empty }: { items: { resource_id: string; status?: string }[]; byId: Map<string, ArticleSummary>; empty: string }) {
   if (!items.length) {
@@ -48,6 +48,8 @@ export default function MyRevision() {
   const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [weakAreas, setWeakAreas] = useState<{ label: string; wrong: number; total: number }[]>([]);
+  const [unvisitedUnits, setUnvisitedUnits] = useState<{ name: string; slug: string; year: number }[]>([]);
 
   useEffect(() => {
     let alive = true;
@@ -71,7 +73,7 @@ export default function MyRevision() {
         if (ids.length) {
           const { data } = await supabase
             .from("articles")
-            .select("id,title,slug,category,updated_at,created_at")
+            .select("id,title,slug,category,unit_id,updated_at,created_at")
             .in("id", ids)
             .eq("published", true);
           rows = (data || []) as ArticleSummary[];
@@ -81,6 +83,28 @@ export default function MyRevision() {
         setBookmarks(articleBookmarks);
         setArticles(rows);
         setStreak(computeStreak(a));
+        if (user) {
+          const db = supabase as any;
+          const [{ data: attempts }, { data: profile }] = await Promise.all([
+            db.from("article_answer_attempts").select("category,topic_label,is_correct").eq("user_id", user.id).order("attempted_at", { ascending: false }).limit(500),
+            db.from("profiles").select("study_year").eq("user_id", user.id).maybeSingle(),
+          ]);
+          const areas = new Map<string, { wrong: number; total: number }>();
+          for (const attempt of attempts || []) {
+            const label = attempt.topic_label || attempt.category || "Uncategorised";
+            const item = areas.get(label) || { wrong: 0, total: 0 };
+            item.total += 1; if (!attempt.is_correct) item.wrong += 1; areas.set(label, item);
+          }
+          setWeakAreas([...areas.entries()].filter(([, x]) => x.wrong > 0).sort((x, y) => (y[1].wrong / y[1].total) - (x[1].wrong / x[1].total)).slice(0, 6).map(([label, x]) => ({ label, ...x })));
+          if (profile?.study_year) {
+            const { data: yearRow } = await db.from("academic_years").select("id,year_number").eq("year_number", profile.study_year).maybeSingle();
+            if (yearRow) {
+              const { data: unitRows } = await db.from("units").select("id,name,slug").eq("academic_year_id", yearRow.id).eq("published", true).order("display_order");
+              const visitedUnitIds = new Set(rows.map(x => x.unit_id).filter(Boolean));
+              setUnvisitedUnits((unitRows || []).filter((x: any) => !visitedUnitIds.has(x.id)).slice(0, 8).map((x: any) => ({ ...x, year: profile.study_year })));
+            }
+          }
+        }
         setLoading(false);
       } catch {
         if (alive) { setError(true); setLoading(false); }
@@ -166,6 +190,19 @@ export default function MyRevision() {
           <ResourceList items={saved} byId={byId} empty="Use the Save button on any article to build your list." />
         </section>
       </div>
+
+      {user && <div className="mt-8 grid gap-8 lg:grid-cols-2">
+        <section>
+          <h2 className="mb-1 flex items-center gap-2 font-serif text-xl font-bold"><AlertTriangle className="h-5 w-5 text-amber-600" /> Topics to revise more</h2>
+          <p className="mb-3 text-sm text-muted-foreground">Based on questions you answered incorrectly.</p>
+          <div className="space-y-2">{weakAreas.length ? weakAreas.map(x => <Link key={x.label} to={`/search?q=${encodeURIComponent(x.label)}`} className="flex justify-between rounded-xl border bg-card p-3 hover:border-primary"><span className="font-semibold">{x.label}</span><span className="text-sm text-red-600">{x.wrong}/{x.total} wrong</span></Link>) : <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Answer article questions to identify weak topics.</p>}</div>
+        </section>
+        <section>
+          <h2 className="mb-1 font-serif text-xl font-bold">Units not visited yet</h2>
+          <p className="mb-3 text-sm text-muted-foreground">From the year selected in your learner profile.</p>
+          <div className="flex flex-wrap gap-2">{unvisitedUnits.length ? unvisitedUnits.map(x => <Link key={x.slug} to={`/year/${x.year}/unit/${x.slug}`} className="rounded-full border bg-card px-3 py-2 text-sm font-semibold hover:border-primary">{x.name}</Link>) : <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">You have opened every mapped unit, or your unit catalogue is still being completed.</p>}</div>
+        </section>
+      </div>}
 
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
         <Link to="/revision-planner" className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-5 hover:border-primary">
