@@ -29,32 +29,48 @@ export default function StudyControls({ resourceType, resourceId, title, compact
       if (!alive) return;
       setSaved(bookmarks.some((b) => b.resource_type === resourceType && b.resource_id === resourceId));
       const p = progress.find((x) => x.resource_type === resourceType && x.resource_id === resourceId);
-      if (p) setStatus(p.status);
+      if (p) {
+        setStatus(p.status);
+      } else {
+        // First time this resource has ever been opened — start tracking it.
+        // Deliberately does NOT run when a progress row already exists, so
+        // re-opening an article you already marked completed/difficult/revisit
+        // (e.g. to revise it again) never silently resets that status back to
+        // "in progress".
+        setStatus("in_progress");
+        void setProgress(userId, resourceType, resourceId, { status: "in_progress" });
+      }
+      void logActivity(userId, "open", { resource_type: resourceType, resource_id: resourceId });
     })();
     return () => { alive = false; };
-  }, [userId, resourceType, resourceId]);
-
-  // opening the resource counts as "in progress"
-  useEffect(() => {
-    void setProgress(userId, resourceType, resourceId, { status: "in_progress" });
-    void logActivity(userId, "open", { resource_type: resourceType, resource_id: resourceId });
   }, [userId, resourceType, resourceId]);
 
   const onSave = async () => {
     const next = !saved;
     setSaved(next);
-    await toggleBookmark(userId, resourceType, resourceId, next);
-    toast({ description: next ? "Saved to your library" : "Removed from saved" });
+    try {
+      await toggleBookmark(userId, resourceType, resourceId, next);
+      toast({ description: next ? "Saved to your library" : "Removed from saved" });
+    } catch {
+      setSaved(!next);
+      toast({ description: "Could not update your saved items. Please try again.", variant: "destructive" });
+    }
   };
 
   const mark = async (next: "completed" | "difficult" | "revisit") => {
+    const previous = status;
     setStatus(next);
-    await setProgress(userId, resourceType, resourceId, { status: next, progress_percent: next === "completed" ? 100 : undefined });
-    await logActivity(userId, next, { resource_type: resourceType, resource_id: resourceId });
-    toast({
-      description:
-        next === "completed" ? "Marked as studied" : next === "difficult" ? "Marked as difficult — it will show in My Revision" : "Added to continue later",
-    });
+    try {
+      await setProgress(userId, resourceType, resourceId, { status: next, progress_percent: next === "completed" ? 100 : undefined });
+      await logActivity(userId, next, { resource_type: resourceType, resource_id: resourceId });
+      toast({
+        description:
+          next === "completed" ? "Marked as studied" : next === "difficult" ? "Marked as difficult — it will show in My Revision" : "Added to continue later",
+      });
+    } catch {
+      setStatus(previous);
+      toast({ description: "Could not save your progress. Please try again.", variant: "destructive" });
+    }
   };
 
   return (

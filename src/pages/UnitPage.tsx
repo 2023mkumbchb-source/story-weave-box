@@ -105,13 +105,18 @@ export default function UnitPage() {
 
   const toggleTopic = async (topic: SyllabusTopic) => {
     if (!user) return;
+    const previous = topicProgress;
     const isDone = completedTopics.includes(topic.id);
     const next = isDone ? "not_started" : "completed";
     setTopicProgressState((prev) => {
       const rest = prev.filter((p) => p.topic_id !== topic.id);
       return [...rest, { topic_id: topic.id, status: next, confidence_level: isDone ? 0 : 3, correct_answers: 0, attempted_questions: 0 }];
     });
-    await setTopicProgress(user.id, topic.id, { status: next, completed_at: isDone ? null : new Date().toISOString() } as never);
+    try {
+      await setTopicProgress(user.id, topic.id, { status: next, completed_at: isDone ? null : new Date().toISOString() });
+    } catch {
+      setTopicProgressState(previous);
+    }
   };
 
   if (loading) {

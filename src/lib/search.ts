@@ -1,7 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { ResourceType } from "./academic";
+import { getAcademicYears, type ResourceType } from "./academic";
 
 const db = supabase as unknown as { from: (t: string) => any };
+
+/** Accepts "Year 2", "2", or 2 and returns the numeric year, or null. */
+function parseYearNumber(year: string | number | undefined): number | null {
+  if (year === undefined || year === null || year === "") return null;
+  const match = String(year).match(/\d+/);
+  return match ? Number(match[0]) : null;
+}
 
 export interface SearchHit {
   id: string;
@@ -83,9 +90,14 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
   if (!terms.length) return { hits: [], related: [] };
   const primary = terms[0];
 
+  // Year can arrive as "Year 2", "2", or 2 — normalize once so the filter
+  // reliably matches the "Year N: ..." category strings used across content.
+  const yearNumber = parseYearNumber(filters.year);
+  const yearLabel = yearNumber ? `Year ${yearNumber}` : null;
+
   const applyCommon = (q: any) => {
     let out = q.eq("published", true).is("deleted_at", null).limit(40);
-    if (filters.year) out = out.ilike("category", `${filters.year}%`);
+    if (yearLabel) out = out.ilike("category", `${yearLabel}:%`);
     if (filters.unitId) out = out.eq("unit_id", filters.unitId);
     if (filters.examYear) out = out.eq("exam_year", filters.examYear);
     if (filters.recentOnly) out = out.gte("updated_at", new Date(Date.now() - 60 * 86400000).toISOString());
@@ -106,19 +118,30 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
     db.from("flashcard_sets").select("id, title, slug, category, content_type, updated_at"),
   ).or(orIlike(["title", "category"], terms));
 
-  const unitQ = db
+  // Reuse the shared, cached academic-years lookup instead of an extra
+  // roundtrip on every keystroke — this table rarely changes.
+  const years = await getAcademicYears();
+  const yearsById = new Map<string, number>();
+  const idByYear = new Map<number, string>();
+  for (const y of years) { yearsById.set(y.id, y.year_number); idByYear.set(y.year_number, y.id); }
+  const yearId = yearNumber ? idByYear.get(yearNumber) : undefined;
+
+  let unitQ = db
     .from("units")
     .select("id, name, slug, course_code, description, academic_year_id")
     .eq("published", true)
     .or(orIlike(["name", "course_code", "description"], terms))
     .limit(10);
+  if (filters.unitId) unitQ = unitQ.eq("id", filters.unitId);
+  else if (yearId) unitQ = unitQ.eq("academic_year_id", yearId);
 
-  const topicQ = db
+  let topicQ = db
     .from("syllabus_topics")
     .select("id, title, unit_id, description")
     .eq("published", true)
     .or(orIlike(["title", "description"], terms))
     .limit(10);
+  if (filters.unitId) topicQ = topicQ.eq("unit_id", filters.unitId);
 
   const storyQ = filters.includeStories
     ? db
@@ -133,10 +156,6 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
   const [articles, mcqs, flashcards, units, topics, stories] = await Promise.all([
     articleQ, mcqQ, flashQ, unitQ, topicQ, storyQ,
   ]);
-
-  const yearsById = new Map<string, number>();
-  const { data: yearRows } = await db.from("academic_years").select("id, year_number");
-  for (const y of (yearRows || []) as { id: string; year_number: number }[]) yearsById.set(y.id, y.year_number);
 
   const hits: SearchHit[] = [];
   const reasonFor = (row: Record<string, unknown>) => {

@@ -142,6 +142,13 @@
   * {
     @apply border-border;
   }
+  /* Intrinsic-width media shouldn't reflow the layout while loading (CLS).
+     Fixed-layout images that rely on h-full/w-full utilities still win,
+     because Tailwind utilities live in a later layer and override these. */
+  img, video {
+    max-width: 100%;
+    height: auto;
+  }
   html {
     /* Butter-smooth anchor scrolling (TOC / jump links), auto for reduced-motion */
     scroll-behavior: smooth;

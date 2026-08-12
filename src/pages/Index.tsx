@@ -63,13 +63,18 @@ const tileReveal = {
 export default function Index() {
   const navigate = useNavigate();
   const heroRef = useRef<HTMLDivElement>(null);
+  const [prefersReducedMotion] = useState(
+    () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches,
+  );
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ["start start", "end start"],
   });
-  // Subtle parallax: hero content drifts up slightly while the band stays put
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, 70]);
-  const heroFade = useTransform(scrollYProgress, [0, 0.75], [1, 0.4]);
+  // Subtle parallax: hero content drifts up slightly while the band stays put.
+  // Scroll-linked transforms aren't covered by MotionConfig's reducedMotion prop
+  // (that only governs animate/transition props), so this is checked directly.
+  const heroY = useTransform(scrollYProgress, [0, 1], prefersReducedMotion ? [0, 0] : [0, 70]);
+  const heroFade = useTransform(scrollYProgress, [0, 0.75], prefersReducedMotion ? [1, 1] : [1, 0.4]);
   const [categories, setCategories] = useState<{ name: string; articles: number; flashcards: number; mcqs: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [recentlyUploaded, setRecentlyUploaded] = useState<RecentItem[]>([]);

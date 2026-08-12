@@ -10,6 +10,7 @@ export interface ResourceProgress {
   progress_percent: number;
   last_position: string | null;
   last_opened_at: string;
+  completed_at?: string | null;
 }
 
 export interface BookmarkRow {
@@ -42,9 +43,13 @@ const db = supabase as unknown as { from: (t: string) => any };
 
 export async function getProgress(userId: string | null): Promise<ResourceProgress[]> {
   if (!userId) return readLocal<ResourceProgress[]>(LOCAL_PROGRESS, []);
+  // RLS already scopes this table to the caller's own rows, but the filter is
+  // kept explicit as defense in depth (and to match getActivity below, whose
+  // policy intentionally lets admins read every user's rows).
   const { data } = await db
     .from("user_resource_progress")
-    .select("resource_type, resource_id, status, progress_percent, last_position, last_opened_at")
+    .select("resource_type, resource_id, status, progress_percent, last_position, last_opened_at, completed_at")
+    .eq("user_id", userId)
     .order("last_opened_at", { ascending: false })
     .limit(200);
   return (data || []) as ResourceProgress[];
@@ -114,6 +119,7 @@ export async function getBookmarks(userId: string | null): Promise<BookmarkRow[]
   const { data } = await db
     .from("user_bookmarks")
     .select("resource_type, resource_id, collection_name, created_at")
+    .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(200);
   return (data || []) as BookmarkRow[];
@@ -156,13 +162,15 @@ export interface TopicProgress {
   confidence_level: number;
   correct_answers: number;
   attempted_questions: number;
+  completed_at?: string | null;
 }
 
 export async function getTopicProgress(userId: string | null): Promise<TopicProgress[]> {
   if (!userId) return [];
   const { data } = await db
     .from("user_topic_progress")
-    .select("topic_id, status, confidence_level, correct_answers, attempted_questions");
+    .select("topic_id, status, confidence_level, correct_answers, attempted_questions")
+    .eq("user_id", userId);
   return (data || []) as TopicProgress[];
 }
 
@@ -189,24 +197,40 @@ export interface ActivityRow { created_at: string; activity_type: string; durati
 export async function getActivity(userId: string | null, days = 30): Promise<ActivityRow[]> {
   if (!userId) return [];
   const since = new Date(Date.now() - days * 86400000).toISOString();
+  // Explicit filter is required here, not just defensive: the RLS read policy
+  // on user_study_activity intentionally also lets admins see every user's
+  // rows (for support/analytics), so without this an admin's own "My
+  // Revision" streak would be computed over the whole site's activity.
   const { data } = await db
     .from("user_study_activity")
     .select("created_at, activity_type, duration_seconds")
+    .eq("user_id", userId)
     .gte("created_at", since)
     .order("created_at", { ascending: false });
   return (data || []) as ActivityRow[];
 }
 
+/** YYYY-MM-DD in the learner's local timezone (not UTC — a plain
+ *  toISOString().slice(0,10) shifts the calendar day for anyone east of
+ *  UTC, e.g. Kenya at UTC+3, for a chunk of every evening). */
+function localDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function computeStreak(activity: ActivityRow[]): number {
-  const days = new Set(activity.map((a) => a.created_at.slice(0, 10)));
+  const days = new Set(activity.map((a) => localDateKey(new Date(a.created_at))));
   let streak = 0;
   const cursor = new Date();
+  const todayKey = localDateKey(cursor);
   for (;;) {
-    const key = cursor.toISOString().slice(0, 10);
+    const key = localDateKey(cursor);
     if (days.has(key)) {
       streak += 1;
       cursor.setDate(cursor.getDate() - 1);
-    } else if (streak === 0 && key === new Date().toISOString().slice(0, 10)) {
+    } else if (streak === 0 && key === todayKey) {
       cursor.setDate(cursor.getDate() - 1);
     } else break;
   }

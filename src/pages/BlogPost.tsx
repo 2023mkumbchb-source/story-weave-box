@@ -440,6 +440,8 @@ function ClassicHeroInner({
           src={heroImage}
           alt={title}
           loading="eager"
+          fetchPriority="high"
+          decoding="async"
           className="absolute inset-0 h-full w-full animate-hero-pan object-cover object-center"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/20" />

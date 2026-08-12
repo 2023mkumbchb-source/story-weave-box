@@ -10,6 +10,7 @@ import {
 } from "@/lib/store";
 import { Helmet } from "react-helmet-async";
 import { getUnitsForYear, unitPath, type Unit } from "@/lib/academic";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -29,8 +30,49 @@ export default function YearHub() {
   const { yearNumber } = useParams();
   const location = useLocation();
   const parsedYear = Number(yearNumber);
+  const isValidYear = YEAR_NUMBERS.includes(parsedYear as (typeof YEAR_NUMBERS)[number]);
 
-  if (!YEAR_NUMBERS.includes(parsedYear as (typeof YEAR_NUMBERS)[number])) {
+  // Hooks must run unconditionally on every render (Rules of Hooks) — the
+  // "invalid year" early return happens further down, after all of them,
+  // and each effect guards itself with isValidYear instead.
+  const location2 = location;
+  const [recent, setRecent] = useState<Article[]>([]);
+  const [recentLoading, setRecentLoading] = useState(true);
+  const [canonicalUnits, setCanonicalUnits] = useState<Unit[]>([]);
+  const [unitsLoading, setUnitsLoading] = useState(true);
+
+  const yearLabel = isValidYear ? `Year ${parsedYear}` : "";
+  const units = isValidYear ? (YEAR_CATEGORIES[yearLabel] || []) : [];
+
+  useEffect(() => {
+    if (!isValidYear) { setRecentLoading(false); return; }
+    let alive = true;
+    setRecentLoading(true);
+    getPublishedArticleSummaries(yearLabel).then(list => {
+      if (!alive) return;
+      const sorted = [...list].sort((a, b) =>
+        new Date(b.updated_at || b.created_at).getTime() -
+        new Date(a.updated_at || a.created_at).getTime()
+      );
+      setRecent(sorted.slice(0, 6));
+      setRecentLoading(false);
+    });
+    return () => { alive = false; };
+  }, [isValidYear, yearLabel]);
+
+  useEffect(() => {
+    if (!isValidYear) { setUnitsLoading(false); return; }
+    let alive = true;
+    setUnitsLoading(true);
+    getUnitsForYear(parsedYear).then((list) => {
+      if (!alive) return;
+      setCanonicalUnits(list);
+      setUnitsLoading(false);
+    });
+    return () => { alive = false; };
+  }, [isValidYear, parsedYear]);
+
+  if (!isValidYear) {
     return (
       <div className="mx-auto max-w-5xl px-5 py-16 text-center">
         <h1 className="font-serif text-2xl font-bold text-foreground">Invalid year</h1>
@@ -39,24 +81,6 @@ export default function YearHub() {
     );
   }
 
-  const yearLabel = `Year ${parsedYear}`;
-  const units = YEAR_CATEGORIES[yearLabel] || [];
-  const location2 = location;
-  const [recent, setRecent] = useState<Article[]>([]);
-  const [canonicalUnits, setCanonicalUnits] = useState<Unit[]>([]);
-  useEffect(() => {
-    let alive = true;
-    getPublishedArticleSummaries(yearLabel).then(list => {
-      if (!alive) return;
-      const sorted = [...list].sort((a, b) =>
-        new Date(b.updated_at || b.created_at).getTime() -
-        new Date(a.updated_at || a.created_at).getTime()
-      );
-      setRecent(sorted.slice(0, 6));
-    });
-    return () => { alive = false; };
-  }, [yearLabel]);
-  useEffect(() => { getUnitsForYear(parsedYear).then(setCanonicalUnits); }, [parsedYear]);
   const ogUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}${location.pathname}${location.search}`
@@ -103,6 +127,12 @@ export default function YearHub() {
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
       </Helmet>
+
+      <nav aria-label="Breadcrumb" className="mb-4 text-xs text-muted-foreground">
+        <Link to="/" className="hover:text-primary">Home</Link> ›{" "}
+        <span className="text-foreground">{yearLabel}</span>
+      </nav>
+
       <div className="rounded-2xl border border-border bg-card p-6 sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-primary">Study navigation</p>
         <h1 className="mt-1 font-serif text-3xl font-bold text-foreground">{yearLabel}</h1>
@@ -134,16 +164,33 @@ export default function YearHub() {
           <BookMarked className="h-4 w-4 text-primary" />
           <h2 className="font-serif text-lg font-bold text-foreground">Units in {yearLabel}</h2>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {(canonicalUnits.length ? canonicalUnits : units.map(name => ({ id:name, name, slug:"", legacy_category:`${yearLabel}: ${name}` } as Unit))).map((unit) => (
-            <Link key={unit.id} to={unit.slug ? unitPath(parsedYear, unit.slug) : `/blog?year=${encodeURIComponent(yearLabel)}&unit=${encodeURIComponent(unit.legacy_category || "")}`} className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary">
-              {unit.name}
-            </Link>
-          ))}
-        </div>
+        {unitsLoading ? (
+          <div className="flex flex-wrap gap-2" aria-hidden="true">
+            {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-7 w-24 rounded-lg" />)}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {(canonicalUnits.length ? canonicalUnits : units.map(name => ({ id:name, name, slug:"", legacy_category:`${yearLabel}: ${name}` } as Unit))).map((unit) => (
+              <Link key={unit.id} to={unit.slug ? unitPath(parsedYear, unit.slug) : `/blog?year=${encodeURIComponent(yearLabel)}&unit=${encodeURIComponent(unit.legacy_category || "")}`} className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary">
+                {unit.name}
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
-      {recent.length > 0 && (
+      {recentLoading && (
+        <div className="mt-6 rounded-2xl border border-border bg-card p-5" aria-hidden="true">
+          <Skeleton className="mb-3 h-5 w-48" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
+        </div>
+      )}
+
+      {!recentLoading && recent.length > 0 && (
         <div className="mt-6 rounded-2xl border border-border bg-card p-5">
           <div className="mb-3 flex items-center gap-2">
             <Clock className="h-4 w-4 text-primary" />
