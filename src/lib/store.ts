@@ -976,9 +976,10 @@ export async function deleteMcqSet(id: string) {
 
 // Related content by category
 export async function getRelatedContent(category: string, excludeArticleId?: string) {
-  const [{ data: articles }, { data: flashcards }, { data: essays }] = await Promise.all([
+  const [{ data: articles }, { data: flashcards }, { data: mcqs }, { data: essays }] = await Promise.all([
     supabase.from("articles").select("id, title, category, content, meta_description, og_image_url, slug, updated_at, created_at").eq("published", true).eq("category", category).is("deleted_at", null).order("updated_at", { ascending: false }).limit(16),
     supabase.from("flashcard_sets").select("id, title, category, cards").eq("published", true).eq("category", category),
+    supabase.from("mcq_sets").select("id, title, category, questions, slug").eq("published", true).eq("category", category).is("deleted_at", null),
     excludeArticleId
       ? supabase
           .from("essays")
@@ -991,6 +992,7 @@ export async function getRelatedContent(category: string, excludeArticleId?: str
   return {
     articles: (articles || []).filter((a: any) => a.id !== excludeArticleId),
     flashcards: flashcards || [],
+    mcqs: mcqs || [],
     essays: essays || [],
   };
 }

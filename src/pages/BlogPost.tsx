@@ -9,7 +9,7 @@ import ArticleComments from "@/components/ArticleComments";
 import { Countdown, HtmlEmbed, PasswordGate, ContentToc, ReadingTimeBadge } from "@/components/ContentExtras";
 import { motion, AnimatePresence } from "framer-motion";
 import { getArticleBySlugOrId, getPublishedArticleSummaries, getRelatedContent, getCategoryDisplayName, getYearFromCategory, buildBlogPath, buildMcqPath, buildFlashcardPath, type Article } from "@/lib/store";
-import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags, autoIndexUrls } from "@/lib/seo";
+import { extractFirstImageFromContent, SITE_URL, stripRichText, updateMetaTags } from "@/lib/seo";
 import { useTopicThumbnail } from "@/lib/topicThumbnail";
 import { KeywordLinkProvider, useKeywordLinks, linkifyText } from "@/lib/keyword-link";
 import { slugify, useHashFlash } from "@/lib/deep-link";
@@ -2294,8 +2294,6 @@ export default function BlogPost() {
         ],
       },
     ]);
-
-    autoIndexUrls([canonicalUrl]);
 
     return () => {
       const ldEl = document.querySelector("script[data-article-ld]");
