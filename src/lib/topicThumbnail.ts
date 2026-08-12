@@ -58,7 +58,7 @@ async function fetchCommonsThumb(query: string, identity: string): Promise<Topic
 
 export function isGenericThumbnail(url?: string | null): boolean {
   const value = (url || "").toLowerCase();
-  if (!value || value.includes("og-default") || value.includes("placeholder") || value.startsWith("data:image/") || value.includes("encrypted-tbn0.gstatic.com")) return true;
+  if (!value || value.includes("og-default") || value.includes("placeholder") || value.startsWith("data:image/") || value.includes("encrypted-tbn0.gstatic.com") || value.includes("/functions/v1/topic-thumbnail?")) return true;
   return /\/articles\/(?:anatomy|physiology|pathology|general-pathology|microbiology|parasitology|immunology|pharmacology|genetics|molecular-biology|endocrine|clinical-biochem|chemical-pathology|communication|respiratory|gi-pathology|git-physiology|biochem-techniques)\.(?:jpe?g|png|webp)(?:\?|$)/i.test(value);
 }
 
