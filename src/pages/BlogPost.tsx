@@ -257,12 +257,15 @@ function McqAnswerBlock({ raw, articleId, questionKey }: { raw: string; articleI
     if (!articleId || !questionKey || locked) return;
     const eventName = `ompath:answer:${articleId}:${questionKey}`;
     const reveal = (event: Event) => {
-      const detail = (event as CustomEvent<{ solved?: boolean }>).detail;
+      const detail = (event as CustomEvent<{ solved?: boolean; firstAttempt?: boolean }>).detail;
       if (!detail?.solved) return;
       setOpen(true);
+      if (!detail.firstAttempt) return;
       window.setTimeout(() => {
-        document.getElementById(`answer-${articleId}-${questionKey}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 120);
+        const questions = Array.from(document.querySelectorAll<HTMLElement>('[data-article-question="true"]'));
+        const currentIndex = questions.findIndex((question) => question.dataset.questionKey === questionKey);
+        questions[currentIndex + 1]?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 220);
     };
     window.addEventListener(eventName, reveal);
     return () => window.removeEventListener(eventName, reveal);
@@ -1651,7 +1654,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       currentQuestionText = stem || qTitle;
       currentTopic = topic || category.replace(/^Year\s*\d+:\s*/i, "");
       els.push(
-        <div key={`q-${i}`} id={`section-${_sec}`} className="not-prose mt-8 scroll-mt-24 border-t border-border pt-6">
+        <div key={`q-${i}`} id={`section-${_sec}`} data-article-question="true" data-question-key={qNum} className="not-prose mt-8 scroll-mt-24 border-t border-border pt-6">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center rounded-md bg-primary px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-primary-foreground">
               Question {qNum}
