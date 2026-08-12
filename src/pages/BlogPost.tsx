@@ -1040,18 +1040,17 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     }
     if (subQMatch) {
       const label = subQMatch[1].replace(/[()]/g, "").toUpperCase();
-      const subText = subQMatch[2].trim();
+      const rawSubText = subQMatch[2].trim();
+      const marksMatch = rawSubText.match(/\s*(\[(?:\d+(?:\.\d+)?|½)\s*marks?\]|\((?:\d+(?:\.\d+)?|½)\s*marks?\))\s*$/i);
+      const subText = marksMatch ? rawSubText.slice(0, marksMatch.index).trim() : rawSubText;
       // In SAQ/essay papers "(a) …" lines are answer points: bullet them so the
       // page reads as revision points instead of a wall of chipped rows.
-      if (examMode === "essay" || subText.length > 110) {
-        pushBullet(`**${label}.** ${subText}`, `essay-sub-${i}`);
-        continue;
-      }
       flushList(); underSubheading = false;
       els.push(
-        <div key={`subq-${i}`} className="my-3 flex items-start gap-2.5 pl-1">
-          <span className="shrink-0 flex items-center justify-center rounded bg-primary/10 text-primary font-bold text-xs w-7 h-7">{label}</span>
-          <p className="flex-1 text-[15px] font-medium text-foreground leading-relaxed pt-0.5"><Inline text={subQMatch[2]} /></p>
+        <div key={`subq-${i}`} className="not-prose my-2.5 grid grid-cols-[2rem_minmax(0,1fr)] items-start gap-x-3 rounded-lg border border-border/70 bg-card px-3 py-3 sm:grid-cols-[2rem_minmax(0,1fr)_auto]">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">{label}</span>
+          <p className="min-w-0 pt-1 text-[15px] font-medium leading-relaxed text-foreground"><Inline text={subText} /></p>
+          {marksMatch && <span className="col-start-2 mt-1 whitespace-nowrap text-xs font-semibold text-muted-foreground sm:col-start-3 sm:row-start-1 sm:mt-1.5">{marksMatch[1]}</span>}
         </div>
       );
       continue;

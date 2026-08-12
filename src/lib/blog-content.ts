@@ -519,6 +519,26 @@ export function unwrapHardBreaks(raw: string): string {
   return out.join("\n");
 }
 
+/** Split genuine multipart essay prompts, excluding explanations and captions. */
+export function splitInlineEssayParts(line: string): string[] | null {
+  const trimmed = (line || "").trim();
+  if (!trimmed || /^[-*+]\s/.test(trimmed) || /^!\[/.test(trimmed) || /^(?:Explanation|Rationale|Answer)\s*:/i.test(trimmed)) return null;
+  const plain = trimmed.replace(/^\*\*|\*\*$/g, "").trim();
+  const markers = Array.from(plain.matchAll(/(?:^|\s)(\([a-h]\))\s+(?=\S)/gi));
+  if (markers.length < 2) return null;
+  const parts: string[] = [];
+  const first = markers[0].index ?? 0;
+  const prefix = plain.slice(0, first).trim();
+  if (prefix) parts.push(prefix);
+  for (let i = 0; i < markers.length; i++) {
+    const start = (markers[i].index ?? 0) + (markers[i][0].startsWith(" ") ? 1 : 0);
+    const end = i + 1 < markers.length ? (markers[i + 1].index ?? plain.length) : plain.length;
+    const part = plain.slice(start, end).trim();
+    if (part.length > 4) parts.push(part);
+  }
+  return parts.length >= 2 ? parts : null;
+}
+
 export function preprocessContent(raw: string): string {
   const out: string[] = [];
   let inKeyPoints = false;
@@ -552,6 +572,12 @@ export function preprocessContent(raw: string): string {
     // no longer renders. Keep this exemption ahead of every prose transform.
     if (/^!\[.*?\]\(\S+\)$/.test(trimmedRaw)) {
       out.push(trimmedRaw);
+      continue;
+    }
+
+    const essayParts = splitInlineEssayParts(trimmedRaw);
+    if (essayParts) {
+      out.push(...essayParts);
       continue;
     }
 
