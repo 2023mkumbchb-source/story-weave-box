@@ -124,46 +124,41 @@ export async function getTopicsForUnit(unitId: string): Promise<SyllabusTopic[]>
   return (data as SyllabusTopic[]) || [];
 }
 
-/** Resource counts + lists for a unit. Only summary columns are fetched. */
+/** Resource lists for a unit. Only summary columns are fetched. */
 export async function getUnitResources(unit: Unit): Promise<UnitResource[]> {
   const category = unit.legacy_category;
-  const out: UnitResource[] = [];
+  const filter = category ? `unit_id.eq.${unit.id},category.eq.${category}` : `unit_id.eq.${unit.id}`;
+  const db = supabase as unknown as {
+    from: (t: string) => {
+      select: (c: string) => {
+        eq: (c: string, v: unknown) => any;
+      };
+    };
+  };
 
-  const articleQuery = supabase
-    .from("articles")
-    .select("id, title, slug, category, content_type, created_at, updated_at, verification_status, completeness_status, exam_year")
-    .eq("published", true)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .limit(200);
-  const mcqQuery = supabase
-    .from("mcq_sets")
-    .select("id, title, slug, category, content_type, created_at, updated_at")
-    .eq("published", true)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .limit(100);
-  const flashQuery = supabase
-    .from("flashcard_sets")
-    .select("id, title, slug, category, content_type, created_at, updated_at")
-    .eq("published", true)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .limit(100);
-
-  const scope = <T extends { or: (f: string) => T; eq: (c: string, v: unknown) => T }>(q: T) =>
-    category ? q.or(`unit_id.eq.${unit.id},category.eq.${category}`) : q.eq("unit_id", unit.id);
+  const run = async (table: string, cols: string, limit: number) => {
+    const { data } = await (db
+      .from(table)
+      .select(cols)
+      .eq("published", true) as any)
+      .is("deleted_at", null)
+      .or(filter)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    return (data || []) as UnitResource[];
+  };
 
   const [articles, mcqs, flashcards] = await Promise.all([
-    scope(articleQuery as never) as unknown as ReturnType<typeof articleQuery.then> extends never ? never : Promise<{ data: unknown[] | null }>,
-    scope(mcqQuery as never) as unknown as Promise<{ data: unknown[] | null }>,
-    scope(flashQuery as never) as unknown as Promise<{ data: unknown[] | null }>,
+    run("articles", "id, title, slug, category, content_type, created_at, updated_at, verification_status, completeness_status, exam_year", 200),
+    run("mcq_sets", "id, title, slug, category, content_type, created_at, updated_at", 100),
+    run("flashcard_sets", "id, title, slug, category, content_type, created_at, updated_at", 100),
   ]);
 
-  for (const row of (articles.data || []) as UnitResource[]) out.push({ ...row, kind: "article" });
-  for (const row of (mcqs.data || []) as UnitResource[]) out.push({ ...row, kind: "mcq" });
-  for (const row of (flashcards.data || []) as UnitResource[]) out.push({ ...row, kind: "flashcard" });
-  return out;
+  return [
+    ...articles.map((r) => ({ ...r, kind: "article" as const })),
+    ...mcqs.map((r) => ({ ...r, kind: "mcq" as const })),
+    ...flashcards.map((r) => ({ ...r, kind: "flashcard" as const })),
+  ];
 }
 
 export function resourcePath(r: UnitResource): string {
