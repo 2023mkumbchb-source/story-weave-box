@@ -256,7 +256,14 @@ function McqAnswerBlock({ raw, articleId, questionKey }: { raw: string; articleI
   useEffect(() => {
     if (!articleId || !questionKey || locked) return;
     const eventName = `ompath:answer:${articleId}:${questionKey}`;
-    const reveal = () => setOpen(true);
+    const reveal = (event: Event) => {
+      const detail = (event as CustomEvent<{ solved?: boolean }>).detail;
+      if (!detail?.solved) return;
+      setOpen(true);
+      window.setTimeout(() => {
+        document.getElementById(`answer-${articleId}-${questionKey}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 120);
+    };
     window.addEventListener(eventName, reveal);
     return () => window.removeEventListener(eventName, reveal);
   }, [articleId, questionKey, locked]);
@@ -273,7 +280,7 @@ function McqAnswerBlock({ raw, articleId, questionKey }: { raw: string; articleI
   const explanation = formatSequence(cleanDisplayText(explanationRaw));
   if (!answerLine && !explanation) return null;
   return (
-    <div className="not-prose my-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
+    <div id={articleId && questionKey ? `answer-${articleId}-${questionKey}` : undefined} className="not-prose my-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
       <button
         type="button"
         onClick={() => {

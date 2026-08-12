@@ -3,7 +3,7 @@ import { Check, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
-type Selection = { selected: string; correct: string };
+type Selection = { wrong: string[]; solved: boolean; correct: string };
 
 export default function ArticleMcqOption({ articleId, questionKey, questionText, category, topic, label, text, correctLabel, children }: {
   articleId: string; questionKey: string; questionText: string; category: string; topic?: string;
@@ -20,10 +20,14 @@ export default function ArticleMcqOption({ articleId, questionKey, questionText,
   }, [eventName]);
 
   const choose = () => {
-    if (!correctLabel || selection) return;
-    const detail = { selected: label, correct: correctLabel };
-    window.dispatchEvent(new CustomEvent(eventName, { detail }));
+    if (!correctLabel || selection?.solved || selection?.wrong.includes(label)) return;
     const correct = label === correctLabel;
+    const detail: Selection = {
+      wrong: correct ? (selection?.wrong || []) : [...(selection?.wrong || []), label],
+      solved: correct,
+      correct: correctLabel,
+    };
+    window.dispatchEvent(new CustomEvent(eventName, { detail }));
     if (user) void (supabase as any).from("article_answer_attempts").insert({
       user_id: user.id, article_id: articleId, question_key: questionKey, question_text: questionText,
       topic_label: topic || null, category, selected_answer: label, correct_answer: correctLabel, is_correct: correct,
@@ -38,10 +42,10 @@ export default function ArticleMcqOption({ articleId, questionKey, questionText,
     }
   };
 
-  const isChosen = selection?.selected === label;
-  const isCorrect = selection && label === selection.correct;
-  const isWrong = isChosen && !isCorrect;
-  return <button type="button" onClick={choose} disabled={!correctLabel || !!selection}
+  const isCorrect = Boolean(selection?.solved && label === selection.correct);
+  const isWrong = Boolean(selection?.wrong.includes(label));
+  const isChosen = isCorrect || isWrong;
+  return <button type="button" onClick={choose} disabled={!correctLabel || Boolean(selection?.solved) || isWrong}
     aria-pressed={isChosen}
     className={`not-prose my-1 flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
       isCorrect ? "border-emerald-500 bg-emerald-500/10" : isWrong ? "border-red-500 bg-red-500/10" : "border-border/70 bg-card hover:border-primary/50"
@@ -50,6 +54,6 @@ export default function ArticleMcqOption({ articleId, questionKey, questionText,
       {isCorrect ? <Check className="h-4 w-4" /> : isWrong ? <X className="h-4 w-4" /> : label}
     </span>
     <span className="min-w-0 flex-1 text-[15px] leading-[1.55] text-foreground">{children}</span>
-    {isChosen && <span className={`text-xs font-bold ${isCorrect ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>{isCorrect ? "Correct" : `Incorrect · Answer ${selection.correct}`}</span>}
+    {isChosen && <span className={`text-xs font-bold ${isCorrect ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>{isCorrect ? "Correct" : "Try again"}</span>}
   </button>;
 }
