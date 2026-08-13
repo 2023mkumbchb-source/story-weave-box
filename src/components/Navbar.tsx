@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, GraduationCap, Home, LayoutDashboard, Menu, Trophy, ChevronRight, UserRound, Target, Database, ClipboardList } from "lucide-react";
+import { BookOpen, GraduationCap, Home, LayoutDashboard, Menu, Trophy, ChevronRight, UserRound, Target, Database, ClipboardList, ListChecks } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import ThemeToggle from "./ThemeToggle";
@@ -45,6 +45,7 @@ export default function Navbar() {
       { to: "/", label: "Home", icon: Home },
       { to: "/my-revision", label: "My Revision", icon: Target },
       { to: "/supplementary-revision", label: "Exam Sprint", icon: ClipboardList },
+      { to: "/revision-index", label: "Revision Index", icon: ListChecks },
       { to: "/account", label: "Account", icon: UserRound },
     ];
     if (isAdmin) {
