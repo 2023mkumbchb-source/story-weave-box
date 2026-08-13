@@ -52,6 +52,9 @@ export function assessAnswerReadiness(input: {
     const ready = Boolean(input.containsAnswerKey || input.answerKeyVerified || ANSWER_TEXT.test(input.content || ""));
     return { ready, label: ready ? (input.answerKeyVerified ? "Answer key complete" : "Answers included") : "Missing answers" };
   }
+  if (input.containsAnswerKey || input.answerKeyVerified) {
+    return { ready: true, label: input.answerKeyVerified ? "Answer key complete" : "Answers included" };
+  }
   if (!Array.isArray(input.items) || input.items.length === 0) return { ready: false, label: "Missing answers" };
   if (input.kind === "exam") {
     const ready = input.items.every(validMcqAnswer);

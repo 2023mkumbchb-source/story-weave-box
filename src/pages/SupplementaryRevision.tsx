@@ -49,7 +49,7 @@ export default function SupplementaryRevision() {
   const [resourcesLoading, setResourcesLoading] = useState(true);
   const [resourceError, setResourceError] = useState(false);
   const [progressRows, setProgressRows] = useState<ResourceProgress[]>([]);
-  const [progressLoading, setProgressLoading] = useState(true);
+  const [progressLoading, setProgressLoading] = useState(false);
   const [updatingKey, setUpdatingKey] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [groupFilter, setGroupFilter] = useState("All");
@@ -63,9 +63,9 @@ export default function SupplementaryRevision() {
     (async () => {
       setResourcesLoading(true); setResourceError(false);
       const [articles, exams, flashcards] = await Promise.all([
-        supabase.from("articles").select("id,title,slug,category,content,content_type,exam_type,contains_answer_key,answer_key_verified").eq("published", true).is("deleted_at", null),
-        supabase.from("mcq_sets").select("id,title,slug,category,questions,contains_answer_key,answer_key_verified").eq("published", true).is("deleted_at", null),
-        supabase.from("flashcard_sets").select("id,title,slug,category,cards,contains_answer_key,answer_key_verified").eq("published", true).is("deleted_at", null),
+        supabase.from("articles").select("id,title,slug,category,content_type,exam_type,contains_answer_key,answer_key_verified").eq("published", true).is("deleted_at", null),
+        supabase.from("mcq_sets").select("id,title,slug,category,contains_answer_key,answer_key_verified").eq("published", true).is("deleted_at", null),
+        supabase.from("flashcard_sets").select("id,title,slug,category,contains_answer_key,answer_key_verified").eq("published", true).is("deleted_at", null),
       ]);
       if (!active) return;
       if (articles.error || exams.error || flashcards.error) { setResourceError(true); setResourcesLoading(false); return; }
@@ -74,21 +74,21 @@ export default function SupplementaryRevision() {
       for (const row of articles.data || []) {
         const group = classifySupplementaryResource(row.title, row.category); if (!group) continue;
         const material = classifySupplementaryMaterial(row.title, row.content_type, row.exam_type);
-        const answer = assessAnswerReadiness({ kind: "article", material, content: row.content, containsAnswerKey: row.contains_answer_key, answerKeyVerified: row.answer_key_verified });
+        const answer = assessAnswerReadiness({ kind: "article", material, containsAnswerKey: row.contains_answer_key, answerKeyVerified: row.answer_key_verified });
         if (!answer.ready) { withheld++; continue; }
-        rows.push({ id: row.id, title: row.title, category: row.category, type: "Article", resourceType: "article", material, answerReadiness: answer.label as AnswerReadiness, path: `/blog/${row.slug || row.id}`, group, size: row.content?.length || 0 });
+        rows.push({ id: row.id, title: row.title, category: row.category, type: "Article", resourceType: "article", material, answerReadiness: answer.label as AnswerReadiness, path: `/blog/${row.slug || row.id}`, group, size: 0 });
       }
       for (const row of exams.data || []) {
         const group = classifySupplementaryResource(row.title, row.category); if (!group) continue;
-        const answer = assessAnswerReadiness({ kind: "exam", material: "MCQs & timed exams", items: row.questions });
+        const answer = assessAnswerReadiness({ kind: "exam", material: "MCQs & timed exams", containsAnswerKey: row.contains_answer_key, answerKeyVerified: row.answer_key_verified });
         if (!answer.ready) { withheld++; continue; }
-        rows.push({ id: row.id, title: row.title, category: row.category, type: "Exam / MCQ", resourceType: "exam", material: "MCQs & timed exams", answerReadiness: answer.label as AnswerReadiness, path: `/exams/${row.slug || row.id}/start`, group, size: Array.isArray(row.questions) ? row.questions.length : 0 });
+        rows.push({ id: row.id, title: row.title, category: row.category, type: "Exam / MCQ", resourceType: "exam", material: "MCQs & timed exams", answerReadiness: answer.label as AnswerReadiness, path: `/exams/${row.slug || row.id}/start`, group, size: 0 });
       }
       for (const row of flashcards.data || []) {
         const group = classifySupplementaryResource(row.title, row.category); if (!group) continue;
-        const answer = assessAnswerReadiness({ kind: "flashcard", material: "Flashcards", items: row.cards });
+        const answer = assessAnswerReadiness({ kind: "flashcard", material: "Flashcards", containsAnswerKey: row.contains_answer_key, answerKeyVerified: row.answer_key_verified });
         if (!answer.ready) { withheld++; continue; }
-        rows.push({ id: row.id, title: row.title, category: row.category, type: "Flashcards", resourceType: "flashcard", material: "Flashcards", answerReadiness: answer.label as AnswerReadiness, path: `/flashcards/${row.slug || row.id}`, group, size: Array.isArray(row.cards) ? row.cards.length : 0 });
+        rows.push({ id: row.id, title: row.title, category: row.category, type: "Flashcards", resourceType: "flashcard", material: "Flashcards", answerReadiness: answer.label as AnswerReadiness, path: `/flashcards/${row.slug || row.id}`, group, size: 0 });
       }
       rows.sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group) || a.title.localeCompare(b.title));
       setAllResources(rows); setWithheldCount(withheld); setResourcesLoading(false);
@@ -97,7 +97,6 @@ export default function SupplementaryRevision() {
   }, []);
   useEffect(() => {
     let active = true;
-    setProgressLoading(true);
     getProgress(userId).then((rows) => { if (active) { setProgressRows(rows); setProgressLoading(false); } }).catch(() => { if (active) setProgressLoading(false); });
     return () => { active = false; };
   }, [userId]);

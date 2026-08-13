@@ -470,6 +470,10 @@ export function buildBlogPath(article: Pick<Article, "id" | "title"> & { slug?: 
   return `/blog/${cleanPublicSlug(article.slug || "", article.title, "article")}`;
 }
 
+// Keep article reads lean. `select("*")` also transfers source/OCR/admin fields
+// that can be much larger than the rendered article itself.
+const ARTICLE_DETAIL_COLUMNS = "id,title,content,created_at,updated_at,published,category,is_raw,meta_title,meta_description,og_image_url,slug,countdown,html_embed,password_protected,access_password,tags,featured_image,reading_time_minutes,toc_enabled,comments_enabled,university,school,lecturer,exam_type,exam_year,unit,content_kind";
+
 export function buildMcqPath(set: { id: string; title: string; slug?: string | null }): string {
   const rawSlug = typeof set.slug === "string" ? set.slug.trim() : "";
   return `/mcqs/${cleanPublicSlug(rawSlug, set.title, "quiz")}`;
@@ -646,7 +650,7 @@ export async function searchPublishedArticles(queryText: string, year?: string, 
 export async function getArticleById(id: string): Promise<Article | null> {
   const { data, error } = await supabase
     .from("articles")
-    .select("*")
+    .select(ARTICLE_DETAIL_COLUMNS)
     .eq("id", id)
     .eq("published", true)
     .is("deleted_at", null)
@@ -663,7 +667,7 @@ export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | 
   if (explicitId) {
     const { data, error } = await supabase
       .from("articles")
-      .select("*")
+      .select(ARTICLE_DETAIL_COLUMNS)
       .eq("id", explicitId)
       .eq("published", true)
       .is("deleted_at", null)
@@ -674,7 +678,7 @@ export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | 
 
   const { data: slugMatches, error: slugError } = await supabase
     .from("articles")
-    .select("id")
+    .select(ARTICLE_DETAIL_COLUMNS)
     .or(`slug.eq.${normalizedParam},slug.ilike.%-${normalizedParam}`)
     .eq("published", true)
     .is("deleted_at", null)
@@ -683,7 +687,7 @@ export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | 
   if (slugError) throw slugError;
 
   const slugMatch = slugMatches?.[0];
-  if (slugMatch) return getArticleById(slugMatch.id);
+  if (slugMatch) return slugMatch as unknown as Article;
 
   const { data, error } = await supabase
     .from("articles")
@@ -977,9 +981,9 @@ export async function deleteMcqSet(id: string) {
 // Related content by category
 export async function getRelatedContent(category: string, excludeArticleId?: string) {
   const [{ data: articles }, { data: flashcards }, { data: mcqs }, { data: essays }] = await Promise.all([
-    supabase.from("articles").select("id, title, category, content, meta_description, og_image_url, slug, updated_at, created_at").eq("published", true).eq("category", category).is("deleted_at", null).order("updated_at", { ascending: false }).limit(16),
-    supabase.from("flashcard_sets").select("id, title, category, cards").eq("published", true).eq("category", category),
-    supabase.from("mcq_sets").select("id, title, category, questions, slug").eq("published", true).eq("category", category).is("deleted_at", null),
+    supabase.from("articles").select("id, title, category, meta_description, og_image_url, slug, updated_at, created_at").eq("published", true).eq("category", category).is("deleted_at", null).order("updated_at", { ascending: false }).limit(8),
+    supabase.from("flashcard_sets").select("id, title, category, slug").eq("published", true).eq("category", category).limit(8),
+    supabase.from("mcq_sets").select("id, title, category, slug").eq("published", true).eq("category", category).is("deleted_at", null).limit(8),
     excludeArticleId
       ? supabase
           .from("essays")
