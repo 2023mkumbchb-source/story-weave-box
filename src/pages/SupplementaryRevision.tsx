@@ -1,10 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { BookOpen, CalendarDays, CheckCircle2, Clock, ExternalLink, Pin, Target } from "lucide-react";
+import { BookOpen, CalendarDays, CheckCircle2, Clock, ExternalLink, FileQuestion, GraduationCap, Loader2, Pin, Search, Target } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
 
 type Resource = { title: string; slug: string; kind: string; reason: string };
 type Subject = { name: string; level: string; colour: string; resources: Resource[] };
+type LiveResource = { id: string; title: string; category: string; type: "Article" | "Exam / MCQ" | "Flashcards"; path: string; group: string; size: number };
+
+const GROUP_ORDER = ["Year 2 Microbiology", "Year 2 Parasitology", "Year 3 Bacteriology & Parasitology II", "Medical Virology", "Medical Mycology", "General Pathology", "Systemic Pathology", "Haematology"];
+
+function resourceGroup(title: string, category: string): string | null {
+  const text = `${title} ${category}`.toLowerCase();
+  const year2 = /year\s*2/.test(category.toLowerCase());
+  if (/virolog|\bvirus|\bviral|\bhiv\b|hepatitis virus/.test(text)) return "Medical Virology";
+  if (/mycolog|\bfung(?:us|i|al)\b|candida|aspergill|cryptococc|histoplas/.test(text)) return "Medical Mycology";
+  if (year2 && /parasitol|parasite|protozo|helminth|malaria|plasmod|schistosom|entomolog/.test(text)) return "Year 2 Parasitology";
+  if (year2 && /microbiolog|bacteriolog|bacteri|staphyl|streptococ|gram[ -]/.test(text)) return "Year 2 Microbiology";
+  if (/bacteriolog|parasitology ii|parasitology 2|year\s*3.*parasitol|medical microbiolog/.test(text)) return "Year 3 Bacteriology & Parasitology II";
+  if (/haemat|hemat|blood transfusion|anaemia|anemia|leuk|leuka|lymphoma|coagulation|haemostasis|hemostasis/.test(text)) return "Haematology";
+  if (/general pathology|cell injury|inflammation|tissue repair|wound healing|neoplas|hemodynamic|haemodynamic|immunopath/.test(text)) return "General Pathology";
+  if (/patholog|oncopath|cardiovascular|respiratory|gastrointestinal|hepatobiliary|\brenal\b|endocrine|neuropath|reproductive|\bbreast\b|bone and soft tissue|\bskin\b/.test(text)) return "Systemic Pathology";
+  return null;
+}
 
 const subjects: Subject[] = [
   { name: "Year 2 Microbiology", level: "Foundation microbiology — kept separate from Year 3 bacteriology", colour: "bg-sky-500", resources: [
@@ -74,8 +93,47 @@ const plan = [
 
 export default function SupplementaryRevision() {
   const [done, setDone] = useState<string[]>(() => JSON.parse(localStorage.getItem("supplementary-plan-done") || "[]"));
+  const [allResources, setAllResources] = useState<LiveResource[]>([]);
+  const [resourcesLoading, setResourcesLoading] = useState(true);
+  const [resourceError, setResourceError] = useState(false);
+  const [query, setQuery] = useState("");
+  const [groupFilter, setGroupFilter] = useState("All");
   useEffect(() => localStorage.setItem("supplementary-plan-done", JSON.stringify(done)), [done]);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      setResourcesLoading(true); setResourceError(false);
+      const [articles, exams, flashcards] = await Promise.all([
+        supabase.from("articles").select("id,title,slug,category,content").eq("published", true).is("deleted_at", null),
+        supabase.from("mcq_sets").select("id,title,slug,category,questions").eq("published", true).is("deleted_at", null),
+        supabase.from("flashcard_sets").select("id,title,slug,category,cards").eq("published", true).is("deleted_at", null),
+      ]);
+      if (!active) return;
+      if (articles.error || exams.error || flashcards.error) { setResourceError(true); setResourcesLoading(false); return; }
+      const rows: LiveResource[] = [];
+      for (const row of articles.data || []) {
+        const group = resourceGroup(row.title, row.category); if (!group) continue;
+        rows.push({ id: row.id, title: row.title, category: row.category, type: "Article", path: `/blog/${row.slug || row.id}`, group, size: row.content?.length || 0 });
+      }
+      for (const row of exams.data || []) {
+        const group = resourceGroup(row.title, row.category); if (!group) continue;
+        rows.push({ id: row.id, title: row.title, category: row.category, type: "Exam / MCQ", path: `/exams/${row.slug || row.id}/start`, group, size: Array.isArray(row.questions) ? row.questions.length : 0 });
+      }
+      for (const row of flashcards.data || []) {
+        const group = resourceGroup(row.title, row.category); if (!group) continue;
+        rows.push({ id: row.id, title: row.title, category: row.category, type: "Flashcards", path: `/flashcards/${row.slug || row.id}`, group, size: Array.isArray(row.cards) ? row.cards.length : 0 });
+      }
+      rows.sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group) || a.title.localeCompare(b.title));
+      setAllResources(rows); setResourcesLoading(false);
+    })().catch(() => { if (active) { setResourceError(true); setResourcesLoading(false); } });
+    return () => { active = false; };
+  }, []);
   const progress = useMemo(() => Math.round((done.length / plan.length) * 100), [done]);
+  const visibleResources = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return allResources.filter((item) => (groupFilter === "All" || item.group === groupFilter) && (!needle || `${item.title} ${item.category} ${item.type}`.toLowerCase().includes(needle)));
+  }, [allResources, groupFilter, query]);
+  const groupedResources = useMemo(() => GROUP_ORDER.map((group) => ({ group, resources: visibleResources.filter((item) => item.group === group) })).filter((entry) => entry.resources.length), [visibleResources]);
   const toggle = (date: string) => setDone((current) => current.includes(date) ? current.filter((x) => x !== date) : [...current, date]);
 
   return <>
@@ -108,6 +166,20 @@ export default function SupplementaryRevision() {
             </Link>)}</div>
           </article>)}
         </div>
+      </section>
+
+      <section id="all-resources" className="scroll-mt-24">
+        <div className="mb-2 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-primary">Complete live library</p><h2 className="font-serif text-2xl font-bold">All revision resources on the site</h2></div><span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-bold text-primary">{allResources.length} resources</span></div>
+        <p className="mb-5 text-sm leading-6 text-muted-foreground">Automatically includes every published note, CAT, past paper, essay bank, MCQ/exam and flashcard set matching your supplementary units. New matching material appears here automatically.</p>
+        <div className="mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <label className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search all revision materials…" className="pl-9" /></label>
+          <select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option>All</option>{GROUP_ORDER.map((group) => <option key={group}>{group}</option>)}</select>
+        </div>
+        {resourcesLoading ? <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : resourceError ? <p className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 text-sm">The live resource catalogue could not load. Refresh to try again.</p> : groupedResources.length === 0 ? <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">No resources match this search.</p> : <div className="space-y-7">
+          {groupedResources.map(({ group, resources }) => <div key={group}><div className="mb-3 flex items-center justify-between border-b pb-2"><h3 className="font-serif text-xl font-bold">{group}</h3><span className="text-xs font-semibold text-muted-foreground">{resources.length}</span></div><div className="grid gap-2 md:grid-cols-2">
+            {resources.map((resource) => { const Icon = resource.type === "Article" ? BookOpen : resource.type === "Flashcards" ? GraduationCap : FileQuestion; return <Link key={`${resource.type}-${resource.id}`} to={resource.path} className="group flex items-start gap-3 rounded-xl border bg-card p-3 transition-colors hover:border-primary/40 hover:bg-primary/5"><Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold leading-5 group-hover:text-primary">{resource.title}</span><span className="mt-1 block text-xs text-muted-foreground">{resource.type} · {resource.category}{resource.size ? ` · ${resource.type === "Article" ? `${Math.max(1, Math.round(resource.size / 1000))}k characters` : `${resource.size} items`}` : ""}</span></span><ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /></Link>; })}
+          </div></div>)}
+        </div>}
       </section>
 
       <section>
