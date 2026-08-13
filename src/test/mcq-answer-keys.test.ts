@@ -53,6 +53,19 @@ describe("answerKeyByQuestion", () => {
     ];
     expect(answerKeyByQuestion(lines).get("1")).toBe("B");
   });
+
+  it("reads an Answer: line prefixed with a markdown bullet dash", () => {
+    const lines = [
+      "- **Which hormone promotes anabolism?**A) GH",
+      "- B) Insulin",
+      "- C) Cortisol",
+      "- **Answer: B) Insulin**",
+    ];
+    // No numbered question header here, but the bullet-prefixed answer line
+    // itself must still be recognized once a question is in scope.
+    const withHeader = ["1. Which hormone promotes anabolism?", ...lines];
+    expect(answerKeyByQuestion(withHeader).get("1")).toBe("B");
+  });
 });
 
 describe("parseConsolidatedAnswerKey", () => {

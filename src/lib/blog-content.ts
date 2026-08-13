@@ -804,7 +804,11 @@ export function answerKeyByQuestion(lines: string[]): Map<string, string> {
   let current = "";
   for (const raw of lines) {
     const trimmed = raw.trim();
-    const line = trimmed.replace(/^[*_#>\s]+/, "");
+    // A leading markdown bullet ("- **Answer: B) Insulin**") is common in
+    // some source papers and must be stripped like the other prefix
+    // characters, or the line never matches "Answer:" at all even though
+    // the answer is right there in plain sight.
+    const line = trimmed.replace(/^[-*_#>\s]+/, "");
     const q = line.match(/^(?:MCQ|Question|Q)\s*(\d+)/i) || line.match(/^(\d+)[.)]\s+/);
     if (q) current = q[1];
     const answer = line.match(/^(?:✅\s*)?(?:Answer|Correct answer)\s*[:：]\s*\*?\s*([A-E])\b/i);
