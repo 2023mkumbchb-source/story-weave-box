@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { safePostLoginPath } from "@/lib/social-auth";
 
 /** Public landing page Google/OAuth returns to. Waits for the session, then continues. */
 export default function AuthCallback() {
@@ -13,7 +14,7 @@ export default function AuthCallback() {
     const finish = () => {
       if (done) return;
       done = true;
-      const back = sessionStorage.getItem("post_login_redirect") || "/account";
+      const back = safePostLoginPath(sessionStorage.getItem("post_login_redirect"));
       sessionStorage.removeItem("post_login_redirect");
       navigate(back, { replace: true });
     };

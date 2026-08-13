@@ -8,6 +8,11 @@ export function canonicalOrigin(): string {
   return window.location.origin;
 }
 
+/** Accept only an internal path after OAuth; never preserve an external URL. */
+export function safePostLoginPath(value: unknown): string {
+  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//") ? value : "/account";
+}
+
 /**
  * Google sign-in for students, so subscriptions can be tied to an account.
  * Uses a plain full-page redirect (works on Vercel and inside the preview).

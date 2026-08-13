@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/hooks/useAuth";
-import { signInWithGoogle } from "@/lib/social-auth";
+import { canonicalOrigin, safePostLoginPath, signInWithGoogle } from "@/lib/social-auth";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Login() {
@@ -39,7 +39,7 @@ export default function Login() {
 
   const google = async () => {
     setBusy(true);
-    sessionStorage.setItem("post_login_redirect", (location.state as { from?: string } | null)?.from || "/account");
+    sessionStorage.setItem("post_login_redirect", safePostLoginPath((location.state as { from?: string } | null)?.from));
     const res = await signInWithGoogle();
     setBusy(false);
     if (res.redirected) return;
@@ -78,7 +78,7 @@ export default function Login() {
       return;
     }
     setBusy(true);
-    const redirectTo = `${window.location.origin}/login`;
+    const redirectTo = `${canonicalOrigin()}/login`;
     const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, { redirectTo });
     setBusy(false);
     toast(error
