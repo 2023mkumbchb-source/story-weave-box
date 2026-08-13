@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { BookOpen, CalendarDays, CheckCircle2, Clock, ExternalLink, FileQuestion, GraduationCap, Loader2, Pin, Search, Target } from "lucide-react";
+import { BookOpen, CalendarDays, Check, CheckCircle2, Circle, Clock, ExternalLink, FileQuestion, GraduationCap, Loader2, Search, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/useAuth";
+import { getProgress, logActivity, setProgress, type ProgressStatus, type ResourceProgress } from "@/lib/study";
+import type { ResourceType } from "@/lib/academic";
+import { toast } from "@/hooks/use-toast";
 
-type Resource = { title: string; slug: string; kind: string; reason: string };
-type Subject = { name: string; level: string; colour: string; resources: Resource[] };
-type LiveResource = { id: string; title: string; category: string; type: "Article" | "Exam / MCQ" | "Flashcards"; path: string; group: string; size: number };
+type LiveResource = { id: string; title: string; category: string; type: "Article" | "Exam / MCQ" | "Flashcards"; resourceType: ResourceType; material: string; path: string; group: string; size: number };
 
 const GROUP_ORDER = ["Year 2 Microbiology", "Year 2 Parasitology", "Year 3 Bacteriology & Parasitology II", "Medical Virology", "Medical Mycology", "General Pathology", "Systemic Pathology", "Haematology"];
+const MATERIAL_ORDER = ["Notes & revision guides", "Past papers", "CATs", "Essays & SAQs", "Question banks", "MCQs & timed exams", "Flashcards"];
 
 function resourceGroup(title: string, category: string): string | null {
   const text = `${title} ${category}`.toLowerCase();
@@ -25,48 +28,17 @@ function resourceGroup(title: string, category: string): string | null {
   return null;
 }
 
-const subjects: Subject[] = [
-  { name: "Year 2 Microbiology", level: "Foundation microbiology — kept separate from Year 3 bacteriology", colour: "bg-sky-500", resources: [
-    { title: "Principles of Medical Microbiology and Parasitology LAQs & SAQs", slug: "principles-of-medical-microbiology-and-parasitology-laqs-amp-saqs", kind: "Core notes", reason: "Verified long-form revision bank with 54,000+ characters." },
-    { title: "Department of Medical Microbiology & Parasitology Past Paper", slug: "department-of-medical-microbiology-amp-parasit", kind: "Past paper", reason: "Year 2 microbiology examination practice with worked answers." },
-    { title: "Medical Bacteriology and Entomology MCQs", slug: "medical-bacteriology-and-entomology", kind: "MCQ bank", reason: "High-volume recall and differential practice." },
-  ]},
-  { name: "Year 2 Parasitology", level: "Parasitology I — foundations, protozoa, helminths and entomology", colour: "bg-amber-500", resources: [
-    { title: "Medical Parasitology", slug: "medical-parasitology-year-2", kind: "Core notes", reason: "Structured Year 2 foundation with more than 130 headings." },
-    { title: "Medical Entomology Questions", slug: "medical-entomology-questions", kind: "Question bank", reason: "The largest verified parasitology resource in the catalogue." },
-    { title: "Amebae: Medical Parasitology Overview", slug: "amebae", kind: "Focused notes", reason: "Protozoal morphology, disease, diagnosis and treatment." },
-  ]},
-  { name: "Year 3 Bacteriology & Parasitology II", level: "Applied organisms, clinical disease and laboratory diagnosis", colour: "bg-cyan-600", resources: [
-    { title: "Medical Bacteriology and Parasitology End-Year Examination", slug: "medical-bacteriology-parasitology-review", kind: "Past paper", reason: "Applied Year 3 bacteriology and parasitology practice." },
-    { title: "MBMM 3311 Medical Bacteriology Examination", slug: "year-2-medical-bacteriology", kind: "Exam notes", reason: "Year 3 bacteriology questions, diagnosis and worked answers." },
-    { title: "Year 3 Parasitology, Entomology and Bacteriology Q&A", slug: "medical-microbiology-qampa-guide", kind: "Question bank", reason: "Integrated applied revision without replacing the Year 2 foundation sections." },
-  ]},
-  { name: "Medical Virology", level: "Year 3", colour: "bg-violet-500", resources: [
-    { title: "Basic Virology, Viral Replication, Prions & Slow Viruses", slug: "virology-prions-poxviruses-vzv", kind: "Core exam review", reason: "Verified, structured coverage with 76 headings." },
-    { title: "Hepatitis, Oncogenic Viruses & Paramyxoviruses", slug: "medical-virology-revision", kind: "Past paper", reason: "High-yield clinical virology and laboratory diagnosis." },
-    { title: "Vaccines, Antivirals, Rabies, CMV & EBV", slug: "high-yield-virology-notes", kind: "Exam notes", reason: "Completes the major virus families and prevention topics." },
-  ]},
-  { name: "Medical Mycology", level: "Year 3", colour: "bg-fuchsia-500", resources: [
-    { title: "Mycology Revision: Fungal Infections, Histoplasmosis & Cryptococcosis", slug: "mycology-revision-fungal-infections", kind: "Core notes", reason: "Verified classification, pathogenesis, diagnosis and treatment." },
-    { title: "Mycoses: Superficial, Cutaneous & Systemic Fungal Infections", slug: "mycoses-fungal-infection-types", kind: "Focused notes", reason: "Organises fungi by depth and clinical syndrome." },
-    { title: "Medical Virology & Mycology MCQ Bank", slug: "medical-virology-and-mycology-mcq-bank", kind: "MCQ bank", reason: "Large mixed bank for exam-speed practice." },
-  ]},
-  { name: "General Pathology", level: "Year 3", colour: "bg-rose-500", resources: [
-    { title: "Pathology Essays", slug: "7a2c699d-pathology-essays-past-paper", kind: "Essay bank", reason: "Largest verified general-pathology essay resource." },
-    { title: "Inflammation and Tissue Repair", slug: "inflammation-tissue-repair-mcqs-cellular-immunology", kind: "MCQ bank", reason: "Core mechanisms, mediators, healing and repair." },
-    { title: "Neoplasia", slug: "89053c8f-neoplasia-past-paper", kind: "Past paper", reason: "High-yield carcinogenesis, grading, staging and spread." },
-  ]},
-  { name: "Systemic Pathology", level: "Year 3", colour: "bg-orange-500", resources: [
-    { title: "Systemic Pathology Essays", slug: "6249adb1-systemic-pathology-essays-past-paper", kind: "Essay bank", reason: "Broad organ-system coverage and model answers." },
-    { title: "Gastrointestinal and Liver Pathology", slug: "1de62a74-gastrointestinal-and-liver-past-paper", kind: "Past paper", reason: "Verified organ-based exam practice." },
-    { title: "Cardiovascular Pathology", slug: "51f52e96-cardiovascular-pathology-past-paper", kind: "Past paper", reason: "Atherosclerosis, IHD, vascular and cardiac disease." },
-  ]},
-  { name: "Haematology", level: "Year 3", colour: "bg-red-600", resources: [
-    { title: "Hematologic Malignancies and Bleeding Disorders", slug: "hematologic-malignancies-and-bleeding-disorders", kind: "Core notes", reason: "Anaemias, leukaemias, lymphomas and haemostasis." },
-    { title: "Haematology MCQs End Year 2025", slug: "haematology-exam-mcqs", kind: "Past paper", reason: "Large recent examination bank with explanations." },
-    { title: "Blood Transfusion Medicine: Exam-Focused Review", slug: "blood-transfusion-medicine-an-exam-focused-review", kind: "Focused notes", reason: "ABO/Rh, compatibility, components and reactions." },
-  ]},
-];
+function articleMaterial(title: string, contentType?: string | null, examType?: string | null): string {
+  const text = `${title} ${contentType || ""} ${examType || ""}`;
+  if (/\bcat\b/i.test(text)) return "CATs";
+  if (/past paper|end[- ]?year|examination|\bexam\b/i.test(text)) return "Past papers";
+  if (/\bmcq|quiz|question bank/i.test(text)) return "Question banks";
+  if (/essay|saq|laq|short answer|long answer/i.test(text)) return "Essays & SAQs";
+  return "Notes & revision guides";
+}
+
+const progressKey = (type: ResourceType, id: string) => `${type}:${id}`;
+const statusLabel = (status?: ProgressStatus) => status === "completed" ? "Completed" : status ? "In progress" : "Untouched";
 
 const plan = [
   ["13 Aug", "Baseline", "40 mixed questions; record weak topics; review bacterial structure and virulence"],
@@ -92,19 +64,25 @@ const plan = [
 ] as const;
 
 export default function SupplementaryRevision() {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [done, setDone] = useState<string[]>(() => JSON.parse(localStorage.getItem("supplementary-plan-done") || "[]"));
   const [allResources, setAllResources] = useState<LiveResource[]>([]);
   const [resourcesLoading, setResourcesLoading] = useState(true);
   const [resourceError, setResourceError] = useState(false);
+  const [progressRows, setProgressRows] = useState<ResourceProgress[]>([]);
+  const [progressLoading, setProgressLoading] = useState(true);
+  const [updatingKey, setUpdatingKey] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [groupFilter, setGroupFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
   useEffect(() => localStorage.setItem("supplementary-plan-done", JSON.stringify(done)), [done]);
   useEffect(() => {
     let active = true;
     (async () => {
       setResourcesLoading(true); setResourceError(false);
       const [articles, exams, flashcards] = await Promise.all([
-        supabase.from("articles").select("id,title,slug,category,content").eq("published", true).is("deleted_at", null),
+        supabase.from("articles").select("id,title,slug,category,content,content_type,exam_type").eq("published", true).is("deleted_at", null),
         supabase.from("mcq_sets").select("id,title,slug,category,questions").eq("published", true).is("deleted_at", null),
         supabase.from("flashcard_sets").select("id,title,slug,category,cards").eq("published", true).is("deleted_at", null),
       ]);
@@ -113,28 +91,65 @@ export default function SupplementaryRevision() {
       const rows: LiveResource[] = [];
       for (const row of articles.data || []) {
         const group = resourceGroup(row.title, row.category); if (!group) continue;
-        rows.push({ id: row.id, title: row.title, category: row.category, type: "Article", path: `/blog/${row.slug || row.id}`, group, size: row.content?.length || 0 });
+        rows.push({ id: row.id, title: row.title, category: row.category, type: "Article", resourceType: "article", material: articleMaterial(row.title, row.content_type, row.exam_type), path: `/blog/${row.slug || row.id}`, group, size: row.content?.length || 0 });
       }
       for (const row of exams.data || []) {
         const group = resourceGroup(row.title, row.category); if (!group) continue;
-        rows.push({ id: row.id, title: row.title, category: row.category, type: "Exam / MCQ", path: `/exams/${row.slug || row.id}/start`, group, size: Array.isArray(row.questions) ? row.questions.length : 0 });
+        rows.push({ id: row.id, title: row.title, category: row.category, type: "Exam / MCQ", resourceType: "exam", material: "MCQs & timed exams", path: `/exams/${row.slug || row.id}/start`, group, size: Array.isArray(row.questions) ? row.questions.length : 0 });
       }
       for (const row of flashcards.data || []) {
         const group = resourceGroup(row.title, row.category); if (!group) continue;
-        rows.push({ id: row.id, title: row.title, category: row.category, type: "Flashcards", path: `/flashcards/${row.slug || row.id}`, group, size: Array.isArray(row.cards) ? row.cards.length : 0 });
+        rows.push({ id: row.id, title: row.title, category: row.category, type: "Flashcards", resourceType: "flashcard", material: "Flashcards", path: `/flashcards/${row.slug || row.id}`, group, size: Array.isArray(row.cards) ? row.cards.length : 0 });
       }
       rows.sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group) || a.title.localeCompare(b.title));
       setAllResources(rows); setResourcesLoading(false);
     })().catch(() => { if (active) { setResourceError(true); setResourcesLoading(false); } });
     return () => { active = false; };
   }, []);
+  useEffect(() => {
+    let active = true;
+    setProgressLoading(true);
+    getProgress(userId).then((rows) => { if (active) { setProgressRows(rows); setProgressLoading(false); } }).catch(() => { if (active) setProgressLoading(false); });
+    return () => { active = false; };
+  }, [userId]);
   const progress = useMemo(() => Math.round((done.length / plan.length) * 100), [done]);
+  const progressByKey = useMemo(() => new Map(progressRows.map((row) => [progressKey(row.resource_type, row.resource_id), row])), [progressRows]);
   const visibleResources = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return allResources.filter((item) => (groupFilter === "All" || item.group === groupFilter) && (!needle || `${item.title} ${item.category} ${item.type}`.toLowerCase().includes(needle)));
-  }, [allResources, groupFilter, query]);
-  const groupedResources = useMemo(() => GROUP_ORDER.map((group) => ({ group, resources: visibleResources.filter((item) => item.group === group) })).filter((entry) => entry.resources.length), [visibleResources]);
+    return allResources.filter((item) => {
+      const tracked = progressByKey.get(progressKey(item.resourceType, item.id));
+      const state = tracked?.status === "completed" ? "Completed" : tracked ? "In progress" : "Untouched";
+      return (groupFilter === "All" || item.group === groupFilter) && (statusFilter === "All" || state === statusFilter) && (!needle || `${item.title} ${item.category} ${item.type} ${item.material}`.toLowerCase().includes(needle));
+    });
+  }, [allResources, groupFilter, progressByKey, query, statusFilter]);
+  const groupedResources = useMemo(() => GROUP_ORDER.map((group) => {
+    const resources = visibleResources.filter((item) => item.group === group);
+    const materials = MATERIAL_ORDER.map((material) => ({ material, resources: resources.filter((item) => item.material === material) })).filter((entry) => entry.resources.length);
+    return { group, resources, materials };
+  }).filter((entry) => entry.resources.length), [visibleResources]);
+  const trackingTotals = useMemo(() => allResources.reduce((totals, item) => {
+    const row = progressByKey.get(progressKey(item.resourceType, item.id));
+    if (row?.status === "completed") totals.completed++;
+    else if (row) totals.inProgress++;
+    else totals.untouched++;
+    return totals;
+  }, { completed: 0, inProgress: 0, untouched: 0 }), [allResources, progressByKey]);
   const toggle = (date: string) => setDone((current) => current.includes(date) ? current.filter((x) => x !== date) : [...current, date]);
+  const markResource = async (resource: LiveResource) => {
+    const key = progressKey(resource.resourceType, resource.id);
+    const previous = progressByKey.get(key);
+    const nextStatus: ProgressStatus = previous?.status === "completed" ? "in_progress" : "completed";
+    setUpdatingKey(key);
+    setProgressRows((rows) => [{ resource_type: resource.resourceType, resource_id: resource.id, status: nextStatus, progress_percent: nextStatus === "completed" ? 100 : 25, last_position: previous?.last_position || null, last_opened_at: new Date().toISOString(), completed_at: nextStatus === "completed" ? new Date().toISOString() : null }, ...rows.filter((row) => progressKey(row.resource_type, row.resource_id) !== key)]);
+    try {
+      await setProgress(userId, resource.resourceType, resource.id, { status: nextStatus, progress_percent: nextStatus === "completed" ? 100 : 25, completed_at: nextStatus === "completed" ? new Date().toISOString() : null });
+      await logActivity(userId, nextStatus, { resource_type: resource.resourceType, resource_id: resource.id });
+      toast({ description: nextStatus === "completed" ? "Marked completed and synced" : "Moved back to in progress" });
+    } catch {
+      setProgressRows((rows) => previous ? [previous, ...rows.filter((row) => progressKey(row.resource_type, row.resource_id) !== key)] : rows.filter((row) => progressKey(row.resource_type, row.resource_id) !== key));
+      toast({ description: "Progress could not be saved. Try again.", variant: "destructive" });
+    } finally { setUpdatingKey(null); }
+  };
 
   return <>
     <Helmet>
@@ -156,28 +171,24 @@ export default function SupplementaryRevision() {
     </div>
 
     <div className="mx-auto max-w-6xl space-y-12 px-4 pb-16">
-      <section>
-        <div className="mb-5 flex items-center gap-2"><Pin className="h-5 w-5 text-primary" /><h2 className="font-serif text-2xl font-bold">Pinned verified resources</h2></div>
-        <div className="grid gap-5 lg:grid-cols-2">
-          {subjects.map((subject) => <article key={subject.name} className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-            <div className="flex items-start gap-3 border-b p-4"><span className={`mt-1 h-3 w-3 rounded-full ${subject.colour}`} /><div><h3 className="font-bold">{subject.name}</h3><p className="text-xs text-muted-foreground">{subject.level}</p></div></div>
-            <div className="divide-y">{subject.resources.map((resource) => <Link key={resource.slug} to={`/blog/${resource.slug}`} className="group flex gap-3 p-4 transition-colors hover:bg-muted/50">
-              <BookOpen className="mt-1 h-4 w-4 shrink-0 text-primary" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold group-hover:text-primary">{resource.title}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{resource.kind} · {resource.reason}</span></span><ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </Link>)}</div>
-          </article>)}
-        </div>
-      </section>
-
       <section id="all-resources" className="scroll-mt-24">
-        <div className="mb-2 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-primary">Complete live library</p><h2 className="font-serif text-2xl font-bold">All revision resources on the site</h2></div><span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-bold text-primary">{allResources.length} resources</span></div>
-        <p className="mb-5 text-sm leading-6 text-muted-foreground">Automatically includes every published note, CAT, past paper, essay bank, MCQ/exam and flashcard set matching your supplementary units. New matching material appears here automatically.</p>
+        <div className="mb-2 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-primary">Complete live library</p><h2 className="font-serif text-2xl font-bold">All revision resources, arranged by unit</h2></div><span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-bold text-primary">{allResources.length} resources</span></div>
+        <p className="mb-4 text-sm leading-6 text-muted-foreground">Each unit is divided into notes, past papers, CATs, essays, question banks, exams and flashcards. Opening a resource starts it automatically; use the tick to mark it completed.</p>
+        {!user && <p className="mb-4 rounded-xl border border-amber-300/50 bg-amber-500/10 p-3 text-sm"><Link to="/login" className="font-bold underline">Log in</Link> to sync progress across your phone and other devices. Guest progress stays on this device.</p>}
+        <div className="mb-4 grid grid-cols-3 gap-2">
+          <button onClick={() => setStatusFilter(statusFilter === "Untouched" ? "All" : "Untouched")} className={`rounded-xl border p-3 text-left ${statusFilter === "Untouched" ? "border-slate-500 bg-slate-500/10" : "bg-card"}`}><span className="block text-xl font-bold">{trackingTotals.untouched}</span><span className="text-[11px] font-semibold text-muted-foreground">Untouched</span></button>
+          <button onClick={() => setStatusFilter(statusFilter === "In progress" ? "All" : "In progress")} className={`rounded-xl border p-3 text-left ${statusFilter === "In progress" ? "border-amber-500 bg-amber-500/10" : "bg-card"}`}><span className="block text-xl font-bold">{trackingTotals.inProgress}</span><span className="text-[11px] font-semibold text-muted-foreground">In progress</span></button>
+          <button onClick={() => setStatusFilter(statusFilter === "Completed" ? "All" : "Completed")} className={`rounded-xl border p-3 text-left ${statusFilter === "Completed" ? "border-emerald-500 bg-emerald-500/10" : "bg-card"}`}><span className="block text-xl font-bold">{trackingTotals.completed}</span><span className="text-[11px] font-semibold text-muted-foreground">Completed</span></button>
+        </div>
         <div className="mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
           <label className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search all revision materials…" className="pl-9" /></label>
           <select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option>All</option>{GROUP_ORDER.map((group) => <option key={group}>{group}</option>)}</select>
         </div>
-        {resourcesLoading ? <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : resourceError ? <p className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 text-sm">The live resource catalogue could not load. Refresh to try again.</p> : groupedResources.length === 0 ? <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">No resources match this search.</p> : <div className="space-y-7">
-          {groupedResources.map(({ group, resources }) => <div key={group}><div className="mb-3 flex items-center justify-between border-b pb-2"><h3 className="font-serif text-xl font-bold">{group}</h3><span className="text-xs font-semibold text-muted-foreground">{resources.length}</span></div><div className="grid gap-2 md:grid-cols-2">
-            {resources.map((resource) => { const Icon = resource.type === "Article" ? BookOpen : resource.type === "Flashcards" ? GraduationCap : FileQuestion; return <Link key={`${resource.type}-${resource.id}`} to={resource.path} className="group flex items-start gap-3 rounded-xl border bg-card p-3 transition-colors hover:border-primary/40 hover:bg-primary/5"><Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold leading-5 group-hover:text-primary">{resource.title}</span><span className="mt-1 block text-xs text-muted-foreground">{resource.type} · {resource.category}{resource.size ? ` · ${resource.type === "Article" ? `${Math.max(1, Math.round(resource.size / 1000))}k characters` : `${resource.size} items`}` : ""}</span></span><ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /></Link>; })}
+        {(resourcesLoading || progressLoading) ? <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : resourceError ? <p className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 text-sm">The live resource catalogue could not load. Refresh to try again.</p> : groupedResources.length === 0 ? <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">No resources match this search or progress filter.</p> : <div className="space-y-9">
+          {groupedResources.map(({ group, resources, materials }) => <div key={group} className="rounded-2xl border bg-card/40 p-3 sm:p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h3 className="font-serif text-xl font-bold">{group}</h3><span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">{resources.length}</span></div><div className="space-y-6">
+            {materials.map(({ material, resources: materialResources }) => <div key={material}><div className="mb-2 flex items-center gap-2"><h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{material}</h4><span className="text-[10px] text-muted-foreground">({materialResources.length})</span></div><div className="grid gap-2 md:grid-cols-2">
+              {materialResources.map((resource) => { const Icon = resource.type === "Article" ? BookOpen : resource.type === "Flashcards" ? GraduationCap : FileQuestion; const tracked = progressByKey.get(progressKey(resource.resourceType, resource.id)); const completed = tracked?.status === "completed"; const touched = Boolean(tracked); const key = progressKey(resource.resourceType, resource.id); return <div key={key} className={`flex items-stretch overflow-hidden rounded-xl border bg-card transition-colors ${completed ? "border-emerald-500/40 bg-emerald-500/5" : touched ? "border-amber-500/30" : "hover:border-primary/40"}`}><Link to={resource.path} className="group flex min-w-0 flex-1 items-start gap-3 p-3"><Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold leading-5 group-hover:text-primary">{resource.title}</span><span className="mt-1 block text-[11px] leading-4 text-muted-foreground">{resource.type} · {resource.size ? resource.type === "Article" ? `${Math.max(1, Math.round(resource.size / 1000))}k characters` : `${resource.size} items` : resource.category}</span><span className={`mt-2 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide ${completed ? "text-emerald-600" : touched ? "text-amber-600" : "text-muted-foreground"}`}>{completed ? <CheckCircle2 className="h-3 w-3" /> : touched ? <Circle className="h-3 w-3 fill-current" /> : <Circle className="h-3 w-3" />}{statusLabel(tracked?.status)}</span></span><ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /></Link><button type="button" onClick={() => markResource(resource)} disabled={updatingKey === key} aria-label={completed ? `Mark ${resource.title} in progress` : `Mark ${resource.title} completed`} className={`flex w-12 shrink-0 items-center justify-center border-l transition-colors ${completed ? "border-emerald-500/30 bg-emerald-500 text-white" : "border-border bg-muted/30 hover:bg-primary/10 hover:text-primary"}`}>{updatingKey === key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-5 w-5" />}</button></div>; })}
+            </div></div>)}
           </div></div>)}
         </div>}
       </section>

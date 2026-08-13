@@ -51,7 +51,7 @@ export async function getProgress(userId: string | null): Promise<ResourceProgre
     .select("resource_type, resource_id, status, progress_percent, last_position, last_opened_at, completed_at")
     .eq("user_id", userId)
     .order("last_opened_at", { ascending: false })
-    .limit(200);
+    .limit(1000);
   return (data || []) as ResourceProgress[];
 }
 
