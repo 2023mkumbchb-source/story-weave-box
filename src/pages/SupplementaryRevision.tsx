@@ -44,7 +44,14 @@ const plan = [
 export default function SupplementaryRevision() {
   const { user } = useAuth();
   const userId = user?.id ?? null;
-  const [done, setDone] = useState<string[]>(() => JSON.parse(localStorage.getItem("supplementary-plan-done") || "[]"));
+  const [done, setDone] = useState<string[]>(() => {
+    try {
+      const sprint = JSON.parse(localStorage.getItem("supplementary-plan-done") || "[]") as unknown[];
+      const legacy = JSON.parse(localStorage.getItem("revision-index-done") || "[]") as unknown[];
+      const migrated = legacy.filter((day): day is number => typeof day === "number" && day >= 1 && day <= plan.length).map((day) => plan[day - 1][0]);
+      return [...new Set([...sprint.filter((date): date is string => typeof date === "string"), ...migrated])];
+    } catch { return []; }
+  });
   const [allResources, setAllResources] = useState<LiveResource[]>([]);
   const [resourcesLoading, setResourcesLoading] = useState(true);
   const [resourceError, setResourceError] = useState(false);
@@ -122,6 +129,11 @@ export default function SupplementaryRevision() {
     else totals.untouched++;
     return totals;
   }, { completed: 0, inProgress: 0, untouched: 0 }), [allResources, progressByKey]);
+  const startHere = useMemo(() => GROUP_ORDER.map((group) => ({
+    group,
+    resources: allResources.filter((item) => item.group === group && item.material === "Notes & revision guides").slice(0, 2),
+    answerReady: allResources.filter((item) => item.group === group && item.material !== "Notes & revision guides").length,
+  })).filter((entry) => entry.resources.length || entry.answerReady), [allResources]);
   const toggle = (date: string) => setDone((current) => current.includes(date) ? current.filter((x) => x !== date) : [...current, date]);
   const markResource = async (resource: LiveResource) => {
     const key = progressKey(resource.resourceType, resource.id);
@@ -141,7 +153,7 @@ export default function SupplementaryRevision() {
 
   return <>
     <Helmet>
-      <title>Supplementary Exam Revision Plan 2026 | Ompath Study</title>
+      <title>Exam Revision Index 2026 | Ompath Study</title>
       <meta name="description" content="A focused revision schedule for microbiology, parasitology, virology, mycology, general and systemic pathology, and haematology before 1 September 2026." />
     </Helmet>
     <div className="bg-gradient-to-b from-primary/10 via-background to-background">
@@ -159,6 +171,10 @@ export default function SupplementaryRevision() {
     </div>
 
     <div className="mx-auto max-w-6xl space-y-12 px-4 pb-16">
+      {!resourcesLoading && !resourceError && startHere.length > 0 && <section aria-labelledby="start-here-heading">
+        <div className="mb-4"><p className="text-xs font-bold uppercase tracking-wider text-primary">Claude + Codex consolidated</p><h2 id="start-here-heading" className="font-serif text-2xl font-bold">Start here by subject</h2><p className="mt-1 text-sm text-muted-foreground">Open a core note first, then move to the answer-ready practice listed for that unit.</p></div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{startHere.map(({ group, resources, answerReady }) => <div key={group} className="rounded-2xl border bg-card p-4"><div className="mb-3 flex items-start justify-between gap-2"><h3 className="text-sm font-bold leading-5">{group}</h3><span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-bold text-emerald-700">{answerReady} answer-ready</span></div><div className="space-y-1">{resources.map((resource) => <Link key={resource.id} to={resource.path} className="flex items-start gap-2 rounded-lg p-2 text-sm hover:bg-muted"><BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span className="line-clamp-2 font-medium">{resource.title}</span></Link>)}</div></div>)}</div>
+      </section>}
       <section id="all-resources" className="scroll-mt-24">
         <div className="mb-2 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-primary">Complete live library</p><h2 className="font-serif text-2xl font-bold">All revision resources, arranged by unit</h2></div><span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-bold text-primary">{allResources.length} resources</span></div>
         <p className="mb-4 text-sm leading-6 text-muted-foreground">Each unit is divided into notes, past papers, CATs, essays, question banks, exams and flashcards. Question resources appear only when usable answers are present. Opening a resource starts it automatically; use the tick to mark it completed.</p>

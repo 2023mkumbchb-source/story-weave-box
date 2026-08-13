@@ -39,7 +39,6 @@ const YearHub = lazy(() => import("./pages/YearHub"));
 const UnitPage = lazy(() => import("./pages/UnitPage"));
 const MyRevision = lazy(() => import("./pages/MyRevision"));
 const RevisionPlanner = lazy(() => import("./pages/RevisionPlanner"));
-const SupplementaryRevision = lazy(() => import("./pages/SupplementaryRevision"));
 const RevisionIndex = lazy(() => import("./pages/RevisionIndex"));
 const GlobalSearch = lazy(() => import("./pages/GlobalSearch"));
 const StudySystemAdmin = lazy(() => import("./pages/StudySystemAdmin"));
@@ -67,7 +66,7 @@ const AnimatedRoutes = () => {
             <Route path="/year/:yearNumber/unit/:unitSlug" element={<UnitPage />} />
             <Route path="/my-revision" element={<MyRevision />} />
             <Route path="/revision-planner" element={<RevisionPlanner />} />
-            <Route path="/supplementary-revision" element={<SupplementaryRevision />} />
+            <Route path="/supplementary-revision" element={<Navigate to="/revision-index" replace />} />
             <Route path="/revision-index" element={<RevisionIndex />} />
             <Route path="/search" element={<GlobalSearch />} />
             <Route path="/blog" element={<Blog />} />
