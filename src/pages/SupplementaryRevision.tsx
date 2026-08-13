@@ -7,15 +7,20 @@ type Resource = { title: string; slug: string; kind: string; reason: string };
 type Subject = { name: string; level: string; colour: string; resources: Resource[] };
 
 const subjects: Subject[] = [
-  { name: "Microbiology & Bacteriology", level: "Year 2 foundations → Year 3 bacteriology", colour: "bg-sky-500", resources: [
+  { name: "Year 2 Microbiology", level: "Foundation microbiology — kept separate from Year 3 bacteriology", colour: "bg-sky-500", resources: [
     { title: "Principles of Medical Microbiology and Parasitology LAQs & SAQs", slug: "principles-of-medical-microbiology-and-parasitology-laqs-amp-saqs", kind: "Core notes", reason: "Verified long-form revision bank with 54,000+ characters." },
-    { title: "Medical Bacteriology and Parasitology End-Year Examination", slug: "medical-bacteriology-parasitology-review", kind: "Past paper", reason: "Applied Year 3 bacteriology and parasitology practice." },
+    { title: "Department of Medical Microbiology & Parasitology Past Paper", slug: "department-of-medical-microbiology-amp-parasit", kind: "Past paper", reason: "Year 2 microbiology examination practice with worked answers." },
     { title: "Medical Bacteriology and Entomology MCQs", slug: "medical-bacteriology-and-entomology", kind: "MCQ bank", reason: "High-volume recall and differential practice." },
   ]},
-  { name: "Parasitology", level: "Year 2 Parasitology I → Year 3 Parasitology II", colour: "bg-amber-500", resources: [
+  { name: "Year 2 Parasitology", level: "Parasitology I — foundations, protozoa, helminths and entomology", colour: "bg-amber-500", resources: [
     { title: "Medical Parasitology", slug: "medical-parasitology-year-2", kind: "Core notes", reason: "Structured Year 2 foundation with more than 130 headings." },
     { title: "Medical Entomology Questions", slug: "medical-entomology-questions", kind: "Question bank", reason: "The largest verified parasitology resource in the catalogue." },
     { title: "Amebae: Medical Parasitology Overview", slug: "amebae", kind: "Focused notes", reason: "Protozoal morphology, disease, diagnosis and treatment." },
+  ]},
+  { name: "Year 3 Bacteriology & Parasitology II", level: "Applied organisms, clinical disease and laboratory diagnosis", colour: "bg-cyan-600", resources: [
+    { title: "Medical Bacteriology and Parasitology End-Year Examination", slug: "medical-bacteriology-parasitology-review", kind: "Past paper", reason: "Applied Year 3 bacteriology and parasitology practice." },
+    { title: "MBMM 3311 Medical Bacteriology Examination", slug: "year-2-medical-bacteriology", kind: "Exam notes", reason: "Year 3 bacteriology questions, diagnosis and worked answers." },
+    { title: "Year 3 Parasitology, Entomology and Bacteriology Q&A", slug: "medical-microbiology-qampa-guide", kind: "Question bank", reason: "Integrated applied revision without replacing the Year 2 foundation sections." },
   ]},
   { name: "Medical Virology", level: "Year 3", colour: "bg-violet-500", resources: [
     { title: "Basic Virology, Viral Replication, Prions & Slow Viruses", slug: "virology-prions-poxviruses-vzv", kind: "Core exam review", reason: "Verified, structured coverage with 76 headings." },
@@ -46,10 +51,10 @@ const subjects: Subject[] = [
 
 const plan = [
   ["13 Aug", "Baseline", "40 mixed questions; record weak topics; review bacterial structure and virulence"],
-  ["14 Aug", "Microbiology", "Sterilisation, disinfection, specimen collection, culture and antimicrobial testing"],
-  ["15 Aug", "Bacteriology", "Gram-positive cocci, Gram-negative organisms and laboratory diagnosis"],
-  ["16 Aug", "Parasitology I", "Protozoa: amoebae, Giardia, Trichomonas, malaria and life cycles"],
-  ["17 Aug", "Parasitology II", "Helminths, schistosomiasis, filariasis and medical entomology"],
+  ["14 Aug", "Year 2 Microbiology", "Sterilisation, disinfection, specimen collection, culture and antimicrobial testing"],
+  ["15 Aug", "Year 3 Bacteriology", "Gram-positive cocci, Gram-negative organisms and laboratory diagnosis"],
+  ["16 Aug", "Year 2 Parasitology I", "Protozoa: amoebae, Giardia, Trichomonas, malaria and life cycles"],
+  ["17 Aug", "Year 2 Parasitology I + Year 3 Parasitology II", "Helminths, schistosomiasis, filariasis, entomology and applied diagnosis"],
   ["18 Aug", "Virology I", "Structure, classification, replication, pathogenesis, diagnostics and vaccines"],
   ["19 Aug", "Virology II", "HIV, hepatitis, herpesviruses, respiratory and oncogenic viruses"],
   ["20 Aug", "Mycology", "Classification, superficial/systemic/opportunistic mycoses and antifungals"],
