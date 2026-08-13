@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifySupplementaryResource } from "@/lib/supplementary-resources";
+import { assessAnswerReadiness, classifySupplementaryResource } from "@/lib/supplementary-resources";
 
 describe("supplementary resource classification", () => {
   it("keeps HIV nephropathy in systemic pathology rather than virology", () => {
@@ -27,5 +27,22 @@ describe("supplementary resource classification", () => {
     expect(classifySupplementaryResource("Chemical Pathology", "Year 3: Chemical Pathology I")).toBeNull();
     expect(classifySupplementaryResource("Genetic Disorders", "Year 3: Genetic Disorders")).toBeNull();
     expect(classifySupplementaryResource("FSGS & HIV Nephropathy", "Year 3: Male Reproductive and Urinary System Pathology")).not.toBe("Medical Virology");
+  });
+});
+
+describe("supplementary answer filtration", () => {
+  it("keeps teaching notes without pretending that they are question papers", () => {
+    expect(assessAnswerReadiness({ kind: "article", material: "Notes & revision guides", content: "# Virology" })).toEqual({ ready: true, label: "Study content" });
+  });
+
+  it("holds back question articles that contain no answer section", () => {
+    expect(assessAnswerReadiness({ kind: "article", material: "Past papers", content: "## Question 1\nDescribe inflammation." }).ready).toBe(false);
+    expect(assessAnswerReadiness({ kind: "article", material: "Essays & SAQs", content: "## Question 1\nDescribe inflammation.\n## Model answer\nInflammation is…" }).ready).toBe(true);
+  });
+
+  it("requires a valid answer for every MCQ and flashcard", () => {
+    expect(assessAnswerReadiness({ kind: "exam", material: "MCQs & timed exams", items: [{ question: "Q", options: ["A", "B"], correct_answer: 1 }] }).ready).toBe(true);
+    expect(assessAnswerReadiness({ kind: "exam", material: "MCQs & timed exams", items: [{ question: "Q", options: ["A", "B"] }] }).ready).toBe(false);
+    expect(assessAnswerReadiness({ kind: "flashcard", material: "Flashcards", items: [{ question: "Q", answer: "A" }] }).ready).toBe(true);
   });
 });

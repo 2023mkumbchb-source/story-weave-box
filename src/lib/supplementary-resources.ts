@@ -11,6 +11,56 @@ export const SUPPLEMENTARY_GROUPS = [
 
 export type SupplementaryGroup = (typeof SUPPLEMENTARY_GROUPS)[number];
 
+export const SUPPLEMENTARY_MATERIALS = ["Notes & revision guides", "Past papers", "CATs", "Essays & SAQs", "Question banks", "MCQs & timed exams", "Flashcards"] as const;
+export type SupplementaryMaterial = (typeof SUPPLEMENTARY_MATERIALS)[number];
+export type AnswerReadiness = "Study content" | "Answers included" | "Answer key complete";
+
+export function classifySupplementaryMaterial(title: string, contentType?: string | null, examType?: string | null): SupplementaryMaterial {
+  const text = `${title} ${contentType || ""} ${examType || ""}`;
+  if (/\bcat\b/i.test(text)) return "CATs";
+  if (/past paper|end[- ]?year|examination|\bexam\b/i.test(text)) return "Past papers";
+  if (/\bmcq|quiz|question bank/i.test(text)) return "Question banks";
+  if (/essay|saq|laq|short answer|long answer/i.test(text)) return "Essays & SAQs";
+  return "Notes & revision guides";
+}
+
+const ANSWER_TEXT = /(?:^|\n)\s*(?:#{1,6}\s*)?(?:model|suggested|correct)?\s*answers?\b|(?:^|\n)\s*(?:#{1,6}\s*)?(?:explanation|rationale|marking scheme)\b|\bcorrect answer\s*[:\-]/im;
+
+function validMcqAnswer(question: unknown): boolean {
+  if (!question || typeof question !== "object") return false;
+  const q = question as { options?: unknown; correct_answer?: unknown; correctAnswer?: unknown; answer?: unknown };
+  const options = Array.isArray(q.options) ? q.options : [];
+  const answer = q.correct_answer ?? q.correctAnswer ?? q.answer;
+  if (typeof answer === "number") return Number.isInteger(answer) && answer >= 0 && answer < options.length;
+  if (typeof answer !== "string" || !answer.trim()) return false;
+  const value = answer.trim();
+  if (/^[A-Z]$/i.test(value)) return value.toUpperCase().charCodeAt(0) - 65 < options.length;
+  return options.some((option) => typeof option === "string" && option.trim().toLowerCase() === value.toLowerCase());
+}
+
+/** Question resources are learner-visible only when their answers are structurally usable. */
+export function assessAnswerReadiness(input: {
+  kind: "article" | "exam" | "flashcard";
+  material: SupplementaryMaterial;
+  content?: string | null;
+  items?: unknown;
+  containsAnswerKey?: boolean | null;
+  answerKeyVerified?: boolean | null;
+}): { ready: boolean; label: AnswerReadiness | "Missing answers" } {
+  if (input.kind === "article" && input.material === "Notes & revision guides") return { ready: true, label: "Study content" };
+  if (input.kind === "article") {
+    const ready = Boolean(input.containsAnswerKey || input.answerKeyVerified || ANSWER_TEXT.test(input.content || ""));
+    return { ready, label: ready ? (input.answerKeyVerified ? "Answer key complete" : "Answers included") : "Missing answers" };
+  }
+  if (!Array.isArray(input.items) || input.items.length === 0) return { ready: false, label: "Missing answers" };
+  if (input.kind === "exam") {
+    const ready = input.items.every(validMcqAnswer);
+    return { ready, label: ready ? "Answer key complete" : "Missing answers" };
+  }
+  const ready = input.items.every((card) => Boolean(card && typeof card === "object" && typeof (card as { answer?: unknown }).answer === "string" && (card as { answer: string }).answer.trim()));
+  return { ready, label: ready ? "Answer key complete" : "Missing answers" };
+}
+
 const SYSTEMIC_CATEGORIES = /(?:bone and soft tissue pathology|breast pathology|cardiovascular system pathology|dermatopathology|endocrine and metabolic pathology|female reproductive system pathology|gastrointestinal pathology|head\s*&\s*neck pathology|male reproductive and urinary system pathology|neuropathology|respiratory system pathology)/i;
 const GENERAL_CATEGORIES = /(?:general pathology|immunopathology|oncopathology|histopathology\s*&\s*cytopathology)/i;
 const HAEM_CATEGORIES = /(?:hematopathology|haematopathology|blood transfusion)/i;

@@ -8,21 +8,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { getProgress, logActivity, setProgress, type ProgressStatus, type ResourceProgress } from "@/lib/study";
 import type { ResourceType } from "@/lib/academic";
 import { toast } from "@/hooks/use-toast";
-import { classifySupplementaryResource, SUPPLEMENTARY_GROUPS } from "@/lib/supplementary-resources";
+import { assessAnswerReadiness, classifySupplementaryMaterial, classifySupplementaryResource, SUPPLEMENTARY_GROUPS, SUPPLEMENTARY_MATERIALS, type AnswerReadiness, type SupplementaryMaterial } from "@/lib/supplementary-resources";
 
-type LiveResource = { id: string; title: string; category: string; type: "Article" | "Exam / MCQ" | "Flashcards"; resourceType: ResourceType; material: string; path: string; group: string; size: number };
+type LiveResource = { id: string; title: string; category: string; type: "Article" | "Exam / MCQ" | "Flashcards"; resourceType: ResourceType; material: SupplementaryMaterial; answerReadiness: AnswerReadiness; path: string; group: string; size: number };
 
 const GROUP_ORDER = [...SUPPLEMENTARY_GROUPS];
-const MATERIAL_ORDER = ["Notes & revision guides", "Past papers", "CATs", "Essays & SAQs", "Question banks", "MCQs & timed exams", "Flashcards"];
-
-function articleMaterial(title: string, contentType?: string | null, examType?: string | null): string {
-  const text = `${title} ${contentType || ""} ${examType || ""}`;
-  if (/\bcat\b/i.test(text)) return "CATs";
-  if (/past paper|end[- ]?year|examination|\bexam\b/i.test(text)) return "Past papers";
-  if (/\bmcq|quiz|question bank/i.test(text)) return "Question banks";
-  if (/essay|saq|laq|short answer|long answer/i.test(text)) return "Essays & SAQs";
-  return "Notes & revision guides";
-}
+const MATERIAL_ORDER = [...SUPPLEMENTARY_MATERIALS];
 
 const progressKey = (type: ResourceType, id: string) => `${type}:${id}`;
 const statusLabel = (status?: ProgressStatus) => status === "completed" ? "Completed" : status ? "In progress" : "Untouched";
@@ -63,33 +54,44 @@ export default function SupplementaryRevision() {
   const [query, setQuery] = useState("");
   const [groupFilter, setGroupFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [materialFilter, setMaterialFilter] = useState("All");
+  const [answerFilter, setAnswerFilter] = useState("All answer-ready");
+  const [withheldCount, setWithheldCount] = useState(0);
   useEffect(() => localStorage.setItem("supplementary-plan-done", JSON.stringify(done)), [done]);
   useEffect(() => {
     let active = true;
     (async () => {
       setResourcesLoading(true); setResourceError(false);
       const [articles, exams, flashcards] = await Promise.all([
-        supabase.from("articles").select("id,title,slug,category,content,content_type,exam_type").eq("published", true).is("deleted_at", null),
-        supabase.from("mcq_sets").select("id,title,slug,category,questions").eq("published", true).is("deleted_at", null),
-        supabase.from("flashcard_sets").select("id,title,slug,category,cards").eq("published", true).is("deleted_at", null),
+        supabase.from("articles").select("id,title,slug,category,content,content_type,exam_type,contains_answer_key,answer_key_verified").eq("published", true).is("deleted_at", null),
+        supabase.from("mcq_sets").select("id,title,slug,category,questions,contains_answer_key,answer_key_verified").eq("published", true).is("deleted_at", null),
+        supabase.from("flashcard_sets").select("id,title,slug,category,cards,contains_answer_key,answer_key_verified").eq("published", true).is("deleted_at", null),
       ]);
       if (!active) return;
       if (articles.error || exams.error || flashcards.error) { setResourceError(true); setResourcesLoading(false); return; }
       const rows: LiveResource[] = [];
+      let withheld = 0;
       for (const row of articles.data || []) {
         const group = classifySupplementaryResource(row.title, row.category); if (!group) continue;
-        rows.push({ id: row.id, title: row.title, category: row.category, type: "Article", resourceType: "article", material: articleMaterial(row.title, row.content_type, row.exam_type), path: `/blog/${row.slug || row.id}`, group, size: row.content?.length || 0 });
+        const material = classifySupplementaryMaterial(row.title, row.content_type, row.exam_type);
+        const answer = assessAnswerReadiness({ kind: "article", material, content: row.content, containsAnswerKey: row.contains_answer_key, answerKeyVerified: row.answer_key_verified });
+        if (!answer.ready) { withheld++; continue; }
+        rows.push({ id: row.id, title: row.title, category: row.category, type: "Article", resourceType: "article", material, answerReadiness: answer.label as AnswerReadiness, path: `/blog/${row.slug || row.id}`, group, size: row.content?.length || 0 });
       }
       for (const row of exams.data || []) {
         const group = classifySupplementaryResource(row.title, row.category); if (!group) continue;
-        rows.push({ id: row.id, title: row.title, category: row.category, type: "Exam / MCQ", resourceType: "exam", material: "MCQs & timed exams", path: `/exams/${row.slug || row.id}/start`, group, size: Array.isArray(row.questions) ? row.questions.length : 0 });
+        const answer = assessAnswerReadiness({ kind: "exam", material: "MCQs & timed exams", items: row.questions });
+        if (!answer.ready) { withheld++; continue; }
+        rows.push({ id: row.id, title: row.title, category: row.category, type: "Exam / MCQ", resourceType: "exam", material: "MCQs & timed exams", answerReadiness: answer.label as AnswerReadiness, path: `/exams/${row.slug || row.id}/start`, group, size: Array.isArray(row.questions) ? row.questions.length : 0 });
       }
       for (const row of flashcards.data || []) {
         const group = classifySupplementaryResource(row.title, row.category); if (!group) continue;
-        rows.push({ id: row.id, title: row.title, category: row.category, type: "Flashcards", resourceType: "flashcard", material: "Flashcards", path: `/flashcards/${row.slug || row.id}`, group, size: Array.isArray(row.cards) ? row.cards.length : 0 });
+        const answer = assessAnswerReadiness({ kind: "flashcard", material: "Flashcards", items: row.cards });
+        if (!answer.ready) { withheld++; continue; }
+        rows.push({ id: row.id, title: row.title, category: row.category, type: "Flashcards", resourceType: "flashcard", material: "Flashcards", answerReadiness: answer.label as AnswerReadiness, path: `/flashcards/${row.slug || row.id}`, group, size: Array.isArray(row.cards) ? row.cards.length : 0 });
       }
       rows.sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group) || a.title.localeCompare(b.title));
-      setAllResources(rows); setResourcesLoading(false);
+      setAllResources(rows); setWithheldCount(withheld); setResourcesLoading(false);
     })().catch(() => { if (active) { setResourceError(true); setResourcesLoading(false); } });
     return () => { active = false; };
   }, []);
@@ -106,9 +108,9 @@ export default function SupplementaryRevision() {
     return allResources.filter((item) => {
       const tracked = progressByKey.get(progressKey(item.resourceType, item.id));
       const state = tracked?.status === "completed" ? "Completed" : tracked ? "In progress" : "Untouched";
-      return (groupFilter === "All" || item.group === groupFilter) && (statusFilter === "All" || state === statusFilter) && (!needle || `${item.title} ${item.category} ${item.type} ${item.material}`.toLowerCase().includes(needle));
+      return (groupFilter === "All" || item.group === groupFilter) && (materialFilter === "All" || item.material === materialFilter) && (answerFilter === "All answer-ready" || item.answerReadiness === answerFilter) && (statusFilter === "All" || state === statusFilter) && (!needle || `${item.title} ${item.category} ${item.type} ${item.material}`.toLowerCase().includes(needle));
     });
-  }, [allResources, groupFilter, progressByKey, query, statusFilter]);
+  }, [allResources, answerFilter, groupFilter, materialFilter, progressByKey, query, statusFilter]);
   const groupedResources = useMemo(() => GROUP_ORDER.map((group) => {
     const resources = visibleResources.filter((item) => item.group === group);
     const materials = MATERIAL_ORDER.map((material) => ({ material, resources: resources.filter((item) => item.material === material) })).filter((entry) => entry.resources.length);
@@ -160,16 +162,19 @@ export default function SupplementaryRevision() {
     <div className="mx-auto max-w-6xl space-y-12 px-4 pb-16">
       <section id="all-resources" className="scroll-mt-24">
         <div className="mb-2 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-primary">Complete live library</p><h2 className="font-serif text-2xl font-bold">All revision resources, arranged by unit</h2></div><span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-bold text-primary">{allResources.length} resources</span></div>
-        <p className="mb-4 text-sm leading-6 text-muted-foreground">Each unit is divided into notes, past papers, CATs, essays, question banks, exams and flashcards. Opening a resource starts it automatically; use the tick to mark it completed.</p>
+        <p className="mb-4 text-sm leading-6 text-muted-foreground">Each unit is divided into notes, past papers, CATs, essays, question banks, exams and flashcards. Question resources appear only when usable answers are present. Opening a resource starts it automatically; use the tick to mark it completed.</p>
+        {withheldCount > 0 && <p className="mb-4 rounded-xl border border-amber-300/50 bg-amber-500/10 p-3 text-sm"><strong>{withheldCount} question resource{withheldCount === 1 ? "" : "s"} held back:</strong> they need answers before they can appear in this revision plan.</p>}
         {!user && <p className="mb-4 rounded-xl border border-amber-300/50 bg-amber-500/10 p-3 text-sm"><Link to="/login" className="font-bold underline">Log in</Link> to sync progress across your phone and other devices. Guest progress stays on this device.</p>}
         <div className="mb-4 grid grid-cols-3 gap-2">
           <button onClick={() => setStatusFilter(statusFilter === "Untouched" ? "All" : "Untouched")} className={`rounded-xl border p-3 text-left ${statusFilter === "Untouched" ? "border-slate-500 bg-slate-500/10" : "bg-card"}`}><span className="block text-xl font-bold">{trackingTotals.untouched}</span><span className="text-[11px] font-semibold text-muted-foreground">Untouched</span></button>
           <button onClick={() => setStatusFilter(statusFilter === "In progress" ? "All" : "In progress")} className={`rounded-xl border p-3 text-left ${statusFilter === "In progress" ? "border-amber-500 bg-amber-500/10" : "bg-card"}`}><span className="block text-xl font-bold">{trackingTotals.inProgress}</span><span className="text-[11px] font-semibold text-muted-foreground">In progress</span></button>
           <button onClick={() => setStatusFilter(statusFilter === "Completed" ? "All" : "Completed")} className={`rounded-xl border p-3 text-left ${statusFilter === "Completed" ? "border-emerald-500 bg-emerald-500/10" : "bg-card"}`}><span className="block text-xl font-bold">{trackingTotals.completed}</span><span className="text-[11px] font-semibold text-muted-foreground">Completed</span></button>
         </div>
-        <div className="mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
           <label className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search all revision materials…" className="pl-9" /></label>
           <select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option>All</option>{GROUP_ORDER.map((group) => <option key={group}>{group}</option>)}</select>
+          <select aria-label="Filter by material" value={materialFilter} onChange={(event) => setMaterialFilter(event.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option>All</option>{MATERIAL_ORDER.map((material) => <option key={material}>{material}</option>)}</select>
+          <select aria-label="Filter by answer status" value={answerFilter} onChange={(event) => setAnswerFilter(event.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option>All answer-ready</option><option>Answer key complete</option><option>Answers included</option><option>Study content</option></select>
         </div>
         {(resourcesLoading || progressLoading) ? <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : resourceError ? <p className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 text-sm">The live resource catalogue could not load. Refresh to try again.</p> : groupedResources.length === 0 ? <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">No resources match this search or progress filter.</p> : <div className="space-y-9">
           {groupedResources.map(({ group, resources, materials }) => <div key={group} className="rounded-2xl border bg-card/40 p-3 sm:p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h3 className="font-serif text-xl font-bold">{group}</h3><span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">{resources.length}</span></div><div className="space-y-6">
