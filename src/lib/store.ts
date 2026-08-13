@@ -659,7 +659,7 @@ export async function getArticleById(id: string): Promise<Article | null> {
   return data as Article | null;
 }
 
-export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | null> {
+async function fetchArticleBySlugOrId(slugOrId: string): Promise<Article | null> {
   const normalizedParam = decodeURIComponent(String(slugOrId || "")).trim().toLowerCase();
   if (!normalizedParam) return null;
 
@@ -703,6 +703,32 @@ export async function getArticleBySlugOrId(slugOrId: string): Promise<Article | 
   if (!startsWithMatch) return null;
 
   return getArticleById(startsWithMatch.id);
+}
+
+const articleDetailCache = new Map<string, Article | null>();
+const articleRequestCache = new Map<string, Promise<Article | null>>();
+
+/** Deduplicate article requests and retain opened articles for instant back/forward navigation. */
+export function getArticleBySlugOrId(slugOrId: string): Promise<Article | null> {
+  const key = decodeURIComponent(String(slugOrId || "")).trim().toLowerCase();
+  if (!key) return Promise.resolve(null);
+  if (articleDetailCache.has(key)) return Promise.resolve(articleDetailCache.get(key) ?? null);
+  const pending = articleRequestCache.get(key);
+  if (pending) return pending;
+  const request = fetchArticleBySlugOrId(key).then((article) => {
+    articleDetailCache.set(key, article);
+    if (article) {
+      articleDetailCache.set(article.id.toLowerCase(), article);
+      if (article.slug) articleDetailCache.set(article.slug.toLowerCase(), article);
+    }
+    return article;
+  }).finally(() => articleRequestCache.delete(key));
+  articleRequestCache.set(key, request);
+  return request;
+}
+
+export function prefetchArticle(slugOrId: string): void {
+  void getArticleBySlugOrId(slugOrId).catch(() => {});
 }
 
 /**

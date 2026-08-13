@@ -9,6 +9,7 @@ import { getProgress, logActivity, setProgress, type ProgressStatus, type Resour
 import type { ResourceType } from "@/lib/academic";
 import { toast } from "@/hooks/use-toast";
 import { assessAnswerReadiness, classifySupplementaryMaterial, classifySupplementaryResource, SUPPLEMENTARY_GROUPS, SUPPLEMENTARY_MATERIALS, type AnswerReadiness, type SupplementaryMaterial } from "@/lib/supplementary-resources";
+import { prefetchArticle } from "@/lib/store";
 
 type LiveResource = { id: string; title: string; category: string; type: "Article" | "Exam / MCQ" | "Flashcards"; resourceType: ResourceType; material: SupplementaryMaterial; answerReadiness: AnswerReadiness; path: string; group: string; size: number };
 
@@ -64,6 +65,7 @@ export default function SupplementaryRevision() {
   const [materialFilter, setMaterialFilter] = useState("All");
   const [answerFilter, setAnswerFilter] = useState("All answer-ready");
   const [withheldCount, setWithheldCount] = useState(0);
+  const [perGroupLimit, setPerGroupLimit] = useState(12);
   useEffect(() => localStorage.setItem("supplementary-plan-done", JSON.stringify(done)), [done]);
   useEffect(() => {
     let active = true;
@@ -117,11 +119,13 @@ export default function SupplementaryRevision() {
       return (groupFilter === "All" || item.group === groupFilter) && (materialFilter === "All" || item.material === materialFilter) && (answerFilter === "All answer-ready" || item.answerReadiness === answerFilter) && (statusFilter === "All" || state === statusFilter) && (!needle || `${item.title} ${item.category} ${item.type} ${item.material}`.toLowerCase().includes(needle));
     });
   }, [allResources, answerFilter, groupFilter, materialFilter, progressByKey, query, statusFilter]);
+  useEffect(() => setPerGroupLimit(12), [answerFilter, groupFilter, materialFilter, query, statusFilter]);
+  const renderedResources = useMemo(() => GROUP_ORDER.flatMap((group) => visibleResources.filter((item) => item.group === group).slice(0, perGroupLimit)), [perGroupLimit, visibleResources]);
   const groupedResources = useMemo(() => GROUP_ORDER.map((group) => {
-    const resources = visibleResources.filter((item) => item.group === group);
+    const resources = renderedResources.filter((item) => item.group === group);
     const materials = MATERIAL_ORDER.map((material) => ({ material, resources: resources.filter((item) => item.material === material) })).filter((entry) => entry.resources.length);
     return { group, resources, materials };
-  }).filter((entry) => entry.resources.length), [visibleResources]);
+  }).filter((entry) => entry.resources.length), [renderedResources]);
   const trackingTotals = useMemo(() => allResources.reduce((totals, item) => {
     const row = progressByKey.get(progressKey(item.resourceType, item.id));
     if (row?.status === "completed") totals.completed++;
@@ -134,6 +138,13 @@ export default function SupplementaryRevision() {
     resources: allResources.filter((item) => item.group === group && item.material === "Notes & revision guides").slice(0, 2),
     answerReady: allResources.filter((item) => item.group === group && item.material !== "Notes & revision guides").length,
   })).filter((entry) => entry.resources.length || entry.answerReady), [allResources]);
+  useEffect(() => {
+    const warm = () => startHere.flatMap((entry) => entry.resources.slice(0, 1)).forEach((resource) => {
+      if (resource.resourceType === "article") prefetchArticle(resource.path.split("/").pop() || resource.id);
+    });
+    const id = window.setTimeout(warm, 250);
+    return () => window.clearTimeout(id);
+  }, [startHere]);
   const toggle = (date: string) => setDone((current) => current.includes(date) ? current.filter((x) => x !== date) : [...current, date]);
   const markResource = async (resource: LiveResource) => {
     const key = progressKey(resource.resourceType, resource.id);
@@ -197,6 +208,7 @@ export default function SupplementaryRevision() {
               {materialResources.map((resource) => { const Icon = resource.type === "Article" ? BookOpen : resource.type === "Flashcards" ? GraduationCap : FileQuestion; const tracked = progressByKey.get(progressKey(resource.resourceType, resource.id)); const completed = tracked?.status === "completed"; const touched = Boolean(tracked); const key = progressKey(resource.resourceType, resource.id); return <div key={key} className={`flex items-stretch overflow-hidden rounded-xl border bg-card transition-colors ${completed ? "border-emerald-500/40 bg-emerald-500/5" : touched ? "border-amber-500/30" : "hover:border-primary/40"}`}><Link to={resource.path} className="group flex min-w-0 flex-1 items-start gap-3 p-3"><Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold leading-5 group-hover:text-primary">{resource.title}</span><span className="mt-1 block text-[11px] leading-4 text-muted-foreground">{resource.type} · {resource.size ? resource.type === "Article" ? `${Math.max(1, Math.round(resource.size / 1000))}k characters` : `${resource.size} items` : resource.category}</span><span className={`mt-2 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide ${completed ? "text-emerald-600" : touched ? "text-amber-600" : "text-muted-foreground"}`}>{completed ? <CheckCircle2 className="h-3 w-3" /> : touched ? <Circle className="h-3 w-3 fill-current" /> : <Circle className="h-3 w-3" />}{statusLabel(tracked?.status)}</span></span><ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /></Link><button type="button" onClick={() => markResource(resource)} disabled={updatingKey === key} aria-label={completed ? `Mark ${resource.title} in progress` : `Mark ${resource.title} completed`} className={`flex w-12 shrink-0 items-center justify-center border-l transition-colors ${completed ? "border-emerald-500/30 bg-emerald-500 text-white" : "border-border bg-muted/30 hover:bg-primary/10 hover:text-primary"}`}>{updatingKey === key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-5 w-5" />}</button></div>; })}
             </div></div>)}
           </div></div>)}
+          {renderedResources.length < visibleResources.length && <button type="button" onClick={() => setPerGroupLimit((limit) => limit + 12)} className="mx-auto block min-h-11 rounded-xl border bg-card px-6 py-2 text-sm font-bold text-primary hover:bg-primary/5">Load more resources ({visibleResources.length - renderedResources.length} remaining)</button>}
         </div>}
       </section>
 
