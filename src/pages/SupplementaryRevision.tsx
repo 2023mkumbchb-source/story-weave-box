@@ -8,25 +8,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { getProgress, logActivity, setProgress, type ProgressStatus, type ResourceProgress } from "@/lib/study";
 import type { ResourceType } from "@/lib/academic";
 import { toast } from "@/hooks/use-toast";
+import { classifySupplementaryResource, SUPPLEMENTARY_GROUPS } from "@/lib/supplementary-resources";
 
 type LiveResource = { id: string; title: string; category: string; type: "Article" | "Exam / MCQ" | "Flashcards"; resourceType: ResourceType; material: string; path: string; group: string; size: number };
 
-const GROUP_ORDER = ["Year 2 Microbiology", "Year 2 Parasitology", "Year 3 Bacteriology & Parasitology II", "Medical Virology", "Medical Mycology", "General Pathology", "Systemic Pathology", "Haematology"];
+const GROUP_ORDER = [...SUPPLEMENTARY_GROUPS];
 const MATERIAL_ORDER = ["Notes & revision guides", "Past papers", "CATs", "Essays & SAQs", "Question banks", "MCQs & timed exams", "Flashcards"];
-
-function resourceGroup(title: string, category: string): string | null {
-  const text = `${title} ${category}`.toLowerCase();
-  const year2 = /year\s*2/.test(category.toLowerCase());
-  if (/virolog|\bvirus|\bviral|\bhiv\b|hepatitis virus/.test(text)) return "Medical Virology";
-  if (/mycolog|\bfung(?:us|i|al)\b|candida|aspergill|cryptococc|histoplas/.test(text)) return "Medical Mycology";
-  if (year2 && /parasitol|parasite|protozo|helminth|malaria|plasmod|schistosom|entomolog/.test(text)) return "Year 2 Parasitology";
-  if (year2 && /microbiolog|bacteriolog|bacteri|staphyl|streptococ|gram[ -]/.test(text)) return "Year 2 Microbiology";
-  if (/bacteriolog|parasitology ii|parasitology 2|year\s*3.*parasitol|medical microbiolog/.test(text)) return "Year 3 Bacteriology & Parasitology II";
-  if (/haemat|hemat|blood transfusion|anaemia|anemia|leuk|leuka|lymphoma|coagulation|haemostasis|hemostasis/.test(text)) return "Haematology";
-  if (/general pathology|cell injury|inflammation|tissue repair|wound healing|neoplas|hemodynamic|haemodynamic|immunopath/.test(text)) return "General Pathology";
-  if (/patholog|oncopath|cardiovascular|respiratory|gastrointestinal|hepatobiliary|\brenal\b|endocrine|neuropath|reproductive|\bbreast\b|bone and soft tissue|\bskin\b/.test(text)) return "Systemic Pathology";
-  return null;
-}
 
 function articleMaterial(title: string, contentType?: string | null, examType?: string | null): string {
   const text = `${title} ${contentType || ""} ${examType || ""}`;
@@ -90,15 +77,15 @@ export default function SupplementaryRevision() {
       if (articles.error || exams.error || flashcards.error) { setResourceError(true); setResourcesLoading(false); return; }
       const rows: LiveResource[] = [];
       for (const row of articles.data || []) {
-        const group = resourceGroup(row.title, row.category); if (!group) continue;
+        const group = classifySupplementaryResource(row.title, row.category); if (!group) continue;
         rows.push({ id: row.id, title: row.title, category: row.category, type: "Article", resourceType: "article", material: articleMaterial(row.title, row.content_type, row.exam_type), path: `/blog/${row.slug || row.id}`, group, size: row.content?.length || 0 });
       }
       for (const row of exams.data || []) {
-        const group = resourceGroup(row.title, row.category); if (!group) continue;
+        const group = classifySupplementaryResource(row.title, row.category); if (!group) continue;
         rows.push({ id: row.id, title: row.title, category: row.category, type: "Exam / MCQ", resourceType: "exam", material: "MCQs & timed exams", path: `/exams/${row.slug || row.id}/start`, group, size: Array.isArray(row.questions) ? row.questions.length : 0 });
       }
       for (const row of flashcards.data || []) {
-        const group = resourceGroup(row.title, row.category); if (!group) continue;
+        const group = classifySupplementaryResource(row.title, row.category); if (!group) continue;
         rows.push({ id: row.id, title: row.title, category: row.category, type: "Flashcards", resourceType: "flashcard", material: "Flashcards", path: `/flashcards/${row.slug || row.id}`, group, size: Array.isArray(row.cards) ? row.cards.length : 0 });
       }
       rows.sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group) || a.title.localeCompare(b.title));
