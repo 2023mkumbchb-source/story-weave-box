@@ -1595,7 +1595,12 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
-    const questionMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)[:\s-]*(.*)/i);
+    let questionMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)[:\s-]*(.*)/i) as RegExpMatchArray | null;
+    // In an MCQ section, "**1.** stem …" is a question header too.
+    if (!questionMatch && examMode === "mcq") {
+      const numbered = t.match(/^\*{0,2}\s*(\d{1,3})[\.)]\*{0,2}\s+(.{6,})$/);
+      if (numbered) questionMatch = ["", "Question", numbered[1], numbered[2]] as unknown as RegExpMatchArray;
+    }
     // ── Exam-paper front matter → compact meta card ──
     // "Programme: …", "Assessment: …", "Unit Code: …", "Date: …", "Reg No: …"
     const metaFieldRe = /^\*{0,2}\s*(Programme|Program|Course|Assessment|Exam|Paper|Unit Code|Unit|Subject|Date|Time|Duration|Venue|Marks|Instructions?|Reg\.?\s*No\.?|Registration\s*No\.?|Year|Semester|University|School)\s*\*{0,2}\s*[:：]\s*(.+)$/i;
