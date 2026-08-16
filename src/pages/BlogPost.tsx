@@ -300,20 +300,67 @@ function McqAnswerBlock({ raw }: { raw: string }) {
 }
 
 function InlineAnswerBlock({ raw }: { raw: string }) {
+  const [open, setOpen] = useState(false);
+  const access = useAccess();
+  const locked = !access.canReveal;
   const cleaned = raw
     .split("\n")
     .map((line) => cleanDisplayText(line.replace(/^✅\s*/, "").replace(/^(?:Answer|Model answer|Explanation|Correct answer)\s*[:：]\s*/i, "")))
     .filter(Boolean);
   if (!cleaned.length) return null;
   return (
-    <div className="not-prose my-4 border-l-2 border-primary/50 pl-4">
-      <p className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">Answer</p>
-      <div className="space-y-2">
-        {cleaned.map((line, i) => (
-          <p key={i} className="text-[1.03rem] leading-8 text-foreground/90"><Inline text={line} /></p>
-        ))}
-      </div>
+    <div className="not-prose my-4 rounded-xl border border-primary/25 bg-primary/[0.04] overflow-hidden">
+      <button
+        type="button"
+        onClick={() => {
+          if (locked) { openSubscribePrompt("Subscribe to reveal the model answer."); return; }
+          setOpen((o) => !o);
+        }}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-primary/10"
+      >
+        <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+          {locked ? <Lock className="h-4 w-4" /> : open ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {locked ? "Reveal — subscribers" : open ? "Hide answer" : "Reveal answer"}
+        </span>
+        <ChevronDown className={`h-4 w-4 text-primary transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && !locked && (
+        <ul className="space-y-2 border-t border-primary/20 px-4 py-3">
+          {cleaned.map((line, i) => (
+            <li key={i} className="flex items-start gap-2.5 text-[1.01rem] leading-8 text-foreground/90">
+              <span className="mt-3 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span className="flex-1"><Inline text={line} /></span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
+  );
+}
+
+/** A tappable MCQ choice row — students can select their answer before revealing. */
+function McqChoiceRow({ label, text }: { label: string; text: string }) {
+  const [picked, setPicked] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => setPicked((p) => !p)}
+      aria-pressed={picked}
+      className={`not-prose my-1 flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
+        picked
+          ? "border-primary bg-primary/10"
+          : "border-border/70 bg-card hover:border-primary/40 hover:bg-primary/[0.03]"
+      }`}
+    >
+      <span
+        className={`mt-px flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-bold ${
+          picked ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+        }`}
+      >
+        {label}
+      </span>
+      <span className="min-w-0 flex-1 text-[15px] leading-[1.55] text-foreground"><Inline text={text} /></span>
+    </button>
   );
 }
 
@@ -1548,7 +1595,12 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       continue;
     }
 
-    const questionMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)[:\s-]*(.*)/i);
+    let questionMatch = t.match(/^(QUESTION|Question|Q)\s*(\d+)[:\s-]*(.*)/i) as RegExpMatchArray | null;
+    // In an MCQ section, "**1.** stem …" is a question header too.
+    if (!questionMatch && examMode === "mcq") {
+      const numbered = t.match(/^\*{0,2}\s*(\d{1,3})[\.)]\*{0,2}\s+(.{6,})$/);
+      if (numbered) questionMatch = ["", "Question", numbered[1], numbered[2]] as unknown as RegExpMatchArray;
+    }
     // ── Exam-paper front matter → compact meta card ──
     // "Programme: …", "Assessment: …", "Unit Code: …", "Date: …", "Reg No: …"
     const metaFieldRe = /^\*{0,2}\s*(Programme|Program|Course|Assessment|Exam|Paper|Unit Code|Unit|Subject|Date|Time|Duration|Venue|Marks|Instructions?|Reg\.?\s*No\.?|Registration\s*No\.?|Year|Semester|University|School)\s*\*{0,2}\s*[:：]\s*(.+)$/i;
@@ -1667,12 +1719,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           if (explanationMatch?.[2]) pushBullet(explanationMatch[2].trim(), `essay-pt-exp-${i}-${n}`);
           return;
         }
-        els.push(
-          <div key={`mcqopt-combo-${i}-${n}`} className="not-prose my-1 flex items-start gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 transition-colors hover:border-primary/40">
-            <span className="mt-px shrink-0 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-[11px] font-bold text-primary">{label}</span>
-            <p className="min-w-0 flex-1 text-[15px] leading-[1.55] text-foreground"><Inline text={optText} /></p>
-          </div>
-        );
+        els.push(<McqChoiceRow key={`mcqopt-combo-${i}-${n}`} label={label} text={optText} />);
         if (explanationMatch?.[2]) {
           els.push(<McqAnswerBlock key={`mcqopt-combo-exp-${i}-${n}`} raw={`Answer: ${label}. ${optText}\nExplanation: ${explanationMatch[2]}`} />);
         }
@@ -1700,12 +1747,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       }
       if (label === "A") choicesLabel(`choices-${i}`);
       else pendingChoicesLabel = false;
-      els.push(
-        <div key={`mcqopt-${i}`} className="not-prose my-1 flex items-start gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 transition-colors hover:border-primary/40">
-          <span className="mt-px shrink-0 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-[11px] font-bold text-primary">{label}</span>
-          <p className="min-w-0 flex-1 text-[15px] leading-[1.55] text-foreground"><Inline text={optText} /></p>
-        </div>
-      );
+      els.push(<McqChoiceRow key={`mcqopt-${i}`} label={label} text={optText} />);
       if (explanationMatch?.[2]) {
         els.push(<McqAnswerBlock key={`mcqopt-exp-${i}`} raw={`Answer: ${label}. ${optText}\nExplanation: ${explanationMatch[2]}`} />);
       }
