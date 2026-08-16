@@ -1714,12 +1714,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
           if (explanationMatch?.[2]) pushBullet(explanationMatch[2].trim(), `essay-pt-exp-${i}-${n}`);
           return;
         }
-        els.push(
-          <div key={`mcqopt-combo-${i}-${n}`} className="not-prose my-1 flex items-start gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 transition-colors hover:border-primary/40">
-            <span className="mt-px shrink-0 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-[11px] font-bold text-primary">{label}</span>
-            <p className="min-w-0 flex-1 text-[15px] leading-[1.55] text-foreground"><Inline text={optText} /></p>
-          </div>
-        );
+        els.push(<McqChoiceRow key={`mcqopt-combo-${i}-${n}`} label={label} text={optText} />);
         if (explanationMatch?.[2]) {
           els.push(<McqAnswerBlock key={`mcqopt-combo-exp-${i}-${n}`} raw={`Answer: ${label}. ${optText}\nExplanation: ${explanationMatch[2]}`} />);
         }
@@ -1747,12 +1742,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       }
       if (label === "A") choicesLabel(`choices-${i}`);
       else pendingChoicesLabel = false;
-      els.push(
-        <div key={`mcqopt-${i}`} className="not-prose my-1 flex items-start gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 transition-colors hover:border-primary/40">
-          <span className="mt-px shrink-0 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-[11px] font-bold text-primary">{label}</span>
-          <p className="min-w-0 flex-1 text-[15px] leading-[1.55] text-foreground"><Inline text={optText} /></p>
-        </div>
-      );
+      els.push(<McqChoiceRow key={`mcqopt-${i}`} label={label} text={optText} />);
       if (explanationMatch?.[2]) {
         els.push(<McqAnswerBlock key={`mcqopt-exp-${i}`} raw={`Answer: ${label}. ${optText}\nExplanation: ${explanationMatch[2]}`} />);
       }
