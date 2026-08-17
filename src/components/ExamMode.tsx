@@ -358,7 +358,7 @@ export default function ExamMode({
               Answered <strong className="text-foreground">{answered}/{total}</strong> questions.
             </p>
             <p className="text-xs text-muted-foreground mb-5">
-              Answers unlock after <strong className="text-foreground">midnight</strong>. Your result is saved — come back to review.
+              Your score and the full answer key are shown immediately after you submit.
             </p>
             <div className="flex gap-3">
               <Button onClick={() => { setShowSubmitConfirm(false); doSubmit("manual"); }} className="flex-1">Submit Now</Button>
@@ -380,34 +380,8 @@ export default function ExamMode({
     const reasonNote: Record<SubmitReason, string | null> = {
       manual: null,
       timeout: "Time ran out — exam was auto-submitted.",
-      tab_switch: "Exam auto-submitted: you switched tabs or left the page.",
+      tab_switch: "Exam submitted after you left the page.",
     };
-
-    const isIncompleteSubmission = submitReason !== "manual" || displayAnswers.size < total;
-
-    if (isIncompleteSubmission) {
-      return (
-        <div className="min-h-screen bg-background px-3 sm:px-6 py-6 pb-20">
-          <div className="mx-auto max-w-2xl space-y-4">
-            {reasonNote[submitReason] && (
-              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 flex items-center gap-2 text-sm text-destructive">
-                <AlertTriangle className="h-4 w-4 shrink-0" /><span>{reasonNote[submitReason]}</span>
-              </div>
-            )}
-
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border bg-card p-6 text-center">
-              <div className="text-4xl mb-2">✅</div>
-              <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground mb-2">Thank you for submitting</h2>
-              <p className="text-sm text-muted-foreground">
-                Your attempt has been saved. Since the exam was not fully completed, results are hidden.
-              </p>
-            </motion.div>
-
-            <Button onClick={onExit} className="w-full">Back to Exams</Button>
-          </div>
-        </div>
-      );
-    }
 
     return (
       <div className="min-h-screen bg-background px-3 sm:px-6 py-6 pb-20">
@@ -448,22 +422,25 @@ export default function ExamMode({
             </div>
           </motion.div>
 
-          {!answersUnlocked ? (
-            <div className="rounded-2xl border border-border bg-card p-6 flex flex-col items-center text-center gap-3">
-              <div className="rounded-full bg-primary/10 p-4"><Lock className="h-7 w-7 text-primary" /></div>
-              <h3 className="font-serif text-base font-bold text-foreground">Answers Locked Until Midnight</h3>
-              <p className="text-sm text-muted-foreground max-w-xs">
-                Answers are released at <strong className="text-foreground">12:00 AM</strong> once all students have finished.
-              </p>
-              <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-2 text-xs text-primary">
-                Your result is saved. Come back after midnight to review.
-              </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-xl border border-green-500/25 bg-green-500/5 p-3 text-center">
+              <p className="text-lg font-bold text-green-600 dark:text-green-400">{correctCount}</p>
+              <p className="text-[10px] text-muted-foreground">Correct</p>
             </div>
-          ) : (
-            <div className="space-y-3">
+            <div className="rounded-xl border border-destructive/25 bg-destructive/5 p-3 text-center">
+              <p className="text-lg font-bold text-destructive">{Math.max(0, displayAnswers.size - correctCount)}</p>
+              <p className="text-[10px] text-muted-foreground">Wrong</p>
+            </div>
+            <div className="rounded-xl border border-border bg-muted/30 p-3 text-center">
+              <p className="text-lg font-bold text-foreground">{Math.max(0, total - displayAnswers.size)}</p>
+              <p className="text-[10px] text-muted-foreground">Skipped</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
               <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-3 flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                 <CheckCircle className="h-4 w-4 shrink-0" />
-                Answers are now available for review.
+                Full answer key with explanations below.
               </div>
               {questions.map((q, qi) => {
                 const selected = displayAnswers.get(qi);
