@@ -486,7 +486,6 @@ export default function ExamMode({
                 );
               })}
             </div>
-          </div>
 
           <Button onClick={onExit} className="w-full">Back to Exams</Button>
         </div>
