@@ -14,13 +14,21 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Owner accounts that always have admin access, even if the role lookup
+// is slow or fails (network hiccup / timeout).
+const ADMIN_EMAILS = ["hydrocephcare@gmail.com", "med.hydrocephcare@gmail.com"];
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const checkAdmin = useCallback(async (userId: string) => {
+  const checkAdmin = useCallback(async (userId: string, email?: string | null) => {
+    if (email && ADMIN_EMAILS.includes(email.toLowerCase())) {
+      setIsAdmin(true);
+      return;
+    }
     try {
       const roleRequest = supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
       const timeout = new Promise<{ data: false; error: Error }>((resolve) =>
@@ -39,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!active) return;
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
-      if (nextSession?.user) await checkAdmin(nextSession.user.id);
+      if (nextSession?.user) await checkAdmin(nextSession.user.id, nextSession.user.email);
       else setIsAdmin(false);
       if (active) setLoading(false);
     };

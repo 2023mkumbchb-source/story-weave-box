@@ -499,6 +499,23 @@ export default function ExamMode({
       <ExitDialog />
       <SubmitDialog />
 
+      {awayPaused && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background/95 backdrop-blur px-4">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 text-center shadow-2xl">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <Clock className="h-5 w-5 text-primary" />
+            </div>
+            <h3 className="font-serif text-lg font-bold text-foreground mb-1">Exam paused</h3>
+            <p className="text-sm text-muted-foreground mb-5">
+              You left the page, so the timer stopped. Nothing was submitted — press continue to resume from where you left off.
+            </p>
+            <Button className="w-full" onClick={() => setAwayPaused(false)}>Continue exam</Button>
+            <button onClick={() => setShowExitConfirm(true)}
+              className="mt-3 text-xs text-muted-foreground hover:text-destructive">Save & exit instead</button>
+          </div>
+        </div>
+      )}
+
       <div className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur px-3 sm:px-6 py-2.5">
         <div className="mx-auto max-w-2xl flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
