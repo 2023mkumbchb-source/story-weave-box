@@ -88,15 +88,6 @@ function clearSessionFromStorage(id: string) {
   try { localStorage.removeItem(sessionStorageKey(id)); } catch {}
 }
 
-function isAnswersUnlocked(submittedAt: number): boolean {
-  const now = new Date();
-  const submitted = new Date(submittedAt);
-  const unlock = new Date(submitted);
-  unlock.setDate(unlock.getDate() + 1);
-  unlock.setHours(0, 0, 0, 0);
-  return now >= unlock;
-}
-
 function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
@@ -128,7 +119,7 @@ export default function ExamMode({
   const [elapsed, setElapsed] = useState(0);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [answersUnlocked, setAnswersUnlocked] = useState(false);
+  const [awayPaused, setAwayPaused] = useState(false);
   const [displayAnswers, setDisplayAnswers] = useState<Map<number, number>>(new Map());
   const submittedRef = useRef(false);
   const sessionId = setId || `local_${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
@@ -138,18 +129,19 @@ export default function ExamMode({
 
   // Paywall — exam free up to freeLimit MCQs, then paused until isPaid
   const isPaywalled = freeLimit > 0 && !isPaid && answers.size >= freeLimit;
+  const isPaused = isPaywalled || awayPaused;
   const [pausedMs, setPausedMs] = useState(0);
   const pauseStartRef = useRef<number | null>(null);
 
   // Track time spent in paywall so the timer pauses
   useEffect(() => {
-    if (isPaywalled && pauseStartRef.current === null) {
+    if (isPaused && pauseStartRef.current === null) {
       pauseStartRef.current = Date.now();
-    } else if (!isPaywalled && pauseStartRef.current !== null) {
+    } else if (!isPaused && pauseStartRef.current !== null) {
       setPausedMs((p) => p + (Date.now() - (pauseStartRef.current as number)));
       pauseStartRef.current = null;
     }
-  }, [isPaywalled]);
+  }, [isPaused]);
 
   // ── On mount: restore submitted result or in-progress session ──
   useEffect(() => {
@@ -162,7 +154,6 @@ export default function ExamMode({
         setSubmittedAt(savedResult.submittedAt);
         setElapsed(savedResult.elapsed);
         setDisplayAnswers(new Map(savedResult.answers));
-        setAnswersUnlocked(isAnswersUnlocked(savedResult.submittedAt));
         return;
       }
     }
@@ -178,13 +169,13 @@ export default function ExamMode({
 
   // ── Timer ──
   useEffect(() => {
-    if (submitted) return;
+    if (submitted || isPaused) return;
     const id = setInterval(() => {
       const pauseAdj = pausedMs + (pauseStartRef.current ? Date.now() - pauseStartRef.current : 0);
       setElapsed(Math.max(0, Math.floor((Date.now() - startTime - pauseAdj) / 1000)));
     }, 1000);
     return () => clearInterval(id);
-  }, [startTime, submitted, pausedMs, isPaywalled]);
+  }, [startTime, submitted, pausedMs, isPaused]);
 
   // ── Persist in-progress session ──
   useEffect(() => {
@@ -195,15 +186,6 @@ export default function ExamMode({
       elapsed,
     });
   }, [answers, elapsed, submitted, sessionId]);
-
-  // ── Midnight unlock polling ──
-  useEffect(() => {
-    if (!submitted || !submittedAt) return;
-    const check = () => setAnswersUnlocked(isAnswersUnlocked(submittedAt));
-    check();
-    const id = setInterval(check, 30_000);
-    return () => clearInterval(id);
-  }, [submitted, submittedAt]);
 
   // ── Fullscreen ──
   useEffect(() => {
@@ -265,7 +247,6 @@ export default function ExamMode({
     setSubmittedAt(now);
     setElapsed(currentElapsed);
     setDisplayAnswers(new Map(answers));
-    setAnswersUnlocked(isAnswersUnlocked(now));
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
 
     if (setId) {
@@ -294,10 +275,12 @@ export default function ExamMode({
 
   useEffect(() => {
     if (submittedRef.current) return;
-    const onVis = () => { if (document.hidden) doSubmit("tab_switch"); };
+    // Leaving the page no longer auto-submits — the exam pauses and the
+    // student presses Continue to resume from where they left off.
+    const onVis = () => { if (document.hidden) setAwayPaused(true); };
     document.addEventListener("visibilitychange", onVis);
     return () => { document.removeEventListener("visibilitychange", onVis); };
-  }, [doSubmit]);
+  }, []);
 
   const selectAnswer = (qIdx: number, optIdx: number) => {
     if (submitted) return;
