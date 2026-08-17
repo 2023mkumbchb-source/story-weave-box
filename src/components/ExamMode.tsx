@@ -88,15 +88,6 @@ function clearSessionFromStorage(id: string) {
   try { localStorage.removeItem(sessionStorageKey(id)); } catch {}
 }
 
-function isAnswersUnlocked(submittedAt: number): boolean {
-  const now = new Date();
-  const submitted = new Date(submittedAt);
-  const unlock = new Date(submitted);
-  unlock.setDate(unlock.getDate() + 1);
-  unlock.setHours(0, 0, 0, 0);
-  return now >= unlock;
-}
-
 function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
@@ -128,7 +119,7 @@ export default function ExamMode({
   const [elapsed, setElapsed] = useState(0);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [answersUnlocked, setAnswersUnlocked] = useState(false);
+  const [awayPaused, setAwayPaused] = useState(false);
   const [displayAnswers, setDisplayAnswers] = useState<Map<number, number>>(new Map());
   const submittedRef = useRef(false);
   const sessionId = setId || `local_${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
@@ -138,18 +129,19 @@ export default function ExamMode({
 
   // Paywall — exam free up to freeLimit MCQs, then paused until isPaid
   const isPaywalled = freeLimit > 0 && !isPaid && answers.size >= freeLimit;
+  const isPaused = isPaywalled || awayPaused;
   const [pausedMs, setPausedMs] = useState(0);
   const pauseStartRef = useRef<number | null>(null);
 
   // Track time spent in paywall so the timer pauses
   useEffect(() => {
-    if (isPaywalled && pauseStartRef.current === null) {
+    if (isPaused && pauseStartRef.current === null) {
       pauseStartRef.current = Date.now();
-    } else if (!isPaywalled && pauseStartRef.current !== null) {
+    } else if (!isPaused && pauseStartRef.current !== null) {
       setPausedMs((p) => p + (Date.now() - (pauseStartRef.current as number)));
       pauseStartRef.current = null;
     }
-  }, [isPaywalled]);
+  }, [isPaused]);
 
   // ── On mount: restore submitted result or in-progress session ──
   useEffect(() => {
@@ -162,7 +154,6 @@ export default function ExamMode({
         setSubmittedAt(savedResult.submittedAt);
         setElapsed(savedResult.elapsed);
         setDisplayAnswers(new Map(savedResult.answers));
-        setAnswersUnlocked(isAnswersUnlocked(savedResult.submittedAt));
         return;
       }
     }
@@ -178,13 +169,13 @@ export default function ExamMode({
 
   // ── Timer ──
   useEffect(() => {
-    if (submitted) return;
+    if (submitted || isPaused) return;
     const id = setInterval(() => {
       const pauseAdj = pausedMs + (pauseStartRef.current ? Date.now() - pauseStartRef.current : 0);
       setElapsed(Math.max(0, Math.floor((Date.now() - startTime - pauseAdj) / 1000)));
     }, 1000);
     return () => clearInterval(id);
-  }, [startTime, submitted, pausedMs, isPaywalled]);
+  }, [startTime, submitted, pausedMs, isPaused]);
 
   // ── Persist in-progress session ──
   useEffect(() => {
@@ -195,15 +186,6 @@ export default function ExamMode({
       elapsed,
     });
   }, [answers, elapsed, submitted, sessionId]);
-
-  // ── Midnight unlock polling ──
-  useEffect(() => {
-    if (!submitted || !submittedAt) return;
-    const check = () => setAnswersUnlocked(isAnswersUnlocked(submittedAt));
-    check();
-    const id = setInterval(check, 30_000);
-    return () => clearInterval(id);
-  }, [submitted, submittedAt]);
 
   // ── Fullscreen ──
   useEffect(() => {
@@ -265,7 +247,6 @@ export default function ExamMode({
     setSubmittedAt(now);
     setElapsed(currentElapsed);
     setDisplayAnswers(new Map(answers));
-    setAnswersUnlocked(isAnswersUnlocked(now));
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
 
     if (setId) {
@@ -294,10 +275,12 @@ export default function ExamMode({
 
   useEffect(() => {
     if (submittedRef.current) return;
-    const onVis = () => { if (document.hidden) doSubmit("tab_switch"); };
+    // Leaving the page no longer auto-submits — the exam pauses and the
+    // student presses Continue to resume from where they left off.
+    const onVis = () => { if (document.hidden) setAwayPaused(true); };
     document.addEventListener("visibilitychange", onVis);
     return () => { document.removeEventListener("visibilitychange", onVis); };
-  }, [doSubmit]);
+  }, []);
 
   const selectAnswer = (qIdx: number, optIdx: number) => {
     if (submitted) return;
@@ -375,7 +358,7 @@ export default function ExamMode({
               Answered <strong className="text-foreground">{answered}/{total}</strong> questions.
             </p>
             <p className="text-xs text-muted-foreground mb-5">
-              Answers unlock after <strong className="text-foreground">midnight</strong>. Your result is saved — come back to review.
+              Your score and the full answer key are shown immediately after you submit.
             </p>
             <div className="flex gap-3">
               <Button onClick={() => { setShowSubmitConfirm(false); doSubmit("manual"); }} className="flex-1">Submit Now</Button>
@@ -397,34 +380,8 @@ export default function ExamMode({
     const reasonNote: Record<SubmitReason, string | null> = {
       manual: null,
       timeout: "Time ran out — exam was auto-submitted.",
-      tab_switch: "Exam auto-submitted: you switched tabs or left the page.",
+      tab_switch: "Exam submitted after you left the page.",
     };
-
-    const isIncompleteSubmission = submitReason !== "manual" || displayAnswers.size < total;
-
-    if (isIncompleteSubmission) {
-      return (
-        <div className="min-h-screen bg-background px-3 sm:px-6 py-6 pb-20">
-          <div className="mx-auto max-w-2xl space-y-4">
-            {reasonNote[submitReason] && (
-              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 flex items-center gap-2 text-sm text-destructive">
-                <AlertTriangle className="h-4 w-4 shrink-0" /><span>{reasonNote[submitReason]}</span>
-              </div>
-            )}
-
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border bg-card p-6 text-center">
-              <div className="text-4xl mb-2">✅</div>
-              <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground mb-2">Thank you for submitting</h2>
-              <p className="text-sm text-muted-foreground">
-                Your attempt has been saved. Since the exam was not fully completed, results are hidden.
-              </p>
-            </motion.div>
-
-            <Button onClick={onExit} className="w-full">Back to Exams</Button>
-          </div>
-        </div>
-      );
-    }
 
     return (
       <div className="min-h-screen bg-background px-3 sm:px-6 py-6 pb-20">
@@ -465,22 +422,25 @@ export default function ExamMode({
             </div>
           </motion.div>
 
-          {!answersUnlocked ? (
-            <div className="rounded-2xl border border-border bg-card p-6 flex flex-col items-center text-center gap-3">
-              <div className="rounded-full bg-primary/10 p-4"><Lock className="h-7 w-7 text-primary" /></div>
-              <h3 className="font-serif text-base font-bold text-foreground">Answers Locked Until Midnight</h3>
-              <p className="text-sm text-muted-foreground max-w-xs">
-                Answers are released at <strong className="text-foreground">12:00 AM</strong> once all students have finished.
-              </p>
-              <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-2 text-xs text-primary">
-                Your result is saved. Come back after midnight to review.
-              </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-xl border border-green-500/25 bg-green-500/5 p-3 text-center">
+              <p className="text-lg font-bold text-green-600 dark:text-green-400">{correctCount}</p>
+              <p className="text-[10px] text-muted-foreground">Correct</p>
             </div>
-          ) : (
-            <div className="space-y-3">
+            <div className="rounded-xl border border-destructive/25 bg-destructive/5 p-3 text-center">
+              <p className="text-lg font-bold text-destructive">{Math.max(0, displayAnswers.size - correctCount)}</p>
+              <p className="text-[10px] text-muted-foreground">Wrong</p>
+            </div>
+            <div className="rounded-xl border border-border bg-muted/30 p-3 text-center">
+              <p className="text-lg font-bold text-foreground">{Math.max(0, total - displayAnswers.size)}</p>
+              <p className="text-[10px] text-muted-foreground">Skipped</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
               <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-3 flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                 <CheckCircle className="h-4 w-4 shrink-0" />
-                Answers are now available for review.
+                Full answer key with explanations below.
               </div>
               {questions.map((q, qi) => {
                 const selected = displayAnswers.get(qi);
@@ -526,7 +486,6 @@ export default function ExamMode({
                 );
               })}
             </div>
-          )}
 
           <Button onClick={onExit} className="w-full">Back to Exams</Button>
         </div>
@@ -539,6 +498,23 @@ export default function ExamMode({
     <div className="exam-container fixed inset-0 z-50 bg-background overflow-y-auto">
       <ExitDialog />
       <SubmitDialog />
+
+      {awayPaused && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background/95 backdrop-blur px-4">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 text-center shadow-2xl">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <Clock className="h-5 w-5 text-primary" />
+            </div>
+            <h3 className="font-serif text-lg font-bold text-foreground mb-1">Exam paused</h3>
+            <p className="text-sm text-muted-foreground mb-5">
+              You left the page, so the timer stopped. Nothing was submitted — press continue to resume from where you left off.
+            </p>
+            <Button className="w-full" onClick={() => setAwayPaused(false)}>Continue exam</Button>
+            <button onClick={() => setShowExitConfirm(true)}
+              className="mt-3 text-xs text-muted-foreground hover:text-destructive">Save & exit instead</button>
+          </div>
+        </div>
+      )}
 
       <div className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur px-3 sm:px-6 py-2.5">
         <div className="mx-auto max-w-2xl flex items-center justify-between gap-2">
