@@ -1773,6 +1773,19 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       const rawOption = mcqOptMatch[2].replace(/^\*+|\*+$/g, "").trim();
       const explanationMatch = rawOption.match(/^([\s\S]*?)\s*(?:Explanation|Rationale)\s*[:：]\s*([\s\S]+)$/i);
       const optText = (explanationMatch?.[1] || rawOption).trim();
+      // Leaked answer/explanation prose ("A. is of major global concern because…")
+      // is a sentence, not a choice — never chip it into an option row.
+      const looksLikeLeakedProse = /^[a-z]/.test(optText) && optText.length > 60;
+      if (looksLikeLeakedProse && examMode !== "essay") {
+        pendingChoicesLabel = false;
+        flushList();
+        els.push(
+          <p key={`leaked-prose-${i}`} className="mb-4 text-[1.03rem] leading-8 text-foreground/90">
+            <Inline text={`${label}. ${optText}`} />
+          </p>
+        );
+        continue;
+      }
       // A long lettered line is prose (an answer point), never an MCQ choice.
       if (examMode === "essay" || optText.length > 110) {
         pendingChoicesLabel = false;
