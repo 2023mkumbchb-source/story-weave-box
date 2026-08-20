@@ -697,6 +697,36 @@ function formatSequence(value: string): string {
   return text;
 }
 
+/**
+ * Abbreviations and acronyms (LD50, MBChB, UTIs, MRSA, e.g., "B. cereus") were
+ * being torn apart by the sentence/word spacing rules, which then produced fake
+ * option markers ("E coli", "A. is of major concern…"). Freeze them before the
+ * spacing rules run and thaw them afterwards.
+ */
+const PROTECT_PATTERNS: RegExp[] = [
+  /\b(?:e\.g\.|i\.e\.|etc\.|vs\.|cf\.|approx\.|Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.|No\.|Fig\.|St\.)/gi,
+  /\b[A-Z][a-z]+[A-Z][A-Za-z]*\d*\b/g, // MacConkey, CagA, VacA
+  /\b[A-Z]{2,}[a-z][A-Za-z]*\d*\b/g, // MBChB, MRSAs
+  /\b[A-Z]{2,}\d*(?:s)?\b/g, // LD50, UTIs, STDs, AFB, ATP
+];
+const GENUS_PATTERN = /\b[A-Z]\.\s?[a-z]{3,}\b/g; // "B. cereus", "E. coli"
+
+function protectTokens(text: string, allowGenus: boolean): { text: string; tokens: string[] } {
+  const tokens: string[] = [];
+  const freeze = (m: string) => {
+    tokens.push(m);
+    return `\u0001${tokens.length - 1}\u0001`;
+  };
+  let out = text;
+  if (allowGenus) out = out.replace(GENUS_PATTERN, freeze);
+  for (const re of PROTECT_PATTERNS) out = out.replace(re, freeze);
+  return { text: out, tokens };
+}
+
+function restoreTokens(text: string, tokens: string[]): string {
+  return text.replace(/\u0001(\d+)\u0001/g, (_, i) => tokens[Number(i)] ?? "");
+}
+
 const OPTION_MARKER_SOURCE = String.raw`(?:\(?[A-Ea-e]\)|[A-Ea-e][\.)])`;
 const OPTION_MARKER_RE = new RegExp(String.raw`(?:^|\s)(${OPTION_MARKER_SOURCE})\s+`);
 const OPTION_CAPTURE_RE = new RegExp(String.raw`(?:^|\s)(${OPTION_MARKER_SOURCE})\s+([\s\S]*?)(?=\s+${OPTION_MARKER_SOURCE}\s+|$)`, "gi");
@@ -1216,12 +1246,16 @@ export function preprocessContent(raw: string): string {
     }
 
     const line = rawLine;
-    let t = line
+    const preSpacing = line
       .trim()
       .replace(/&nbsp;/gi, " ")
       .replace(/\u00A0/g, " ")
       .replace(/^HOW\s+TO\s+OPEN>\s*"?/i, "")
-      .replace(/^say\s*:?>\s*"?/i, "")
+      .replace(/^say\s*:?>\s*"?/i, "");
+    // Choice runs still need genus-style markers ("B. abortus") to split, so
+    // only freeze genus abbreviations on lines that are not option runs.
+    const guard = protectTokens(preSpacing, countOptionMarkers(preSpacing) < 2);
+    let t = guard.text
       .replace(/([:.;!?])(?=\S)/g, "$1 ")
       .replace(/([a-z\)])(?=[A-Z][a-z])/g, "$1 ")
       .replace(/([A-Z]{2,})(?=[A-Z][a-z])/g, "$1 ")
@@ -1229,6 +1263,7 @@ export function preprocessContent(raw: string): string {
       .replace(/([^\s])(?=(?:Explanation|Rationale)\s*[:：])/gi, "$1 ")
       .replace(/\s*(?:->|=>|⟶|⟹)\s*/g, " → ")
       .replace(/([a-z])(?=(?:Think of|The most|Every reaction|Almost always|This is why|If someone|There are|ABO incompatibility)\b)/g, "$1 ");
+    t = restoreTokens(t, guard.tokens).replace(/\s{2,}/g, " ");
 
     if (isCourseBrandingLine(t)) {
       out.push("");
@@ -1738,6 +1773,19 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
       const rawOption = mcqOptMatch[2].replace(/^\*+|\*+$/g, "").trim();
       const explanationMatch = rawOption.match(/^([\s\S]*?)\s*(?:Explanation|Rationale)\s*[:：]\s*([\s\S]+)$/i);
       const optText = (explanationMatch?.[1] || rawOption).trim();
+      // Leaked answer/explanation prose ("A. is of major global concern because…")
+      // is a sentence, not a choice — never chip it into an option row.
+      const looksLikeLeakedProse = /^[a-z]/.test(optText) && optText.length > 60;
+      if (looksLikeLeakedProse && examMode !== "essay") {
+        pendingChoicesLabel = false;
+        flushList();
+        els.push(
+          <p key={`leaked-prose-${i}`} className="mb-4 text-[1.03rem] leading-8 text-foreground/90">
+            <Inline text={`${label}. ${optText}`} />
+          </p>
+        );
+        continue;
+      }
       // A long lettered line is prose (an answer point), never an MCQ choice.
       if (examMode === "essay" || optText.length > 110) {
         pendingChoicesLabel = false;

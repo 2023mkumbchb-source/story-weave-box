@@ -4,7 +4,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
 import PageTransition from "@/components/PageTransition";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -51,10 +50,9 @@ const RouteLoader = () => (
 const AnimatedRoutes = () => {
   const location = useLocation();
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <PageTransition key={location.pathname}>
-        <Suspense fallback={<RouteLoader />}>
-          <Routes location={location}>
+    <PageTransition key={location.pathname}>
+      <Suspense fallback={<RouteLoader />}>
+        <Routes location={location}>
             <Route path="/" element={<Index />} />
             <Route path="/year/:yearNumber" element={<YearHub />} />
             <Route path="/year/:yearNumber/unit/:unitSlug" element={<UnitPage />} />
@@ -78,11 +76,10 @@ const AnimatedRoutes = () => {
             <Route path="/account" element={<Account />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/about" element={<About />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </PageTransition>
-    </AnimatePresence>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </PageTransition>
   );
 };
 

@@ -657,33 +657,70 @@ export async function searchPublishedArticles(queryText: string, year?: string, 
   if (!q) return [];
 
   const safeQ = q.replace(/[,%]/g, " ").slice(0, 80);
-  const tsQuery = safeQ.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((w) => w.length > 1).slice(0, 6).join(" & ");
-  let query = supabase
-    .from("articles")
-    .select("id, title, category, created_at, updated_at, published, slug, meta_description, og_image_url, tags, featured_image")
-    .eq("published", true)
-    .is("deleted_at", null)
-    .or(`title.ilike.%${safeQ}%,category.ilike.%${safeQ}%,meta_description.ilike.%${safeQ}%,content_fts.fts.${tsQuery || safeQ}`)
-    .order("updated_at", { ascending: false })
-    .limit(80);
+  const words = safeQ
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 1)
+    .slice(0, 6);
+  const tsQuery = words.join(" & ");
+  const COLUMNS =
+    "id, title, category, created_at, updated_at, published, slug, meta_description, og_image_url, tags, featured_image";
 
-  if (year && /^Year [1-6]$/.test(year)) {
-    query = query.like("category", `${year}:%`);
+  const scope = (builder: any) => {
+    let out = builder.eq("published", true).is("deleted_at", null).limit(80);
+    if (year && /^Year [1-6]$/.test(year)) out = out.like("category", `${year}:%`);
+    if (unit) out = out.eq("category", unit);
+    return out;
+  };
+
+  // Any-word match across title / unit / summary so multi-word queries such as
+  // "general pathology mku" still return results.
+  const wordFilters = (words.length ? words : [safeQ])
+    .flatMap((w) => [`title.ilike.%${w}%`, `category.ilike.%${w}%`, `meta_description.ilike.%${w}%`])
+    .join(",");
+
+  const looseQuery = scope(supabase.from("articles").select(COLUMNS))
+    .or(wordFilters)
+    .order("updated_at", { ascending: false });
+
+  // Full-text search over the body; failures here must not kill the search.
+  const ftsQuery = tsQuery
+    ? scope(supabase.from("articles").select(COLUMNS))
+        .textSearch("content_fts", tsQuery)
+        .order("updated_at", { ascending: false })
+    : Promise.resolve({ data: [], error: null } as any);
+
+  const [loose, fts] = await Promise.all([
+    Promise.resolve(looseQuery).catch(() => ({ data: [], error: null })),
+    Promise.resolve(ftsQuery).catch(() => ({ data: [], error: null })),
+  ]);
+
+  if ((loose as any).error && (fts as any).error) throw (loose as any).error;
+
+  const rows = new Map<string, any>();
+  for (const row of [...(((loose as any).data as any[]) || []), ...(((fts as any).data as any[]) || [])]) {
+    if (!rows.has(row.id)) rows.set(row.id, row);
   }
 
-  if (unit) {
-    query = query.eq("category", unit);
-  }
+  // Rank: titles first, then how many query words are matched anywhere.
+  const terms = words.length ? words : [safeQ.toLowerCase()];
+  const score = (row: any) => {
+    const title = String(row.title || "").toLowerCase();
+    const rest = `${row.category || ""} ${row.meta_description || ""} ${(row.tags || []).join(" ")}`.toLowerCase();
+    let s = 0;
+    if (title.includes(safeQ.toLowerCase())) s += 100;
+    for (const w of terms) {
+      if (title.includes(w)) s += 20;
+      else if (rest.includes(w)) s += 6;
+    }
+    return s;
+  };
 
-  const { data, error } = await query;
-  if (error) throw error;
-
-  return (data || []).map((row) =>
-    toArticlePreview({
-      ...row,
-      content: row.meta_description || "",
-    }),
-  );
+  return [...rows.values()]
+    .sort((a, b) => score(b) - score(a) || String(b.updated_at || "").localeCompare(String(a.updated_at || "")))
+    .slice(0, 80)
+    .map((row) => toArticlePreview({ ...row, content: row.meta_description || "" }));
 }
 
 export async function getArticleById(id: string): Promise<Article | null> {
