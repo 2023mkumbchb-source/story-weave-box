@@ -1246,12 +1246,16 @@ export function preprocessContent(raw: string): string {
     }
 
     const line = rawLine;
-    let t = line
+    const preSpacing = line
       .trim()
       .replace(/&nbsp;/gi, " ")
       .replace(/\u00A0/g, " ")
       .replace(/^HOW\s+TO\s+OPEN>\s*"?/i, "")
-      .replace(/^say\s*:?>\s*"?/i, "")
+      .replace(/^say\s*:?>\s*"?/i, "");
+    // Choice runs still need genus-style markers ("B. abortus") to split, so
+    // only freeze genus abbreviations on lines that are not option runs.
+    const guard = protectTokens(preSpacing, countOptionMarkers(preSpacing) < 2);
+    let t = guard.text
       .replace(/([:.;!?])(?=\S)/g, "$1 ")
       .replace(/([a-z\)])(?=[A-Z][a-z])/g, "$1 ")
       .replace(/([A-Z]{2,})(?=[A-Z][a-z])/g, "$1 ")
@@ -1259,6 +1263,7 @@ export function preprocessContent(raw: string): string {
       .replace(/([^\s])(?=(?:Explanation|Rationale)\s*[:：])/gi, "$1 ")
       .replace(/\s*(?:->|=>|⟶|⟹)\s*/g, " → ")
       .replace(/([a-z])(?=(?:Think of|The most|Every reaction|Almost always|This is why|If someone|There are|ABO incompatibility)\b)/g, "$1 ");
+    t = restoreTokens(t, guard.tokens).replace(/\s{2,}/g, " ");
 
     if (isCourseBrandingLine(t)) {
       out.push("");
