@@ -1,12 +1,18 @@
-name: Deploy to Cloudflare Pages
+name: Validate GitHub main
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: validate-main-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  deploy:
+  verify:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -28,10 +34,3 @@ jobs:
         env:
           VITE_SUPABASE_URL: https://dekyjrfwvavtoivqivno.supabase.co
           VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_jOXeiFMWJj1z_M-zShimXA_cG9f2QxL
-
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=ompathstudy
