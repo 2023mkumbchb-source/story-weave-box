@@ -363,6 +363,11 @@ function isOcrNoiseLine(s: string): boolean {
   if (/^(?:scanned\s+by\s+camscanner|camscanner)\b/i.test(t)) return true;
   if (/^page\s*\d*\s*of\s*\d+\.?$/i.test(t)) return true;
   if (/^page\s*\d+\s*of\s*[a-z]{1,3}\.?$/i.test(t)) return true;
+  // Preserve numeric MCQ choices and answer lines. These contain few letters,
+  // but are real exam content (for example "A. 1-50" or "D. >5000").
+  if (/^\*{0,2}\(?[A-Ea-e]\)?[\.)]\s*[\d<>≥≤~+\-.,\/%\s]*\d/.test(t)) return false;
+  if (/^(?:answer|ans)\s*[:.\-–]/i.test(t)) return false;
+  if (/\d/.test(t) && t.length <= 24) return false;
   // Lines that are mostly OCR garbage: very few real letters among symbols.
   const letters = t.replace(/[^A-Za-z]/g, "").length;
   if (t.length >= 6 && letters / t.length < 0.35) return true;
