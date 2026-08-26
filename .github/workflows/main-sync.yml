@@ -1,4 +1,4 @@
-name: Validate GitHub main
+name: Main sync verification
 
 on:
   push:
@@ -7,17 +7,19 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
-  group: validate-main-${{ github.ref }}
+  group: main-sync-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   verify:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    timeout-minutes: 15
     steps:
-      - name: Checkout
+      - name: Checkout canonical main
         uses: actions/checkout@v4
 
       - name: Setup Node
@@ -26,10 +28,13 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies
+      - name: Install exact dependencies
         run: npm ci
 
-      - name: Build
+      - name: Test combined Lovable and repository code
+        run: npm test
+
+      - name: Build production site
         run: npm run build
         env:
           VITE_SUPABASE_URL: https://dekyjrfwvavtoivqivno.supabase.co

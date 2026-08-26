@@ -19,7 +19,7 @@ Vercel settings:
 - Production branch: `main`
 - Automatic deployments: enabled
 
-The GitHub workflow validates every push to `main`; it deliberately does not deploy a second Cloudflare Pages copy. Vercel is the only production publisher for the `.com` domain.
+The single `main-sync.yml` GitHub workflow tests and builds every push to `main`; it deliberately does not deploy a second Cloudflare Pages copy. Vercel is the only production publisher for the `.com` domain. `supabase-keepalive.yml` is unrelated maintenance and does not publish site code.
 
 The local `.vercel` link can belong to an older Vercel account/project. Do not deploy with `vercel --prod` until it has been relinked to `ompathstud-a7g2`. Git pushes to `main` remain the normal deployment path.
 
