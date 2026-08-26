@@ -60,6 +60,7 @@ const tileReveal = {
   visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.5, ease: REVEAL_EASE } },
 };
 
+// Sync probe: repository edits should appear automatically in the Lovable editor.
 export default function Index() {
   const navigate = useNavigate();
   const heroRef = useRef<HTMLDivElement>(null);
