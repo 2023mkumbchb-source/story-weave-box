@@ -1,4 +1,4 @@
-# Compact Instructions
+# Compact Instructionsn
 
 This project is mid-way through extracting the "Aponeurosis 01 (Limb SPOT)" PDF
 (`public/Aponeurosis 01(Limb SPOT).pdf`, 1508 pages) into per-paper study articles
