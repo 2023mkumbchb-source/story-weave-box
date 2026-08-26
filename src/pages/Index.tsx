@@ -1,10 +1,28 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  BookOpen, GraduationCap, ListChecks, Loader2,
-  ArrowRight, Trophy, BookMarked, Phone, MessageCircle, Clock, Check, Search,
+  BookOpen,
+  GraduationCap,
+  ListChecks,
+  Loader2,
+  ArrowRight,
+  Trophy,
+  BookMarked,
+  Phone,
+  MessageCircle,
+  Clock,
+  Check,
+  Search,
 } from "lucide-react";
-import { getAllCategories, getCategoryDisplayName, getYearFromCategory, YEAR_CATEGORIES, buildBlogPath, buildMcqPath, buildFlashcardPath } from "@/lib/store";
+import {
+  getAllCategories,
+  getCategoryDisplayName,
+  getYearFromCategory,
+  YEAR_CATEGORIES,
+  buildBlogPath,
+  buildMcqPath,
+  buildFlashcardPath,
+} from "@/lib/store";
 import { buildStoryPath, updateMetaTags } from "@/lib/seo";
 import { supabase } from "@/integrations/supabase/client";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
@@ -14,9 +32,21 @@ import { getSubjectKey, subjectColor } from "@/components/subjectTheme";
    of large, colour-blocked entry points instead of a wall of small links. */
 const RESOURCES = [
   { to: "/blog", label: "Study Notes", desc: "High-yield notes by year & unit", icon: BookOpen, subject: "pathology" },
-  { to: "/mcqs", label: "MCQ Bank", desc: "Clinical vignette questions, free", icon: ListChecks, subject: "microbiology" },
+  {
+    to: "/mcqs",
+    label: "MCQ Bank",
+    desc: "Clinical vignette questions, free",
+    icon: ListChecks,
+    subject: "microbiology",
+  },
   { to: "/exams", label: "Past Papers & CATs", desc: "Timed exam mode, real papers", icon: Trophy, subject: "exam" },
-  { to: "/flashcards", label: "Flashcards", desc: "Rapid recall before the ward", icon: GraduationCap, subject: "anatomy" },
+  {
+    to: "/flashcards",
+    label: "Flashcards",
+    desc: "Rapid recall before the ward",
+    icon: GraduationCap,
+    subject: "anatomy",
+  },
 ];
 
 /* Proof points — TeachMeAnatomy / Lecturio hero pattern: the value of the library
@@ -28,7 +58,14 @@ const PROOF = [
   "Written for Kenyan medical schools — MKU, UoN, KU, JKUAT",
 ];
 
-type RecentItem = { id: string; title: string; type: "article" | "mcq" | "flashcard" | "story"; category: string; created_at: string; slug?: string | null };
+type RecentItem = {
+  id: string;
+  title: string;
+  type: "article" | "mcq" | "flashcard" | "story";
+  category: string;
+  created_at: string;
+  slug?: string | null;
+};
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -44,7 +81,9 @@ function timeAgo(dateStr: string): string {
 
 export default function Index() {
   const navigate = useNavigate();
-  const [categories, setCategories] = useState<{ name: string; articles: number; flashcards: number; mcqs: number }[]>([]);
+  const [categories, setCategories] = useState<{ name: string; articles: number; flashcards: number; mcqs: number }[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [recentlyUploaded, setRecentlyUploaded] = useState<RecentItem[]>([]);
   const [lastRead, setLastRead] = useState<RecentArticle[]>([]);
@@ -55,11 +94,14 @@ export default function Index() {
   useEffect(() => {
     updateMetaTags({
       title: "Medical Notes, MCQs & Exams | OmpathStudy",
-      description: "Free medical study notes, MCQs, flashcards and timed exams for MBChB and health students across Kenya and East Africa.",
+      description:
+        "Free medical study notes, MCQs, flashcards and timed exams for MBChB and health students across Kenya and East Africa.",
     });
 
     // Load categories
-    getAllCategories().then(setCategories).finally(() => setLoading(false));
+    getAllCategories()
+      .then(setCategories)
+      .finally(() => setLoading(false));
 
     // Load last read
     setLastRead(getRecentArticles());
@@ -67,26 +109,26 @@ export default function Index() {
     // Recently added: one aggregated request that returns metadata only. The
     // database already filters out empty shells (no body text / no questions),
     // so the browser never downloads article bodies just to render this list.
-    (supabase as any)
-      .rpc("home_recent", { limit_n: 40 })
-      .then(({ data }: { data: any[] | null }) => {
-        const items: RecentItem[] = (data || []).map((r) => ({
-          id: r.id,
-          title: r.title,
-          category: r.category,
-          created_at: r.created_at,
-          slug: r.slug,
-          type: r.kind as RecentItem["type"],
-        }));
-        setRecentlyUploaded(items);
-      });
+    (supabase as any).rpc("home_recent", { limit_n: 40 }).then(({ data }: { data: any[] | null }) => {
+      const items: RecentItem[] = (data || []).map((r) => ({
+        id: r.id,
+        title: r.title,
+        category: r.category,
+        created_at: r.created_at,
+        slug: r.slug,
+        type: r.kind as RecentItem["type"],
+      }));
+      setRecentlyUploaded(items);
+    });
   }, []);
 
-  const yearGroups = Object.keys(YEAR_CATEGORIES).map(year => {
-    const yearCats = categories.filter(c => getYearFromCategory(c.name) === year);
-    const total = yearCats.reduce((sum, c) => sum + c.articles + c.flashcards + c.mcqs, 0);
-    return { year, categories: yearCats, total };
-  }).filter(g => g.total > 0);
+  const yearGroups = Object.keys(YEAR_CATEGORIES)
+    .map((year) => {
+      const yearCats = categories.filter((c) => getYearFromCategory(c.name) === year);
+      const total = yearCats.reduce((sum, c) => sum + c.articles + c.flashcards + c.mcqs, 0);
+      return { year, categories: yearCats, total };
+    })
+    .filter((g) => g.total > 0);
 
   const libraryTotals = categories.reduce(
     (acc, c) => ({
@@ -97,22 +139,48 @@ export default function Index() {
     { notes: 0, mcqs: 0, units: 0 },
   );
 
-  const filteredRecent = recentlyUploaded.filter(item => activeTab === "all" || (activeTab === "articles" && item.type === "article") || (activeTab === "mcqs" && item.type === "mcq") || (activeTab === "flashcards" && item.type === "flashcard") || (activeTab === "stories" && item.type === "story"));
+  const filteredRecent = recentlyUploaded.filter(
+    (item) =>
+      activeTab === "all" ||
+      (activeTab === "articles" && item.type === "article") ||
+      (activeTab === "mcqs" && item.type === "mcq") ||
+      (activeTab === "flashcards" && item.type === "flashcard") ||
+      (activeTab === "stories" && item.type === "story"),
+  );
 
   function getItemLink(item: RecentItem) {
     switch (item.type) {
-      case "article": return buildBlogPath(item);
-      case "mcq": return buildMcqPath(item);
-      case "flashcard": return buildFlashcardPath(item);
-      case "story": return buildStoryPath(item);
+      case "article":
+        return buildBlogPath(item);
+      case "mcq":
+        return buildMcqPath(item);
+      case "flashcard":
+        return buildFlashcardPath(item);
+      case "story":
+        return buildStoryPath(item);
     }
   }
 
   const typeMeta = {
-    article: { label: "Article", short: "ART", icon: BookOpen, badge: "bg-purple-500/10 text-purple-700 dark:text-purple-300" },
-    mcq:     { label: "MCQ Set", short: "MCQ", icon: ListChecks, badge: "bg-primary/10 text-primary" },
-    flashcard:{ label: "Flashcards", short: "FC", icon: GraduationCap, badge: "bg-blue-500/10 text-blue-700 dark:text-blue-300" },
-    story:   { label: "Story",   short: "STY", icon: BookMarked, badge: "bg-amber-500/10 text-amber-700 dark:text-amber-300" },
+    article: {
+      label: "Article",
+      short: "ART",
+      icon: BookOpen,
+      badge: "bg-purple-500/10 text-purple-700 dark:text-purple-300",
+    },
+    mcq: { label: "MCQ Set", short: "MCQ", icon: ListChecks, badge: "bg-primary/10 text-primary" },
+    flashcard: {
+      label: "Flashcards",
+      short: "FC",
+      icon: GraduationCap,
+      badge: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
+    },
+    story: {
+      label: "Story",
+      short: "STY",
+      icon: BookMarked,
+      badge: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    },
   } as const;
 
   return (
@@ -126,12 +194,13 @@ export default function Index() {
               Free medical library · Kenya
             </span>
             <h1 className="mt-5 font-serif text-[2.15rem] font-bold leading-[1.06] tracking-tight sm:text-5xl lg:text-[3.4rem]">
-              Every note, paper and MCQ<br className="hidden sm:block" />
+              Every note, paper and MCQ
+              <br className="hidden sm:block" />
               <span style={{ color: "hsl(var(--highlight))" }}> for medical school.</span>
             </h1>
             <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-white/75 sm:text-base">
-              Ompath Study organises the whole MBChB syllabus — notes, past papers, CATs, MCQ banks
-              and flashcards — by year, semester and unit, so revision starts in one click.
+              Ompath Study organises the whole MBChB syllabus — notes, past papers, CATs, MCQ banks and flashcards — by
+              year, semester and unit, so revision starts in one click.
             </p>
 
             {/* Search-first entry */}
@@ -142,7 +211,9 @@ export default function Index() {
               }}
               className="mt-7 flex overflow-hidden rounded-xl bg-white shadow-lg shadow-black/20"
             >
-              <span className="flex items-center pl-4 text-muted-foreground"><Search className="h-4 w-4" /></span>
+              <span className="flex items-center pl-4 text-muted-foreground">
+                <Search className="h-4 w-4" />
+              </span>
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -150,16 +221,25 @@ export default function Index() {
                 aria-label="Search study notes"
                 className="min-w-0 flex-1 bg-transparent px-3 py-3.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
               />
-              <button type="submit" className="bg-primary px-5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90">
+              <button
+                type="submit"
+                className="bg-primary px-5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+              >
                 Search
               </button>
             </form>
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link to="/blog" className="rounded-lg bg-white px-6 py-3 text-sm font-bold text-[hsl(var(--ink))] transition hover:bg-white/90">
+              <Link
+                to="/blog"
+                className="rounded-lg bg-white px-6 py-3 text-sm font-bold text-[hsl(var(--ink))] transition hover:bg-white/90"
+              >
                 Browse by year
               </Link>
-              <Link to="/mcqs" className="rounded-lg border border-white/25 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10">
+              <Link
+                to="/mcqs"
+                className="rounded-lg border border-white/25 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+              >
                 Practise MCQs
               </Link>
             </div>
@@ -194,7 +274,9 @@ export default function Index() {
 
       {/* ── Resource tiles ── */}
       <section className="mx-auto max-w-6xl px-5 py-10 sm:py-14">
-        <h2 className="rule-heading mb-5 font-serif text-xl font-bold text-foreground sm:text-2xl">Explore the library</h2>
+        <h2 className="rule-heading mb-5 font-serif text-xl font-bold text-foreground sm:text-2xl">
+          Explore the library
+        </h2>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {RESOURCES.map((r) => {
             const key = getSubjectKey(r.subject);
@@ -206,7 +288,9 @@ export default function Index() {
               >
                 <div
                   className="flex h-24 items-end p-4 transition-transform duration-500 group-hover:scale-[1.04] sm:h-32"
-                  style={{ background: `linear-gradient(140deg, ${subjectColor(key, 0.95)}, ${subjectColor(key, 0.55)})` }}
+                  style={{
+                    background: `linear-gradient(140deg, ${subjectColor(key, 0.95)}, ${subjectColor(key, 0.55)})`,
+                  }}
                 >
                   <r.icon className="h-7 w-7 text-white/90 sm:h-8 sm:w-8" />
                 </div>
@@ -221,146 +305,177 @@ export default function Index() {
       </section>
 
       <section className="band-surface">
-      <div className="mx-auto max-w-6xl px-5 py-10 sm:py-14">
-        {/* Last Read */}
-        {lastRead.length > 0 && (
-          <div className="mb-10">
-            <div className="flex items-center gap-2 mb-3">
-              <Clock className="h-4 w-4 text-primary" />
-              <h2 className="font-serif text-xl font-bold text-foreground">Continue Reading</h2>
+        <div className="mx-auto max-w-6xl px-5 py-10 sm:py-14">
+          {/* Last Read */}
+          {lastRead.length > 0 && (
+            <div className="mb-10">
+              <div className="flex items-center gap-2 mb-3">
+                <Clock className="h-4 w-4 text-primary" />
+                <h2 className="font-serif text-xl font-bold text-foreground">Continue Reading</h2>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {lastRead.slice(0, 3).map((ra) => {
+                  const cleanTitle = (ra.title || "")
+                    .replace(/^[\p{Extended_Pictographic}\u2600-\u27BF\uFE0F]+/gu, "")
+                    .trim();
+                  return (
+                    <Link
+                      key={ra.id}
+                      to={buildBlogPath(ra)}
+                      className="group flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-all hover:shadow-sm hover:border-primary/20"
+                    >
+                      <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                          {cleanTitle}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground truncate">{ra.category}</p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {lastRead.slice(0, 3).map(ra => {
-                const cleanTitle = (ra.title || "")
-                  .replace(/^[\p{Extended_Pictographic}\u2600-\u27BF\uFE0F]+/gu, "")
-                  .trim();
-                return (
-                  <Link key={ra.id} to={buildBlogPath(ra)}
-                    className="group flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-all hover:shadow-sm hover:border-primary/20">
-                    <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors">{cleanTitle}</p>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground truncate">{ra.category}</p>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Browse by Year */}
-        <div className="mb-10">
-          <div className="mb-5 flex items-end justify-between gap-4">
-            <div className="min-w-0">
-              <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground">Browse by year</h2>
-              <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground">Pick your year, then a semester or unit</p>
+          {/* Browse by Year */}
+          <div className="mb-10">
+            <div className="mb-5 flex items-end justify-between gap-4">
+              <div className="min-w-0">
+                <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground">Browse by year</h2>
+                <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground">
+                  Pick your year, then a semester or unit
+                </p>
+              </div>
+              <Link
+                to="/blog"
+                className="whitespace-nowrap text-xs font-semibold text-primary hover:underline sm:text-sm"
+              >
+                View all
+              </Link>
             </div>
-            <Link to="/blog" className="whitespace-nowrap text-xs font-semibold text-primary hover:underline sm:text-sm">View all</Link>
-          </div>
-          {loading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-          ) : yearGroups.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border p-10 text-center">
-              <GraduationCap className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
-              <p className="text-muted-foreground">No study materials yet. Content is being added regularly!</p>
-            </div>
-          ) : (
-            <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {yearGroups.map((group) => (
-                <Link
-                  key={group.year}
-                  to={`/blog?year=${encodeURIComponent(group.year)}`}
-                  className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-card-hover)]"
-                >
-                  <div className="flex items-baseline justify-between border-b border-border px-5 py-4">
-                    <span className="font-serif text-xl font-bold text-foreground">{group.year}</span>
-                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      {group.categories.length} units
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 p-4">
-                    {group.categories.slice(0, 6).map(cat => {
-                      return (
-                        <span
-                          key={cat.name}
-                          className="max-w-full truncate rounded-md bg-muted px-2 py-1 text-[11px] font-semibold text-foreground/80"
-                        >
-                          {getCategoryDisplayName(cat.name)}
-                        </span>
-                      );
-                    })}
-                    {group.categories.length > 6 && (
-                      <span className="rounded-md bg-muted px-2 py-1 text-[11px] font-semibold text-muted-foreground">
-                        +{group.categories.length - 6}
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : yearGroups.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border p-10 text-center">
+                <GraduationCap className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
+                <p className="text-muted-foreground">No study materials yet. Content is being added regularly!</p>
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {yearGroups.map((group) => (
+                  <Link
+                    key={group.year}
+                    to={`/blog?year=${encodeURIComponent(group.year)}`}
+                    className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-card-hover)]"
+                  >
+                    <div className="flex items-baseline justify-between border-b border-border px-5 py-4">
+                      <span className="font-serif text-xl font-bold text-foreground">{group.year}</span>
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {group.categories.length} units
                       </span>
-                    )}
-                  </div>
-                  <span className="mt-auto flex items-center gap-1.5 px-5 pb-4 text-xs font-bold text-primary">
-                    Open {group.year} <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                  </span>
-                </Link>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 p-4">
+                      {group.categories.slice(0, 6).map((cat) => {
+                        return (
+                          <span
+                            key={cat.name}
+                            className="max-w-full truncate rounded-md bg-muted px-2 py-1 text-[11px] font-semibold text-foreground/80"
+                          >
+                            {getCategoryDisplayName(cat.name)}
+                          </span>
+                        );
+                      })}
+                      {group.categories.length > 6 && (
+                        <span className="rounded-md bg-muted px-2 py-1 text-[11px] font-semibold text-muted-foreground">
+                          +{group.categories.length - 6}
+                        </span>
+                      )}
+                    </div>
+                    <span className="mt-auto flex items-center gap-1.5 px-5 pb-4 text-xs font-bold text-primary">
+                      Open {group.year}{" "}
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Recently Added */}
+          <div>
+            <div className="mb-5">
+              <h2 className="font-serif text-xl font-bold text-foreground sm:text-2xl">Recently added</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
+                Fresh notes, MCQs, flashcards &amp; clinical stories
+              </p>
+            </div>
+            <div className="flex gap-2 mb-5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+              {(["all", "articles", "mcqs", "flashcards", "stories"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition-all capitalize ${activeTab === tab ? "bg-foreground text-background" : "border border-border bg-card text-muted-foreground hover:text-foreground"}`}
+                >
+                  {tab}
+                </button>
               ))}
             </div>
-          )}
-        </div>
-
-        {/* Recently Added */}
-        <div>
-          <div className="mb-5">
-            <h2 className="font-serif text-xl font-bold text-foreground sm:text-2xl">Recently added</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">Fresh notes, MCQs, flashcards &amp; clinical stories</p>
-          </div>
-          <div className="flex gap-2 mb-5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-            {(["all", "articles", "mcqs", "flashcards", "stories"] as const).map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition-all capitalize ${activeTab === tab ? "bg-foreground text-background" : "border border-border bg-card text-muted-foreground hover:text-foreground"}`}>
-                {tab}
-              </button>
-            ))}
-          </div>
-          {filteredRecent.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border p-8 text-center">
-              <p className="text-sm text-muted-foreground">No content yet. Check back soon!</p>
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-2xl border border-border bg-card">
-              {filteredRecent.slice(0, recentShown).map(item => {
-                const meta = typeMeta[item.type];
-                const Icon = meta.icon;
-                return (
-                  <Link key={`${item.type}-${item.id}`} to={getItemLink(item)}
-                    className="group relative flex items-center gap-3 border-b border-border px-3 py-3 transition-colors last:border-b-0 hover:bg-muted/50 sm:gap-4 sm:px-4">
-                    <span className="absolute left-0 top-0 h-full w-[3px] bg-primary/60" aria-hidden />
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground/70">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${meta.badge}`}>{meta.label}</span>
-                        <span className="text-[11px] text-muted-foreground">{timeAgo(item.created_at)}</span>
+            {filteredRecent.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border p-8 text-center">
+                <p className="text-sm text-muted-foreground">No content yet. Check back soon!</p>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-2xl border border-border bg-card">
+                {filteredRecent.slice(0, recentShown).map((item) => {
+                  const meta = typeMeta[item.type];
+                  const Icon = meta.icon;
+                  return (
+                    <Link
+                      key={`${item.type}-${item.id}`}
+                      to={getItemLink(item)}
+                      className="group relative flex items-center gap-3 border-b border-border px-3 py-3 transition-colors last:border-b-0 hover:bg-muted/50 sm:gap-4 sm:px-4"
+                    >
+                      <span className="absolute left-0 top-0 h-full w-[3px] bg-primary/60" aria-hidden />
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground/70">
+                        <Icon className="h-4 w-4" />
                       </div>
-                      <h4 className="truncate text-sm sm:text-base font-semibold text-foreground group-hover:text-primary transition-colors">{item.title}</h4>
-                      <p className="truncate text-xs text-muted-foreground">{getCategoryDisplayName(item.category)}</p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-          {filteredRecent.length > recentShown && (
-            <div className="mt-5 flex justify-center">
-              <button
-                onClick={() => setRecentShown((n) => n + 10)}
-                className="rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-bold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
-              >
-                Show more
-              </button>
-            </div>
-          )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span
+                            className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${meta.badge}`}
+                          >
+                            {meta.label}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">{timeAgo(item.created_at)}</span>
+                        </div>
+                        <h4 className="truncate text-sm sm:text-base font-semibold text-foreground group-hover:text-primary transition-colors">
+                          {item.title}
+                        </h4>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {getCategoryDisplayName(item.category)}
+                        </p>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+            {filteredRecent.length > recentShown && (
+              <div className="mt-5 flex justify-center">
+                <button
+                  onClick={() => setRecentShown((n) => n + 10)}
+                  className="rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-bold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                >
+                  Show more
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
       </section>
 
       {/* Footer */}
@@ -368,10 +483,18 @@ export default function Index() {
         <div className="mx-auto max-w-6xl px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Ompath Study</p>
           <div className="flex gap-2">
-            <a href="tel:+254115475543" className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors">
+            <a
+              href="tel:+254115475543"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
+            >
               <Phone className="h-3.5 w-3.5" />
             </a>
-            <a href="https://wa.me/254115475543" target="_blank" rel="noopener noreferrer" className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors">
+            <a
+              href="https://wa.me/254115475543"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
+            >
               <MessageCircle className="h-3.5 w-3.5" />
             </a>
           </div>
