@@ -1062,11 +1062,17 @@ function isOcrNoiseLine(s: string): boolean {
   if (/^(?:scanned\s+by\s+camscanner|camscanner)\b/i.test(t)) return true;
   if (/^page\s*\d*\s*of\s*\d+\.?$/i.test(t)) return true;
   if (/^page\s*\d+\s*of\s*[a-z]{1,3}\.?$/i.test(t)) return true;
+  // Numeric MCQ choices ("A. 1-50", "D. >5000", "B. 501-5000") and numeric
+  // answer lines are legitimate content even though they carry few letters.
+  if (/^\*{0,2}\(?[A-Ea-e]\)?[\.)]\s*[\d<>≥≤~+\-.,\/%\s]*\d/.test(t)) return false;
+  if (/^(?:answer|ans)\s*[:.\-–]/i.test(t)) return false;
+  if (/\d/.test(t) && t.length <= 24) return false;
   // Lines that are mostly OCR garbage: very few real letters among symbols.
   const letters = t.replace(/[^A-Za-z]/g, "").length;
   if (t.length >= 6 && letters / t.length < 0.35) return true;
   return false;
 }
+
 
 /** Remove headings that have no real content beneath them (empty scan pages). */
 function dropEmptySections(lines: string[]): string[] {
