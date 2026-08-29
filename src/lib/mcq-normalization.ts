@@ -193,6 +193,55 @@ function applyVerifiedHaematologyWording(
   return { question, correct, explanation };
 }
 
+function applyVerifiedImmunohaematologyWording(
+  question: string,
+  options: string[],
+  correct: number,
+  explanation: string,
+): { question: string; correct: number; explanation: string } {
+  if (/warm autoimmune hemolytic anemia \(WAIH$/i.test(question)) {
+    const continuation = options.findIndex((option) => /pan-reactive antibody screen/i.test(option));
+    if (continuation >= 0) options.splice(continuation, 1);
+    const allogeneic = options.findIndex((option) => /allogeneic adsorption/i.test(option));
+    if (allogeneic >= 0) return {
+      question: "In a recently transfused patient with warm autoimmune haemolytic anaemia and a pan-reactive antibody screen, which method is used to detect underlying alloantibodies?",
+      correct: allogeneic,
+      explanation: "Allogeneic adsorption using appropriately selected phenotype-matched reagent red cells removes the warm autoantibody so underlying alloantibodies can be investigated. Autologous adsorption is unsuitable after a recent transfusion because circulating donor red cells may be present.",
+    };
+  }
+
+  if (/prevent Transfusion-Associated Graft-versus-Host Disease/i.test(question)) {
+    const continuation = options.findIndex((option) => /immunocompromised bone marrow transplant recipient/i.test(option));
+    if (continuation >= 0) options.splice(continuation, 1);
+    const irradiation = options.findIndex((option) => /^irradiation$/i.test(option));
+    if (irradiation >= 0) return {
+      question: "Which blood-component modification is required to prevent transfusion-associated graft-versus-host disease (TA-GVHD) in an immunocompromised bone-marrow transplant recipient?",
+      correct: irradiation,
+      explanation: "Irradiation inactivates viable donor T lymphocytes and prevents their engraftment and proliferation in a susceptible recipient. Leukoreduction alone does not reliably prevent TA-GVHD.",
+    };
+  }
+
+  if (/TRALI/i.test(question)) {
+    const hlaHna = options.findIndex((option) => /HLA or Human Neutrophil Antigens/i.test(option));
+    if (hlaHna >= 0) {
+      options[hlaHna] = "HLA or human neutrophil antigens (HNA)";
+      correct = hlaHna;
+      if (!explanation) explanation = "Donor antibodies against recipient HLA or human neutrophil antigens can activate neutrophils in the pulmonary microvasculature and contribute to TRALI.";
+    }
+  }
+
+  if (/open system.*red blood cells|red blood cells.*open system/i.test(question)) {
+    const twentyFourHours = options.findIndex((option) => /^24 hours?$/i.test(option));
+    if (twentyFourHours >= 0) return {
+      question: "After a red-blood-cell unit is prepared or entered using an open system, how long may it be stored at 1–6°C?",
+      correct: twentyFourHours,
+      explanation: "An open system increases contamination risk, so the refrigerated red-cell component must be used within 24 hours. The four-hour limit applies when a component is kept outside controlled storage for transfusion, not to refrigerated open-system storage.",
+    };
+  }
+
+  return { question, correct, explanation };
+}
+
 /**
  * Repairs legacy MCQ JSON without guessing clinical facts. Duplicate options
  * are removed, the original answer index is remapped, and an invalid index is
@@ -246,6 +295,7 @@ export function sanitizeMcqQuestions(raw: unknown): NormalizedMcqQuestion[] {
     ({ question, correct, explanation } = applyVerifiedParasitologyWording(question, options, correct, explanation));
     ({ question, correct, explanation } = applyVerifiedPathologyWording(question, options, correct, explanation));
     ({ question, correct, explanation } = applyVerifiedHaematologyWording(question, options, correct, explanation));
+    ({ question, correct, explanation } = applyVerifiedImmunohaematologyWording(question, options, correct, explanation));
     return [{ ...item, question, options, correct_answer: correct, explanation: explanation || undefined }];
   });
 }

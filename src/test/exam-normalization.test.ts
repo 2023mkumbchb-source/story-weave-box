@@ -214,4 +214,48 @@ describe("exam question normalization", () => {
       explanation: expect.stringContaining("makes immune TTP less likely"),
     })]);
   });
+
+  it("repairs split immunohaematology stems and their answer indexes", () => {
+    const result = cleanExamQuestions([{
+      question: "In a patient with warm autoimmune hemolytic anemia (WAIH",
+      options: ["and a pan-reactive antibody screen, which method is used to detect underlying alloantibodies if the patient has been recently transfused?", "Autologous adsorption", "Allogeneic adsorption using phenotype-matched cells", "Acid elution", "Saline replacement"],
+      correct_answer: 2,
+    }, {
+      question: "Which specific modification to blood products is required to prevent Transfusion-Associated Graft-versus-Host Disease (TA-GvH ---",
+      options: ["in an immunocompromised bone marrow transplant recipient?", "Leukoreduction", "Irradiation", "Washing", "Volume reduction"],
+      correct_answer: 0,
+    }]);
+    expect(result[0]).toEqual(expect.objectContaining({
+      question: expect.stringContaining("recently transfused"),
+      options: ["Autologous adsorption", "Allogeneic adsorption using phenotype-matched cells", "Acid elution", "Saline replacement"],
+      correct_answer: 1,
+      explanation: expect.stringContaining("donor red cells"),
+    }));
+    expect(result[1]).toEqual(expect.objectContaining({
+      question: expect.stringContaining("TA-GVHD"),
+      options: ["Leukoreduction", "Irradiation", "Washing", "Volume reduction"],
+      correct_answer: 1,
+      explanation: expect.stringContaining("T lymphocytes"),
+    }));
+  });
+
+  it("repairs the truncated TRALI option and open-system red-cell limit", () => {
+    const result = cleanExamQuestions([{
+      question: "Which donor antibodies are most commonly associated with TRALI?",
+      options: ["ABO", "RhD", "HLA or Human Neutrophil Antigens (HN", "Kell"],
+      correct_answer: 2,
+    }, {
+      question: "What is the shelf life of red blood cells prepared in an open system when stored at 1-6 C?",
+      options: ["4 hours", "24 hours", "7 days", "42 days"],
+      correct_answer: 0,
+    }]);
+    expect(result[0]).toEqual(expect.objectContaining({
+      options: expect.arrayContaining(["HLA or human neutrophil antigens (HNA)"]),
+      correct_answer: 2,
+    }));
+    expect(result[1]).toEqual(expect.objectContaining({
+      correct_answer: 1,
+      explanation: expect.stringContaining("within 24 hours"),
+    }));
+  });
 });
