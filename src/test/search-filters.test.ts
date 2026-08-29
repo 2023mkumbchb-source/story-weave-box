@@ -25,6 +25,8 @@ describe("public content policy", () => {
     expect(isPublicMcqSet({ id: "176b7eb4-4388-418a-bac0-d6493e719f58", title: "clinical pathology — Past Paper Questions & Answers" })).toBe(false);
     expect(isPublicMcqSet({ id: "e5dc4145-d973-421a-b377-ff096e792230", title: "Lower Limb Anatomy MCQ Compilation" })).toBe(false);
     expect(isPublicMcqSet({ id: "955cf260-6b59-4e13-aecb-f0f4626e7626", title: "MICROBIOLOGY AND PARASITOLOGY MCQs" })).toBe(false);
+    expect(isPublicMcqSet({ id: "0059385b-fcf6-4d1f-8773-b8da2ef15531", title: "Chemical Pathology" })).toBe(false);
+    expect(isPublicMcqSet({ id: "3b4299c3-c369-4d47-b312-66fa5c88747c", title: "Clinical Techniques Adobe Scan 22 Apr 2022 1 — Past Paper Questions & Answers" })).toBe(false);
     expect(isPublicMcqSet({ id: "safe", title: "Verified Haematology MCQs" })).toBe(true);
   });
   it("keeps one canonical resource when legacy imports duplicated a set", () => {
