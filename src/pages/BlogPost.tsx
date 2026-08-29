@@ -28,7 +28,7 @@ import HelpfulVote from "@/components/HelpfulVote";
 import ArticleMcqOption from "@/components/ArticleMcqOption";
 import {
   splitLeakedAnswer, cleanMetaTitle, cleanMetaDescription,
-  articleHaystack, inferUniversity, inferSchool, inferExamType, inferUnit,
+  articleHaystack, inferExamType, inferUnit,
   type PreviewMcq, type PreviewEssay, inferArticleLayout,
   cleanDisplayText, formatSequence, spaceOptionMarkers, countOptionMarkers,
   markerLetters, looksLikeChoiceRun, splitMarkerRun, normalizeOptionLine,
@@ -1824,7 +1824,7 @@ export default function BlogPost() {
                       deck={slideDeck}
                       articleId={article.id}
                       title={cleanMetaTitle(article)}
-                      university={inferUniversity(article)}
+                      university="Ompath Study"
                       onPreview={() => setPreviewOpen(true)}
                     />
                   : <ArticleContent content={article.content} inlineRelated={related.articles || []} articleId={article.id} category={article.category || ""} title={article.title || ""} contentKind={article.content_kind || ""} />}
@@ -1963,7 +1963,7 @@ export default function BlogPost() {
             <SlidePreviewModal
               deck={slideDeck}
               title={cleanMetaTitle(article)}
-              university={inferUniversity(article)}
+              university="Ompath Study"
               open={previewOpen}
               onClose={() => setPreviewOpen(false)}
             />
