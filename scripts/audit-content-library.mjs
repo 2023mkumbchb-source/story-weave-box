@@ -47,8 +47,14 @@ for (const row of articles.filter((x) => !x.is_raw && !x.deleted_at)) {
   if (/Ã.|Â.|â€|ï¿½/.test(text)) add("article", row, "encoding", "possible mojibake");
   if (questionHeads >= 2 && choices >= 8 && answerHeads === 0) {
     const hasExplicitUnverifiedKey = /unverified handwritten source markings|do not use .* as a grading key/i.test(text);
-    add("article", row, hasExplicitUnverifiedKey ? "unverified-source-key" : "answers-unverified",
-      hasExplicitUnverifiedKey ? `${questionHeads} questions; source markings explicitly quarantined from grading` : `${questionHeads} questions, no explicit Answer headings`);
+    const sourceIssuedNoKey = /source (?:contains|had) no (?:official )?answer key|answers have not been invented/i.test(text);
+    const code = hasExplicitUnverifiedKey ? "unverified-source-key" : sourceIssuedNoKey ? "question-paper-no-key" : "answers-unverified";
+    const detail = hasExplicitUnverifiedKey
+      ? `${questionHeads} questions; source markings explicitly quarantined from grading`
+      : sourceIssuedNoKey
+        ? `${questionHeads} questions; preserved source issued without an answer key`
+        : `${questionHeads} questions, no explicit Answer headings`;
+    add("article", row, code, detail);
   }
   const explicitlyTextOnlyPractical = /image-dependent questions have been excluded/i.test(text)
     || (/\bnotes\b/i.test(String(row.content_kind || "")) && /revision q&a|point-form q&a/i.test(text));
