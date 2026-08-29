@@ -22,6 +22,19 @@ function answerIndexFromText(text: string, options: string[]): number | undefine
   return index >= 0 && index < options.length ? index : undefined;
 }
 
+function splitEmbeddedExplanation(question: string, correctOption: string): { question: string; explanation?: string } {
+  const colon = question.lastIndexOf(":");
+  if (colon < 10) return { question };
+  const stem = question.slice(0, colon).trim();
+  const suffix = question.slice(colon + 1).trim();
+  if (suffix.length < 24 || stem.length < 10) return { question };
+  const significant = correctOption.toLowerCase().match(/[a-z][a-z-]{3,}/g) || [];
+  const suffixLower = suffix.toLowerCase();
+  const containsAnswerTerm = significant.some((word) => suffixLower.includes(word));
+  if (!containsAnswerTerm) return { question };
+  return { question: stem, explanation: suffix.replace(/\s+/g, " ") };
+}
+
 /**
  * Repairs legacy MCQ JSON without guessing clinical facts. Duplicate options
  * are removed, the original answer index is remapped, and an invalid index is
@@ -31,8 +44,8 @@ function answerIndexFromText(text: string, options: string[]): number | undefine
 export function sanitizeMcqQuestions(raw: unknown): NormalizedMcqQuestion[] {
   if (!Array.isArray(raw)) return [];
   return raw.flatMap((item: any) => {
-    const question = String(item?.question || "").replace(/\s+/g, " ").trim();
-    const explanation = String(item?.explanation || "").replace(/\s+/g, " ").trim();
+    let question = String(item?.question || "").replace(/\s+/g, " ").trim();
+    let explanation = String(item?.explanation || "").replace(/\s+/g, " ").trim();
     const sourceOptions = Array.isArray(item?.options) ? item.options : [];
     const options: string[] = [];
     const oldToNew = new Map<number, number>();
@@ -65,6 +78,11 @@ export function sanitizeMcqQuestions(raw: unknown): NormalizedMcqQuestion[] {
     let correct = Number.isInteger(sourceCorrect) ? oldToNew.get(sourceCorrect) : undefined;
     if (correct === undefined) correct = answerIndexFromText(explanation, options);
     if (correct === undefined) return [];
+    if (!explanation) {
+      const split = splitEmbeddedExplanation(question, options[correct]);
+      question = split.question;
+      explanation = split.explanation || "";
+    }
     return [{ ...item, question, options, correct_answer: correct, explanation: explanation || undefined }];
   });
 }

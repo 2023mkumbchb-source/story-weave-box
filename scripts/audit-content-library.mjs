@@ -21,6 +21,17 @@ const stories = await all("stories", "id,title,slug,category,content");
 
 const findings = [];
 const add = (type, row, code, detail) => findings.push({ type, id: row.id, slug: row.slug, title: row.title, code, detail });
+const hasRecoverableEmbeddedExplanation = (q) => {
+  const question = String(q?.question || "");
+  const options = Array.isArray(q?.options) ? q.options.map((v) => String(v || "").replace(/^\s*[A-F][.)]\s*/i, "").trim()) : [];
+  const correct = Number(q?.correct_answer);
+  const colon = question.lastIndexOf(":");
+  if (colon < 10 || !Number.isInteger(correct) || !options[correct]) return false;
+  const stem = question.slice(0, colon).trim(), suffix = question.slice(colon + 1).trim().toLowerCase();
+  if (stem.length < 10 || suffix.length < 24) return false;
+  const words = options[correct].toLowerCase().match(/[a-z][a-z-]{3,}/g) || [];
+  return words.some((word) => suffix.includes(word));
+};
 
 for (const row of articles.filter((x) => !x.is_raw && !x.deleted_at)) {
   const text = String(row.content || "");
@@ -46,7 +57,9 @@ for (const row of mcqs) {
     const options = Array.isArray(q?.options) ? q.options.map((v) => String(v || "").replace(/^\s*[A-F][.)]\s*/i, "").trim()).filter(Boolean) : [];
     if (options.length < 2 || !Number.isInteger(Number(q?.correct_answer)) || Number(q.correct_answer) < 0 || Number(q.correct_answer) >= options.length) add("mcq", row, "invalid-question", `question ${index + 1}`);
     if (new Set(options.map((v) => v.toLowerCase())).size < options.length) add("mcq", row, "duplicate-choice", `question ${index + 1}`);
-    if (!String(q?.explanation || "").trim()) add("mcq", row, "missing-explanation", `question ${index + 1}`);
+    if (!String(q?.explanation || "").trim()) {
+      add("mcq", row, hasRecoverableEmbeddedExplanation(q) ? "embedded-explanation-recovered" : "missing-explanation", `question ${index + 1}`);
+    }
   });
 }
 

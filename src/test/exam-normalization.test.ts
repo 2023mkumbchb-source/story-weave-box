@@ -47,4 +47,24 @@ describe("exam question normalization", () => {
       explanation: "Agonists activate receptors.",
     }])).toEqual([expect.objectContaining({ options: ["True", "False"], correct_answer: 0 })]);
   });
+
+  it("extracts a WordPress explanation appended to the question stem", () => {
+    expect(cleanExamQuestions([{
+      question: "Which fungus is associated with pigeon droppings? Cryptococcus neoformans is enriched in contaminated soil.",
+      options: ["Candida", "Aspergillus", "Cryptococcus", "Mucor"],
+      correct_answer: 2,
+    }])).toEqual([expect.objectContaining({
+      question: "Which fungus is associated with pigeon droppings? Cryptococcus neoformans is enriched in contaminated soil.",
+      explanation: undefined,
+    })]);
+
+    expect(cleanExamQuestions([{
+      question: "Which fungus is associated with pigeon droppings?: Cryptococcus neoformans is enriched in contaminated soil.",
+      options: ["Candida", "Aspergillus", "Cryptococcus", "Mucor"],
+      correct_answer: 2,
+    }])).toEqual([expect.objectContaining({
+      question: "Which fungus is associated with pigeon droppings?",
+      explanation: "Cryptococcus neoformans is enriched in contaminated soil.",
+    })]);
+  });
 });
