@@ -20,6 +20,9 @@ describe("public content policy", () => {
     expect(isPublicMcqSet({ id: "7fd6b778-ec52-4e41-ac34-ee69a7bbe68d", title: "Dr. Orata Haematology MCQs" })).toBe(false);
     expect(isPublicMcqSet({ id: "6153459b-9da7-4d60-980f-674d5ca2580f", title: "Parasitology Examination MCQs" })).toBe(false);
     expect(isPublicMcqSet({ id: "125a6d66-b38f-45e6-a95e-380066bd5257", title: "Medical Bacteriology and Parasitology Exam 2024/2025 MCQs" })).toBe(false);
+    expect(isPublicMcqSet({ id: "aeaa1ce1-dc24-4aae-9a6a-11631a31d7b9", title: "Endocrine and Metabolic Pathology MCQs" })).toBe(false);
+    expect(isPublicMcqSet({ id: "f15a9e45-c73c-48be-b912-98139710e62f", title: "CLINICAL CHEMISTRY MCQS LATEST — Past Paper Questions & Answers" })).toBe(false);
+    expect(isPublicMcqSet({ id: "176b7eb4-4388-418a-bac0-d6493e719f58", title: "clinical pathology — Past Paper Questions & Answers" })).toBe(false);
     expect(isPublicMcqSet({ id: "safe", title: "Verified Haematology MCQs" })).toBe(true);
   });
   it("keeps one canonical resource when legacy imports duplicated a set", () => {

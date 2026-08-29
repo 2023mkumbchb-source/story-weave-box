@@ -3,6 +3,13 @@ const QUARANTINED_MCQ_IDS = new Set([
   "7fd6b778-ec52-4e41-ac34-ee69a7bbe68d",
   "6153459b-9da7-4d60-980f-674d5ca2580f",
   "125a6d66-b38f-45e6-a95e-380066bd5257",
+  "aeaa1ce1-dc24-4aae-9a6a-11631a31d7b9",
+  "7a7c3038-ab41-4a78-8148-a2284fc56672",
+  "f15a9e45-c73c-48be-b912-98139710e62f",
+  "017c0a74-a0bd-49a5-8a05-018ba7464800",
+  "08dae484-5c64-43cb-84e9-947a7da6b0f9",
+  "176b7eb4-4388-418a-bac0-d6493e719f58",
+  "c6dee341-d765-465a-9c9d-087d7535f72e",
 ]);
 
 /** Public discovery must contain study material, not accidental admin imports. */
@@ -13,7 +20,7 @@ export function isPublicStudyTitle(title: unknown): boolean {
 /** Banks with systemic answer-key corruption stay inaccessible until rebuilt. */
 export function isPublicMcqSet(set: { id?: unknown; title?: unknown }): boolean {
   if (QUARANTINED_MCQ_IDS.has(String(set?.id || ""))) return false;
-  return !/^(?:dr\.\s*orata haematology mcqs|parasitology examination mcqs|medical bacteriology and parasitology exam 2024\/2025 mcqs)\b/i.test(String(set?.title || "").trim());
+  return !/^(?:dr\.\s*orata haematology mcqs|parasitology examination mcqs|medical bacteriology and parasitology exam 2024\/2025 mcqs|endocrine and metabolic pathology mcqs|clinical chemistry mcqs\b|clinical pathology(?: mcqs)?\s+—\s+past paper questions)/i.test(String(set?.title || "").trim());
 }
 
 export function hasEssayContent(essay: { short_answer_questions?: unknown; long_answer_questions?: unknown }): boolean {
