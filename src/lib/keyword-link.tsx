@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { isPublicStudyTitle } from "@/lib/content-policy";
+import { hasStoryContent, isPublicStudyTitle } from "@/lib/content-policy";
 import { buildBlogPath, buildFlashcardPath } from "@/lib/store";
 import { slugify } from "@/lib/deep-link";
 import { buildStoryPath, stripRichText } from "@/lib/seo";
@@ -65,7 +65,7 @@ async function loadEntries(): Promise<LinkEntry[]> {
       const [{ data: articles }, { data: flashcards }, { data: stories }] = await Promise.all([
         supabase.from("articles").select("id,title,slug,meta_title,meta_description,tags,category,exam_type").eq("published", true).is("deleted_at", null).limit(1500),
         supabase.from("flashcard_sets").select("id,title,slug,meta_title,meta_description,category").eq("published", true).is("deleted_at", null).limit(1200),
-        supabase.from("stories").select("id,title,meta_title,meta_description").eq("published", true).limit(500),
+        supabase.from("stories").select("id,title,meta_title,meta_description,content").eq("published", true).limit(500),
       ]);
       const entries: LinkEntry[] = [], seen = new Set<string>();
       const add = (raw: string | null | undefined, path: string, quality: number, category?: string | null) => {
@@ -100,7 +100,7 @@ async function loadEntries(): Promise<LinkEntry[]> {
         buildFlashcardPath({ id: f.id, title: f.title, slug: f.slug }),
         f.meta_description, [], f.category, 8,
       ));
-      (stories || []).forEach(s => aliases(s.meta_title || s.title, buildStoryPath(s), s.meta_description, [], null, 6));
+      (stories || []).filter(hasStoryContent).forEach(s => aliases(s.meta_title || s.title, buildStoryPath(s), s.meta_description, [], null, 6));
       entries.sort((a,b) => b.term.length-a.term.length || b.quality-a.quality); cache=entries; return entries;
     } catch { return []; }
   })();

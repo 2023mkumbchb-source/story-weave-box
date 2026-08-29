@@ -1,12 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { groupHits, parseYearNumber, SEARCH_GROUPS, type SearchHit } from "@/lib/search";
-import { isPublicStudyTitle } from "@/lib/content-policy";
+import { hasEssayContent, hasStoryContent, isPublicStudyTitle } from "@/lib/content-policy";
 
 describe("public content policy", () => {
   it("quarantines accidental administrative imports but keeps real study papers", () => {
     expect(isPublicStudyTitle("NOTICE TO ALL STUDENTS 75% Class attendance — Past Paper")).toBe(false);
     expect(isPublicStudyTitle("Students Handbook, 2019 Edition — Past Paper")).toBe(false);
     expect(isPublicStudyTitle("General Pathology CAT 2019")).toBe(true);
+  });
+  it("quarantines empty essay containers", () => {
+    expect(hasEssayContent({ short_answer_questions: [], long_answer_questions: [] })).toBe(false);
+    expect(hasEssayContent({ short_answer_questions: [{ question: "Define shock" }], long_answer_questions: [] })).toBe(true);
+  });
+  it("quarantines empty story shells", () => {
+    expect(hasStoryContent({ content: "" })).toBe(false);
+    expect(hasStoryContent({ content: "A complete clinical narrative. ".repeat(8) })).toBe(true);
   });
 });
 

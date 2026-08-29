@@ -4,6 +4,7 @@ import { Loader2, BookOpen, Search, X, PenLine, Clock, ChevronRight } from "luci
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { buildStoryPath, stripRichText, updateMetaTags, SITE_URL } from "@/lib/seo";
+import { hasStoryContent } from "@/lib/content-policy";
 
 interface Story {
   id: string;
@@ -163,7 +164,7 @@ export default function Stories() {
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
-        setStories((data || []) as unknown as Story[]);
+        setStories(((data || []) as unknown as Story[]).filter(hasStoryContent));
         setLoading(false);
       });
   }, []);

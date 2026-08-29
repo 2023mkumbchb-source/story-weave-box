@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { getCategoryDisplayName, getYearFromCategory } from "@/lib/store";
 import { updateMetaTags } from "@/lib/seo";
+import { hasEssayContent } from "@/lib/content-policy";
 
 interface Essay {
   id: string;
@@ -41,7 +42,7 @@ export default function Essays() {
       .is("deleted_at", null)
       .order("updated_at", { ascending: false })
       .then(({ data }) => {
-        setEssays((data || []) as unknown as Essay[]);
+        setEssays(((data || []) as unknown as Essay[]).filter(hasEssayContent));
         setLoading(false);
       });
   }, []);

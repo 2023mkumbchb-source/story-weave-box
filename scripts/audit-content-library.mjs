@@ -29,12 +29,13 @@ for (const row of articles.filter((x) => !x.is_raw && !x.deleted_at)) {
   const answerHeads = (text.match(/(?:^|\n)\s*(?:\*\*)?(?:Answer|Model answer|Correct answer)\s*:/gi) || []).length;
   const choices = (text.match(/^\s*(?:[-*]\s*)?(?:\*\*)?[A-F][.)]\s+/gim) || []).length;
   const source = String(row.original_notes || "");
-  if (text.trim().length < 500 && source.trim().length < 500) add("article", row, "thin-content", `${text.trim().length} content characters; no substantial source`);
-  if (text.trim().length < 500 && source.trim().length >= 500) add("article", row, "source-scan-fallback", `${source.trim().length} source characters available`);
+  const sourceImages = (source.match(/!\[[^\]]*\]\([^)]+\)/g) || []).length;
+  if (text.trim().length < 500 && source.trim().length < 500 && images === 0 && sourceImages === 0) add("article", row, "thin-content", `${text.trim().length} content characters; no usable source`);
+  if (text.trim().length < 500 && (source.trim().length >= 500 || sourceImages > 0)) add("article", row, "source-scan-fallback", `${sourceImages} source images; ${source.trim().length} source characters`);
   if (/^(?:notice to all students\b|students handbook\b|executive order no\b)/i.test(row.title || "")) add("article", row, "non-study-import", "quarantine from public study listings");
   if (/Ã.|Â.|â€|ï¿½/.test(text)) add("article", row, "encoding", "possible mojibake");
   if (questionHeads >= 2 && choices >= 8 && answerHeads === 0) add("article", row, "answers-unverified", `${questionHeads} questions, no explicit Answer headings`);
-  if (/aponeurosis|spot/i.test(`${row.title} ${row.content_kind}`) && images === 0) add("article", row, "spot-without-image", "visual bank has no Markdown image");
+  if (/aponeurosis|spot/i.test(`${row.title} ${row.content_kind}`) && images + sourceImages === 0) add("article", row, "spot-without-image", "visual bank has no source image");
 }
 
 for (const row of mcqs) {
@@ -75,10 +76,11 @@ for (const row of stories) {
 }
 
 const byCode = Object.fromEntries([...new Set(findings.map((x) => x.code))].sort().map((code) => [code, findings.filter((x) => x.code === code).length]));
+const examples = Object.fromEntries(Object.keys(byCode).map((code) => [code, findings.filter((x) => x.code === code).slice(0, 12)]));
 console.log(JSON.stringify({
   scanned: { articles: articles.length, mcq_sets: mcqs.length, flashcard_sets: flashcards.length, essays: essays.length, stories: stories.length },
   findingCount: findings.length,
   affectedResources: new Set(findings.map((x) => `${x.type}:${x.id}`)).size,
   byCode,
-  examples: findings.slice(0, 120),
+  examples,
 }, null, 2));

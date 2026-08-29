@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getAcademicYears, type ResourceType } from "./academic";
-import { isPublicStudyTitle } from "./content-policy";
+import { hasStoryContent, isPublicStudyTitle } from "./content-policy";
 
 /** Accepts "Year 2", "2", or 2 and returns the numeric year, or null. */
 export function parseYearNumber(year: string | number | undefined): number | null {
@@ -161,7 +161,7 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
   const storyQ = filters.includeStories
     ? supabase
         .from("stories")
-        .select("id, title, slug, category, updated_at")
+        .select("id, title, slug, category, updated_at, content")
         .eq("published", true)
         .is("deleted_at", null)
         .or(orIlike(["title", "category"], terms))
@@ -227,6 +227,7 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
     });
   }
   for (const row of stories.data || []) {
+    if (!hasStoryContent(row)) continue;
     hits.push({
       id: row.id, title: row.title, slug: row.slug, category: row.category || "Stories",
       kind: "story", contentType: "Clinical Story", reason: reasonFor(row),
