@@ -139,6 +139,43 @@ function applyVerifiedParasitologyWording(
   return { question, correct, explanation };
 }
 
+function applyVerifiedPathologyWording(
+  question: string,
+  options: string[],
+  correct: number,
+  explanation: string,
+): { question: string; correct: number; explanation: string } {
+  if (/^RB gene,\s*['“]the guardian of the genome/i.test(question)) return {
+    question: "At which cell-cycle checkpoint does the RB tumour-suppressor protein principally act?",
+    correct,
+    explanation: "RB restrains progression from G1 into S phase by binding E2F transcription factors. The phrase ‘guardian of the genome’ refers to p53, not RB.",
+  };
+
+  if (/^A Granuloma is comprised of/i.test(question)) {
+    const caseating = options.findIndex((option) => /central necrotic area.*epithelioid cells.*lymphocytes/i.test(option));
+    if (caseating >= 0) return {
+      question: "Which description best fits a caseating granuloma?",
+      correct: caseating,
+      explanation: "A caseating granuloma has central necrosis surrounded by epithelioid macrophages, often giant cells, and a peripheral lymphocytic cuff. Necrosis is not present in every granuloma.",
+    };
+  }
+
+  if (/pathologic assessment of tumours/i.test(question)) {
+    const grading = options.findIndex((option) => /^Grading is the degree of macroscopic and microscopic differentiation/i.test(option));
+    const all = options.findIndex((option) => /^All of the above$/i.test(option));
+    if (grading >= 0 && all >= 0) {
+      options[grading] = "Grading assesses microscopic differentiation and other histologic features";
+      return {
+        question: "Which statement is true regarding the pathologic assessment of tumours?",
+        correct: all,
+        explanation: "Tumour grade is based on microscopic appearance and differentiation, whereas stage describes tumour extent and spread. TNM/AJCC systems are widely used for staging malignant tumours.",
+      };
+    }
+  }
+
+  return { question, correct, explanation };
+}
+
 /**
  * Repairs legacy MCQ JSON without guessing clinical facts. Duplicate options
  * are removed, the original answer index is remapped, and an invalid index is
@@ -190,6 +227,7 @@ export function sanitizeMcqQuestions(raw: unknown): NormalizedMcqQuestion[] {
     ({ question, correct, explanation } = applyVerifiedClinicalOverride(question, options, correct, explanation));
     ({ question, correct, explanation } = applyVerifiedMycologyWording(question, options, correct, explanation));
     ({ question, correct, explanation } = applyVerifiedParasitologyWording(question, options, correct, explanation));
+    ({ question, correct, explanation } = applyVerifiedPathologyWording(question, options, correct, explanation));
     return [{ ...item, question, options, correct_answer: correct, explanation: explanation || undefined }];
   });
 }

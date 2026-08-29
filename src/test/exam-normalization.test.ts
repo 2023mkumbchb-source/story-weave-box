@@ -178,4 +178,27 @@ describe("exam question normalization", () => {
       question: expect.stringContaining("osseous hydatid"), correct_answer: 1, explanation: expect.stringContaining("Echinococcus granulosus"),
     }));
   });
+
+  it("repairs imprecise RB, granuloma, and tumour-assessment pathology items", () => {
+    const result = cleanExamQuestions([{
+      question: "RB gene, 'the guardian of the genome' regulates the cell cycle at",
+      options: ["G1/S Checkpoint", "G2 Checkpoint", "Intra-S Checkpoint"],
+      correct_answer: 0,
+    }, {
+      question: "A Granuloma is comprised of",
+      options: ["Fibroblasts and capillaries", "Central necrotic area, epithelioid cells and lymphocytes"],
+      correct_answer: 1,
+    }, {
+      question: "Which of the following is TRUE regarding the pathologic assessment of tumours",
+      options: ["Grading is the degree of macroscopic and microscopic differentiation", "Staging is the extent of spread of tumours", "TNM and AJCC systems can be used for staging malignant tumours", "All of the above"],
+      correct_answer: 3,
+    }]);
+    expect(result[0]).toEqual(expect.objectContaining({ question: expect.stringContaining("RB tumour-suppressor"), explanation: expect.stringContaining("p53") }));
+    expect(result[1]).toEqual(expect.objectContaining({ question: expect.stringContaining("caseating granuloma"), explanation: expect.stringContaining("not present in every") }));
+    expect(result[2]).toEqual(expect.objectContaining({
+      options: expect.arrayContaining(["Grading assesses microscopic differentiation and other histologic features"]),
+      correct_answer: 3,
+      explanation: expect.stringContaining("stage describes tumour extent"),
+    }));
+  });
 });
