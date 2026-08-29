@@ -111,12 +111,37 @@ Deno.serve(async (req) => {
       } catch { /* keep unparseable */ }
       return json({ status: probe.status, urlShape: host, body: text });
     }
+    // The curriculum tables were rebuilt independently in the target project, so
+    // the same unit has a different uuid there. Translate unit_id by slug/name
+    // and null it out when there is no counterpart, rather than failing the FK.
+    const unitMap = new Map<string, string | null>();
+    try {
+      const [{ data: srcUnits }, { data: tgtUnits }] = await Promise.all([
+        source.from("units").select("id, slug, name"),
+        target.from("units").select("id, slug, name"),
+      ]);
+      const bySlug = new Map<string, string>();
+      const byName = new Map<string, string>();
+      for (const u of tgtUnits || []) {
+        if (u.slug) bySlug.set(String(u.slug).toLowerCase(), u.id);
+        if (u.name) byName.set(String(u.name).toLowerCase().trim(), u.id);
+      }
+      for (const u of srcUnits || []) {
+        const hit = bySlug.get(String(u.slug || "").toLowerCase()) ??
+          byName.get(String(u.name || "").toLowerCase().trim()) ?? null;
+        unitMap.set(u.id, hit);
+      }
+    } catch { /* no units in target: unit_id becomes null */ }
 
-
+    const remapUnit = (row: any) => {
+      if (!row || !("unit_id" in row) || !row.unit_id) return row;
+      return { ...row, unit_id: unitMap.has(row.unit_id) ? unitMap.get(row.unit_id) : null };
+    };
 
     const report: Record<string, any> = {};
 
     for (const table of tables) {
+
       let sourceIds: Set<string>;
       let targetIds: Set<string>;
       try {
