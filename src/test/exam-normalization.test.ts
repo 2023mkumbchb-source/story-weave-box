@@ -38,4 +38,13 @@ describe("exam question normalization", () => {
       explanation: "All of the above statements are correct.",
     }])).toEqual([]);
   });
+
+  it("repairs WordPress True/False exports containing duplicated choices and explanation fragments", () => {
+    expect(cleanExamQuestions([{
+      question: "Receptor agonists result in a drug response.",
+      options: ["True", "False", "True", "This is the mechanism by which many drugs exert their therapeutic effects."],
+      correct_answer: 0,
+      explanation: "Agonists activate receptors.",
+    }])).toEqual([expect.objectContaining({ options: ["True", "False"], correct_answer: 0 })]);
+  });
 });

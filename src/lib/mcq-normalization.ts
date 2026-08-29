@@ -44,6 +44,22 @@ export function sanitizeMcqQuestions(raw: unknown): NormalizedMcqQuestion[] {
       if (newIndex < 0) newIndex = options.push(option) - 1;
       oldToNew.set(oldIndex, newIndex);
     });
+    // WordPress quiz exports sometimes duplicated True/False and then appended
+    // part of the explanation as choices C/D. A genuine boolean item has one
+    // True and one False option only.
+    const trueIndex = options.findIndex((option) => /^true$/i.test(option));
+    const falseIndex = options.findIndex((option) => /^false$/i.test(option));
+    if (trueIndex >= 0 && falseIndex >= 0) {
+      const booleanOptions = [options[trueIndex], options[falseIndex]];
+      const booleanMap = new Map<number, number>();
+      oldToNew.forEach((mapped, oldIndex) => {
+        if (mapped === trueIndex) booleanMap.set(oldIndex, 0);
+        if (mapped === falseIndex) booleanMap.set(oldIndex, 1);
+      });
+      options.splice(0, options.length, ...booleanOptions);
+      oldToNew.clear();
+      booleanMap.forEach((mapped, oldIndex) => oldToNew.set(oldIndex, mapped));
+    }
     if (!question || options.length < 2) return [];
     const sourceCorrect = Number(item?.correct_answer);
     let correct = Number.isInteger(sourceCorrect) ? oldToNew.get(sourceCorrect) : undefined;
