@@ -13,7 +13,7 @@ async function all(table, columns) {
   }
 }
 
-const articles = await all("articles", "id,title,slug,category,content,content_kind,is_raw,deleted_at");
+const articles = await all("articles", "id,title,slug,category,content,original_notes,content_kind,is_raw,deleted_at");
 const mcqs = await all("mcq_sets", "id,title,slug,category,questions");
 const flashcards = await all("flashcard_sets", "id,title,slug,category,cards");
 const essays = await all("essays", "id,title,slug,category,short_answer_questions,long_answer_questions");
@@ -28,7 +28,10 @@ for (const row of articles.filter((x) => !x.is_raw && !x.deleted_at)) {
   const questionHeads = (text.match(/^#{1,6}\s+(?:Q(?:uestion)?\s*)?\d+/gim) || []).length;
   const answerHeads = (text.match(/(?:^|\n)\s*(?:\*\*)?(?:Answer|Model answer|Correct answer)\s*:/gi) || []).length;
   const choices = (text.match(/^\s*(?:[-*]\s*)?(?:\*\*)?[A-F][.)]\s+/gim) || []).length;
-  if (text.trim().length < 500) add("article", row, "thin-content", `${text.trim().length} characters`);
+  const source = String(row.original_notes || "");
+  if (text.trim().length < 500 && source.trim().length < 500) add("article", row, "thin-content", `${text.trim().length} content characters; no substantial source`);
+  if (text.trim().length < 500 && source.trim().length >= 500) add("article", row, "source-scan-fallback", `${source.trim().length} source characters available`);
+  if (/^(?:notice to all students\b|students handbook\b|executive order no\b)/i.test(row.title || "")) add("article", row, "non-study-import", "quarantine from public study listings");
   if (/Ã.|Â.|â€|ï¿½/.test(text)) add("article", row, "encoding", "possible mojibake");
   if (questionHeads >= 2 && choices >= 8 && answerHeads === 0) add("article", row, "answers-unverified", `${questionHeads} questions, no explicit Answer headings`);
   if (/aponeurosis|spot/i.test(`${row.title} ${row.content_kind}`) && images === 0) add("article", row, "spot-without-image", "visual bank has no Markdown image");

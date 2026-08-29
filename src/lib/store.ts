@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { extractFirstImageFromContent, stripRichText, autoIndexUrls, SITE_URL } from "@/lib/seo";
 import { getYear3Semester } from "@/lib/year3Semesters";
+import { sanitizeMcqQuestions } from "@/lib/mcq-normalization";
 
 export interface Article {
   id: string;
@@ -231,7 +232,7 @@ export function normalizeMcqQuestions<T extends { question?: string; options?: s
     q.correct_answer = Math.min(Math.max(correct, 0), Math.max(0, options.length - 1));
     return q;
   });
-  return rebalanceMcqAnswerLetters(normalized as any[]) as T[];
+  return rebalanceMcqAnswerLetters(sanitizeMcqQuestions(normalized) as any[]) as T[];
 }
 
 function normalizeTags(tags: string[] | undefined): string[] {
@@ -488,6 +489,17 @@ export function buildBlogPath(article: Pick<Article, "id" | "title"> & { slug?: 
 // that can be much larger than the rendered article itself.
 const ARTICLE_DETAIL_COLUMNS = "id,title,content,created_at,updated_at,published,category,is_raw,meta_title,meta_description,og_image_url,slug,countdown,html_embed,password_protected,access_password,tags,featured_image,reading_time_minutes,toc_enabled,comments_enabled,university,school,lecturer,exam_type,exam_year,unit,content_kind";
 
+const isQueuedScanPlaceholder = (content: string | null | undefined) =>
+  String(content || "").trim().length < 500 && /(?:original paper scans are available|transcription is (?:being generated|queued))/i.test(String(content || ""));
+
+/** Fetch large source scans only for placeholder pages, keeping normal reads fast. */
+async function hydrateQueuedScan<T extends Record<string, any> | null>(article: T): Promise<T> {
+  if (!article || !isQueuedScanPlaceholder(article.content)) return article;
+  const { data, error } = await supabase.from("articles").select("original_notes").eq("id", article.id).maybeSingle();
+  if (error || !String(data?.original_notes || "").trim()) return article;
+  return { ...article, original_notes: data!.original_notes, content: data!.original_notes } as T;
+}
+
 export function buildMcqPath(set: { id: string; title: string; slug?: string | null }): string {
   const rawSlug = typeof set.slug === "string" ? set.slug.trim() : "";
   return `/mcqs/${cleanPublicSlug(rawSlug, set.title, "quiz")}`;
@@ -579,6 +591,12 @@ export function clearArticleSummaryCache() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Articles
+const NON_STUDY_IMPORT_TITLE = /^(?:notice to all students\b|students handbook\b|executive order no\b)/i;
+
+export function isPublicStudyArticle(article: Pick<Article, "title">): boolean {
+  return !NON_STUDY_IMPORT_TITLE.test(String(article?.title || "").trim());
+}
+
 export async function getArticles(): Promise<Article[]> {
   const { data, error } = await supabase
     .from("articles")
@@ -598,7 +616,7 @@ export async function getPublishedArticles(): Promise<Article[]> {
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
   if (error) throw error;
-  return (data || []) as Article[];
+  return ((data || []) as Article[]).filter(isPublicStudyArticle);
 }
 
 export async function getPublishedArticleSummaries(year?: string): Promise<Article[]> {
@@ -623,7 +641,7 @@ export async function getPublishedArticleSummaries(year?: string): Promise<Artic
 
   const { data, error } = await query;
   if (error) throw error;
-  const result = (data || []).map((row) => toArticlePreview(row));
+  const result = (data || []).map((row) => toArticlePreview(row)).filter(isPublicStudyArticle);
 
   if (!year) setCachedSummaries(result);
   return result;
@@ -661,7 +679,7 @@ export async function searchPublishedArticles(queryText: string, year?: string, 
       ...row,
       content: row.meta_description || "",
     }),
-  );
+  ).filter(isPublicStudyArticle);
 }
 
 export async function getArticleById(id: string): Promise<Article | null> {
@@ -673,7 +691,7 @@ export async function getArticleById(id: string): Promise<Article | null> {
     .is("deleted_at", null)
     .maybeSingle();
   if (error) throw error;
-  return data as Article | null;
+  return hydrateQueuedScan(data as Article | null);
 }
 
 async function fetchArticleBySlugOrId(slugOrId: string): Promise<Article | null> {
@@ -690,7 +708,7 @@ async function fetchArticleBySlugOrId(slugOrId: string): Promise<Article | null>
       .is("deleted_at", null)
       .maybeSingle();
     if (error) throw error;
-    return data as Article | null;
+    return hydrateQueuedScan(data as Article | null);
   }
 
   const { data: slugMatches, error: slugError } = await supabase
@@ -704,7 +722,7 @@ async function fetchArticleBySlugOrId(slugOrId: string): Promise<Article | null>
   if (slugError) throw slugError;
 
   const slugMatch = slugMatches?.[0];
-  if (slugMatch) return slugMatch as unknown as Article;
+  if (slugMatch) return hydrateQueuedScan(slugMatch as unknown as Article);
 
   const { data, error } = await supabase
     .from("articles")

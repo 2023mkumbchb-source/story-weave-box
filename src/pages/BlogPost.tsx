@@ -29,7 +29,7 @@ import ArticleMcqOption from "@/components/ArticleMcqOption";
 import {
   splitLeakedAnswer, cleanMetaTitle, cleanMetaDescription,
   articleHaystack, inferUniversity, inferSchool, inferExamType, inferUnit,
-  type PreviewMcq, type PreviewEssay,
+  type PreviewMcq, type PreviewEssay, inferArticleLayout,
   cleanDisplayText, formatSequence, spaceOptionMarkers, countOptionMarkers,
   markerLetters, looksLikeChoiceRun, splitMarkerRun, normalizeOptionLine,
   splitOptionRun, splitStemAndOptions, isQuestionLike, extractExamQuestions,
@@ -708,13 +708,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   let underSubheading = false;
   // Short-answer / SAQ papers have no multiple-choice options at all: their
   // A, B, C lines are answer points, so they must read as bullet points.
-  const formatSignals = `${title}\n${contentKind}\n${content}`;
+  const layoutKind = inferArticleLayout(title, contentKind, content);
   let examMode: "mcq" | "essay" | null =
-    /\bSAQs?\b|\bLAQs?\b|short[- ]answer|long[- ]answer|essay|written[- ]question/i.test(formatSignals)
-      ? "essay"
-      : /\bMCQs?\b|multiple[- ]choice|quiz/i.test(`${title}\n${contentKind}`)
-        ? "mcq"
-        : null;
+    layoutKind === "essay" ? "essay" : layoutKind === "mcq" ? "mcq" : null;
   const pqs: { number: string; question: string; answer: string }[] = [];
   let insertedRelated = false;
   let currentQuestionKey = "";

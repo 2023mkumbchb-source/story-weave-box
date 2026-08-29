@@ -10,6 +10,7 @@ import { Helmet } from "react-helmet-async";
 import { extractIdFromParam, getSetting } from "@/lib/store";
 import StudyControls from "@/components/StudyControls";
 import HelpfulVote from "@/components/HelpfulVote";
+import { sanitizeMcqQuestions } from "@/lib/mcq-normalization";
 
 interface ExamSet {
   id: string;
@@ -25,27 +26,7 @@ interface StudentInfo {
 }
 
 export function cleanExamQuestions(raw: unknown): ExamSet["questions"] {
-  if (!Array.isArray(raw)) return [];
-  return raw.flatMap((item: any) => {
-    const question = String(item?.question || "").replace(/\s+/g, " ").trim();
-    const sourceOptions = Array.isArray(item?.options) ? item.options : [];
-    const options: string[] = [];
-    const oldToNew = new Map<number, number>();
-    sourceOptions.forEach((value: unknown, oldIndex: number) => {
-      const option = String(value || "")
-        .replace(/^\s*[A-F][.)]\s*/i, "")
-        .replace(/\s+/g, " ")
-        .trim();
-      if (!option) return;
-      const existing = options.findIndex((saved) => saved.localeCompare(option, undefined, { sensitivity: "base" }) === 0);
-      const newIndex = existing >= 0 ? existing : options.push(option) - 1;
-      oldToNew.set(oldIndex, newIndex);
-    });
-    const oldCorrect = Number(item?.correct_answer);
-    const correct = oldToNew.get(oldCorrect);
-    if (!question || options.length < 2 || correct === undefined) return [];
-    return [{ question, options, correct_answer: correct, explanation: String(item?.explanation || "").trim() || undefined }];
-  });
+  return sanitizeMcqQuestions(raw) as ExamSet["questions"];
 }
 
 const UNLOCKED_KEY = "unlocked_exams";

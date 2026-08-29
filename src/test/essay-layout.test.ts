@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { preprocessContent, splitInlineEssayParts } from "@/lib/blog-content";
+import { inferArticleLayout, preprocessContent, splitInlineEssayParts } from "@/lib/blog-content";
 
 describe("multipart essay question layout", () => {
+  it("classifies mixed and visual papers for their dedicated renderers", () => {
+    expect(inferArticleLayout("Pathology MCQs, SAQs and LAQs", "Past Paper", "A. One\nB. Two")).toBe("mixed");
+    expect(inferArticleLayout("Aponeurosis Limb Spot", "", "Question 150")).toBe("visual");
+  });
   it("places inline bold essay parts on separate lines", () => {
     const input = '**(a) Briefly describe oxidative deamination. [5 marks] (b) State the sources of amino acids. [5 marks]**';
     expect(preprocessContent(input)).toBe(

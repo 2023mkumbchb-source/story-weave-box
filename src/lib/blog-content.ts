@@ -113,6 +113,21 @@ export function inferUnit(article: ArticleLike): string {
 export type PreviewMcq = { n: string; stem: string; opts: string[] };
 export type PreviewEssay = { n: string; text: string };
 
+export type ArticleLayoutKind = "visual" | "mcq" | "essay" | "mixed" | "article";
+
+/** Canonical renderer decision shared by legacy imports and new content. */
+export function inferArticleLayout(title = "", contentKind = "", content = ""): ArticleLayoutKind {
+  const labels = `${title}\n${contentKind}`;
+  const all = `${labels}\n${content}`;
+  if (/aponeurosis|image[ -]?(?:spot|bank)|spot[ -]?(?:exam|bank|atlas)|visual[ -]?bank/i.test(all)) return "visual";
+  const essay = /\bSAQs?\b|\bLAQs?\b|short[- ]answer|long[- ]answer|essay|written[- ]question/i.test(all);
+  const mcq = /\bMCQs?\b|multiple[- ]choice|quiz/i.test(labels) || /(?:^|\n)\s*[A-E][.)]\s+\S/im.test(content);
+  if (essay && mcq) return "mixed";
+  if (essay) return "essay";
+  if (mcq) return "mcq";
+  return "article";
+}
+
 export function cleanDisplayText(value: string): string {
   return decodeEntities(value || "")
     .replace(/<[^>]*>/g, " ")
