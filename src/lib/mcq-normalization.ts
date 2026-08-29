@@ -176,6 +176,23 @@ function applyVerifiedPathologyWording(
   return { question, correct, explanation };
 }
 
+function applyVerifiedHaematologyWording(
+  question: string,
+  options: string[],
+  correct: number,
+  explanation: string,
+): { question: string; correct: number; explanation: string } {
+  if (/32 weeks gestation.*schistocytic anemia.*ADAMTS13 is 45%/i.test(question)) {
+    const hellp = options.findIndex((option) => /HELLP/i.test(option));
+    if (hellp >= 0) return {
+      question: "A 28-year-old woman at 32 weeks' gestation has severe hypertension, proteinuria, schistocytic haemolytic anaemia, platelets of 72,000/µL, AST 180 U/L, normal coagulation studies, and ADAMTS13 activity of 45%. What is the most likely diagnosis?",
+      correct: hellp,
+      explanation: "HELLP syndrome requires haemolysis, elevated liver enzymes, and low platelets. Severe hypertension and proteinuria support the associated pre-eclamptic picture. ADAMTS13 activity without severe deficiency makes immune TTP less likely, while normal coagulation studies make overt DIC less likely.",
+    };
+  }
+  return { question, correct, explanation };
+}
+
 /**
  * Repairs legacy MCQ JSON without guessing clinical facts. Duplicate options
  * are removed, the original answer index is remapped, and an invalid index is
@@ -228,6 +245,7 @@ export function sanitizeMcqQuestions(raw: unknown): NormalizedMcqQuestion[] {
     ({ question, correct, explanation } = applyVerifiedMycologyWording(question, options, correct, explanation));
     ({ question, correct, explanation } = applyVerifiedParasitologyWording(question, options, correct, explanation));
     ({ question, correct, explanation } = applyVerifiedPathologyWording(question, options, correct, explanation));
+    ({ question, correct, explanation } = applyVerifiedHaematologyWording(question, options, correct, explanation));
     return [{ ...item, question, options, correct_answer: correct, explanation: explanation || undefined }];
   });
 }

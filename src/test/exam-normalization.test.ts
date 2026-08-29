@@ -201,4 +201,17 @@ describe("exam question normalization", () => {
       explanation: expect.stringContaining("stage describes tumour extent"),
     }));
   });
+
+  it("adds the defining liver-enzyme criterion and nuance to the HELLP case", () => {
+    expect(cleanExamQuestions([{
+      question: "A 28-year-old female at 32 weeks gestation presents with schistocytic anemia, thrombocytopenia, and normal coagulation studies. ADAMTS13 is 45%. BP is 160/110 mmHg, urinalysis shows 3+ protein. What is the most likely diagnosis?",
+      options: ["TTP", "HUS", "HELLP Syndrome", "DIC"],
+      correct_answer: 2,
+      explanation: "ADAMTS13 >10% rules out TTP.",
+    }])).toEqual([expect.objectContaining({
+      question: expect.stringContaining("AST 180 U/L"),
+      correct_answer: 2,
+      explanation: expect.stringContaining("makes immune TTP less likely"),
+    })]);
+  });
 });
