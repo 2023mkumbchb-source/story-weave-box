@@ -13,7 +13,7 @@ async function all(table, columns) {
   }
 }
 
-const articles = await all("articles", "id,title,slug,category,content,original_notes,content_kind,is_raw,deleted_at");
+const articles = await all("articles", "id,title,slug,category,content,original_notes,content_kind,exam_type,is_raw,deleted_at");
 const mcqs = await all("mcq_sets", "id,title,slug,category,questions");
 const flashcards = await all("flashcard_sets", "id,title,slug,category,cards");
 const essays = await all("essays", "id,title,slug,category,short_answer_questions,long_answer_questions");
@@ -37,6 +37,7 @@ for (const row of articles.filter((x) => !x.is_raw && !x.deleted_at)) {
   const text = String(row.content || "");
   const images = (text.match(/!\[[^\]]*\]\([^)]+\)/g) || []).length;
   const questionHeads = (text.match(/^#{1,6}\s+(?:Q(?:uestion)?\s*)?\d+/gim) || []).length;
+  const explicitQuestionHeads = (text.match(/^#{1,6}\s+(?:Q(?:uestion)?\s*)\d+/gim) || []).length;
   const answerHeads = (text.match(/^(?:[-*]\s*)?(?:#{1,6}\s*)?(?:\*\*)?(?:Answer|Model answer|Correct answer)(?:\s+\d+)?\s*:/gim) || []).length;
   const choices = (text.match(/^\s*(?:[-*]\s*)?(?:\*\*)?[A-F][.)]\s+/gim) || []).length;
   const source = String(row.original_notes || "");
@@ -45,7 +46,14 @@ for (const row of articles.filter((x) => !x.is_raw && !x.deleted_at)) {
   if (text.trim().length < 500 && (source.trim().length >= 500 || sourceImages > 0)) add("article", row, "source-scan-fallback", `${sourceImages} source images; ${source.trim().length} source characters`);
   if (/^(?:notice to all students\b|students handbook\b|executive order no\b)/i.test(row.title || "")) add("article", row, "non-study-import", "quarantine from public study listings");
   if (/Ã.|Â.|â€|ï¿½/.test(text)) add("article", row, "encoding", "possible mojibake");
-  if (questionHeads >= 2 && choices >= 8 && answerHeads === 0) {
+  // "Examination" is common in clinical-skills note titles (for example,
+  // cardiovascular examination) and must not be treated as an exam marker.
+  const explicitQuestionResource = /\b(?:mcqs?|question bank|past paper|exam|cat)\b/i.test(
+    `${row.title || ""} ${row.content_kind || ""} ${row.exam_type || ""}`,
+  );
+  const explicitQuestionSection = /^#{1,6}\s+(?:multiple[- ]choice questions?|questions?|exam paper)\b/im.test(text);
+  const shouldRequireAnswers = explicitQuestionHeads >= 2 || explicitQuestionSection || explicitQuestionResource;
+  if (shouldRequireAnswers && questionHeads >= 2 && choices >= 8 && answerHeads === 0) {
     const hasExplicitUnverifiedKey = /unverified handwritten source markings|do not use .* as a grading key/i.test(text);
     const sourceIssuedNoKey = /source (?:contains|had) no (?:official )?answer key|answers have not been invented/i.test(text);
     const code = hasExplicitUnverifiedKey ? "unverified-source-key" : sourceIssuedNoKey ? "question-paper-no-key" : "answers-unverified";
