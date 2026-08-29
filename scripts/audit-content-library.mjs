@@ -46,7 +46,11 @@ for (const row of articles.filter((x) => !x.is_raw && !x.deleted_at)) {
   if (/^(?:notice to all students\b|students handbook\b|executive order no\b)/i.test(row.title || "")) add("article", row, "non-study-import", "quarantine from public study listings");
   if (/Ã.|Â.|â€|ï¿½/.test(text)) add("article", row, "encoding", "possible mojibake");
   if (questionHeads >= 2 && choices >= 8 && answerHeads === 0) add("article", row, "answers-unverified", `${questionHeads} questions, no explicit Answer headings`);
-  if (/aponeurosis|spot/i.test(`${row.title} ${row.content_kind}`) && images + sourceImages === 0) add("article", row, "spot-without-image", "visual bank has no source image");
+  const explicitlyTextOnlyPractical = /image-dependent questions have been excluded/i.test(text)
+    || (/\bnotes\b/i.test(String(row.content_kind || "")) && /revision q&a|point-form q&a/i.test(text));
+  if (/aponeurosis|spot/i.test(`${row.title} ${row.content_kind}`) && images + sourceImages === 0 && !explicitlyTextOnlyPractical) {
+    add("article", row, "spot-without-image", "visual bank has no source image");
+  }
 }
 
 for (const row of mcqs) {
