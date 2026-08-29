@@ -23,11 +23,11 @@ export default function UnitTile({
   return (
     <button
       onClick={onClick}
-      className={`group overflow-hidden rounded-lg border bg-card text-left transition-colors hover:border-primary/50 ${
-        active ? "border-primary ring-1 ring-primary/25" : "border-border"
+      className={`group flex h-full min-w-0 w-full flex-col overflow-hidden rounded-xl border bg-card text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md ${
+        active ? "border-primary ring-2 ring-primary/20" : "border-border"
       }`}
     >
-      <span className="relative block h-20 w-full overflow-hidden bg-muted sm:h-24">
+      <span className="relative block aspect-[16/9] w-full shrink-0 overflow-hidden bg-muted">
         {cover ? (
           <img
             src={cover}
@@ -41,11 +41,11 @@ export default function UnitTile({
           </span>
         )}
       </span>
-      <span className="block px-3 py-2.5">
-        <span className="block truncate text-[13px] font-semibold leading-tight text-foreground transition-colors group-hover:text-primary sm:text-sm">
+      <span className="flex min-h-[4.5rem] flex-1 flex-col px-3.5 py-3">
+        <span className="line-clamp-2 text-[13px] font-semibold leading-snug text-foreground transition-colors group-hover:text-primary sm:text-sm">
           {title}
         </span>
-        <span className="mt-0.5 block text-[11px] text-muted-foreground">
+        <span className="mt-auto block pt-1.5 text-[11px] text-muted-foreground">
           {hint ?? (count != null ? `${count} ${count === 1 ? "note" : "notes"}` : "")}
         </span>
       </span>

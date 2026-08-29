@@ -464,7 +464,7 @@ export default function Blog() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <div className="grid gap-8 lg:grid-cols-[260px,1fr]">
+      <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)]">
         {/* Desktop-only sidebar */}
         <aside className="hidden lg:block">
           <div className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-sm">
@@ -860,9 +860,9 @@ export default function Blog() {
             <p className="mb-2.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
               Choose a unit · {unitsForSelection.length} available
             </p>
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid auto-rows-fr grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
               {unitsForSelection.map(u => (
-                <motion.div key={u.category} variants={itemVariants}>
+                <motion.div key={u.category} variants={itemVariants} className="min-w-0 h-full">
                   <UnitTile title={u.name} count={u.count} onClick={() => setUnit(u.category)} />
                 </motion.div>
               ))}
