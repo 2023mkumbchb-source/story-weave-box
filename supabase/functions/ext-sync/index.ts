@@ -93,9 +93,21 @@ Deno.serve(async (req) => {
     const maxRows = Math.min(Number(body.max) || 200, 600);
 
     if (action === "ping") {
-      const { count, error } = await target.from("articles").select("id", { count: "exact", head: true });
-      return json({ ok: !error, targetArticles: count ?? null, error: error?.message });
+      // Raw REST probe: the JS client masks URL mistakes as "Invalid path",
+      // so show the actual HTTP status and body shape instead.
+      const probe = await fetch(`${extUrl}/rest/v1/articles?select=id&limit=1`, {
+        headers: { apikey: extKey, Authorization: `Bearer ${extKey}` },
+      });
+      const text = (await probe.text()).slice(0, 300);
+      let host = "unparseable";
+      try {
+        const u = new URL(extUrl);
+        host = `${u.protocol}//${u.hostname.replace(/^[a-z0-9]{6,}/i, "<ref>")}${u.pathname}`;
+      } catch { /* keep unparseable */ }
+      return json({ status: probe.status, urlShape: host, body: text });
     }
+
+
 
     const report: Record<string, any> = {};
 
