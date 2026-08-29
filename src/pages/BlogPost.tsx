@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccess } from "@/lib/access";
 import { SubscribeModal } from "@/components/SubscribeModal";
-import { openSubscribePrompt, useScrollSubscribePrompt } from "@/lib/subscribe-prompt";
+import { useScrollSubscribePrompt } from "@/lib/subscribe-prompt";
 import StudyControls from "@/components/StudyControls";
 import HelpfulVote from "@/components/HelpfulVote";
 import ArticleMcqOption from "@/components/ArticleMcqOption";
@@ -45,7 +45,7 @@ import {
  */
 function ArticleSubscribeGate({ hasMcqs }: { hasMcqs: boolean }) {
   const access = useAccess();
-  useScrollSubscribePrompt(hasMcqs && !access.canReveal);
+  useScrollSubscribePrompt(false);
   return <SubscribeModal settings={access.settings} onUnlocked={access.applyPass} />;
 }
 
@@ -206,7 +206,7 @@ function PracticeQuestion({ number, question, answer }: { number: string; questi
   const locked = !access.canReveal;
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <button onClick={() => locked ? openSubscribePrompt("Subscribe to reveal the model answer.") : setOpen(o => !o)} className="w-full flex items-start gap-3 px-4 py-4 sm:px-5 sm:py-4 text-left hover:bg-muted/30 transition-colors">
+      <button disabled={locked} onClick={() => setOpen(o => !o)} className={`w-full flex items-start gap-3 px-4 py-4 sm:px-5 sm:py-4 text-left transition-colors ${locked ? "cursor-default opacity-75" : "hover:bg-muted/30"}`}>
         <span className="shrink-0 flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold mt-0.5">{number}</span>
         <span className="flex-1 text-sm sm:text-[15px] font-medium text-foreground leading-relaxed"><Inline text={question} /></span>
         {locked ? <Lock className="h-4 w-4 shrink-0 text-muted-foreground mt-1" /> : <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground mt-1 transition-transform ${open ? "rotate-180" : ""}`} />}
@@ -238,7 +238,7 @@ function EssayQuestion({ number, question, answer }: { number: string; question:
       </div>
       {answer && (
         <div className="mt-3">
-          <button type="button" onClick={() => locked ? openSubscribePrompt("Subscribe to reveal the model answer.") : setOpen((value) => !value)} className="flex w-full items-center justify-between rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-left text-sm font-semibold text-primary">
+          <button type="button" disabled={locked} onClick={() => setOpen((value) => !value)} className={`flex w-full items-center justify-between rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-left text-sm font-semibold text-primary ${locked ? "cursor-default opacity-75" : ""}`}>
             <span className="inline-flex items-center gap-2">{locked ? <Lock className="h-4 w-4" /> : <Eye className="h-4 w-4" />}{locked ? "Model answer — subscribers" : open ? "Hide model answer" : "Reveal model answer"}</span>
             {!locked && <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />}
           </button>
@@ -301,11 +301,9 @@ function McqAnswerBlock({ raw, articleId, questionKey }: { raw: string; articleI
     <div id={articleId && questionKey ? `answer-${articleId}-${questionKey}` : undefined} className="not-prose my-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
       <button
         type="button"
-        onClick={() => {
-          if (locked) { openSubscribePrompt("Subscribe to reveal the verified answer and explanation."); return; }
-          setOpen((o) => !o);
-        }}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-emerald-500/10"
+        disabled={locked}
+        onClick={() => setOpen((o) => !o)}
+        className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${locked ? "cursor-default opacity-75" : "hover:bg-emerald-500/10"}`}
       >
         <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
           {locked ? <Lock className="h-4 w-4" /> : open ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -345,7 +343,7 @@ function InlineAnswerBlock({ raw }: { raw: string }) {
   if (!cleaned.length) return null;
   return (
     <div className="not-prose my-4 overflow-hidden rounded-xl border border-primary/25 bg-primary/5">
-      <button type="button" onClick={() => locked ? openSubscribePrompt("Subscribe to reveal the answer and explanation.") : setOpen((value) => !value)} className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-primary">
+      <button type="button" disabled={locked} onClick={() => setOpen((value) => !value)} className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-primary ${locked ? "cursor-default opacity-75" : ""}`}>
         <span className="inline-flex items-center gap-2">{locked ? <Lock className="h-4 w-4" /> : <Eye className="h-4 w-4" />}{locked ? "Reveal — subscribers" : open ? "Hide answer" : "Reveal answer"}</span>
         {!locked && <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />}
       </button>
@@ -552,25 +550,19 @@ function ReviewedBadge({ reviewer, date, onDark }: { reviewer: string; date: str
 
 
 function SourceAttribution({ article }: { article: any }) {
-  const uni = inferUniversity(article);
-  const school = inferSchool(article);
-  const lecturer = ((article.lecturer || "") as string).trim();
   const examType = inferExamType(article);
   const examYear = (article.exam_year || "").trim();
   const unit = inferUnit(article);
-  const tags: string[] = Array.isArray(article.tags) ? article.tags.slice(0, 6) : [];
+  const tags: string[] = Array.isArray(article.tags)
+    ? article.tags.filter((tag: string) => !/\b(?:university|college|school|mku|uon|jkuat)\b/i.test(tag)).slice(0, 6)
+    : [];
   const chips: { label: string; tone?: string }[] = [];
   if (examType) chips.push({ label: examYear ? `${examType} · ${examYear}` : examType, tone: "primary" });
-  if (uni) chips.push({ label: uni });
-  if (school && school !== uni) chips.push({ label: school });
   if (unit) chips.push({ label: unit });
-  if (lecturer) chips.push({ label: lecturer });
   const hay = `${article?.title || ""}\n${article?.content || ""}\n${article?.meta_description || ""}`;
   const looksExamLike = /\b(MKU|Mount\s+Kenya\s+University|past\s*paper|CAT|MCQ|essay|question|exam|paper\s*\d)\b/i.test(hay);
   if (chips.length === 0 && tags.length === 0 && !looksExamLike) return null;
-  const sourceLine = uni
-    ? `Compiled from past papers at ${uni}${examYear ? ` (${examYear})` : ""}. Cross-referenced with MKU, UoN, KU, JKUAT & Moi University question banks.`
-    : "Compiled from past papers across Mount Kenya University (MKU), UoN, KU, JKUAT and Moi University question banks.";
+  const sourceLine = "Prepared as an international medical revision resource. Original paper provenance is preserved within the document where available.";
   return (
     <div className="mb-5 rounded-lg border border-border/70 bg-muted/30 p-3.5">
       <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Source & Attribution</p>
@@ -612,7 +604,6 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
   }, [open, onClose]);
   if (!open) return null;
   const title = decodeEntities(article?.title || "").replace(/^#+\s*/, "").trim();
-  const uni = inferUniversity(article);
   const examType = inferExamType(article);
   const examYear = (article?.exam_year || "").trim();
   const unit = inferUnit(article);
@@ -631,7 +622,7 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
         <div className="clear-both px-6 sm:px-10 py-8 sm:py-12 font-serif">
           {/* Cover */}
           <div className="mb-8 border-b-2 border-neutral-900 pb-6 text-center">
-            {uni && <p className="text-sm font-bold uppercase tracking-[0.2em] text-neutral-800">{uni}</p>}
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-neutral-800">Ompath Study</p>
             {unit && <p className="mt-1 text-xs uppercase tracking-widest text-neutral-500">Department of {unit}</p>}
             <h1 className="mt-4 text-2xl sm:text-3xl font-bold leading-tight">{title}</h1>
             <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-neutral-600">
@@ -698,7 +689,7 @@ function ExamPreviewBall({ onOpen }: { onOpen: () => void }) {
       onClick={onOpen}
       aria-label="Preview exam paper"
       title="Preview exam paper"
-      className="fixed top-4 right-4 z-40 flex items-center gap-1.5 rounded-full border border-border bg-background/90 px-3 py-1.5 text-xs font-semibold text-foreground shadow-md backdrop-blur-md transition-colors hover:border-primary/40 hover:text-primary sm:right-6"
+      className="fixed top-[4.5rem] right-4 z-30 flex items-center gap-1.5 rounded-full border border-border bg-background/90 px-3 py-1.5 text-xs font-semibold text-foreground shadow-md backdrop-blur-md transition-colors hover:border-primary/40 hover:text-primary sm:right-6"
     >
       <ListChecks className="h-3.5 w-3.5" />
       <span className="hidden sm:inline">Preview</span>

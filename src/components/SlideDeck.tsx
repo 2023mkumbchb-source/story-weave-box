@@ -377,12 +377,10 @@ function SlideCard({
         <div className="px-4 py-3">
           <button
             type="button"
-            onClick={() => {
-              if (locked) { openSubscribePrompt("Subscribe to reveal the answer key for this plate."); return; }
-              setOpen((o) => !o);
-            }}
+            disabled={locked}
+            onClick={() => setOpen((o) => !o)}
             aria-expanded={locked ? false : open}
-            className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+            className={`inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-colors ${locked ? "cursor-default opacity-75" : "hover:bg-primary/10"}`}
           >
             {locked ? <Lock className="h-3.5 w-3.5" /> : open ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             {locked ? "Reveal (subscribers)" : open ? "Hide" : "Reveal"}
@@ -442,7 +440,7 @@ export function SlideDeckView({
     return deck.slides.slice(0, Math.max(1, Math.ceil(deck.slides.length / 2)));
   }, [deck.slides, locked, site.guestSlideView]);
   const truncated = visibleSlides.length < deck.slides.length;
-  useScrollSubscribePrompt(locked && deck.slides.length > 0);
+  useScrollSubscribePrompt(false);
 
   useEffect(() => {
     if (!articleId) return;
@@ -519,11 +517,9 @@ export function SlideDeckView({
           </div>
           <button
             type="button"
-            onClick={() => {
-              if (locked) { openSubscribePrompt("Subscribe to reveal every answer on this paper."); return; }
-              setRevealAll((v) => !v); setAllKey((k) => k + 1);
-            }}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+            disabled={locked}
+            onClick={() => { setRevealAll((v) => !v); setAllKey((k) => k + 1); }}
+            className={`inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors ${locked ? "cursor-default opacity-75" : "hover:border-primary/40 hover:text-primary"}`}
           >
             {locked ? <Lock className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
             {locked ? "Reveal all" : revealAll ? "Hide all" : "Reveal all"}

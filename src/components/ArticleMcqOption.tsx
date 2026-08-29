@@ -3,7 +3,6 @@ import { Check, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccess } from "@/lib/access";
-import { openSubscribePrompt } from "@/lib/subscribe-prompt";
 
 type Selection = { wrong: string[]; solved: boolean; correct: string; firstAttempt?: boolean };
 
@@ -24,10 +23,7 @@ export default function ArticleMcqOption({ articleId, questionKey, questionText,
   }, [eventName]);
 
   const choose = () => {
-    if (!access.canReveal) {
-      openSubscribePrompt("Subscribe to attempt questions and unlock verified answers and explanations.");
-      return;
-    }
+    if (!access.canReveal) return;
     if (!correctLabel || selection?.solved || selection?.wrong.includes(label)) return;
     const correct = label === correctLabel;
     const detail: Selection = {
@@ -58,12 +54,12 @@ export default function ArticleMcqOption({ articleId, questionKey, questionText,
   const isCorrect = Boolean(selection?.solved && label === selection.correct);
   const isWrong = transientWrong === label;
   const isChosen = isCorrect || isWrong;
-  return <button type="button" onClick={choose} disabled={!correctLabel || Boolean(selection?.solved) || isWrong}
+  return <button type="button" onClick={choose} disabled={!correctLabel || !access.canReveal || Boolean(selection?.solved) || isWrong}
     aria-pressed={isChosen}
     className={`not-prose !my-1 flex min-h-12 w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left align-middle transition-colors ${
-      isCorrect ? "border-emerald-500 bg-emerald-500/10" : isWrong ? "border-red-500 bg-red-500/10" : "border-border/70 bg-card hover:border-primary/50"
+      isCorrect ? "border-emerald-500 bg-emerald-500/10" : isWrong ? "border-rose-400/60 bg-rose-500/5" : !access.canReveal ? "border-border/60 bg-muted/20 opacity-75" : "border-border/70 bg-card hover:border-primary/50"
     } disabled:cursor-default`}>
-    <span className={`flex h-7 w-7 shrink-0 items-center justify-center self-center rounded-md text-[11px] font-bold ${isCorrect ? "bg-emerald-600 text-white" : isWrong ? "bg-red-600 text-white" : "bg-primary/10 text-primary"}`}>
+    <span className={`flex h-7 w-7 shrink-0 items-center justify-center self-center rounded-md text-[11px] font-bold ${isCorrect ? "bg-emerald-600 text-white" : isWrong ? "bg-rose-500 text-white" : "bg-primary/10 text-primary"}`}>
       {isCorrect ? <Check className="h-4 w-4" /> : isWrong ? <X className="h-4 w-4" /> : label}
     </span>
     <span className="min-w-0 flex-1 self-center text-[15px] leading-6 text-foreground">{children}</span>

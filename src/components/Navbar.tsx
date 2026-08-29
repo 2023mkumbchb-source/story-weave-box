@@ -81,7 +81,7 @@ export default function Navbar() {
         const nextY = window.scrollY;
         const delta = nextY - lastY;
         if (nextY < 24 || delta < -8) setHidden(false);
-        else if (delta > 8 && nextY > 96 && !sidebarOpen && window.innerWidth >= 768) setHidden(true);
+        else if (delta > 8 && nextY > 96 && !sidebarOpen) setHidden(true);
         lastY = nextY;
         ticking = false;
       });
