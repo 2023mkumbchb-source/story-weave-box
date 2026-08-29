@@ -234,8 +234,10 @@ export default function ExamStart() {
       const unlockedRaw = localStorage.getItem(UNLOCKED_KEY);
       const unlocked = new Set<string>(unlockedRaw ? JSON.parse(unlockedRaw) : []);
       if (!resolvedId || !data) { navigate("/exams"); return; }
+      const questions = cleanExamQuestions(data.questions);
+      if (!questions.length) { navigate("/exams", { replace: true }); return; }
       setExamId(resolvedId);
-      setExam({ ...(data as unknown as ExamSet), questions: cleanExamQuestions(data.questions) });
+      setExam({ ...(data as unknown as ExamSet), questions });
       setLoading(false);
     };
     run();
