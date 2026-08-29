@@ -67,4 +67,16 @@ describe("exam question normalization", () => {
       explanation: "Cryptococcus neoformans is enriched in contaminated soil.",
     })]);
   });
+
+  it("qualifies the verified C. glabrata oral step-down question", () => {
+    expect(cleanExamQuestions([{
+      question: "A transplant patient has systemic candidiasis due to C. glabrata resistant to fluconazole. Which is a reasonable oral alternative?",
+      options: ["Fluconazole", "Posaconazole", "Nystatin", "Griseofulvin"],
+      correct_answer: 1,
+    }])).toEqual([expect.objectContaining({
+      question: expect.stringContaining("After initial echinocandin therapy"),
+      correct_answer: 1,
+      explanation: expect.stringContaining("only when the isolate is susceptible"),
+    })]);
+  });
 });

@@ -35,6 +35,26 @@ function splitEmbeddedExplanation(question: string, correctOption: string): { qu
   return { question: stem, explanation: suffix.replace(/\s+/g, " ") };
 }
 
+function applyVerifiedClinicalOverride(
+  question: string,
+  options: string[],
+  correct: number,
+  explanation: string,
+): { question: string; correct: number; explanation: string } {
+  const isGlabrataOralAlternative = /c(?:andida)?\.?\s*glabrata/i.test(question)
+    && /fluconazole[- ]resistan|resistan\w*\s+to\s+fluconazole/i.test(question)
+    && /oral\s+alternative/i.test(question);
+  if (!isGlabrataOralAlternative) return { question, correct, explanation };
+
+  const posaconazole = options.findIndex((option) => /posaconazole/i.test(option));
+  if (posaconazole < 0) return { question, correct, explanation };
+  return {
+    question: "After initial echinocandin therapy, a stable patient has fluconazole-resistant Candida glabrata candidemia whose isolate is susceptible to posaconazole. Which oral step-down option is reasonable?",
+    correct: posaconazole,
+    explanation: "Posaconazole tablets are an IDSA-supported oral step-down option only when the isolate is susceptible to posaconazole but not fluconazole. An echinocandin remains preferred initial therapy for invasive candidiasis.",
+  };
+}
+
 /**
  * Repairs legacy MCQ JSON without guessing clinical facts. Duplicate options
  * are removed, the original answer index is remapped, and an invalid index is
@@ -83,6 +103,7 @@ export function sanitizeMcqQuestions(raw: unknown): NormalizedMcqQuestion[] {
       question = split.question;
       explanation = split.explanation || "";
     }
+    ({ question, correct, explanation } = applyVerifiedClinicalOverride(question, options, correct, explanation));
     return [{ ...item, question, options, correct_answer: correct, explanation: explanation || undefined }];
   });
 }
