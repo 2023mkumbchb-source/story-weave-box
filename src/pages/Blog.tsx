@@ -402,7 +402,11 @@ export default function Blog() {
         count: arts.length,
         latest: latestDate(arts),
       }))
-      .sort((a, b) => b.latest - a.latest);
+      .sort((a, b) => {
+        const aPriority = /aponeurosis/i.test(a.name) ? 0 : 1;
+        const bPriority = /aponeurosis/i.test(b.name) ? 0 : 1;
+        return aPriority - bPriority || b.latest - a.latest;
+      });
   }, [articles, selectedYear]);
 
   const unitsForSelection = useMemo(() => {

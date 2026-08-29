@@ -10,6 +10,7 @@ import { buildStoryPath, updateMetaTags } from "@/lib/seo";
 import { supabase } from "@/integrations/supabase/client";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
 import { getSubjectKey, subjectColor } from "@/components/subjectTheme";
+import { useAuth } from "@/hooks/useAuth";
 
 /* Resource tiles — the Geeky Medics "Explore our resources" block: a small number
    of large, colour-blocked entry points instead of a wall of small links. */
@@ -62,6 +63,7 @@ const tileReveal = {
 
 // Sync probe: repository edits should appear automatically in the Lovable editor.
 export default function Index() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const heroRef = useRef<HTMLDivElement>(null);
   const [prefersReducedMotion] = useState(
@@ -83,6 +85,13 @@ export default function Index() {
   const [activeTab, setActiveTab] = useState<"all" | "articles" | "flashcards" | "stories">("all");
   const [query, setQuery] = useState("");
   const [recentShown, setRecentShown] = useState(10);
+  const [studyYear, setStudyYear] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!user) { setStudyYear(null); return; }
+    supabase.from("profiles").select("study_year").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => setStudyYear(data?.study_year ? Number(data.study_year) : null));
+  }, [user]);
 
   useEffect(() => {
     updateMetaTags({
@@ -253,7 +262,23 @@ export default function Index() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
           className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4"
-        >
+          >
+          {(studyYear === 1 || studyYear === 2) && (
+            <motion.div variants={tileReveal} className="col-span-2 h-full lg:col-span-4">
+              <Link
+                to={`/blog?year=Year%20${studyYear}&unit=${encodeURIComponent(`Year ${studyYear}: Aponeurosis - Anatomy`)}`}
+                className="group flex min-h-32 items-center gap-4 rounded-2xl border-2 border-primary/35 bg-primary/10 p-5 transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-[var(--shadow-elevated)] sm:p-6"
+              >
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground"><BookMarked className="h-7 w-7" /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Your essential anatomy revision</span>
+                  <span className="mt-1 block font-serif text-xl font-bold text-foreground sm:text-2xl">Aponeurosis Anatomy Image Spot Bank</span>
+                  <span className="mt-1 block text-xs leading-relaxed text-muted-foreground sm:text-sm">Photographs and labelled structures with tap-to-reveal answers for Year 1 and Year 2.</span>
+                </span>
+                <ArrowRight className="h-5 w-5 shrink-0 text-primary transition-transform group-hover:translate-x-1" />
+              </Link>
+            </motion.div>
+          )}
           {RESOURCES.map((r) => {
             const key = getSubjectKey(r.subject);
             return (

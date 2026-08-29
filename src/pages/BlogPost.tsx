@@ -693,7 +693,7 @@ function ExamPreviewBall({ onOpen }: { onOpen: () => void }) {
 /* ─── Article content renderer ─── */
 let _sec = 0;
 
-const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [], articleId, category }: { content: string; inlineRelated?: any[]; articleId: string; category: string }) {
+const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [], articleId, category, title = "", contentKind = "" }: { content: string; inlineRelated?: any[]; articleId: string; category: string; title?: string; contentKind?: string }) {
   _sec = 0;
   const lines = preprocessContent(content).split("\n");
   // Explicit "Answer:" lines and bold-marked options win; a consolidated
@@ -708,8 +708,13 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   let underSubheading = false;
   // Short-answer / SAQ papers have no multiple-choice options at all: their
   // A, B, C lines are answer points, so they must read as bullet points.
+  const formatSignals = `${title}\n${contentKind}\n${content}`;
   let examMode: "mcq" | "essay" | null =
-    /\bSAQs?\b|short[- ]answer|essay/i.test(content.slice(0, 3000)) ? "essay" : null;
+    /\bSAQs?\b|\bLAQs?\b|short[- ]answer|long[- ]answer|essay|written[- ]question/i.test(formatSignals)
+      ? "essay"
+      : /\bMCQs?\b|multiple[- ]choice|quiz/i.test(`${title}\n${contentKind}`)
+        ? "mcq"
+        : null;
   const pqs: { number: string; question: string; answer: string }[] = [];
   let insertedRelated = false;
   let currentQuestionKey = "";
@@ -1810,7 +1815,7 @@ export default function BlogPost() {
                       university={inferUniversity(article)}
                       onPreview={() => setPreviewOpen(true)}
                     />
-                  : <ArticleContent content={article.content} inlineRelated={related.articles || []} articleId={article.id} category={article.category || ""} />}
+                  : <ArticleContent content={article.content} inlineRelated={related.articles || []} articleId={article.id} category={article.category || ""} title={article.title || ""} contentKind={article.content_kind || ""} />}
               </KeywordLinkProvider>
             </div>
 

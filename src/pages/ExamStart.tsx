@@ -24,6 +24,30 @@ interface StudentInfo {
   course: string;
 }
 
+export function cleanExamQuestions(raw: unknown): ExamSet["questions"] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((item: any) => {
+    const question = String(item?.question || "").replace(/\s+/g, " ").trim();
+    const sourceOptions = Array.isArray(item?.options) ? item.options : [];
+    const options: string[] = [];
+    const oldToNew = new Map<number, number>();
+    sourceOptions.forEach((value: unknown, oldIndex: number) => {
+      const option = String(value || "")
+        .replace(/^\s*[A-F][.)]\s*/i, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!option) return;
+      const existing = options.findIndex((saved) => saved.localeCompare(option, undefined, { sensitivity: "base" }) === 0);
+      const newIndex = existing >= 0 ? existing : options.push(option) - 1;
+      oldToNew.set(oldIndex, newIndex);
+    });
+    const oldCorrect = Number(item?.correct_answer);
+    const correct = oldToNew.get(oldCorrect);
+    if (!question || options.length < 2 || correct === undefined) return [];
+    return [{ question, options, correct_answer: correct, explanation: String(item?.explanation || "").trim() || undefined }];
+  });
+}
+
 const UNLOCKED_KEY = "unlocked_exams";
 const STUDENT_CREDS_KEY = "student_credentials";
 const EXAM_FREE_LIMIT = 15;
@@ -230,7 +254,7 @@ export default function ExamStart() {
       const unlocked = new Set<string>(unlockedRaw ? JSON.parse(unlockedRaw) : []);
       if (!resolvedId || !data) { navigate("/exams"); return; }
       setExamId(resolvedId);
-      setExam(data as unknown as ExamSet);
+      setExam({ ...(data as unknown as ExamSet), questions: cleanExamQuestions(data.questions) });
       setLoading(false);
     };
     run();

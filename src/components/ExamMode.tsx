@@ -589,8 +589,8 @@ export default function ExamMode({
   // ── EXAM IN PROGRESS ──────────────────────────────────────────────────────
   return (
     <div className="exam-container fixed inset-0 z-50 bg-background overflow-y-auto">
-      <ExitDialog />
-      <SubmitDialog />
+      {ExitDialog()}
+      {SubmitDialog()}
 
       <div className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur px-3 sm:px-6 py-2.5">
         <div className="mx-auto max-w-2xl flex items-center justify-between gap-2">
