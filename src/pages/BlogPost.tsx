@@ -202,15 +202,17 @@ function FlowBlock({ lines }: { lines: string[] }) {
 /* ─── Practice Q expandable ─── */
 function PracticeQuestion({ number, question, answer }: { number: string; question: string; answer: string }) {
   const [open, setOpen] = useState(false);
+  const access = useAccess();
+  const locked = !access.canReveal;
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <button onClick={() => setOpen(o => !o)} className="w-full flex items-start gap-3 px-4 py-4 sm:px-5 sm:py-4 text-left hover:bg-muted/30 transition-colors">
+      <button onClick={() => locked ? openSubscribePrompt("Subscribe to reveal the model answer.") : setOpen(o => !o)} className="w-full flex items-start gap-3 px-4 py-4 sm:px-5 sm:py-4 text-left hover:bg-muted/30 transition-colors">
         <span className="shrink-0 flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold mt-0.5">{number}</span>
         <span className="flex-1 text-sm sm:text-[15px] font-medium text-foreground leading-relaxed"><Inline text={question} /></span>
-        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground mt-1 transition-transform ${open ? "rotate-180" : ""}`} />
+        {locked ? <Lock className="h-4 w-4 shrink-0 text-muted-foreground mt-1" /> : <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground mt-1 transition-transform ${open ? "rotate-180" : ""}`} />}
       </button>
       <AnimatePresence initial={false}>
-        {open && (
+        {open && !locked && (
           <motion.div key="a" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.15 }} className="overflow-hidden">
             <div className="px-4 py-4 sm:px-5 sm:py-5 border-t border-border bg-muted/20">
               <p className="text-sm sm:text-[15px] text-foreground/90 leading-[1.75] whitespace-pre-line"><Inline text={answer} /></p>
@@ -225,6 +227,9 @@ function PracticeQuestion({ number, question, answer }: { number: string; questi
 /* ─── MCQ answer + explanation collapsible (used inside articles) ─── */
 /* Essay question — answers are always visible (never hidden behind a button) */
 function EssayQuestion({ number, question, answer }: { number: string; question: string; answer: string }) {
+  const [open, setOpen] = useState(false);
+  const access = useAccess();
+  const locked = !access.canReveal;
   return (
     <article className="rounded-xl border border-border bg-card p-4 sm:p-5">
       <div className="flex items-start gap-3">
@@ -232,9 +237,14 @@ function EssayQuestion({ number, question, answer }: { number: string; question:
         <h3 className="flex-1 text-sm sm:text-[15px] font-semibold text-foreground leading-relaxed"><Inline text={question} /></h3>
       </div>
       {answer && (
-        <div className="mt-3 border-l-2 border-primary/50 pl-4">
-          <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-primary">Model answer</p>
-          <p className="text-sm sm:text-[15px] text-foreground/90 leading-[1.75] whitespace-pre-line"><Inline text={answer} /></p>
+        <div className="mt-3">
+          <button type="button" onClick={() => locked ? openSubscribePrompt("Subscribe to reveal the model answer.") : setOpen((value) => !value)} className="flex w-full items-center justify-between rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-left text-sm font-semibold text-primary">
+            <span className="inline-flex items-center gap-2">{locked ? <Lock className="h-4 w-4" /> : <Eye className="h-4 w-4" />}{locked ? "Model answer — subscribers" : open ? "Hide model answer" : "Reveal model answer"}</span>
+            {!locked && <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />}
+          </button>
+          {open && !locked && <div className="mt-3 border-l-2 border-primary/50 pl-4">
+            <p className="text-sm sm:text-[15px] text-foreground/90 leading-[1.75] whitespace-pre-line"><Inline text={answer} /></p>
+          </div>}
         </div>
       )}
     </article>
@@ -325,19 +335,25 @@ function McqAnswerBlock({ raw, articleId, questionKey }: { raw: string; articleI
 }
 
 function InlineAnswerBlock({ raw }: { raw: string }) {
+  const [open, setOpen] = useState(false);
+  const access = useAccess();
+  const locked = !access.canReveal;
   const cleaned = raw
     .split("\n")
     .map((line) => cleanDisplayText(line.replace(/^✅\s*/, "").replace(/^(?:Answer|Model answer|Explanation|Correct answer)\s*[:：]\s*/i, "")))
     .filter(Boolean);
   if (!cleaned.length) return null;
   return (
-    <div className="not-prose my-4 border-l-2 border-primary/50 pl-4">
-      <p className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">Answer</p>
-      <div className="space-y-2">
+    <div className="not-prose my-4 overflow-hidden rounded-xl border border-primary/25 bg-primary/5">
+      <button type="button" onClick={() => locked ? openSubscribePrompt("Subscribe to reveal the answer and explanation.") : setOpen((value) => !value)} className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-primary">
+        <span className="inline-flex items-center gap-2">{locked ? <Lock className="h-4 w-4" /> : <Eye className="h-4 w-4" />}{locked ? "Reveal — subscribers" : open ? "Hide answer" : "Reveal answer"}</span>
+        {!locked && <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />}
+      </button>
+      {open && !locked && <div className="space-y-2 border-t border-primary/20 px-4 py-3">
         {cleaned.map((line, i) => (
           <p key={i} className="text-[1.03rem] leading-8 text-foreground/90"><Inline text={line} /></p>
         ))}
-      </div>
+      </div>}
     </div>
   );
 }

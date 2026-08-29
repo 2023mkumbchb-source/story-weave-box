@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Check, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useAccess } from "@/lib/access";
+import { openSubscribePrompt } from "@/lib/subscribe-prompt";
 
 type Selection = { wrong: string[]; solved: boolean; correct: string; firstAttempt?: boolean };
 
@@ -10,7 +12,9 @@ export default function ArticleMcqOption({ articleId, questionKey, questionText,
   label: string; text: string; correctLabel?: string; children: React.ReactNode;
 }) {
   const { user } = useAuth();
+  const access = useAccess();
   const [selection, setSelection] = useState<Selection | null>(null);
+  const [transientWrong, setTransientWrong] = useState<string | null>(null);
   const eventName = `ompath:answer:${articleId}:${questionKey}`;
 
   useEffect(() => {
@@ -20,6 +24,10 @@ export default function ArticleMcqOption({ articleId, questionKey, questionText,
   }, [eventName]);
 
   const choose = () => {
+    if (!access.canReveal) {
+      openSubscribePrompt("Subscribe to attempt questions and unlock verified answers and explanations.");
+      return;
+    }
     if (!correctLabel || selection?.solved || selection?.wrong.includes(label)) return;
     const correct = label === correctLabel;
     const detail: Selection = {
@@ -29,6 +37,10 @@ export default function ArticleMcqOption({ articleId, questionKey, questionText,
       firstAttempt: correct && (selection?.wrong.length || 0) === 0,
     };
     window.dispatchEvent(new CustomEvent(eventName, { detail }));
+    if (!correct) {
+      setTransientWrong(label);
+      window.setTimeout(() => setTransientWrong((current) => current === label ? null : current), 650);
+    }
     if (user) void supabase.from("article_answer_attempts").insert({
       user_id: user.id, article_id: articleId, question_key: questionKey, question_text: questionText,
       topic_label: topic || null, category, selected_answer: label, correct_answer: correctLabel, is_correct: correct,
@@ -44,7 +56,7 @@ export default function ArticleMcqOption({ articleId, questionKey, questionText,
   };
 
   const isCorrect = Boolean(selection?.solved && label === selection.correct);
-  const isWrong = Boolean(selection?.wrong.includes(label));
+  const isWrong = transientWrong === label;
   const isChosen = isCorrect || isWrong;
   return <button type="button" onClick={choose} disabled={!correctLabel || Boolean(selection?.solved) || isWrong}
     aria-pressed={isChosen}
