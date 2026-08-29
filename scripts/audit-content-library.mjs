@@ -53,7 +53,11 @@ for (const row of articles.filter((x) => !x.is_raw && !x.deleted_at)) {
   );
   const explicitQuestionSection = /^#{1,6}\s+(?:multiple[- ]choice questions?|questions?|exam paper)\b/im.test(text);
   const shouldRequireAnswers = explicitQuestionHeads >= 2 || explicitQuestionSection || explicitQuestionResource;
-  if (shouldRequireAnswers && questionHeads >= 2 && choices >= 8 && answerHeads === 0) {
+  const hasInlineAnswerFramework = /\b(?:marking scheme|exam answers|questions and answers|model answers?)\b/i.test(text);
+  // Long essay/Q&A resources commonly place the response directly below each
+  // question rather than under a literal "Answer:" heading.
+  const hasSubstantialInlineResponses = questionHeads >= 2 && text.length / questionHeads >= 1000;
+  if (shouldRequireAnswers && questionHeads >= 2 && choices >= 8 && answerHeads === 0 && !hasInlineAnswerFramework && !hasSubstantialInlineResponses) {
     const hasExplicitUnverifiedKey = /unverified handwritten source markings|do not use .* as a grading key/i.test(text);
     const sourceIssuedNoKey = /source (?:contains|had) no (?:official )?answer key|answers have not been invented/i.test(text);
     const code = hasExplicitUnverifiedKey ? "unverified-source-key" : sourceIssuedNoKey ? "question-paper-no-key" : "answers-unverified";
