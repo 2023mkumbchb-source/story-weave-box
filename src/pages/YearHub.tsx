@@ -25,6 +25,12 @@ function timeAgo(iso: string): string {
 }
 
 const YEAR_NUMBERS = [1, 2, 3, 4, 5, 6] as const;
+const YEAR3_PRIORITY = [
+  { title: "Paper 1", description: "Bacteriology and Parasitology II / Medical Entomology", to: "/blog?year=Year%203&track=paper-1" },
+  { title: "Paper 2", description: "Medical Mycology and Medical Virology", to: "/blog?year=Year%203&track=paper-2" },
+  { title: "General & Systemic Pathology", description: "General principles and organ-system pathology", to: "/blog?year=Year%203&unit=Year%203%3A%20General%20Pathology" },
+  { title: "Haematology", description: "Dr. Orata’s reviewed 108-question MCQ bank", to: "/exams/7fd6b778-ec52-4e41-ac34-ee69a7bbe68d/start" },
+];
 
 export default function YearHub() {
   const { yearNumber } = useParams();
@@ -159,6 +165,19 @@ export default function YearHub() {
           </Link>
         ))}
       </div>
+
+      {parsedYear === 3 && (
+        <section className="mt-6 rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 sm:p-6">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-primary">Pinned for Year 3</p>
+          <h2 className="mt-1 font-serif text-xl font-bold text-foreground">Priority revision units</h2>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {YEAR3_PRIORITY.map((item) => <Link key={item.title} to={item.to} className="group rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/50 hover:bg-primary/5">
+              <span className="flex items-center justify-between gap-2 font-bold text-foreground">{item.title}<ArrowRight className="h-4 w-4 text-primary transition-transform group-hover:translate-x-0.5" /></span>
+              <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{item.description}</span>
+            </Link>)}
+          </div>
+        </section>
+      )}
 
       {hasAponeurosis && (
         <Link

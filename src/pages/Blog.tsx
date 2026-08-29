@@ -211,6 +211,7 @@ export default function Blog() {
 
   const selectedUnit = searchParams.get("unit");
   const selectedSemester = selectedYear === "Year 3" ? searchParams.get("sem") : null;
+  const selectedTrack = selectedYear === "Year 3" ? searchParams.get("track") : null;
 
   const resultsAnchorRef = useRef<HTMLDivElement>(null);
   const isFirstFilterRender = useRef(true);
@@ -223,7 +224,7 @@ export default function Blog() {
       resultsAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 260);
     return () => window.clearTimeout(id);
-  }, [selectedYear, selectedUnit, selectedSemester]);
+  }, [selectedYear, selectedUnit, selectedSemester, selectedTrack]);
 
   useEffect(() => {
     const qpYear = normalizeYear(searchParams.get("year"));
@@ -317,7 +318,11 @@ export default function Blog() {
           const matchesSemester =
             !selectedSemester ||
             unitMatchesSemester(getCategoryDisplayName(a.category || ""), selectedSemester);
-          return matchesYear && matchesUnit && matchesSemester;
+          const unitName = getCategoryDisplayName(a.category || "");
+          const matchesTrack = !selectedTrack ||
+            (selectedTrack === "paper-1" && /bacteriology|parasitology/i.test(unitName)) ||
+            (selectedTrack === "paper-2" && /mycology|virology/i.test(unitName));
+          return matchesYear && matchesUnit && matchesSemester && matchesTrack;
         });
 
     const kindOf = (a: any) => {
@@ -354,7 +359,7 @@ export default function Blog() {
       seen.add(a.id);
       return true;
     });
-  }, [articles, search, searchMatches, selectedYear, selectedUnit, selectedSemester, sortBy, kindFilter, recentArticles]);
+  }, [articles, search, searchMatches, selectedYear, selectedUnit, selectedSemester, selectedTrack, sortBy, kindFilter, recentArticles]);
 
   const yearTotals = useMemo(() => {
     const totals: Record<string, number> = {};

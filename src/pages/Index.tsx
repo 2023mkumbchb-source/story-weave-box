@@ -20,6 +20,13 @@ const RESOURCES = [
   { to: "/flashcards", label: "Flashcards", desc: "Rapid recall before the ward", icon: GraduationCap, subject: "anatomy" },
 ];
 
+const YEAR3_PRIORITY = [
+  { label: "Paper 1", detail: "Bacteriology + Parasitology II / Medical Entomology", to: "/blog?year=Year%203&track=paper-1" },
+  { label: "Paper 2", detail: "Medical Mycology + Medical Virology", to: "/blog?year=Year%203&track=paper-2" },
+  { label: "General & Systemic Pathology", detail: "General principles and organ-system pathology", to: "/blog?year=Year%203&unit=Year%203%3A%20General%20Pathology" },
+  { label: "Haematology", detail: "Dr. Orata’s reviewed 108-question bank", to: "/exams/7fd6b778-ec52-4e41-ac34-ee69a7bbe68d/start" },
+];
+
 /* Proof points — TeachMeAnatomy / Lecturio hero pattern: the value of the library
    is stated as checkable facts right beside the headline. */
 const PROOF = [
@@ -277,6 +284,20 @@ export default function Index() {
                 </span>
                 <ArrowRight className="h-5 w-5 shrink-0 text-primary transition-transform group-hover:translate-x-1" />
               </Link>
+            </motion.div>
+          )}
+          {studyYear === 3 && (
+            <motion.div variants={tileReveal} className="col-span-2 lg:col-span-4">
+              <div className="rounded-2xl border-2 border-primary/35 bg-primary/10 p-5 sm:p-6">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Your Year 3 priority revision</p>
+                <h2 className="mt-1 font-serif text-xl font-bold text-foreground sm:text-2xl">Microbiology, Pathology &amp; Haematology</h2>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {YEAR3_PRIORITY.map((item) => <Link key={item.label} to={item.to} className="group rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/50 hover:bg-primary/5">
+                    <span className="flex items-center justify-between gap-2 text-sm font-bold text-foreground">{item.label}<ArrowRight className="h-4 w-4 text-primary transition-transform group-hover:translate-x-0.5" /></span>
+                    <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{item.detail}</span>
+                  </Link>)}
+                </div>
+              </div>
             </motion.div>
           )}
           {RESOURCES.map((r) => {

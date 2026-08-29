@@ -1,6 +1,5 @@
 const NON_STUDY_IMPORT_TITLE = /^(?:notice to all students\b|students handbook\b|executive order no\b)/i;
 const QUARANTINED_MCQ_IDS = new Set([
-  "7fd6b778-ec52-4e41-ac34-ee69a7bbe68d",
   "6153459b-9da7-4d60-980f-674d5ca2580f",
   "125a6d66-b38f-45e6-a95e-380066bd5257",
   "aeaa1ce1-dc24-4aae-9a6a-11631a31d7b9",
@@ -24,7 +23,7 @@ export function isPublicStudyTitle(title: unknown): boolean {
 /** Banks with systemic answer-key corruption stay inaccessible until rebuilt. */
 export function isPublicMcqSet(set: { id?: unknown; title?: unknown }): boolean {
   if (QUARANTINED_MCQ_IDS.has(String(set?.id || ""))) return false;
-  return !/^(?:dr\.\s*orata haematology mcqs|parasitology examination mcqs|medical bacteriology and parasitology exam 2024\/2025 mcqs|endocrine and metabolic pathology mcqs|clinical chemistry mcqs\b|clinical pathology(?: mcqs)?\s+—\s+past paper questions)/i.test(String(set?.title || "").trim());
+  return !/^(?:parasitology examination mcqs|medical bacteriology and parasitology exam 2024\/2025 mcqs|endocrine and metabolic pathology mcqs|clinical chemistry mcqs\b|clinical pathology(?: mcqs)?\s+—\s+past paper questions)/i.test(String(set?.title || "").trim());
 }
 
 export function hasEssayContent(essay: { short_answer_questions?: unknown; long_answer_questions?: unknown }): boolean {

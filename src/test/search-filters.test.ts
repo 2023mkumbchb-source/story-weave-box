@@ -17,7 +17,7 @@ describe("public content policy", () => {
     expect(hasStoryContent({ content: "A complete clinical narrative. ".repeat(8) })).toBe(true);
   });
   it("quarantines a bank with systemic answer-key corruption", () => {
-    expect(isPublicMcqSet({ id: "7fd6b778-ec52-4e41-ac34-ee69a7bbe68d", title: "Dr. Orata Haematology MCQs" })).toBe(false);
+    expect(isPublicMcqSet({ id: "7fd6b778-ec52-4e41-ac34-ee69a7bbe68d", title: "Dr. Orata Haematology: 108 Past-Paper MCQs" })).toBe(true);
     expect(isPublicMcqSet({ id: "6153459b-9da7-4d60-980f-674d5ca2580f", title: "Parasitology Examination MCQs" })).toBe(false);
     expect(isPublicMcqSet({ id: "125a6d66-b38f-45e6-a95e-380066bd5257", title: "Medical Bacteriology and Parasitology Exam 2024/2025 MCQs" })).toBe(false);
     expect(isPublicMcqSet({ id: "aeaa1ce1-dc24-4aae-9a6a-11631a31d7b9", title: "Endocrine and Metabolic Pathology MCQs" })).toBe(false);
