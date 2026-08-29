@@ -117,4 +117,26 @@ describe("exam question normalization", () => {
       explanation: expect.stringContaining("species-level identification"),
     })]);
   });
+
+  it("removes imported paper boundaries from questions and recovered explanations", () => {
+    expect(cleanExamQuestions([{
+      question: "Which benign tumour is composed of smooth muscle?: Leiomyoma is a benign smooth-muscle tumour. --- # GENETICS ---",
+      options: ["Leiomyoma", "Lymphoma", "Melanoma"],
+      correct_answer: 0,
+    }, {
+      question: "Which gene is mutated in cystic fibrosis? --- ## Set 2 — Genetics",
+      options: ["CFTR", "RB1", "APC"],
+      correct_answer: 0,
+      explanation: "CFTR encodes a chloride channel. ---",
+    }])).toEqual([
+      expect.objectContaining({
+        question: "Which benign tumour is composed of smooth muscle?",
+        explanation: "Leiomyoma is a benign smooth-muscle tumour.",
+      }),
+      expect.objectContaining({
+        question: "Which gene is mutated in cystic fibrosis?",
+        explanation: "CFTR encodes a chloride channel.",
+      }),
+    ]);
+  });
 });

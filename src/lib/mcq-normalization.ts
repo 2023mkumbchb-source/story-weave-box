@@ -15,6 +15,13 @@ export function cleanMcqOption(value: unknown): string {
     .trim();
 }
 
+function cleanLegacyBoundaryText(value: unknown): string {
+  return String(value || "")
+    .replace(/\s*---\s*(?:#{1,6}\s+(?:set\b|genetics\b|ha?emat|patholog|microbi|parasit|mycolog|virolog)[\s\S]*)?$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function answerIndexFromText(text: string, options: string[]): number | undefined {
   const marker = text.match(/(?:correct\s*answer|answer)\s*[:-]\s*\(?([A-F])\)?\b/i)?.[1];
   if (!marker) return undefined;
@@ -32,7 +39,7 @@ function splitEmbeddedExplanation(question: string, correctOption: string): { qu
   const suffixLower = suffix.toLowerCase();
   const containsAnswerTerm = significant.some((word) => suffixLower.includes(word));
   if (!containsAnswerTerm) return { question };
-  return { question: stem, explanation: suffix.replace(/\s+/g, " ") };
+  return { question: stem, explanation: cleanLegacyBoundaryText(suffix) };
 }
 
 function applyVerifiedClinicalOverride(
@@ -100,8 +107,8 @@ function applyVerifiedMycologyWording(
 export function sanitizeMcqQuestions(raw: unknown): NormalizedMcqQuestion[] {
   if (!Array.isArray(raw)) return [];
   return raw.flatMap((item: any) => {
-    let question = String(item?.question || "").replace(/\s+/g, " ").trim();
-    let explanation = String(item?.explanation || "").replace(/\s+/g, " ").trim();
+    let question = cleanLegacyBoundaryText(item?.question);
+    let explanation = cleanLegacyBoundaryText(item?.explanation);
     const sourceOptions = Array.isArray(item?.options) ? item.options : [];
     const options: string[] = [];
     const oldToNew = new Map<number, number>();
