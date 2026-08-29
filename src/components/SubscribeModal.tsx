@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { Paywall } from "@/components/Paywall";
 import { AccessPass, PaymentSettings } from "@/lib/access";
 import { onSubscribePrompt, snoozeSubscribePrompt } from "@/lib/subscribe-prompt";
@@ -10,9 +10,11 @@ import { onSubscribePrompt, snoozeSubscribePrompt } from "@/lib/subscribe-prompt
  */
 export function SubscribeModal({
   settings,
+  loading = false,
   onUnlocked,
 }: {
   settings: PaymentSettings;
+  loading?: boolean;
   onUnlocked: (pass: AccessPass) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -47,14 +49,20 @@ export function SubscribeModal({
         >
           <X className="h-4 w-4" />
         </button>
-        <Paywall
+        {loading ? (
+          <div className="flex min-h-48 flex-col items-center justify-center gap-3 text-center" role="status" aria-live="polite">
+            <Loader2 className="h-7 w-7 animate-spin text-primary" />
+            <p className="text-sm font-semibold text-foreground">Loading the current subscription plans…</p>
+            <p className="text-xs text-muted-foreground">Your configured price will appear in a moment.</p>
+          </div>
+        ) : <Paywall
           bare
           settings={settings}
           label="answers"
           headline="Subscribe to reveal the answers"
           blurb={reason || "All questions are free to read. A subscription unlocks the verified answer key on every paper — plus watermarked PDF handouts."}
           onUnlocked={onUnlocked}
-        />
+        />}
         <div className="mt-4 text-center">
           <button type="button" onClick={later} className="text-xs font-semibold text-muted-foreground underline underline-offset-4">
             Maybe later

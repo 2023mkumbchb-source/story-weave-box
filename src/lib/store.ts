@@ -122,16 +122,15 @@ export interface Essay {
 }
 
 /**
- * Rebalance MCQ correct-answer letters so no two adjacent MCQs share the
- * same correct letter. Also reshuffles the options array so that the correct
- * answer is moved to the chosen target index. Non-MCQ items (SAQ/essay) and
- * malformed entries are passed through untouched.
+ * Deterministically rebalance MCQ answer positions. The least-used available
+ * position wins (with a stable question-based tie-break), while the previous
+ * position is excluded. Correct option text is preserved when it is moved.
  */
 export function rebalanceMcqAnswerLetters<T extends { question?: string; options?: string[]; correct_answer?: number; type?: string }>(items: T[]): T[] {
   if (!Array.isArray(items) || items.length === 0) return items;
   const out: T[] = items.map((q) => ({ ...q }));
   let prevLetter: number | null = null;
-  let prevPrevLetter: number | null = null;
+  const positionCounts = new Map<number, number>();
 
   for (let i = 0; i < out.length; i++) {
     const q: any = out[i];
@@ -142,19 +141,13 @@ export function rebalanceMcqAnswerLetters<T extends { question?: string; options
     const currentCorrectText = q.options[q.correct_answer];
     if (currentCorrectText === undefined) continue;
 
-    let target = q.correct_answer;
-    const isBad = (idx: number) =>
-      idx === prevLetter || (prevLetter !== null && prevPrevLetter === prevLetter && idx === prevLetter);
-
-    if (isBad(target)) {
-      const candidates: number[] = [];
-      for (let k = 0; k < optCount; k++) {
-        if (!isBad(k)) candidates.push(k);
-      }
-      if (candidates.length > 0) {
-        target = candidates[(i + (q.question?.length || 0)) % candidates.length];
-      }
-    }
+    const candidates = Array.from({ length: optCount }, (_, index) => index)
+      .filter((index) => index !== prevLetter);
+    const lowestUse = Math.min(...candidates.map((index) => positionCounts.get(index) || 0));
+    const leastUsed = candidates.filter((index) => (positionCounts.get(index) || 0) === lowestUse);
+    const stableSeed = [...String(q.question || "")]
+      .reduce((hash, char) => ((hash * 31) + char.charCodeAt(0)) >>> 0, i + 1);
+    const target = leastUsed[stableSeed % leastUsed.length];
 
     if (target !== q.correct_answer) {
       const opts = [...q.options];
@@ -165,8 +158,8 @@ export function rebalanceMcqAnswerLetters<T extends { question?: string; options
       q.correct_answer = target;
     }
 
-    prevPrevLetter = prevLetter;
     prevLetter = q.correct_answer;
+    positionCounts.set(q.correct_answer, (positionCounts.get(q.correct_answer) || 0) + 1);
   }
 
   return out;

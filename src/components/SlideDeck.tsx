@@ -592,7 +592,7 @@ export function SlideDeckView({
         ))}
       </div>
 
-      <SubscribeModal settings={access.settings} onUnlocked={access.applyPass} />
+      <SubscribeModal settings={access.settings} loading={access.loading} onUnlocked={access.applyPass} />
 
       {truncated && (
         <button

@@ -46,7 +46,7 @@ import {
 function ArticleSubscribeGate({ hasMcqs }: { hasMcqs: boolean }) {
   const access = useAccess();
   useScrollSubscribePrompt(false);
-  return <SubscribeModal settings={access.settings} onUnlocked={access.applyPass} />;
+  return <SubscribeModal settings={access.settings} loading={access.loading} onUnlocked={access.applyPass} />;
 }
 
 /* ─── Inline text: bold/italic ─── */
