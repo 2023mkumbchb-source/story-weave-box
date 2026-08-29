@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { getSetting, getCategoryDisplayName, getYearFromCategory, buildExamPath } from "@/lib/store";
 import { updateMetaTags } from "@/lib/seo";
+import { dedupeResourceSummaries } from "@/lib/content-policy";
 
 interface ExamSet {
   id: string;
@@ -71,7 +72,7 @@ export default function Exams() {
       .or("title.ilike.%exam%,category.ilike.Weekly Exam%")
       .order("updated_at", { ascending: false });
 
-    setExamSets((data || []) as unknown as ExamSet[]);
+    setExamSets(dedupeResourceSummaries((data || []) as unknown as ExamSet[]));
     setLoading(false);
   };
 

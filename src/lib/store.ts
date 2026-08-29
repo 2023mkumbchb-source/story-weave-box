@@ -3,7 +3,7 @@ import { extractFirstImageFromContent, stripRichText, autoIndexUrls, SITE_URL } 
 import { getYear3Semester } from "@/lib/year3Semesters";
 import { sanitizeMcqQuestions } from "@/lib/mcq-normalization";
 import { mergeVisualSourceImages } from "@/lib/legacy-content";
-import { hasEssayContent, isPublicStudyTitle } from "@/lib/content-policy";
+import { dedupeResourceSummaries, hasEssayContent, isPublicStudyTitle } from "@/lib/content-policy";
 
 export interface Article {
   id: string;
@@ -1062,7 +1062,7 @@ export async function getRelatedContent(category: string, excludeArticleId?: str
   return {
     articles: (articles || []).filter((a: any) => a.id !== excludeArticleId && isPublicStudyArticle(a)),
     flashcards: flashcards || [],
-    mcqs: mcqs || [],
+    mcqs: dedupeResourceSummaries(mcqs || []),
     essays: (essays || []).filter(hasEssayContent),
   };
 }

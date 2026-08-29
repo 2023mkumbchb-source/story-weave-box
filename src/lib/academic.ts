@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { isPublicStudyTitle } from "@/lib/content-policy";
+import { dedupeResourceSummaries, isPublicStudyTitle } from "@/lib/content-policy";
 
 export type ResourceType = "article" | "mcq" | "flashcard" | "exam" | "story";
 
@@ -159,7 +159,7 @@ export async function getUnitResources(unit: Unit): Promise<UnitResource[]> {
 
   return [
     ...(articles.data || []).filter((r) => isPublicStudyTitle(r.title)).map((r) => ({ ...r, kind: "article" as const })),
-    ...(mcqs.data || []).map((r) => ({ ...r, kind: "mcq" as const })),
+    ...dedupeResourceSummaries(mcqs.data || []).map((r) => ({ ...r, kind: "mcq" as const })),
     ...(flashcards.data || []).map((r) => ({ ...r, kind: "flashcard" as const })),
   ];
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { groupHits, parseYearNumber, SEARCH_GROUPS, type SearchHit } from "@/lib/search";
-import { hasEssayContent, hasStoryContent, isPublicStudyTitle } from "@/lib/content-policy";
+import { dedupeResourceSummaries, hasEssayContent, hasStoryContent, isPublicStudyTitle } from "@/lib/content-policy";
 
 describe("public content policy", () => {
   it("quarantines accidental administrative imports but keeps real study papers", () => {
@@ -15,6 +15,15 @@ describe("public content policy", () => {
   it("quarantines empty story shells", () => {
     expect(hasStoryContent({ content: "" })).toBe(false);
     expect(hasStoryContent({ content: "A complete clinical narrative. ".repeat(8) })).toBe(true);
+  });
+  it("keeps one canonical resource when legacy imports duplicated a set", () => {
+    const rows = dedupeResourceSummaries([
+      { title: "Parasitology Examination", category: "Year 2: Parasitology", slug: null },
+      { title: "Parasitology Examination", category: "Year 2: Parasitology", slug: "parasitology-examination" },
+      { title: "Parasitology Examination", category: "Year 3: Parasitology", slug: "year-3-parasitology" },
+    ]);
+    expect(rows).toHaveLength(2);
+    expect(rows[0].slug).toBe("parasitology-examination");
   });
 });
 

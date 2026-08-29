@@ -14,3 +14,15 @@ export function hasEssayContent(essay: { short_answer_questions?: unknown; long_
 export function hasStoryContent(story: { content?: unknown }): boolean {
   return String(story?.content || "").trim().length >= 100;
 }
+
+export function dedupeResourceSummaries<T extends { title?: unknown; category?: unknown; exam_year?: unknown; slug?: unknown; updated_at?: unknown }>(rows: T[]): T[] {
+  const best = new Map<string, T>();
+  for (const row of rows || []) {
+    const key = [row.title, row.category, row.exam_year].map((value) => String(value || "").trim().toLowerCase().replace(/\s+/g, " ")).join("|");
+    const previous = best.get(key);
+    if (!previous) { best.set(key, row); continue; }
+    const score = (value: T) => (String(value.slug || "").trim() ? 2 : 0) + (Date.parse(String(value.updated_at || "")) || 0) / 1e15;
+    if (score(row) > score(previous)) best.set(key, row);
+  }
+  return [...best.values()];
+}
