@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { ArrowRight, BookMarked, BookOpen, Clock, GraduationCap, Trophy } from "lucide-react";
+import { ArrowRight, BookMarked, BookOpen, Clock, GraduationCap, Images, Trophy } from "lucide-react";
 import {
   YEAR_CATEGORIES,
   getPublishedArticleSummaries,
@@ -43,6 +43,7 @@ export default function YearHub() {
 
   const yearLabel = isValidYear ? `Year ${parsedYear}` : "";
   const units = isValidYear ? (YEAR_CATEGORIES[yearLabel] || []) : [];
+  const hasAponeurosis = parsedYear === 1 || parsedYear === 2;
 
   useEffect(() => {
     if (!isValidYear) { setRecentLoading(false); return; }
@@ -158,6 +159,23 @@ export default function YearHub() {
           </Link>
         ))}
       </div>
+
+      {hasAponeurosis && (
+        <Link
+          to={`/blog?year=${encodeURIComponent(yearLabel)}&unit=${encodeURIComponent(`${yearLabel}: Aponeurosis - Anatomy`)}`}
+          className="group mt-6 block rounded-2xl border border-primary/25 bg-primary/5 p-5 transition-colors hover:border-primary/50 hover:bg-primary/10"
+        >
+          <div className="flex items-start gap-3">
+            <span className="rounded-xl bg-primary/10 p-2.5 text-primary"><Images className="h-5 w-5" /></span>
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-primary">Shared Year 1 &amp; Year 2 resource</p>
+              <h2 className="mt-1 font-serif text-xl font-bold text-foreground">Aponeurosis Anatomy Image Spot Bank</h2>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">Practise labelled photographs and diagrams, then reveal each answer. This is a visual spot-question bank, not an MCQ quiz.</p>
+              <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary">Open image spot bank <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" /></span>
+            </div>
+          </div>
+        </Link>
+      )}
 
       <div className="mt-6 rounded-2xl border border-border bg-card p-5">
         <div className="mb-3 flex items-center gap-2">

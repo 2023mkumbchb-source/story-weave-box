@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { ArrowRight, Clock3 } from "lucide-react";
 import type { Article } from "@/lib/store";
-import { buildBlogPath, getCategoryDisplayName, getYearFromCategory } from "@/lib/store";
+import { buildBlogPath, getCategoryDisplayName, getContentKind, getYearFromCategory } from "@/lib/store";
 import { isGenericThumbnail, useTopicThumbnailInfo } from "@/lib/topicThumbnail";
 import anatomyThumb from "@/assets/thumb-anatomy.jpg";
 import physiologyThumb from "@/assets/thumb-physiology.jpg";
@@ -44,6 +44,7 @@ export default function ArticleCard({ article }: { article: Article }) {
   const displayDate = new Date(article.updated_at || article.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const location = useLocation();
   const fromPath = `${location.pathname}${location.search}`;
+  const contentKind = getContentKind(article.title, article.category, article.content_kind || "");
 
   return (
     <Link
@@ -61,9 +62,9 @@ export default function ArticleCard({ article }: { article: Article }) {
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03] sm:h-48 md:h-full"
           />
-          {article.content_type && /mcq|cat|exam|past paper/i.test(article.content_type) && (
+          {contentKind !== "Notes" && (
             <span className="absolute left-1.5 top-1.5 rounded bg-black/75 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-              {/mcq/i.test(article.content_type) ? "MCQs" : article.content_type}
+              {contentKind}
             </span>
           )}
           {!staticCover && topicImage?.pageUrl && (

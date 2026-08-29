@@ -40,6 +40,24 @@ function normalizeYear(value: string | null | undefined): string | null {
   return match ? `Year ${match[1]}` : null;
 }
 
+function isSharedAponeurosis(article: Pick<Article, "title" | "category">): boolean {
+  return /aponeurosis/i.test(`${article.title} ${article.category}`);
+}
+
+function belongsToSelectedYear(article: Pick<Article, "title" | "category">, year: string): boolean {
+  if (year === "All") return true;
+  const articleYear = normalizeYear(getYearFromCategory(article.category));
+  return articleYear === year || (year === "Year 2" && isSharedAponeurosis(article));
+}
+
+function selectedUnitMatches(article: Pick<Article, "title" | "category">, selectedUnit: string | null): boolean {
+  if (!selectedUnit) return true;
+  if (article.category === selectedUnit) return true;
+  return isSharedAponeurosis(article)
+    && /aponeurosis/i.test(selectedUnit)
+    && getCategoryDisplayName(article.category) === getCategoryDisplayName(selectedUnit);
+}
+
 function timeAgo(ms: number): string {
   const diff = Date.now() - ms;
   const mins = Math.floor(diff / 60_000);
@@ -294,9 +312,8 @@ export default function Blog() {
       ? searchMatches || []
       : articles.filter(a => {
           if (a.category === "Stories") return false;
-          const articleYear = normalizeYear(getYearFromCategory(a.category));
-          const matchesYear = selectedYear === "All" || articleYear === selectedYear;
-          const matchesUnit = !selectedUnit || a.category === selectedUnit;
+          const matchesYear = belongsToSelectedYear(a, selectedYear);
+          const matchesUnit = selectedUnitMatches(a, selectedUnit);
           const matchesSemester =
             !selectedSemester ||
             unitMatchesSemester(getCategoryDisplayName(a.category || ""), selectedSemester);
@@ -362,7 +379,7 @@ export default function Blog() {
     const byId = new Map(articles.map(a => [a.id, a]));
     return recentArticles.filter(r => {
       const a = byId.get(r.id);
-      return a && normalizeYear(getYearFromCategory(a.category)) === selectedYear;
+      return a && belongsToSelectedYear(a, selectedYear);
     });
   }, [articles, recentArticles, selectedYear]);
 
@@ -370,9 +387,12 @@ export default function Blog() {
     if (selectedYear === "All") return [];
     const units = new Map<string, Article[]>();
     articles.forEach(a => {
-      if (getYearFromCategory(a.category) === selectedYear) {
-        if (!units.has(a.category)) units.set(a.category, []);
-        units.get(a.category)!.push(a);
+      if (belongsToSelectedYear(a, selectedYear)) {
+        const category = selectedYear === "Year 2" && isSharedAponeurosis(a)
+          ? a.category.replace(/^Year 1:/i, "Year 2:")
+          : a.category;
+        if (!units.has(category)) units.set(category, []);
+        units.get(category)!.push(a);
       }
     });
     return Array.from(units.entries())
@@ -405,8 +425,7 @@ export default function Blog() {
     const groupBySpecificUnit = selectedYear === "Year 3" && Boolean(selectedSemester);
     const groups = new Map<string, Article[]>();
     filtered.forEach(a => {
-      const articleYear = normalizeYear(getYearFromCategory(a.category));
-      if (selectedYear !== "All" && articleYear !== selectedYear) return;
+      if (!belongsToSelectedYear(a, selectedYear)) return;
       const key = groupBySpecificUnit
         ? getCategoryDisplayName(a.category || "Uncategorized") || "Other"
         : getGroupLabel(selectedYear, a.category || "Uncategorized");

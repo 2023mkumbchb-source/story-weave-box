@@ -374,11 +374,25 @@ export function getCategoryDisplayName(category: string): string {
  * Content kind shown on cards/rows: past papers and CATs are "Exam",
  * question banks are "MCQ", everything else reads as "Notes".
  */
-export function getContentKind(title: string, category = ""): "Exam" | "CAT" | "MCQ" | "Flashcards" | "Notes" {
+export type DisplayContentKind = "Exam" | "CAT" | "MCQ" | "Flashcards" | "Image Spot Bank" | "Essay / SAQ" | "Notes";
+
+export function getContentKind(title: string, category = "", storedKind = ""): DisplayContentKind {
+  const explicit = storedKind.trim().toLowerCase().replace(/[ _-]+/g, " ");
+  if (/spot|image bank|visual bank|atlas/.test(explicit)) return "Image Spot Bank";
+  if (/essay|saq|laq|written/.test(explicit)) return "Essay / SAQ";
+  if (/flashcard/.test(explicit)) return "Flashcards";
+  if (/\bmcq|quiz/.test(explicit)) return "MCQ";
+  if (/\bcat\b/.test(explicit)) return "CAT";
+  if (/exam|past paper/.test(explicit)) return "Exam";
+
   const t = `${title || ""} ${category || ""}`.toLowerCase();
+  // Aponeurosis resources are photograph/diagram identification banks with
+  // revealable answers. "Question bank" alone must never turn them into MCQs.
+  if (/aponeurosis/.test(t) || /spot[ -]?(?:question|image|bank|atlas)/.test(t)) return "Image Spot Bank";
   if (/\bcat\s*\d|\bcat\b/.test(t)) return "CAT";
   if (/exam|past paper|supplementary|end of semester|mid[- ]semester/.test(t)) return "Exam";
-  if (/\bmcq|quiz|questions?\b|saq|laq/.test(t)) return "MCQ";
+  if (/\bmcqs?\b|multiple[ -]choice|quiz/.test(t)) return "MCQ";
+  if (/\bsaqs?\b|\blaqs?\b|essay|written questions?/.test(t)) return "Essay / SAQ";
   if (/flashcard/.test(t)) return "Flashcards";
   return "Notes";
 }
@@ -387,7 +401,7 @@ export function getContentKind(title: string, category = ""): "Exam" | "CAT" | "
  * Human breadcrumb for a piece of content, e.g.
  * ["Year 3", "Sem 2", "Cardiovascular System Pathology", "Exam"].
  */
-export function getCategoryTrail(category: string, title = ""): string[] {
+export function getCategoryTrail(category: string, title = "", storedKind = ""): string[] {
   const trail: string[] = [];
   const year = getYearFromCategory(category);
   if (year) trail.push(year);
@@ -397,7 +411,7 @@ export function getCategoryTrail(category: string, title = ""): string[] {
     if (sem) trail.push(`Sem ${sem}`);
   }
   if (unit && unit !== "Uncategorized") trail.push(unit);
-  trail.push(getContentKind(title, category));
+  trail.push(getContentKind(title, category, storedKind));
   return trail;
 }
 
@@ -514,6 +528,7 @@ function toArticlePreview(row: any): Article {
     og_image_url: row.og_image_url ?? undefined,
     tags: row.tags ?? [],
     featured_image: row.featured_image ?? undefined,
+    content_kind: row.content_kind ?? undefined,
   };
 }
 
@@ -594,14 +609,16 @@ export async function getPublishedArticleSummaries(year?: string): Promise<Artic
 
   let query = supabase
     .from("articles")
-    .select("id, title, category, created_at, updated_at, published, slug, meta_description, og_image_url, tags, featured_image")
+    .select("id, title, category, created_at, updated_at, published, slug, meta_description, og_image_url, tags, featured_image, content_kind")
     .eq("published", true)
     .eq("is_raw", false)
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
 
   if (year && /^Year [1-6]$/.test(year)) {
-    query = query.like("category", `${year}:%`);
+    query = year === "Year 2"
+      ? query.or("category.like.Year 2:%,category.like.Year 1: Aponeurosis%")
+      : query.like("category", `${year}:%`);
   }
 
   const { data, error } = await query;
@@ -620,7 +637,7 @@ export async function searchPublishedArticles(queryText: string, year?: string, 
   const tsQuery = safeQ.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((w) => w.length > 1).slice(0, 6).join(" & ");
   let query = supabase
     .from("articles")
-    .select("id, title, category, created_at, updated_at, published, slug, meta_description, og_image_url, tags, featured_image")
+    .select("id, title, category, created_at, updated_at, published, slug, meta_description, og_image_url, tags, featured_image, content_kind")
     .eq("published", true)
     .eq("is_raw", false)
     .is("deleted_at", null)

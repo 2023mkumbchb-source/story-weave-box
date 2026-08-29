@@ -22,7 +22,7 @@ function cleanTitle(t: string): string {
 
 export default function NoteCard({ article }: { article: Article }) {
   const location = useLocation();
-  const trail = getCategoryTrail(article.category, article.title);
+  const trail = getCategoryTrail(article.category, article.title, article.content_kind || "");
   const kind = trail[trail.length - 1];
   const date = new Date(article.updated_at || article.created_at).toLocaleDateString("en-GB", {
     day: "numeric",

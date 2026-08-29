@@ -77,6 +77,14 @@ async function insertHealing(target: any, table: string, rows: any[]): Promise<{
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // This function holds service-role access to two projects. Keep it callable
+  // only by someone who knows the dedicated one-off migration secret.
+  const syncSecret = Deno.env.get("EXT_SYNC_SECRET") || "";
+  const suppliedSecret = req.headers.get("x-ext-sync-secret") || "";
+  if (!syncSecret || suppliedSecret !== syncSecret) {
+    return json({ error: "Unauthorized" }, 401);
+  }
+
   // Accept the API base with or without a trailing /rest/v1 — the client adds it.
   const extUrl = (Deno.env.get("EXT_SUPABASE_URL") || "")
     .trim()
@@ -173,7 +181,8 @@ Deno.serve(async (req) => {
           errors.push(error.message);
           continue;
         }
-        const res = await insertHealing(target, table, rows || []);
+        const preparedRows = (rows || []).map(remapUnit);
+        const res = await insertHealing(target, table, preparedRows);
         inserted += res.inserted;
         res.dropped.forEach((c) => droppedCols.add(c));
         if (res.error) errors.push(res.error);
