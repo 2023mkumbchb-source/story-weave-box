@@ -18,6 +18,7 @@ describe("public content policy", () => {
   });
   it("quarantines a bank with systemic answer-key corruption", () => {
     expect(isPublicMcqSet({ id: "7fd6b778-ec52-4e41-ac34-ee69a7bbe68d", title: "Dr. Orata Haematology MCQs" })).toBe(false);
+    expect(isPublicMcqSet({ id: "6153459b-9da7-4d60-980f-674d5ca2580f", title: "Parasitology Examination MCQs" })).toBe(false);
     expect(isPublicMcqSet({ id: "safe", title: "Verified Haematology MCQs" })).toBe(true);
   });
   it("keeps one canonical resource when legacy imports duplicated a set", () => {

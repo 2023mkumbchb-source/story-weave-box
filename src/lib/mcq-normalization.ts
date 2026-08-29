@@ -63,7 +63,8 @@ function applyVerifiedClinicalOverride(
 }
 
 function isKnownUnsafeLegacyQuestion(question: string): boolean {
-  return /aflatoxins are a serious problem because/i.test(question)
+  return /[:?]\s*A\)\s*\S/i.test(question)
+    || /aflatoxins are a serious problem because/i.test(question)
     || /more visible symptoms of fungal infection appearing recently/i.test(question)
     || /continued options for mycetoma agents/i.test(question)
     || /all are zoophilic dermatophytes\b.*select all/i.test(question);

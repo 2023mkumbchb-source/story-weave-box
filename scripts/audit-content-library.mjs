@@ -54,7 +54,9 @@ for (const row of mcqs) {
   if (!questions.length) add("mcq", row, "empty", "no questions");
   if (questions.length < 10) add("mcq", row, "short-set", `${questions.length} questions`);
   questions.forEach((q, index) => {
+    const questionText = String(q?.question || "");
     const options = Array.isArray(q?.options) ? q.options.map((v) => String(v || "").replace(/^\s*[A-F][.)]\s*/i, "").trim()).filter(Boolean) : [];
+    if (/[:?]\s*A\)\s*\S/i.test(questionText)) add("mcq", row, "shifted-first-choice", `question ${index + 1}`);
     if (options.length < 2 || !Number.isInteger(Number(q?.correct_answer)) || Number(q.correct_answer) < 0 || Number(q.correct_answer) >= options.length) add("mcq", row, "invalid-question", `question ${index + 1}`);
     if (new Set(options.map((v) => v.toLowerCase())).size < options.length) add("mcq", row, "duplicate-choice", `question ${index + 1}`);
     if (!String(q?.explanation || "").trim()) {

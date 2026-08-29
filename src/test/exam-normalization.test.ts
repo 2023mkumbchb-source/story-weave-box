@@ -93,6 +93,14 @@ describe("exam question normalization", () => {
     }])).toEqual([]);
   });
 
+  it("withholds a shifted legacy item whose first option was appended to its stem", () => {
+    expect(cleanExamQuestions([{
+      question: "Fimbriae:A) Attach bacteria to various surfaces.",
+      options: ["Help bacteria move", "Cause disease", "Store nutrients"],
+      correct_answer: 0,
+    }])).toEqual([]);
+  });
+
   it("repairs the incomplete Aspergillus flavus option", () => {
     expect(cleanExamQuestions([{
       question: "Aflatoxins are produced by which fungus? ---",
