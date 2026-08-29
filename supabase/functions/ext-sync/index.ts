@@ -77,7 +77,12 @@ async function insertHealing(target: any, table: string, rows: any[]): Promise<{
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const extUrl = (Deno.env.get("EXT_SUPABASE_URL") || "").replace(/\/+$/, "");
+  // Accept the API base with or without a trailing /rest/v1 — the client adds it.
+  const extUrl = (Deno.env.get("EXT_SUPABASE_URL") || "")
+    .trim()
+    .replace(/\/+$/, "")
+    .replace(/\/rest\/v1$/i, "");
+
   const extKey = Deno.env.get("EXT_SUPABASE_SERVICE_ROLE_KEY") || "";
   if (!extUrl || !extKey) return json({ error: "EXT_SUPABASE_URL / EXT_SUPABASE_SERVICE_ROLE_KEY not set" }, 400);
 
