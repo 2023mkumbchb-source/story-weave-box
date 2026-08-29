@@ -72,19 +72,40 @@ export default function Navbar() {
   }, [activeYear]);
 
   useEffect(() => {
-    let lastY = window.scrollY;
+    let lastY = Math.max(0, window.scrollY);
+    let direction: "up" | "down" | null = null;
+    let distance = 0;
     let ticking = false;
+
+    const updateHeader = () => {
+      const nextY = Math.max(0, window.scrollY);
+      const delta = nextY - lastY;
+      const nextDirection = delta > 0 ? "down" : delta < 0 ? "up" : direction;
+
+      if (nextY <= 32 || sidebarOpen) {
+        setHidden(false);
+        distance = 0;
+      } else if (nextDirection) {
+        if (nextDirection !== direction) distance = 0;
+        direction = nextDirection;
+        distance += Math.abs(delta);
+
+        // Accumulate small touch/trackpad movements instead of requiring one
+        // unusually large scroll frame. This also filters out mobile jitter.
+        if (distance >= 12) {
+          setHidden(direction === "down");
+          distance = 0;
+        }
+      }
+
+      lastY = nextY;
+      ticking = false;
+    };
+
     const onScroll = () => {
       if (ticking) return;
       ticking = true;
-      requestAnimationFrame(() => {
-        const nextY = window.scrollY;
-        const delta = nextY - lastY;
-        if (nextY < 24 || delta < -8) setHidden(false);
-        else if (delta > 8 && nextY > 96 && !sidebarOpen) setHidden(true);
-        lastY = nextY;
-        ticking = false;
-      });
+      requestAnimationFrame(updateHeader);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -114,7 +135,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className={`sticky top-0 z-40 border-b border-border bg-[hsl(174,62%,22%)] text-white transition-transform duration-300 ease-out ${hidden ? "-translate-y-full" : "translate-y-0"}`}>
+      <nav className={`sticky top-0 z-40 border-b border-border bg-[hsl(174,62%,22%)] text-white transition-transform duration-200 ease-out will-change-transform ${hidden ? "-translate-y-full" : "translate-y-0"}`}>
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5 sm:px-6">
           <Link to="/" className="flex items-center gap-2 text-lg font-bold text-white">
             <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-white/10 p-1">
