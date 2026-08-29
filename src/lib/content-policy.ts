@@ -11,6 +11,7 @@ const QUARANTINED_MCQ_IDS = new Set([
   "176b7eb4-4388-418a-bac0-d6493e719f58",
   "c6dee341-d765-465a-9c9d-087d7535f72e",
   "e5dc4145-d973-421a-b377-ff096e792230",
+  "955cf260-6b59-4e13-aecb-f0f4626e7626",
 ]);
 
 /** Public discovery must contain study material, not accidental admin imports. */

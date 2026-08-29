@@ -24,6 +24,7 @@ describe("public content policy", () => {
     expect(isPublicMcqSet({ id: "f15a9e45-c73c-48be-b912-98139710e62f", title: "CLINICAL CHEMISTRY MCQS LATEST — Past Paper Questions & Answers" })).toBe(false);
     expect(isPublicMcqSet({ id: "176b7eb4-4388-418a-bac0-d6493e719f58", title: "clinical pathology — Past Paper Questions & Answers" })).toBe(false);
     expect(isPublicMcqSet({ id: "e5dc4145-d973-421a-b377-ff096e792230", title: "Lower Limb Anatomy MCQ Compilation" })).toBe(false);
+    expect(isPublicMcqSet({ id: "955cf260-6b59-4e13-aecb-f0f4626e7626", title: "MICROBIOLOGY AND PARASITOLOGY MCQs" })).toBe(false);
     expect(isPublicMcqSet({ id: "safe", title: "Verified Haematology MCQs" })).toBe(true);
   });
   it("keeps one canonical resource when legacy imports duplicated a set", () => {
