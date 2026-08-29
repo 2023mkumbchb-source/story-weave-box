@@ -3,6 +3,7 @@ import { extractFirstImageFromContent, stripRichText, autoIndexUrls, SITE_URL } 
 import { getYear3Semester } from "@/lib/year3Semesters";
 import { sanitizeMcqQuestions } from "@/lib/mcq-normalization";
 import { mergeVisualSourceImages } from "@/lib/legacy-content";
+import { isPublicStudyTitle } from "@/lib/content-policy";
 
 export interface Article {
   id: string;
@@ -597,10 +598,8 @@ export function clearArticleSummaryCache() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Articles
-const NON_STUDY_IMPORT_TITLE = /^(?:notice to all students\b|students handbook\b|executive order no\b)/i;
-
 export function isPublicStudyArticle(article: Pick<Article, "title">): boolean {
-  return !NON_STUDY_IMPORT_TITLE.test(String(article?.title || "").trim());
+  return isPublicStudyTitle(article?.title);
 }
 
 export async function getArticles(): Promise<Article[]> {
@@ -1061,7 +1060,7 @@ export async function getRelatedContent(category: string, excludeArticleId?: str
       : Promise.resolve({ data: [] as any[] }),
   ]);
   return {
-    articles: (articles || []).filter((a: any) => a.id !== excludeArticleId),
+    articles: (articles || []).filter((a: any) => a.id !== excludeArticleId && isPublicStudyArticle(a)),
     flashcards: flashcards || [],
     mcqs: mcqs || [],
     essays: essays || [],

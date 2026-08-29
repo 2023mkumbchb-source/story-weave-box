@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { groupHits, parseYearNumber, SEARCH_GROUPS, type SearchHit } from "@/lib/search";
+import { isPublicStudyTitle } from "@/lib/content-policy";
+
+describe("public content policy", () => {
+  it("quarantines accidental administrative imports but keeps real study papers", () => {
+    expect(isPublicStudyTitle("NOTICE TO ALL STUDENTS 75% Class attendance — Past Paper")).toBe(false);
+    expect(isPublicStudyTitle("Students Handbook, 2019 Edition — Past Paper")).toBe(false);
+    expect(isPublicStudyTitle("General Pathology CAT 2019")).toBe(true);
+  });
+});
 
 describe("parseYearNumber", () => {
   it("accepts a plain number", () => {

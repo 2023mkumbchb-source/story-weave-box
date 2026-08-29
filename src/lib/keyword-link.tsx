@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { isPublicStudyTitle } from "@/lib/content-policy";
 import { buildBlogPath, buildFlashcardPath } from "@/lib/store";
 import { slugify } from "@/lib/deep-link";
 import { buildStoryPath, stripRichText } from "@/lib/seo";
@@ -89,7 +90,7 @@ async function loadEntries(): Promise<LinkEntry[]> {
         const haystack = `${title || ""} ${desc || ""}`.toLowerCase();
         HIGH_VALUE_TERMS.forEach(term => { if (haystack.includes(term)) add(term, path, 5, category); });
       };
-      (articles || []).forEach(a => aliases(
+      (articles || []).filter(a => isPublicStudyTitle(a.title)).forEach(a => aliases(
         a.meta_title || a.title,
         buildBlogPath({ id: a.id, title: a.title, slug: a.slug ?? undefined }),
         a.meta_description, a.tags, a.category, a.exam_type ? 10 : 14,

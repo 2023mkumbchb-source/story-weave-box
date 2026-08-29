@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getAcademicYears, type ResourceType } from "./academic";
+import { isPublicStudyTitle } from "./content-policy";
 
 /** Accepts "Year 2", "2", or 2 and returns the numeric year, or null. */
 export function parseYearNumber(year: string | number | undefined): number | null {
@@ -182,6 +183,7 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
   };
 
   for (const row of articles.data || []) {
+    if (!isPublicStudyTitle(row.title)) continue;
     if (filters.verifiedOnly && row.verification_status !== "verified") continue;
     if (row.completeness_status === "incomplete") continue;
     const ct = row.content_type || "Notes";
