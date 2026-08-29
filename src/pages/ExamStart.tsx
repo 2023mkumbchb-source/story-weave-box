@@ -11,6 +11,7 @@ import { extractIdFromParam, getSetting } from "@/lib/store";
 import StudyControls from "@/components/StudyControls";
 import HelpfulVote from "@/components/HelpfulVote";
 import { sanitizeMcqQuestions } from "@/lib/mcq-normalization";
+import { isPublicMcqSet } from "@/lib/content-policy";
 
 interface ExamSet {
   id: string;
@@ -233,7 +234,7 @@ export default function ExamStart() {
       }
       const unlockedRaw = localStorage.getItem(UNLOCKED_KEY);
       const unlocked = new Set<string>(unlockedRaw ? JSON.parse(unlockedRaw) : []);
-      if (!resolvedId || !data) { navigate("/exams"); return; }
+      if (!resolvedId || !data || !isPublicMcqSet(data)) { navigate("/exams", { replace: true }); return; }
       const questions = cleanExamQuestions(data.questions);
       if (!questions.length) { navigate("/exams", { replace: true }); return; }
       setExamId(resolvedId);

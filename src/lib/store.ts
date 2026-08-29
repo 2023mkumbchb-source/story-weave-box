@@ -3,7 +3,7 @@ import { extractFirstImageFromContent, stripRichText, autoIndexUrls, SITE_URL } 
 import { getYear3Semester } from "@/lib/year3Semesters";
 import { sanitizeMcqQuestions } from "@/lib/mcq-normalization";
 import { mergeVisualSourceImages } from "@/lib/legacy-content";
-import { dedupeResourceSummaries, hasEssayContent, isPublicStudyTitle } from "@/lib/content-policy";
+import { dedupeResourceSummaries, hasEssayContent, isPublicMcqSet, isPublicStudyTitle } from "@/lib/content-policy";
 
 export interface Article {
   id: string;
@@ -976,7 +976,7 @@ export async function getMcqSets(): Promise<McqSet[]> {
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
   if (error) throw error;
-  return (data || []) as unknown as McqSet[];
+  return ((data || []) as unknown as McqSet[]).filter(isPublicMcqSet);
 }
 
 export async function saveMcqSet(set: Omit<McqSet, "id"> & { id?: string }): Promise<McqSet> {
@@ -1062,7 +1062,7 @@ export async function getRelatedContent(category: string, excludeArticleId?: str
   return {
     articles: (articles || []).filter((a: any) => a.id !== excludeArticleId && isPublicStudyArticle(a)),
     flashcards: flashcards || [],
-    mcqs: dedupeResourceSummaries(mcqs || []),
+    mcqs: dedupeResourceSummaries((mcqs || []).filter(isPublicMcqSet)),
     essays: (essays || []).filter(hasEssayContent),
   };
 }

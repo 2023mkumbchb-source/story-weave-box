@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { groupHits, parseYearNumber, SEARCH_GROUPS, type SearchHit } from "@/lib/search";
-import { dedupeResourceSummaries, hasEssayContent, hasStoryContent, isPublicStudyTitle } from "@/lib/content-policy";
+import { dedupeResourceSummaries, hasEssayContent, hasStoryContent, isPublicMcqSet, isPublicStudyTitle } from "@/lib/content-policy";
 
 describe("public content policy", () => {
   it("quarantines accidental administrative imports but keeps real study papers", () => {
@@ -15,6 +15,10 @@ describe("public content policy", () => {
   it("quarantines empty story shells", () => {
     expect(hasStoryContent({ content: "" })).toBe(false);
     expect(hasStoryContent({ content: "A complete clinical narrative. ".repeat(8) })).toBe(true);
+  });
+  it("quarantines a bank with systemic answer-key corruption", () => {
+    expect(isPublicMcqSet({ id: "7fd6b778-ec52-4e41-ac34-ee69a7bbe68d", title: "Dr. Orata Haematology MCQs" })).toBe(false);
+    expect(isPublicMcqSet({ id: "safe", title: "Verified Haematology MCQs" })).toBe(true);
   });
   it("keeps one canonical resource when legacy imports duplicated a set", () => {
     const rows = dedupeResourceSummaries([

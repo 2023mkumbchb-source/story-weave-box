@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getAcademicYears, type ResourceType } from "./academic";
-import { dedupeResourceSummaries, hasStoryContent, isPublicStudyTitle } from "./content-policy";
+import { dedupeResourceSummaries, hasStoryContent, isPublicMcqSet, isPublicStudyTitle } from "./content-policy";
 
 /** Accepts "Year 2", "2", or 2 and returns the numeric year, or null. */
 export function parseYearNumber(year: string | number | undefined): number | null {
@@ -196,6 +196,7 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
     });
   }
   for (const row of dedupeResourceSummaries(mcqs.data || [])) {
+    if (!isPublicMcqSet(row)) continue;
     if (filters.contentType && filters.contentType !== "MCQ Bank") continue;
     hits.push({
       id: row.id, title: row.title, slug: row.slug, category: row.category, kind: "mcq",

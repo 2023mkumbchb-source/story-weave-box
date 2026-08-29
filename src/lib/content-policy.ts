@@ -1,8 +1,15 @@
 const NON_STUDY_IMPORT_TITLE = /^(?:notice to all students\b|students handbook\b|executive order no\b)/i;
+const QUARANTINED_MCQ_IDS = new Set(["7fd6b778-ec52-4e41-ac34-ee69a7bbe68d"]);
 
 /** Public discovery must contain study material, not accidental admin imports. */
 export function isPublicStudyTitle(title: unknown): boolean {
   return !NON_STUDY_IMPORT_TITLE.test(String(title || "").trim());
+}
+
+/** Banks with systemic answer-key corruption stay inaccessible until rebuilt. */
+export function isPublicMcqSet(set: { id?: unknown; title?: unknown }): boolean {
+  if (QUARANTINED_MCQ_IDS.has(String(set?.id || ""))) return false;
+  return !/^dr\.\s*orata haematology mcqs\b/i.test(String(set?.title || "").trim());
 }
 
 export function hasEssayContent(essay: { short_answer_questions?: unknown; long_answer_questions?: unknown }): boolean {

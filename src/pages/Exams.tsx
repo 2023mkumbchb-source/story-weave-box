@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { getSetting, getCategoryDisplayName, getYearFromCategory, buildExamPath, normalizeMcqQuestions } from "@/lib/store";
 import { updateMetaTags } from "@/lib/seo";
-import { dedupeResourceSummaries } from "@/lib/content-policy";
+import { dedupeResourceSummaries, isPublicMcqSet } from "@/lib/content-policy";
 
 interface ExamSet {
   id: string;
@@ -73,6 +73,7 @@ export default function Exams() {
       .order("updated_at", { ascending: false });
 
     const usable = ((data || []) as unknown as ExamSet[])
+      .filter(isPublicMcqSet)
       .map((exam) => ({ ...exam, questions: normalizeMcqQuestions(exam.questions || []) }))
       .filter((exam) => exam.questions.length > 0);
     setExamSets(dedupeResourceSummaries(usable));

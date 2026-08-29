@@ -10,6 +10,7 @@ import type { ResourceType } from "@/lib/academic";
 import { toast } from "@/hooks/use-toast";
 import { assessAnswerReadiness, classifySupplementaryMaterial, classifySupplementaryResource, SUPPLEMENTARY_GROUPS, SUPPLEMENTARY_MATERIALS, type AnswerReadiness, type SupplementaryMaterial } from "@/lib/supplementary-resources";
 import { prefetchArticle } from "@/lib/store";
+import { isPublicMcqSet } from "@/lib/content-policy";
 
 type LiveResource = { id: string; title: string; category: string; type: "Article" | "Exam / MCQ" | "Flashcards"; resourceType: ResourceType; material: SupplementaryMaterial; answerReadiness: AnswerReadiness; path: string; group: string; size: number };
 
@@ -88,6 +89,7 @@ export default function SupplementaryRevision() {
         rows.push({ id: row.id, title: row.title, category: row.category, type: "Article", resourceType: "article", material, answerReadiness: answer.label as AnswerReadiness, path: `/blog/${row.slug || row.id}`, group, size: 0 });
       }
       for (const row of exams.data || []) {
+        if (!isPublicMcqSet(row)) { withheld++; continue; }
         const group = classifySupplementaryResource(row.title, row.category); if (!group) continue;
         const answer = assessAnswerReadiness({ kind: "exam", material: "MCQs & timed exams", containsAnswerKey: row.contains_answer_key, answerKeyVerified: row.answer_key_verified });
         if (!answer.ready) { withheld++; continue; }
