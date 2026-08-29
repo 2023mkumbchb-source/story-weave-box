@@ -99,6 +99,46 @@ function applyVerifiedMycologyWording(
   return { question, correct, explanation };
 }
 
+function applyVerifiedParasitologyWording(
+  question: string,
+  options: string[],
+  correct: number,
+  explanation: string,
+): { question: string; correct: number; explanation: string } {
+  if (/used for stage I East African sleeping sickness/i.test(question)) {
+    let fexinidazole = options.findIndex((option) => /fexinidazole/i.test(option));
+    if (fexinidazole < 0) {
+      const replaceable = options.findIndex((option) => /^none of the above\.?$/i.test(option));
+      if (replaceable >= 0) { options[replaceable] = "Fexinidazole"; fexinidazole = replaceable; }
+    }
+    if (fexinidazole >= 0) return {
+      question: "According to current WHO guidance, which oral drug is first-line treatment for first- and second-stage East African (rhodesiense) sleeping sickness in eligible patients aged at least 6 years and weighing at least 20 kg?",
+      correct: fexinidazole,
+      explanation: "WHO guidance updated in 2024 recommends oral fexinidazole for eligible patients with first- or second-stage rhodesiense human African trypanosomiasis. Suramin remains an option for first-stage disease in younger or lighter children.",
+    };
+  }
+
+  if (/parasite can be BEST treated with Metrifonate/i.test(question)) {
+    const schistosoma = options.findIndex((option) => /Schistosoma haematobium/i.test(option));
+    if (schistosoma >= 0) return {
+      question: "Metrifonate was historically used primarily against infection with which parasite?",
+      correct: schistosoma,
+      explanation: "Metrifonate was used for urinary schistosomiasis caused by Schistosoma haematobium, but it has been withdrawn; praziquantel is the WHO-recommended treatment for schistosomiasis.",
+    };
+  }
+
+  if (/which parasite can cause erosion of bones/i.test(question)) {
+    const echinococcus = options.findIndex((option) => /Echinococcus granulosus/i.test(option));
+    if (echinococcus >= 0) return {
+      question: "Which listed parasite can cause osseous hydatid disease with destructive erosion of bone?",
+      correct: echinococcus,
+      explanation: "Echinococcus granulosus can rarely involve bone. Larval growth within marrow cavities and cancellous bone can cause extensive destructive erosion.",
+    };
+  }
+
+  return { question, correct, explanation };
+}
+
 /**
  * Repairs legacy MCQ JSON without guessing clinical facts. Duplicate options
  * are removed, the original answer index is remapped, and an invalid index is
@@ -149,6 +189,7 @@ export function sanitizeMcqQuestions(raw: unknown): NormalizedMcqQuestion[] {
     }
     ({ question, correct, explanation } = applyVerifiedClinicalOverride(question, options, correct, explanation));
     ({ question, correct, explanation } = applyVerifiedMycologyWording(question, options, correct, explanation));
+    ({ question, correct, explanation } = applyVerifiedParasitologyWording(question, options, correct, explanation));
     return [{ ...item, question, options, correct_answer: correct, explanation: explanation || undefined }];
   });
 }

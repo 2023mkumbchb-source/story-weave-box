@@ -147,4 +147,35 @@ describe("exam question normalization", () => {
       }),
     ]);
   });
+
+  it("updates the East African sleeping-sickness treatment item to current WHO guidance", () => {
+    expect(cleanExamQuestions([{
+      question: "Which of the following is used for stage I East African sleeping sickness?",
+      options: ["Suramin", "Melarsoprol", "Eflornithine", "Pentamidine", "None of the above"],
+      correct_answer: 3,
+    }])).toEqual([expect.objectContaining({
+      question: expect.stringContaining("current WHO guidance"),
+      options: ["Suramin", "Melarsoprol", "Eflornithine", "Pentamidine", "Fexinidazole"],
+      correct_answer: 4,
+      explanation: expect.stringContaining("updated in 2024"),
+    })]);
+  });
+
+  it("marks metrifonate as historical and corrects the osseous hydatid answer", () => {
+    const result = cleanExamQuestions([{
+      question: "Which parasite can be BEST treated with Metrifonate?",
+      options: ["Clonorchis sinensis", "Schistosoma haematobium", "Fasciola hepatica"],
+      correct_answer: 1,
+    }, {
+      question: "Which parasite can cause erosion of bones?",
+      options: ["Ascaris lumbricoides", "Echinococcus granulosus", "Gnathostoma spinigerum"],
+      correct_answer: 2,
+    }]);
+    expect(result[0]).toEqual(expect.objectContaining({
+      question: expect.stringContaining("historically"), correct_answer: 1, explanation: expect.stringContaining("withdrawn"),
+    }));
+    expect(result[1]).toEqual(expect.objectContaining({
+      question: expect.stringContaining("osseous hydatid"), correct_answer: 1, explanation: expect.stringContaining("Echinococcus granulosus"),
+    }));
+  });
 });
