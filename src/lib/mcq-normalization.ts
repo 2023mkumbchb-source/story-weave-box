@@ -55,6 +55,42 @@ function applyVerifiedClinicalOverride(
   };
 }
 
+function isKnownUnsafeLegacyQuestion(question: string): boolean {
+  return /aflatoxins are a serious problem because/i.test(question)
+    || /more visible symptoms of fungal infection appearing recently/i.test(question)
+    || /continued options for mycetoma agents/i.test(question)
+    || /all are zoophilic dermatophytes\b.*select all/i.test(question);
+}
+
+function applyVerifiedMycologyWording(
+  question: string,
+  options: string[],
+  correct: number,
+  explanation: string,
+): { question: string; correct: number; explanation: string } {
+  if (/^aflatoxins are produced by which fungus\?/i.test(question)) {
+    const flavus = options.findIndex((option) => /^flavus$/i.test(option));
+    if (flavus >= 0) options[flavus] = "Aspergillus flavus";
+    return {
+      question: "Which fungus is a major producer of aflatoxins?",
+      correct: flavus >= 0 ? flavus : correct,
+      explanation: "Aspergillus flavus is a major aflatoxin-producing mould. Aspergillus parasiticus can also produce aflatoxins.",
+    };
+  }
+
+  if (/most reliable lab method for isolation of trichophyton rubrum/i.test(question)) {
+    const koh = options.findIndex((option) => /skin scrapings.*KOH|KOH.*skin scrapings/i.test(option));
+    if (koh < 0) return { question, correct, explanation };
+    return {
+      question: "Which rapid test can confirm suspected dermatophytosis by demonstrating fungal hyphae in skin scrapings?",
+      correct: koh,
+      explanation: "Direct microscopy of skin scrapings prepared with potassium hydroxide (KOH) can demonstrate fungal hyphae and confirm dermatophytosis. Culture or molecular testing is required when species-level identification is needed.",
+    };
+  }
+
+  return { question, correct, explanation };
+}
+
 /**
  * Repairs legacy MCQ JSON without guessing clinical facts. Duplicate options
  * are removed, the original answer index is remapped, and an invalid index is
@@ -93,7 +129,7 @@ export function sanitizeMcqQuestions(raw: unknown): NormalizedMcqQuestion[] {
       oldToNew.clear();
       booleanMap.forEach((mapped, oldIndex) => oldToNew.set(oldIndex, mapped));
     }
-    if (!question || options.length < 2) return [];
+    if (!question || options.length < 2 || isKnownUnsafeLegacyQuestion(question)) return [];
     const sourceCorrect = Number(item?.correct_answer);
     let correct = Number.isInteger(sourceCorrect) ? oldToNew.get(sourceCorrect) : undefined;
     if (correct === undefined) correct = answerIndexFromText(explanation, options);
@@ -104,6 +140,7 @@ export function sanitizeMcqQuestions(raw: unknown): NormalizedMcqQuestion[] {
       explanation = split.explanation || "";
     }
     ({ question, correct, explanation } = applyVerifiedClinicalOverride(question, options, correct, explanation));
+    ({ question, correct, explanation } = applyVerifiedMycologyWording(question, options, correct, explanation));
     return [{ ...item, question, options, correct_answer: correct, explanation: explanation || undefined }];
   });
 }

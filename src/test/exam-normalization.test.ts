@@ -79,4 +79,42 @@ describe("exam question normalization", () => {
       explanation: expect.stringContaining("only when the isolate is susceptible"),
     })]);
   });
+
+  it.each([
+    "Aflatoxins are a serious problem because: two supplied choices are true",
+    "More visible symptoms of fungal infection appearing recently because: all the above",
+    "(continued options for mycetoma agents) Nocardia causes actinomycetoma",
+    "All are zoophilic dermatophytes — select all that apply",
+  ])("withholds a known unsafe legacy mycology item: %s", (question) => {
+    expect(cleanExamQuestions([{
+      question,
+      options: ["Alpha", "Beta", "Gamma", "All the above"],
+      correct_answer: 0,
+    }])).toEqual([]);
+  });
+
+  it("repairs the incomplete Aspergillus flavus option", () => {
+    expect(cleanExamQuestions([{
+      question: "Aflatoxins are produced by which fungus? ---",
+      options: ["flavus", "Aspergillus niger", "Candida albicans"],
+      correct_answer: 0,
+    }])).toEqual([expect.objectContaining({
+      question: "Which fungus is a major producer of aflatoxins?",
+      options: ["Aspergillus flavus", "Aspergillus niger", "Candida albicans"],
+      correct_answer: 0,
+      explanation: expect.stringContaining("Aspergillus parasiticus"),
+    })]);
+  });
+
+  it("rewrites the misleading dermatophyte isolation item as a KOH confirmation question", () => {
+    expect(cleanExamQuestions([{
+      question: "Most reliable lab method for isolation of Trichophyton rubrum?",
+      options: ["Blood culture", "Serology", "Skin scrapings, microscopic examination using KOH", "Urease test"],
+      correct_answer: 2,
+    }])).toEqual([expect.objectContaining({
+      question: expect.stringContaining("confirm suspected dermatophytosis"),
+      correct_answer: 2,
+      explanation: expect.stringContaining("species-level identification"),
+    })]);
+  });
 });
