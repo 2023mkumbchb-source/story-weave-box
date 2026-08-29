@@ -111,7 +111,7 @@ export function parseSlideDeck(content: string): SlideDeck | null {
 
   for (const line of lines) {
     const t = line.trim();
-    const head = t.match(/^#{2,3}\s+(?:Number|Slide|Plate|Q(?:uestion)?)\s*([0-9]+[a-z]?)\s*[:.\-–]?\s*(.*)$/i);
+    const head = t.match(/^#{2,3}\s+(?:Number|Slide|Plate|Spot|Q(?:uestion)?)\s*([0-9]+[a-z]?)\s*[:.\-–]?\s*(.*)$/i);
     if (head) {
       push();
       seenAny = true;

@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { extractFirstImageFromContent, stripRichText, autoIndexUrls, SITE_URL } from "@/lib/seo";
 import { getYear3Semester } from "@/lib/year3Semesters";
 import { sanitizeMcqQuestions } from "@/lib/mcq-normalization";
+import { mergeVisualSourceImages } from "@/lib/legacy-content";
 
 export interface Article {
   id: string;
@@ -493,11 +494,16 @@ const isQueuedScanPlaceholder = (content: string | null | undefined) =>
   String(content || "").trim().length < 500 && /(?:original paper scans are available|transcription is (?:being generated|queued))/i.test(String(content || ""));
 
 /** Fetch large source scans only for placeholder pages, keeping normal reads fast. */
-async function hydrateQueuedScan<T extends Record<string, any> | null>(article: T): Promise<T> {
-  if (!article || !isQueuedScanPlaceholder(article.content)) return article;
+async function hydrateLegacySource<T extends Record<string, any> | null>(article: T): Promise<T> {
+  if (!article) return article;
+  const queued = isQueuedScanPlaceholder(article.content);
+  const visualWithoutImages = !String(article.content || "").includes("![") && /\b(?:spot|visual atlas|image bank)\b/i.test(`${article.title || ""} ${article.content_kind || ""} ${article.content || ""}`);
+  if (!queued && !visualWithoutImages) return article;
   const { data, error } = await supabase.from("articles").select("original_notes").eq("id", article.id).maybeSingle();
   if (error || !String(data?.original_notes || "").trim()) return article;
-  return { ...article, original_notes: data!.original_notes, content: data!.original_notes } as T;
+  const source = String(data!.original_notes);
+  const content = queued ? source : mergeVisualSourceImages(String(article.content || ""), source);
+  return { ...article, original_notes: source, content } as T;
 }
 
 export function buildMcqPath(set: { id: string; title: string; slug?: string | null }): string {
@@ -691,7 +697,7 @@ export async function getArticleById(id: string): Promise<Article | null> {
     .is("deleted_at", null)
     .maybeSingle();
   if (error) throw error;
-  return hydrateQueuedScan(data as Article | null);
+  return hydrateLegacySource(data as Article | null);
 }
 
 async function fetchArticleBySlugOrId(slugOrId: string): Promise<Article | null> {
@@ -708,7 +714,7 @@ async function fetchArticleBySlugOrId(slugOrId: string): Promise<Article | null>
       .is("deleted_at", null)
       .maybeSingle();
     if (error) throw error;
-    return hydrateQueuedScan(data as Article | null);
+    return hydrateLegacySource(data as Article | null);
   }
 
   const { data: slugMatches, error: slugError } = await supabase
@@ -722,7 +728,7 @@ async function fetchArticleBySlugOrId(slugOrId: string): Promise<Article | null>
   if (slugError) throw slugError;
 
   const slugMatch = slugMatches?.[0];
-  if (slugMatch) return hydrateQueuedScan(slugMatch as unknown as Article);
+  if (slugMatch) return hydrateLegacySource(slugMatch as unknown as Article);
 
   const { data, error } = await supabase
     .from("articles")
