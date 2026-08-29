@@ -45,7 +45,11 @@ for (const row of articles.filter((x) => !x.is_raw && !x.deleted_at)) {
   if (text.trim().length < 500 && (source.trim().length >= 500 || sourceImages > 0)) add("article", row, "source-scan-fallback", `${sourceImages} source images; ${source.trim().length} source characters`);
   if (/^(?:notice to all students\b|students handbook\b|executive order no\b)/i.test(row.title || "")) add("article", row, "non-study-import", "quarantine from public study listings");
   if (/Ã.|Â.|â€|ï¿½/.test(text)) add("article", row, "encoding", "possible mojibake");
-  if (questionHeads >= 2 && choices >= 8 && answerHeads === 0) add("article", row, "answers-unverified", `${questionHeads} questions, no explicit Answer headings`);
+  if (questionHeads >= 2 && choices >= 8 && answerHeads === 0) {
+    const hasExplicitUnverifiedKey = /unverified handwritten source markings|do not use .* as a grading key/i.test(text);
+    add("article", row, hasExplicitUnverifiedKey ? "unverified-source-key" : "answers-unverified",
+      hasExplicitUnverifiedKey ? `${questionHeads} questions; source markings explicitly quarantined from grading` : `${questionHeads} questions, no explicit Answer headings`);
+  }
   const explicitlyTextOnlyPractical = /image-dependent questions have been excluded/i.test(text)
     || (/\bnotes\b/i.test(String(row.content_kind || "")) && /revision q&a|point-form q&a/i.test(text));
   if (/aponeurosis|spot/i.test(`${row.title} ${row.content_kind}`) && images + sourceImages === 0 && !explicitlyTextOnlyPractical) {
