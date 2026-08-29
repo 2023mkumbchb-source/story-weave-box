@@ -47,6 +47,19 @@ export default async function handler(req, res) {
       const width = pdf.internal.pageSize.getWidth(), height = pdf.internal.pageSize.getHeight(), ratio = Math.min(width / properties.width, height / properties.height), imageWidth = properties.width * ratio, imageHeight = properties.height * ratio;
       pdf.addImage(image, "JPEG", (width - imageWidth) / 2, (height - imageHeight) / 2, imageWidth, imageHeight, undefined, "FAST");
     }
+    pdf.addPage("a4", "portrait");
+    const finalWidth = pdf.internal.pageSize.getWidth();
+    pdf.setTextColor(15, 118, 110);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(24);
+    pdf.text("Continue revising with Ompath Study", finalWidth / 2, 330, { align: "center" });
+    pdf.setTextColor(55, 65, 81);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(14);
+    pdf.text("For more study files, kindly visit our site.", finalWidth / 2, 375, { align: "center" });
+    pdf.setTextColor(15, 118, 110);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("www.ompathstudy.com", finalWidth / 2, 402, { align: "center" });
     const output = Buffer.from(pdf.output("arraybuffer"));
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${fileName(article.title)}"`);

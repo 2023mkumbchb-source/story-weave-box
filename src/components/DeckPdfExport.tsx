@@ -25,9 +25,9 @@ export function buildDeckHandout(
 
   const body = included
     .map(
-      (s) => `
+      (s, index) => `
       <section class="plate">
-        <h2>${escapeHtml(s.number)}. ${escapeHtml(s.prompt || "")}</h2>
+        <h2>${index + 1}. ${escapeHtml(s.prompt || "")}</h2>
         ${s.image ? `<img src="${escapeHtml(s.image)}" alt="${escapeHtml(s.alt || s.prompt || "")}" />` : ""}
         ${
           s.rows.length
@@ -61,6 +61,9 @@ export function buildDeckHandout(
     td { border-bottom: 1px solid #eee; padding: 4px 6px; vertical-align: top; }
     td.k { width: 70px; font-weight: 700; color: #666; }
     footer { margin-top: 26px; border-top: 1px solid #ccc; padding-top: 10px; font-size: 10px; color: #555; text-align: center; position: relative; z-index: 1; }
+    .final-page { page-break-before: always; min-height: 85vh; display: flex; align-items: center; justify-content: center; text-align: center; position: relative; z-index: 1; }
+    .final-page h2 { font-size: 24px; margin-bottom: 10px; }
+    .final-page p { font-size: 14px; color: #444; }
   </style></head>
   <body>
     <div class="wm"><span>${escapeHtml(stamp)}<br/>ompathstudy.com<br/>${escapeHtml(stamp)}</span></div>
@@ -71,6 +74,9 @@ export function buildDeckHandout(
       zoomable images at www.ompathstudy.com</p>
     </header>
     ${body}
+    <section class="final-page">
+      <div><h2>Continue revising with Ompath Study</h2><p>For more study files, questions and verified answers, kindly visit <strong>www.ompathstudy.com</strong>.</p></div>
+    </section>
     <footer>
       &copy; Ompath Study — licensed to ${escapeHtml(stamp)}. Not for redistribution. Sharing this file is traceable to the pass above.
     </footer>

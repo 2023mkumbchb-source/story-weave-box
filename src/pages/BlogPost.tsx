@@ -630,9 +630,9 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
             <section className="mb-10">
               <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-neutral-700 border-b border-neutral-300 pb-2">Section A: Multiple Choice</h2>
               <ol className="space-y-6">
-                {data.mcqs.map((q) => (
+                {data.mcqs.map((q, index) => (
                   <li key={q.n} className="text-[15px] leading-relaxed">
-                    <p className="font-semibold"><span className="mr-2">{q.n}.</span>{cleanDisplayText(q.stem)}</p>
+                    <p className="font-semibold"><span className="mr-2">{index + 1}.</span>{cleanDisplayText(q.stem)}</p>
                     {q.opts.length > 0 && (
                       <ol className="mt-3 space-y-2 pl-0" type="A">
                         {q.opts.map((o, i) => (
@@ -653,9 +653,9 @@ function ExamPreviewModal({ article, open, onClose }: { article: any; open: bool
             <section>
               <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-neutral-700 border-b border-neutral-300 pb-2">Section B: Essay Questions</h2>
               <ol className="space-y-5">
-                {data.essays.map((q) => (
+                {data.essays.map((q, index) => (
                   <li key={q.n} className="text-[15px] leading-relaxed">
-                    <p><span className="mr-2 font-semibold">{q.n}.</span>{cleanDisplayText(q.text)}</p>
+                    <p><span className="mr-2 font-semibold">{index + 1}.</span>{cleanDisplayText(q.text)}</p>
                   </li>
                 ))}
               </ol>
@@ -720,6 +720,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   let currentQuestionKey = "";
   let currentQuestionText = "";
   let currentTopic = "";
+  let displayQuestionNumber = 0;
 
   const flushList = () => {
     if (!listBuf) return;
@@ -775,7 +776,13 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
   for (let i = 0; i < lines.length; i++) {
     if (i < skipUntil) continue;
     const line = lines[i];
-    const t = line.trim();
+    let t = line.trim();
+    // Imported multi-part banks retain source numbering (for example Q150).
+    // Preserve that key internally, but display each page as a fresh 1..N set.
+    if (/^#{1,6}\s+Q(?:uestion)?\s*\d+\s*[:.)-]/i.test(t)) {
+      displayQuestionNumber += 1;
+      t = t.replace(/^(#{1,6}\s+)Q(?:uestion)?\s*\d+/i, `$1Question ${displayQuestionNumber}`);
+    }
 
     if (/^```/.test(t)) {
       if (codeBuf == null) {
@@ -929,7 +936,9 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
     if (questionMatch) {
       flushList(); flushPractice(); inPractice = false; underSubheading = false;
       _sec++;
-      const qNum = questionMatch[2];
+      const sourceQNum = questionMatch[2];
+      displayQuestionNumber += 1;
+      const qNum = String(displayQuestionNumber);
       let qTitle = questionMatch[3]?.replace(/^\s*[-:]\s*/, "").trim() || "";
       // Drop the orphan punctuation OCR/imports leave after the number
       // ("Question 1 . 66-year-old man …").
@@ -950,7 +959,7 @@ const ArticleContent = memo(function ArticleContent({ content, inlineRelated = [
         topic = qTitle.replace(/[\s,.-]+$/, "").trim();
         stem = "";
       }
-      currentQuestionKey = qNum;
+      currentQuestionKey = sourceQNum;
       currentQuestionText = stem || qTitle;
       currentTopic = topic || category.replace(/^Year\s*\d+:\s*/i, "");
       els.push(

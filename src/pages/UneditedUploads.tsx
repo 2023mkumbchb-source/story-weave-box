@@ -201,6 +201,15 @@ export default function UneditedUploads() {
         pdf.addImage(image, "JPEG", (pageWidth - width) / 2, (pageHeight - height) / 2, width, height, undefined, "FAST");
         bitmap.close();
       }
+      pdf!.addPage("a4", "portrait");
+      const finalWidth = pdf!.internal.pageSize.getWidth();
+      const finalHeight = pdf!.internal.pageSize.getHeight();
+      pdf!.setFont("helvetica", "bold");
+      pdf!.setFontSize(22);
+      pdf!.text("Continue revising with Ompath Study", finalWidth / 2, finalHeight / 2 - 20, { align: "center" });
+      pdf!.setFont("helvetica", "normal");
+      pdf!.setFontSize(13);
+      pdf!.text("For more study files, kindly visit www.ompathstudy.com", finalWidth / 2, finalHeight / 2 + 12, { align: "center" });
       pdf!.save(`${safeName(article.title)}-source-pages.pdf`);
       toast({ title: `Downloaded ${urls.length} pages as one PDF` });
     } catch (error) {

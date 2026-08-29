@@ -329,10 +329,10 @@ function SlideCard({
     <article id={`slide-${slide.number}`} className="h-fit self-start scroll-mt-24 overflow-hidden rounded-xl border border-border bg-card">
       <header className="flex items-start gap-3 border-b border-border px-4 py-3">
         <span className="mt-0.5 inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-lg bg-primary px-1.5 text-[13px] font-bold text-primary-foreground">
-          {slide.number}
+          {index + 1}
         </span>
         <h2 className="flex-1 font-serif text-[16px] font-bold leading-snug text-foreground sm:text-lg">
-          {redactNames(slide.prompt) || `Slide ${slide.number}`}
+          {redactNames(slide.prompt) || `Slide ${index + 1}`}
         </h2>
         {onSuggest && (
           <button
@@ -544,14 +544,14 @@ export function SlideDeckView({
               </button>
             </div>
             <div className="grid grid-cols-4 gap-1.5">
-              {deck.slides.map((s) => (
+              {deck.slides.map((s, index) => (
                 <a
                   key={s.key}
                   href={`#slide-${s.number}`}
                   onClick={() => setNavOpen(false)}
                   className="rounded-md border border-border px-2 py-1.5 text-center text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
                 >
-                  {s.number}
+                  {index + 1}
                 </a>
               ))}
             </div>
@@ -660,9 +660,9 @@ export function SlidePreviewModal({
             <p className="mt-3 text-[11px] italic text-neutral-500">Spot paper preview — questions only.</p>
           </div>
           <ol className="space-y-10">
-            {deck.slides.map((s) => (
+            {deck.slides.map((s, index) => (
               <li key={s.key}>
-                <p className="mb-3 text-[15px] font-bold">{s.number}. {redactNames(s.prompt)}</p>
+                <p className="mb-3 text-[15px] font-bold">{index + 1}. {redactNames(s.prompt)}</p>
                 {s.image && (
                   <img src={s.image} alt={s.alt || s.prompt} loading="lazy" decoding="async" className="mb-3 w-full rounded border border-neutral-200 object-contain" />
                 )}
