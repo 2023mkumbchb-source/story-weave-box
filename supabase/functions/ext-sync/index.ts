@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
           errors.push(error.message);
           continue;
         }
-        const res = await insertHealing(target, table, rows || []);
+        const res = await insertHealing(target, table, (rows || []).map(remapUnit));
         inserted += res.inserted;
         res.dropped.forEach((c) => droppedCols.add(c));
         if (res.error) errors.push(res.error);
