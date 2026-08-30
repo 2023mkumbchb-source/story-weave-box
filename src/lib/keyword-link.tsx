@@ -62,10 +62,12 @@ async function loadEntries(): Promise<LinkEntry[]> {
   if (cachePromise) return cachePromise;
   cachePromise = (async () => {
     try {
-      const [{ data: articles }, { data: flashcards }, { data: stories }] = await Promise.all([
+      const [{ data: articles }, { data: flashcards }, { data: stories }, { data: concepts }, { data: conceptAliases }] = await Promise.all([
         supabase.from("articles").select("id,title,slug,meta_title,meta_description,tags,category,exam_type").eq("published", true).is("deleted_at", null).limit(1500),
         supabase.from("flashcard_sets").select("id,title,slug,meta_title,meta_description,category").eq("published", true).is("deleted_at", null).limit(1200),
         supabase.from("stories").select("id,title,meta_title,meta_description,content").eq("published", true).limit(500),
+        supabase.from("medical_concepts").select("id,canonical_term,definition,importance,preferred_article_id").eq("approved", true).eq("enabled", true).limit(2000),
+        supabase.from("medical_concept_aliases").select("concept_id,alias,abbreviation").eq("approved", true).limit(4000),
       ]);
       const entries: LinkEntry[] = [], seen = new Set<string>();
       const add = (raw: string | null | undefined, path: string, quality: number, category?: string | null) => {
@@ -95,6 +97,18 @@ async function loadEntries(): Promise<LinkEntry[]> {
         buildBlogPath({ id: a.id, title: a.title, slug: a.slug ?? undefined }),
         a.meta_description, a.tags, a.category, a.exam_type ? 10 : 14,
       ));
+      const articlePaths = new Map((articles || []).map((a) => [a.id, buildBlogPath({ id: a.id, title: a.title, slug: a.slug ?? undefined })]));
+      const conceptPaths = new Map<string, string>();
+      (concepts || []).forEach((concept) => {
+        const path = concept.preferred_article_id ? articlePaths.get(concept.preferred_article_id) : undefined;
+        if (!path) return;
+        conceptPaths.set(concept.id, path);
+        add(concept.canonical_term, path, 30 + Math.min(10, Number(concept.importance) || 0));
+      });
+      (conceptAliases || []).forEach((alias) => {
+        const path = conceptPaths.get(alias.concept_id);
+        if (path) add(alias.alias, path, alias.abbreviation ? 31 : 28);
+      });
       (flashcards || []).forEach(f => aliases(
         f.meta_title || f.title,
         buildFlashcardPath({ id: f.id, title: f.title, slug: f.slug }),
@@ -150,21 +164,29 @@ export function linkifyText(text: string, ctx: Ctx | null, keyPrefix = "k"): Rea
 function DeepLinkSpan({ path, title, label }: { path: string; title: string; label: string }) {
   const navigate = useNavigate();
   return (
-    <button
-      type="button"
+    <span
+      role="link"
+      tabIndex={0}
       className="deep-link"
       onClick={(e) => {
         e.preventDefault();
+        e.stopPropagation();
         try {
           sessionStorage.setItem("deep_link_return", `${window.location.pathname}${window.location.search}${window.location.hash}|${window.scrollY}`);
         } catch { /* private-browsing / quota — the deep-link still navigates, just without a scroll-back position */ }
+        navigate(path);
+      }}
+      onKeyDown={(e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        e.preventDefault();
+        e.stopPropagation();
         navigate(path);
       }}
       aria-label={`${label}: open the detailed ${title} study page`}
       title={`Study ${title} in detail`}
     >
       {label}
-    </button>
+    </span>
   );
 }
 

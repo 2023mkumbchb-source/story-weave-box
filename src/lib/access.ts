@@ -33,7 +33,10 @@ export const DEFAULT_SETTINGS: PaymentSettings = {
 };
 
 const PASS_KEY = "ompath_access_pass";
+const PASS_EVENT = "ompath:access-pass-changed";
 let settingsCache: { at: number; value: PaymentSettings } | null = null;
+let linkedAccountCache: { key: string; at: number; value: AccountInfo } | null = null;
+let linkedAccountPromise: { key: string; promise: Promise<AccountInfo> } | null = null;
 
 /** Codes are matched punctuation-insensitively, so normalise before sending. */
 export function normalizePassCode(value: string): string {
@@ -105,10 +108,12 @@ export function readStoredPass(): AccessPass | null {
 
 export function storePass(pass: AccessPass) {
   try { localStorage.setItem(PASS_KEY, JSON.stringify(pass)); } catch { /* ignore */ }
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(PASS_EVENT, { detail: pass }));
 }
 
 export function clearPass() {
   try { localStorage.removeItem(PASS_KEY); } catch { /* ignore */ }
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(PASS_EVENT));
 }
 
 export async function verifyCode(code: string): Promise<{ ok: boolean; pass?: AccessPass; error?: string }> {
@@ -188,6 +193,24 @@ export async function fetchAccount(code?: string): Promise<AccountInfo> {
   return data as AccountInfo;
 }
 
+/** Coalesce the many useAccess() calls on long question banks into one lookup. */
+function loadLinkedAccount(key: string): Promise<AccountInfo> {
+  if (linkedAccountCache?.key === key && Date.now() - linkedAccountCache.at < 60_000) {
+    return Promise.resolve(linkedAccountCache.value);
+  }
+  if (linkedAccountPromise?.key === key) return linkedAccountPromise.promise;
+  const promise = fetchAccount()
+    .then((value) => {
+      linkedAccountCache = { key, at: Date.now(), value };
+      return value;
+    })
+    .finally(() => {
+      if (linkedAccountPromise?.key === key) linkedAccountPromise = null;
+    });
+  linkedAccountPromise = { key, promise };
+  return promise;
+}
+
 /**
  * Site-wide access state: is content free right now, does this reader hold a
  * valid pass, and may they download the watermarked PDF.
@@ -197,6 +220,16 @@ export function useAccess() {
   const [settings, setSettings] = useState<PaymentSettings | null>(null);
   const [pass, setPass] = useState<AccessPass | null>(() => readStoredPass());
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const syncPass = () => setPass(readStoredPass());
+    window.addEventListener(PASS_EVENT, syncPass);
+    window.addEventListener("storage", syncPass);
+    return () => {
+      window.removeEventListener(PASS_EVENT, syncPass);
+      window.removeEventListener("storage", syncPass);
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -212,7 +245,8 @@ export function useAccess() {
   useEffect(() => {
     if (authLoading || !user) return;
     let active = true;
-    fetchAccount().then((info) => {
+    const accountKey = `${user.id}:${user.email || ""}`;
+    loadLinkedAccount(accountKey).then((info) => {
       if (!active || !info.found || info.expired || !info.code || !info.expires_at) return;
       const linked: AccessPass = {
         code: info.code,
