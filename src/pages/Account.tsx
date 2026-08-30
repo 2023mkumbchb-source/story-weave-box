@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   Loader2, ShieldCheck, Pencil, Check, LogOut, KeyRound, GraduationCap, X,
-  LayoutDashboard, FileEdit, FolderTree, Database, BookOpen, Target, Sparkles,
+  LayoutDashboard, FileEdit, FolderTree, Database, BookOpen, Target, Sparkles, Bell,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +38,8 @@ export default function Account() {
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileDraft, setProfileDraft] = useState<StudyProfile>(EMPTY_PROFILE);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [savingNotifications, setSavingNotifications] = useState(false);
 
   const [adminStats, setAdminStats] = useState<{ articles: number; students: number } | null>(null);
 
@@ -73,6 +75,24 @@ export default function Account() {
       });
     return () => { alive = false; };
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!user) return;
+    (supabase as any).from("notification_preferences").select("email_enabled").eq("user_id", user.id).maybeSingle()
+      .then(({ data }: { data: { email_enabled?: boolean } | null }) => setEmailNotifications(data?.email_enabled !== false));
+  }, [user?.id]);
+
+  const updateEmailNotifications = async (enabled: boolean) => {
+    if (!user) return;
+    setSavingNotifications(true);
+    const { error } = await (supabase as any).from("notification_preferences").upsert({
+      user_id: user.id, email_enabled: enabled, updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id" });
+    setSavingNotifications(false);
+    if (error) return toast({ title: "Preference was not saved", description: error.message, variant: "destructive" });
+    setEmailNotifications(enabled);
+    toast({ title: enabled ? "Email notifications enabled" : "Email notifications disabled" });
+  };
 
   useEffect(() => {
     if (!isAdmin) { setAdminStats(null); return; }
@@ -261,6 +281,20 @@ export default function Account() {
               </button>
             </div>
           )}
+        </section>
+      )}
+
+      {user && (
+        <section className="mt-4 rounded-2xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground"><Bell className="h-3.5 w-3.5 text-primary" /> Notifications</p>
+              <p className="mt-1 text-sm text-muted-foreground">Receive important study-resource and account updates by email.</p>
+            </div>
+            <button type="button" role="switch" aria-checked={emailNotifications} disabled={savingNotifications} onClick={() => void updateEmailNotifications(!emailNotifications)} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-50 ${emailNotifications ? "bg-primary" : "bg-muted"}`}>
+              <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${emailNotifications ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+          </div>
         </section>
       )}
 
