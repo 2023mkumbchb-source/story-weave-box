@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSetting, getCategoryDisplayName, getYearFromCategory, buildExamPath, normalizeMcqQuestions } from "@/lib/store";
 import { updateMetaTags } from "@/lib/seo";
 import { dedupeResourceSummaries, isPublicMcqSet } from "@/lib/content-policy";
+import { SUPABASE_FUNCTIONS_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase-config";
 
 interface ExamSet {
   id: string;
@@ -98,10 +99,10 @@ export default function Exams() {
 
       try {
         const resp = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-payment?transaction_id=${encodeURIComponent(txnId)}`,
+          `${SUPABASE_FUNCTIONS_URL}/check-payment?transaction_id=${encodeURIComponent(txnId)}`,
           {
             headers: {
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              apikey: SUPABASE_PUBLISHABLE_KEY,
               "Content-Type": "application/json",
             },
           }

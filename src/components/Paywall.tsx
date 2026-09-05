@@ -6,6 +6,7 @@ import { AccessPass, AccessPlan, PaymentSettings, issuePassForPayment, normalize
 import { useAuth } from "@/hooks/useAuth";
 import { signInWithGoogle } from "@/lib/social-auth";
 import { savePurchaseIntent } from "@/lib/purchase-intent";
+import { SUPABASE_FUNCTIONS_URL } from "@/lib/supabase-config";
 
 /**
  * Paywall shown where the free portion of a page ends. Two ways in:
@@ -66,7 +67,7 @@ export function Paywall({
       await new Promise((r) => setTimeout(r, 3000));
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-payment?transaction_id=${encodeURIComponent(transactionId)}`,
+          `${SUPABASE_FUNCTIONS_URL}/check-payment?transaction_id=${encodeURIComponent(transactionId)}`,
         );
         const json = await res.json().catch(() => ({}));
         if (json?.status === "completed") {

@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { HelmetProvider } from "react-helmet-async";
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase-config";
 
 // Auto-recover from stale chunk loads after a deploy. When the cached
 // index.html refers to chunk hashes that no longer exist (or the cached
@@ -50,8 +51,8 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/sw.js").then(() => {
       // Pre-warm offline cache: fetch core lists in the background so they're
       // available even when the user is offline on first navigation.
-      const SUPA = (import.meta as any).env?.VITE_SUPABASE_URL;
-      const KEY = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const SUPA = SUPABASE_URL;
+      const KEY = SUPABASE_PUBLISHABLE_KEY;
       if (!SUPA || !KEY) return;
       const headers = { apikey: KEY, Authorization: `Bearer ${KEY}` };
       const endpoints = [
