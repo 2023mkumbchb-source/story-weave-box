@@ -126,7 +126,7 @@ export interface Essay {
  * position wins (with a stable question-based tie-break), while the previous
  * position is excluded. Correct option text is preserved when it is moved.
  */
-export function rebalanceMcqAnswerLetters<T extends { question?: string; options?: string[]; correct_answer?: number; correct_answer_text?: string; type?: string }>(items: T[]): T[] {
+export function rebalanceMcqAnswerLetters<T extends { question?: string; options?: string[]; correct_answer?: number; correct_answer_text?: string; type?: string }>(items: T[]): Array<T & { correct_answer_text?: string }> {
   if (!Array.isArray(items) || items.length === 0) return items;
   const out: T[] = items.map((q) => ({ ...q }));
   let prevLetter: number | null = null;
@@ -208,7 +208,7 @@ function balanceOptionLengths(options: string[], _correctAnswer: number): string
   });
 }
 
-export function normalizeMcqQuestions<T extends { question?: string; options?: string[]; correct_answer?: number; correct_answer_text?: string; explanation?: string; type?: string }>(items: T[]): T[] {
+export function normalizeMcqQuestions<T extends { question?: string; options?: string[]; correct_answer?: number; correct_answer_text?: string; explanation?: string; type?: string }>(items: T[]): Array<T & { correct_answer_text?: string }> {
   if (!Array.isArray(items)) return [];
   const normalized = items.map((item) => {
     const q: any = { ...item };

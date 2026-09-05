@@ -302,13 +302,16 @@ export function sanitizeMcqQuestions(raw: unknown): NormalizedMcqQuestion[] {
     ({ question, correct, explanation } = applyVerifiedPathologyWording(question, options, correct, explanation));
     ({ question, correct, explanation } = applyVerifiedHaematologyWording(question, options, correct, explanation));
     ({ question, correct, explanation } = applyVerifiedImmunohaematologyWording(question, options, correct, explanation));
-    return [{
+    const normalized = {
       ...item,
       question,
       options,
       correct_answer: correct,
-      correct_answer_text: options[correct],
       explanation: explanation || undefined,
-    }];
+    };
+    if (Object.prototype.hasOwnProperty.call(item, "correct_answer_text")) {
+      normalized.correct_answer_text = options[correct];
+    }
+    return [normalized];
   });
 }
