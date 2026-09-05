@@ -96,8 +96,8 @@ export default function Index() {
 
   useEffect(() => {
     if (!user) { setStudyYear(null); return; }
-    supabase.from("profiles").select("study_year").eq("user_id", user.id).maybeSingle()
-      .then(({ data }) => setStudyYear(data?.study_year ? Number(data.study_year) : null));
+    (supabase as any).from("profiles").select("study_year").eq("user_id", user.id).maybeSingle()
+      .then(({ data }: { data: any }) => setStudyYear(data?.study_year ? Number(data.study_year) : null));
   }, [user]);
 
   useEffect(() => {
