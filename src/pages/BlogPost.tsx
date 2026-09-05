@@ -1579,16 +1579,16 @@ export default function BlogPost() {
       keywords,
     });
 
-    // Thin/scan-only pages are noise for search engines — keep them readable for
-    // humans but out of the index so real pages rank instead.
+    // Everything published is indexable. Image/slide-heavy articles have little
+    // plain text but real value, so length or scan watermarks must never noindex
+    // a page — only a hard 404 (handled above) stays out of the index.
     let robots = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
     if (!robots) {
       robots = document.createElement("meta");
       robots.setAttribute("name", "robots");
       document.head.appendChild(robots);
     }
-    const isThin = plain.length < 600 || /scanned by camscanner/i.test(article.content || "");
-    robots.setAttribute("content", isThin ? "noindex, follow" : "index, follow, max-image-preview:large, max-snippet:-1");
+    robots.setAttribute("content", "index, follow, max-image-preview:large, max-snippet:-1");
 
     let ldScript = document.querySelector("script[data-article-ld]") as HTMLScriptElement | null;
     if (!ldScript) {
