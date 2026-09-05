@@ -63,7 +63,7 @@ export interface FlashcardSet {
 export interface McqSet {
   id: string;
   title: string;
-  questions: { question: string; options?: string[]; correct_answer?: number; explanation?: string; type?: "mcq" | "saq" | "essay"; answer?: string; model_answer?: string; marks?: number }[];
+  questions: { question: string; options?: string[]; correct_answer?: number; correct_answer_text?: string; explanation?: string; type?: "mcq" | "saq" | "essay"; answer?: string; model_answer?: string; marks?: number }[];
   created_at: string;
   updated_at?: string;
   published: boolean;
@@ -126,7 +126,7 @@ export interface Essay {
  * position wins (with a stable question-based tie-break), while the previous
  * position is excluded. Correct option text is preserved when it is moved.
  */
-export function rebalanceMcqAnswerLetters<T extends { question?: string; options?: string[]; correct_answer?: number; type?: string }>(items: T[]): T[] {
+export function rebalanceMcqAnswerLetters<T extends { question?: string; options?: string[]; correct_answer?: number; correct_answer_text?: string; type?: string }>(items: T[]): Array<T & { correct_answer_text?: string }> {
   if (!Array.isArray(items) || items.length === 0) return items;
   const out: T[] = items.map((q) => ({ ...q }));
   let prevLetter: number | null = null;
@@ -157,6 +157,10 @@ export function rebalanceMcqAnswerLetters<T extends { question?: string; options
       q.options = opts;
       q.correct_answer = target;
     }
+
+    // Persist the answer identity as text as well as an array position. This
+    // lets later cleanup/removal of malformed options recover the right index.
+    q.correct_answer_text = currentCorrectText;
 
     prevLetter = q.correct_answer;
     positionCounts.set(q.correct_answer, (positionCounts.get(q.correct_answer) || 0) + 1);
@@ -204,27 +208,33 @@ function balanceOptionLengths(options: string[], _correctAnswer: number): string
   });
 }
 
-export function normalizeMcqQuestions<T extends { question?: string; options?: string[]; correct_answer?: number; explanation?: string; type?: string }>(items: T[]): T[] {
+export function normalizeMcqQuestions<T extends { question?: string; options?: string[]; correct_answer?: number; correct_answer_text?: string; explanation?: string; type?: string }>(items: T[]): Array<T & { correct_answer_text?: string }> {
   if (!Array.isArray(items)) return [];
   const normalized = items.map((item) => {
     const q: any = { ...item };
     if (!Array.isArray(q.options)) return q;
-    let correct = typeof q.correct_answer === "number" ? q.correct_answer : 0;
+    let correct = typeof q.correct_answer === "number" ? q.correct_answer : -1;
+    const originalCorrectText = typeof q.correct_answer_text === "string" && q.correct_answer_text.trim()
+      ? cleanMcqOptionText(q.correct_answer_text)
+      : (correct >= 0 && correct < q.options.length ? cleanMcqOptionText(q.options[correct]) : "");
     const rawAll = `${q.question || ""} ${q.options.join(" ")} ${q.explanation || ""}`;
     const answerMarker = rawAll.match(/(?:Answer|Correct\s*answer)\s*[:：]\s*([A-F])/i)?.[1]?.toUpperCase();
     const split = splitCombinedOptions(q.options, q.question || "");
     if (answerMarker) {
       correct = Math.max(0, answerMarker.charCodeAt(0) - 65);
-    } else if (q.options.length === 1 && split.length > 1) {
-      const marker = String(q.options[0]).match(/(?:^|\s)([A-F])[.)]\s*/i)?.[1]?.toUpperCase();
-      if (marker) correct = Math.max(0, marker.charCodeAt(0) - 65);
     }
     const firstOptionInQuestion = String(q.question || "").search(/\sA\s*[.)]\s*/i);
     if (firstOptionInQuestion > 6 && split.length >= 2) q.question = String(q.question).slice(0, firstOptionInQuestion).trim();
     q.question = String(q.question || "").replace(/\*+/g, "").replace(/\s*Choices:\s*$/i, "").replace(/\s+/g, " ").trim();
     const options = balanceOptionLengths(split, Math.min(Math.max(correct, 0), Math.max(0, split.length - 1)));
+    const remappedByText = originalCorrectText
+      ? options.findIndex((option) => option.toLocaleLowerCase() === originalCorrectText.toLocaleLowerCase())
+      : -1;
     q.options = options;
-    q.correct_answer = Math.min(Math.max(correct, 0), Math.max(0, options.length - 1));
+    q.correct_answer = answerMarker
+      ? Math.min(Math.max(correct, 0), Math.max(0, options.length - 1))
+      : remappedByText;
+    if (q.correct_answer >= 0) q.correct_answer_text = options[q.correct_answer];
     return q;
   });
   return rebalanceMcqAnswerLetters(sanitizeMcqQuestions(normalized) as any[]) as T[];
