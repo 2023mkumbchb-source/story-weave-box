@@ -3,6 +3,7 @@ import { Check, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccess } from "@/lib/access";
+import { openSubscribePrompt } from "@/lib/subscribe-prompt";
 
 type Selection = { wrong: string[]; solved: boolean; correct: string; firstAttempt?: boolean };
 
@@ -23,7 +24,10 @@ export default function ArticleMcqOption({ articleId, questionKey, questionText,
   }, [eventName]);
 
   const choose = () => {
-    if (!access.canReveal) return;
+    if (!access.canReveal) {
+      openSubscribePrompt("Subscribe or restore your pass to answer this question and reveal its explanation.");
+      return;
+    }
     if (!correctLabel || selection?.solved || selection?.wrong.includes(label)) return;
     const correct = label === correctLabel;
     const detail: Selection = {
@@ -54,7 +58,7 @@ export default function ArticleMcqOption({ articleId, questionKey, questionText,
   const isCorrect = Boolean(selection?.solved && label === selection.correct);
   const isWrong = transientWrong === label;
   const isChosen = isCorrect || isWrong;
-  return <button type="button" onClick={choose} disabled={!correctLabel || !access.canReveal || Boolean(selection?.solved) || isWrong}
+  return <button type="button" onClick={choose} disabled={!correctLabel || Boolean(selection?.solved) || isWrong}
     aria-pressed={isChosen}
     className={`not-prose !my-1 flex min-h-12 w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left align-middle transition-colors ${
       isCorrect ? "border-emerald-500 bg-emerald-500/10" : isWrong ? "border-rose-400/60 bg-rose-500/5" : !access.canReveal ? "border-border/60 bg-muted/20 opacity-75" : "border-border/70 bg-card hover:border-primary/50"
