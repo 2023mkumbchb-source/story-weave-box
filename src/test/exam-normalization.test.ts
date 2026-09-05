@@ -1,7 +1,32 @@
 import { describe, expect, it } from "vitest";
 import { cleanExamQuestions } from "@/pages/ExamStart";
+import { normalizeMcqQuestions } from "@/lib/store";
 
 describe("exam question normalization", () => {
+  it("remaps the answer after blank and duplicate options are removed", () => {
+    const [question] = normalizeMcqQuestions([{
+      question: "Which organism is the leading cause of typical pneumonia?",
+      options: ["", "H. influenzae", "S. pneumoniae", "H. influenzae", "M. pneumoniae"],
+      correct_answer: 2,
+      explanation: "Streptococcus pneumoniae is the leading cause.",
+    }]);
+
+    expect(question.options?.[question.correct_answer ?? -1]).toBe("S. pneumoniae");
+    expect(question.correct_answer_text).toBe("S. pneumoniae");
+  });
+
+  it("uses persisted answer text to recover from a stale numeric index", () => {
+    expect(cleanExamQuestions([{
+      question: "Which organism causes diphtheria?",
+      options: ["Streptococcus pyogenes", "Corynebacterium diphtheriae", "Neisseria meningitidis"],
+      correct_answer: 0,
+      correct_answer_text: "Corynebacterium diphtheriae",
+      explanation: "Corynebacterium diphtheriae causes diphtheria.",
+    }])).toEqual([expect.objectContaining({
+      correct_answer: 1,
+      correct_answer_text: "Corynebacterium diphtheriae",
+    })]);
+  });
   it("removes repeated labelled choices and remaps the answer", () => {
     expect(cleanExamQuestions([{ question: "  Test? ", options: ["A. Alpha", "B. Beta", "D. Beta", "D. Delta"], correct_answer: 3 }])).toEqual([
       { question: "Test?", options: ["Alpha", "Beta", "Delta"], correct_answer: 2, explanation: undefined },

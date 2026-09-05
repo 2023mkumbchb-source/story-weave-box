@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import {
   saveArticle, saveMcqSet, UNIT_CATEGORIES, YEAR_CATEGORIES,
-  getCategoryDisplayName, buildBlogPath,
+  getCategoryDisplayName, buildBlogPath, normalizeMcqQuestions,
   getArticleCategories, saveArticleCategory, ensureUniqueSlug,
   type McqSet, type Article, type ArticleCategory,
 } from "@/lib/store";
@@ -854,7 +854,9 @@ export default function AdminEditor() {
       if (data?.error) throw new Error(data.error);
       if (!Array.isArray(data) || data.length === 0) throw new Error("No MCQs generated");
       
-      await supabase.from("mcq_sets").update({ questions: data as any, updated_at: new Date().toISOString() } as any).eq("id", setId);
+      const normalized = normalizeMcqQuestions(data as any[]);
+      if (!normalized.length) throw new Error("Generated questions did not contain valid answer keys");
+      await supabase.from("mcq_sets").update({ questions: normalized as any, updated_at: new Date().toISOString() } as any).eq("id", setId);
       toast({ title: `Updated ${data.length} MCQs with AI!` });
       await loadContent();
     } catch (err: any) {

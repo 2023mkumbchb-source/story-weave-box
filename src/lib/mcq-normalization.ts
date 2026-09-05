@@ -2,6 +2,7 @@ export interface NormalizedMcqQuestion {
   question: string;
   options: string[];
   correct_answer: number;
+  correct_answer_text?: string;
   explanation?: string;
   [key: string]: unknown;
 }
@@ -282,7 +283,12 @@ export function sanitizeMcqQuestions(raw: unknown): NormalizedMcqQuestion[] {
     }
     if (!question || options.length < 2 || isKnownUnsafeLegacyQuestion(question)) return [];
     const sourceCorrect = Number(item?.correct_answer);
-    let correct = Number.isInteger(sourceCorrect) ? oldToNew.get(sourceCorrect) : undefined;
+    const savedCorrectText = cleanMcqOption(item?.correct_answer_text);
+    let correct = savedCorrectText
+      ? options.findIndex((option) => option.toLocaleLowerCase() === savedCorrectText.toLocaleLowerCase())
+      : undefined;
+    if (correct === -1) correct = undefined;
+    if (correct === undefined && Number.isInteger(sourceCorrect)) correct = oldToNew.get(sourceCorrect);
     if (correct === undefined) correct = answerIndexFromText(explanation, options);
     if (correct === undefined) return [];
     if (!explanation) {
@@ -296,6 +302,13 @@ export function sanitizeMcqQuestions(raw: unknown): NormalizedMcqQuestion[] {
     ({ question, correct, explanation } = applyVerifiedPathologyWording(question, options, correct, explanation));
     ({ question, correct, explanation } = applyVerifiedHaematologyWording(question, options, correct, explanation));
     ({ question, correct, explanation } = applyVerifiedImmunohaematologyWording(question, options, correct, explanation));
-    return [{ ...item, question, options, correct_answer: correct, explanation: explanation || undefined }];
+    return [{
+      ...item,
+      question,
+      options,
+      correct_answer: correct,
+      correct_answer_text: options[correct],
+      explanation: explanation || undefined,
+    }];
   });
 }

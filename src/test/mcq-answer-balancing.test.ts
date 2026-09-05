@@ -15,11 +15,22 @@ describe("MCQ answer-position balancing", () => {
     balanced.forEach((question, index) => {
       counts[question.correct_answer] += 1;
       expect(question.options[question.correct_answer]).toBe(`correct-${index}`);
+      expect(question.correct_answer_text).toBe(`correct-${index}`);
       if (index > 0) expect(question.correct_answer).not.toBe(balanced[index - 1].correct_answer);
     });
 
     expect(counts).toEqual([4, 4, 4, 4, 4]);
     expect(rebalanceMcqAnswerLetters(bank)).toEqual(balanced);
+  });
+
+  it("keeps answer identity across repeated balancing", () => {
+    const once = rebalanceMcqAnswerLetters(bank);
+    const twice = rebalanceMcqAnswerLetters(once);
+
+    twice.forEach((question, index) => {
+      expect(question.options[question.correct_answer]).toBe(`correct-${index}`);
+      expect(question.correct_answer_text).toBe(`correct-${index}`);
+    });
   });
 
   it("leaves essay and malformed items untouched", () => {
