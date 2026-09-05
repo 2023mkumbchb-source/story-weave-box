@@ -277,7 +277,7 @@ export function useAccess() {
     /** unlocked = free site, or a valid pass */
     unlocked: isFree || hasPass || ownerAccess,
     /** Answers/reveals are a subscriber feature — never unlocked for guests. */
-    canReveal: hasPass || ownerAccess,
+    canReveal: isFree || hasPass || ownerAccess,
     /** PDF handouts are a pro feature: subscribers only. */
     canDownload: ownerAccess || ((settings?.downloadEnabled ?? true) && !!pass?.allow_download),
     applyPass: (p: AccessPass) => setPass(p),
