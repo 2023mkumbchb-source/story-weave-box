@@ -14,7 +14,7 @@ import { isPublicMcqSet } from "@/lib/content-policy";
 
 type LiveResource = { id: string; title: string; category: string; type: "Article" | "Exam / MCQ" | "Flashcards"; resourceType: ResourceType; material: SupplementaryMaterial; answerReadiness: AnswerReadiness; path: string; group: string; size: number };
 
-const GROUP_ORDER = [...SUPPLEMENTARY_GROUPS];
+const GROUP_ORDER: string[] = [...SUPPLEMENTARY_GROUPS];
 const MATERIAL_ORDER = [...SUPPLEMENTARY_MATERIALS];
 
 const progressKey = (type: ResourceType, id: string) => `${type}:${id}`;

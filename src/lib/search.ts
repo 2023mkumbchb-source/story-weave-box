@@ -159,7 +159,7 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
   if (filters.unitId) topicQ = topicQ.eq("unit_id", filters.unitId);
 
   const storyQ = filters.includeStories
-    ? supabase
+    ? (supabase as any)
         .from("stories")
         .select("id, title, slug, category, updated_at, content")
         .eq("published", true)
