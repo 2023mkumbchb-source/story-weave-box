@@ -10,32 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -151,56 +126,6 @@ export type Database = {
           value?: string
         }
         Relationships: []
-      }
-      article_answer_attempts: {
-        Row: {
-          article_id: string
-          attempted_at: string
-          category: string | null
-          correct_answer: string
-          id: string
-          is_correct: boolean
-          question_key: string
-          question_text: string
-          selected_answer: string
-          topic_label: string | null
-          user_id: string
-        }
-        Insert: {
-          article_id: string
-          attempted_at?: string
-          category?: string | null
-          correct_answer: string
-          id?: string
-          is_correct: boolean
-          question_key: string
-          question_text?: string
-          selected_answer: string
-          topic_label?: string | null
-          user_id: string
-        }
-        Update: {
-          article_id?: string
-          attempted_at?: string
-          category?: string | null
-          correct_answer?: string
-          id?: string
-          is_correct?: boolean
-          question_key?: string
-          question_text?: string
-          selected_answer?: string
-          topic_label?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "article_answer_attempts_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "articles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       article_categories: {
         Row: {
@@ -549,9 +474,6 @@ export type Database = {
           deleted_at: string | null
           id: string
           long_answer_questions: Json
-          meta_description: string | null
-          meta_title: string | null
-          og_image_url: string | null
           published: boolean
           short_answer_questions: Json
           slug: string | null
@@ -565,9 +487,6 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           long_answer_questions?: Json
-          meta_description?: string | null
-          meta_title?: string | null
-          og_image_url?: string | null
           published?: boolean
           short_answer_questions?: Json
           slug?: string | null
@@ -581,9 +500,6 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           long_answer_questions?: Json
-          meta_description?: string | null
-          meta_title?: string | null
-          og_image_url?: string | null
           published?: boolean
           short_answer_questions?: Json
           slug?: string | null
@@ -660,6 +576,7 @@ export type Database = {
           mcq_total: number
           saq_answers: Json
           student_name: string
+          submit_reason: string | null
           submitted_at: string
           time_taken_seconds: number
           unit: string
@@ -676,6 +593,7 @@ export type Database = {
           mcq_total?: number
           saq_answers?: Json
           student_name?: string
+          submit_reason?: string | null
           submitted_at?: string
           time_taken_seconds?: number
           unit?: string
@@ -692,6 +610,7 @@ export type Database = {
           mcq_total?: number
           saq_answers?: Json
           student_name?: string
+          submit_reason?: string | null
           submitted_at?: string
           time_taken_seconds?: number
           unit?: string
@@ -717,9 +636,6 @@ export type Database = {
           html_embed: Json | null
           id: string
           is_raw: boolean | null
-          meta_description: string | null
-          meta_title: string | null
-          og_image_url: string | null
           original_notes: string
           password_protected: boolean
           published: boolean
@@ -755,9 +671,6 @@ export type Database = {
           html_embed?: Json | null
           id?: string
           is_raw?: boolean | null
-          meta_description?: string | null
-          meta_title?: string | null
-          og_image_url?: string | null
           original_notes?: string
           password_protected?: boolean
           published?: boolean
@@ -793,9 +706,6 @@ export type Database = {
           html_embed?: Json | null
           id?: string
           is_raw?: boolean | null
-          meta_description?: string | null
-          meta_title?: string | null
-          og_image_url?: string | null
           original_notes?: string
           password_protected?: boolean
           published?: boolean
@@ -1158,36 +1068,21 @@ export type Database = {
       }
       profiles: {
         Row: {
-          course: string | null
           created_at: string
           display_name: string | null
           id: string
-          onboarding_completed: boolean
-          study_year: number | null
-          university: string | null
-          updated_at: string
           user_id: string
         }
         Insert: {
-          course?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
-          onboarding_completed?: boolean
-          study_year?: number | null
-          university?: string | null
-          updated_at?: string
           user_id: string
         }
         Update: {
-          course?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
-          onboarding_completed?: boolean
-          study_year?: number | null
-          university?: string | null
-          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -2068,12 +1963,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2097,11 +1992,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2122,11 +2017,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2147,11 +2042,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2164,11 +2059,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2178,9 +2073,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["admin", "user"],
