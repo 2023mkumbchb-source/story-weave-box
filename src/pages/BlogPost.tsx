@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccess } from "@/lib/access";
 import { SubscribeModal } from "@/components/SubscribeModal";
-import { useScrollSubscribePrompt } from "@/lib/subscribe-prompt";
+import { openSubscribePrompt, useScrollSubscribePrompt } from "@/lib/subscribe-prompt";
 import StudyControls from "@/components/StudyControls";
 import HelpfulVote from "@/components/HelpfulVote";
 import ArticleMcqOption from "@/components/ArticleMcqOption";
@@ -206,7 +206,7 @@ function PracticeQuestion({ number, question, answer }: { number: string; questi
   const locked = !access.canReveal;
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <button disabled={locked} onClick={() => setOpen(o => !o)} className={`w-full flex items-start gap-3 px-4 py-4 sm:px-5 sm:py-4 text-left transition-colors ${locked ? "cursor-default opacity-75" : "hover:bg-muted/30"}`}>
+      <button onClick={() => locked ? openSubscribePrompt("Subscribe or restore your pass to reveal this answer.") : setOpen(o => !o)} className={`w-full flex items-start gap-3 px-4 py-4 sm:px-5 sm:py-4 text-left transition-colors ${locked ? "hover:bg-muted/30" : "hover:bg-muted/30"}`}>
         <span className="shrink-0 flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold mt-0.5">{number}</span>
         <span className="flex-1 text-sm sm:text-[15px] font-medium text-foreground leading-relaxed"><Inline text={question} /></span>
         {locked ? <Lock className="h-4 w-4 shrink-0 text-muted-foreground mt-1" /> : <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground mt-1 transition-transform ${open ? "rotate-180" : ""}`} />}
@@ -238,7 +238,7 @@ function EssayQuestion({ number, question, answer }: { number: string; question:
       </div>
       {answer && (
         <div className="mt-3">
-          <button type="button" disabled={locked} onClick={() => setOpen((value) => !value)} className={`flex w-full items-center justify-between rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-left text-sm font-semibold text-primary ${locked ? "cursor-default opacity-75" : ""}`}>
+          <button type="button" onClick={() => locked ? openSubscribePrompt("Subscribe or restore your pass to reveal this model answer.") : setOpen((value) => !value)} className="flex w-full items-center justify-between rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-left text-sm font-semibold text-primary">
             <span className="inline-flex items-center gap-2">{locked ? <Lock className="h-4 w-4" /> : <Eye className="h-4 w-4" />}{locked ? "Model answer — subscribers" : open ? "Hide model answer" : "Reveal model answer"}</span>
             {!locked && <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />}
           </button>
@@ -301,9 +301,8 @@ function McqAnswerBlock({ raw, articleId, questionKey }: { raw: string; articleI
     <div id={articleId && questionKey ? `answer-${articleId}-${questionKey}` : undefined} className="not-prose my-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
       <button
         type="button"
-        disabled={locked}
-        onClick={() => setOpen((o) => !o)}
-        className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${locked ? "cursor-default opacity-75" : "hover:bg-emerald-500/10"}`}
+        onClick={() => locked ? openSubscribePrompt("Subscribe or restore your pass to reveal this verified answer.") : setOpen((o) => !o)}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-emerald-500/10"
       >
         <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
           {locked ? <Lock className="h-4 w-4" /> : open ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -343,7 +342,7 @@ function InlineAnswerBlock({ raw }: { raw: string }) {
   if (!cleaned.length) return null;
   return (
     <div className="not-prose my-4 overflow-hidden rounded-xl border border-primary/25 bg-primary/5">
-      <button type="button" disabled={locked} onClick={() => setOpen((value) => !value)} className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-primary ${locked ? "cursor-default opacity-75" : ""}`}>
+      <button type="button" onClick={() => locked ? openSubscribePrompt("Subscribe or restore your pass to reveal this answer.") : setOpen((value) => !value)} className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-primary">
         <span className="inline-flex items-center gap-2">{locked ? <Lock className="h-4 w-4" /> : <Eye className="h-4 w-4" />}{locked ? "Reveal — subscribers" : open ? "Hide answer" : "Reveal answer"}</span>
         {!locked && <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />}
       </button>

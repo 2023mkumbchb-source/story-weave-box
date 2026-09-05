@@ -377,10 +377,9 @@ function SlideCard({
         <div className="px-4 py-3">
           <button
             type="button"
-            disabled={locked}
-            onClick={() => setOpen((o) => !o)}
+            onClick={() => locked ? openSubscribePrompt("Subscribe or restore your pass to reveal this plate answer.") : setOpen((o) => !o)}
             aria-expanded={locked ? false : open}
-            className={`inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-colors ${locked ? "cursor-default opacity-75" : "hover:bg-primary/10"}`}
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
           >
             {locked ? <Lock className="h-3.5 w-3.5" /> : open ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             {locked ? "Reveal (subscribers)" : open ? "Hide" : "Reveal"}
@@ -517,9 +516,15 @@ export function SlideDeckView({
           </div>
           <button
             type="button"
-            disabled={locked}
-            onClick={() => { setRevealAll((v) => !v); setAllKey((k) => k + 1); }}
-            className={`inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors ${locked ? "cursor-default opacity-75" : "hover:border-primary/40 hover:text-primary"}`}
+            onClick={() => {
+              if (locked) {
+                openSubscribePrompt("Subscribe or restore your pass to reveal all plate answers.");
+                return;
+              }
+              setRevealAll((v) => !v);
+              setAllKey((k) => k + 1);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
           >
             {locked ? <Lock className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
             {locked ? "Reveal all" : revealAll ? "Hide all" : "Reveal all"}
