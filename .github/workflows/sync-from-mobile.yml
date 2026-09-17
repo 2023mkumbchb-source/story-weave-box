@@ -22,6 +22,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Save website-only files before sync
+        run: |
+          set -e
+          mkdir -p /tmp/website-only
+          cp src/components/SiteFooter.tsx /tmp/website-only/SiteFooter.tsx
+          cp src/App.tsx /tmp/website-only/App.before.tsx
+
       - name: Checkout current APK/web source
         uses: actions/checkout@v4
         with:
@@ -33,7 +40,7 @@ jobs:
       - name: Sync shared application code and public assets
         run: |
           set -e
-          rsync -a --delete mobile-source/src/ src/
+          rsync -a --delete --exclude='components/SiteFooter.tsx' --exclude='components/MobileBottomNav.tsx' --exclude='components/NotificationBanner.tsx' --exclude='components/AdminNotifications.tsx' --exclude='pages/Notifications.tsx' --exclude='lib/notifications.ts' --exclude='lib/notification-navigation.ts' mobile-source/src/ src/
           rsync -a --delete mobile-source/public/ public/
           cp mobile-source/package.json package.json
           cp mobile-source/package-lock.json package-lock.json
@@ -44,6 +51,34 @@ jobs:
           cp mobile-source/tailwind.config.ts tailwind.config.ts
           cp mobile-source/postcss.config.js postcss.config.js
           cp mobile-source/eslint.config.js eslint.config.js
+          cp /tmp/website-only/SiteFooter.tsx src/components/SiteFooter.tsx
+
+      - name: Make App.tsx web-specific
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/App.tsx')
+          s = p.read_text()
+          removals = [
+              'import MobileBottomNav from "@/components/MobileBottomNav";\n',
+              'import OfflineStatusBanner from "@/components/OfflineStatusBanner";\n',
+              'import NotificationBanner from "@/components/NotificationBanner";\n',
+              'import { setupNativeNotificationListener } from "@/lib/notifications";\n',
+              'import { openNotificationAction } from "@/lib/notification-navigation";\n',
+          ]
+          for x in removals: s = s.replace(x, '')
+          s = s.replace('  useEffect(() => {\n    setupNativeNotificationListener((url) => {\n      openNotificationAction(url, navigate);\n    });\n    void initOtaUpdater();\n  }, [navigate]);', '  useEffect(() => {\n    void initOtaUpdater();\n  }, []);')
+          s = s.replace('  const navigate = useNavigate();\n  useMobileApp();', '  useMobileApp();')
+          s = s.replace('import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";', 'import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";')
+          s = s.replace('            <NotificationBanner />\n', '')
+          s = s.replace('            <OfflineStatusBanner />\n', '')
+          s = s.replace('            <MobileBottomNav />\n', '')
+          s = s.replace('            <Route path="/notifications" element={<SignedInRoute><Notifications /></SignedInRoute>} />\n', '')
+          s = s.replace('            <Route path="/admin/notifications" element={<AdminRoute><AdminNotifications /></AdminRoute>} />\n', '')
+          s = s.replace('const Notifications = lazy(() => import("./pages/Notifications"));\n', '')
+          s = s.replace('const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));\n', '')
+          p.write_text(s)
+          PY
 
       - name: Sync Supabase migrations and functions without removing website-only APIs
         run: |
@@ -75,5 +110,5 @@ jobs:
             echo "Website is already synchronized with the mobile source."
             exit 0
           fi
-          git commit -m "Sync website with latest Ompath mobile features"
+          git commit -m "Sync web features while preserving website-only UI"
           git push origin HEAD:main
