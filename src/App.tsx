@@ -58,6 +58,7 @@ const ContestRehearsal = lazy(() => import("./pages/ContestRehearsal"));
 const ContestProgress = lazy(() => import("./pages/ContestProgress"));
 const ContestCertificate = lazy(() => import("./pages/ContestCertificate"));
 const ContestAppealsAdmin = lazy(() => import("./pages/ContestAppealsAdmin"));
+const AppDownload = lazy(() => import("./pages/AppDownload"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -123,6 +124,7 @@ const AnimatedRoutes = () => {
             <Route path="/source-library" element={<AdminRoute><SourceLibrary /></AdminRoute>} />
             <Route path="/source-library/:slug" element={<AdminRoute><SourceLibrary /></AdminRoute>} />
             <Route path="/about" element={<About />} />
+            <Route path="/download-app" element={<AppDownload />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
