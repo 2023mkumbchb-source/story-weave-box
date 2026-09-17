@@ -30,6 +30,7 @@ jobs:
           mkdir -p /tmp/website-only
           cp src/components/SiteFooter.tsx /tmp/website-only/SiteFooter.tsx
           cp src/pages/AppDownload.tsx /tmp/website-only/AppDownload.tsx
+          cp src/components/AccessRoute.tsx /tmp/website-only/AccessRoute.tsx
 
       - name: Checkout current APK/web source
         uses: actions/checkout@v4
@@ -56,6 +57,7 @@ jobs:
             --exclude='hooks/useMobileApp.ts' \
             --exclude='hooks/useAutoSync.ts' \
             --exclude='lib/otaUpdater.ts' \
+            --exclude='components/AccessRoute.tsx' \
             mobile-source/src/ src/
           rsync -a --delete mobile-source/public/ public/
           rsync -a --delete mobile-source/scripts/ scripts/
@@ -70,6 +72,7 @@ jobs:
           cp mobile-source/eslint.config.js eslint.config.js
           cp /tmp/website-only/SiteFooter.tsx src/components/SiteFooter.tsx
           cp /tmp/website-only/AppDownload.tsx src/pages/AppDownload.tsx
+          cp /tmp/website-only/AccessRoute.tsx src/components/AccessRoute.tsx
 
       - name: Make App.tsx web-specific
         run: |
@@ -120,7 +123,7 @@ jobs:
               '            <Route path="/contests/:slug/certificate/:attemptId" element={<ContestCertificate />} />': '            <Route path="/contests/:slug/certificate/:attemptId" element={<SignedInRoute><ContestCertificate /></SignedInRoute>} />',
               '            <Route path="/submit-story" element={<SubmitStory />} />': '            <Route path="/submit-story" element={<SignedInRoute><SubmitStory /></SignedInRoute>} />',
               '            <Route path="/account" element={<Account />} />': '            <Route path="/account" element={<SignedInRoute><Account /></SignedInRoute>} />',
-              '            <Route path="/admin" element={<Admin />} />': '            <Route path="/admin/payments" element={<AdminRoute><Navigate to="/admin#payments" replace /></AdminRoute>} />\n            <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />',
+              '            <Route path="/admin" element={<Admin />} />': '            <Route path="/admin/payments" element={<AdminRoute><Navigate to="/admin#payments" replace /></AdminRoute>} />\n            <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>}',
               '            <Route path="/admin/unedited-uploads" element={<Navigate to="/source-library" replace />} />': '            <Route path="/admin/unedited-uploads" element={<AdminRoute><Navigate to="/source-library" replace /></AdminRoute>} />',
               '            <Route path="/unedited-uploads" element={<Navigate to="/source-library" replace />} />': '            <Route path="/unedited-uploads" element={<AdminRoute><Navigate to="/source-library" replace /></AdminRoute>} />',
               '            <Route path="/source-library" element={<SourceLibrary />} />': '            <Route path="/source-library" element={<AdminRoute><SourceLibrary /></AdminRoute>} />',
