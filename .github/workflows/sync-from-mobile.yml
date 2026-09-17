@@ -1,0 +1,79 @@
+name: Sync website from Ompath mobile source
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-from-mobile
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout website
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout current APK/web source
+        uses: actions/checkout@v4
+        with:
+          repository: 2023mkumbchb-source/ompathstudy-mobile
+          ref: main
+          path: mobile-source
+          fetch-depth: 1
+
+      - name: Sync shared application code and public assets
+        run: |
+          set -e
+          rsync -a --delete mobile-source/src/ src/
+          rsync -a --delete mobile-source/public/ public/
+          cp mobile-source/package.json package.json
+          cp mobile-source/package-lock.json package-lock.json
+          cp mobile-source/tsconfig.json tsconfig.json
+          cp mobile-source/tsconfig.app.json tsconfig.app.json
+          cp mobile-source/tsconfig.node.json tsconfig.node.json
+          cp mobile-source/vite.config.ts vite.config.ts
+          cp mobile-source/tailwind.config.ts tailwind.config.ts
+          cp mobile-source/postcss.config.js postcss.config.js
+          cp mobile-source/eslint.config.js eslint.config.js
+
+      - name: Sync Supabase migrations and functions without removing website-only APIs
+        run: |
+          set -e
+          mkdir -p supabase
+          if [ -d mobile-source/supabase/migrations ]; then
+            mkdir -p supabase/migrations
+            rsync -a mobile-source/supabase/migrations/ supabase/migrations/
+          fi
+          if [ -d mobile-source/supabase/functions ]; then
+            mkdir -p supabase/functions
+            rsync -a mobile-source/supabase/functions/ supabase/functions/
+          fi
+
+      - name: Build the synchronized website
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+        env:
+          VITE_SUPABASE_URL: https://dekyjrfwvavtoivqivno.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_jOXeiFMWJj1z_M-zShimXA_cG9f2QxL
+
+      - name: Commit synchronized changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src public package.json package-lock.json tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts tailwind.config.ts postcss.config.js eslint.config.js supabase .github/workflows/sync-from-mobile.yml
+          if git diff --cached --quiet; then
+            echo "Website is already synchronized with the mobile source."
+            exit 0
+          fi
+          git commit -m "Sync website with latest Ompath mobile features"
+          git push origin HEAD:main
