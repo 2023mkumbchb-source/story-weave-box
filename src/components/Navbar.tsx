@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, GraduationCap, Home, LayoutDashboard, Menu, Trophy, ChevronRight, UserRound, Target, Database, ListChecks } from "lucide-react";
+import { BookOpen, GraduationCap, Home, LayoutDashboard, Menu, Trophy, ChevronRight, UserRound, Target, Database, ListChecks, Smartphone } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import ThemeToggle from "./ThemeToggle";
@@ -47,6 +47,7 @@ export default function Navbar() {
       { to: "/revision-index", label: "Exam Revision", icon: ListChecks },
       { to: "/contests", label: "Mega Contest", icon: Trophy },
       { to: "/account", label: "Account", icon: UserRound },
+      { to: "/download-app", label: "Download APK", icon: Smartphone },
     ];
     if (isAdmin) {
       base.push({ to: "/admin", label: "Dashboard", icon: LayoutDashboard });
@@ -91,9 +92,6 @@ export default function Navbar() {
         if (nextDirection !== direction) distance = 0;
         direction = nextDirection;
         distance += Math.abs(delta);
-
-        // Accumulate small touch/trackpad movements instead of requiring one
-        // unusually large scroll frame. This also filters out mobile jitter.
         if (distance >= 12) {
           setHidden(direction === "down");
           distance = 0;
@@ -249,30 +247,30 @@ export default function Navbar() {
                           </button>
 
                           {isExpanded && (
-                              <div className="overflow-hidden">
-                                <div className="ml-3 border-l border-white/10 pl-3 py-1">
-                                  {YEAR_SECTIONS.map((s) => {
-                                    const to = `/${s.path}?year=${encodeURIComponent(`Year ${yr}`)}`;
-                                    const active = activeSection === s.path && activeYear === yr;
-                                    return (
-                                      <Link
-                                        key={s.path}
-                                        to={to}
-                                        onClick={() => setSidebarOpen(false)}
-                                        className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] font-medium transition-colors ${
-                                          active
-                                            ? "bg-white/15 text-white"
-                                            : "text-white/60 hover:text-white hover:bg-white/10"
-                                        }`}
-                                      >
-                                        <s.icon className="h-3.5 w-3.5" />
-                                        {s.label}
-                                      </Link>
-                                    );
-                                  })}
-                                </div>
+                            <div className="overflow-hidden">
+                              <div className="ml-3 border-l border-white/10 pl-3 py-1">
+                                {YEAR_SECTIONS.map((s) => {
+                                  const to = `/${s.path}?year=${encodeURIComponent(`Year ${yr}`)}`;
+                                  const active = activeSection === s.path && activeYear === yr;
+                                  return (
+                                    <Link
+                                      key={s.path}
+                                      to={to}
+                                      onClick={() => setSidebarOpen(false)}
+                                      className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] font-medium transition-colors ${
+                                        active
+                                          ? "bg-white/15 text-white"
+                                          : "text-white/60 hover:text-white hover:bg-white/10"
+                                      }`}
+                                    >
+                                      <s.icon className="h-3.5 w-3.5" />
+                                      {s.label}
+                                    </Link>
+                                  );
+                                })}
                               </div>
-                            )}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -284,30 +282,30 @@ export default function Navbar() {
         </div>
 
         {activeYear && (
-            <div className="hidden md:block overflow-hidden border-t border-white/10 bg-[hsl(174,62%,18%)]">
-              <div className="no-scrollbar mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 py-1.5 sm:px-6" style={{ scrollbarWidth: "none" }}>
-                <span className="mr-2 shrink-0 text-xs font-bold text-white/50">Year {activeYear}</span>
-                {YEAR_SECTIONS.map((s) => {
-                  const to = `/${s.path}?year=${encodeURIComponent(`Year ${activeYear}`)}`;
-                  const active = activeSection === s.path;
-                  return (
-                    <Link
-                      key={s.path}
-                      to={to}
-                      className={`flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                        active
-                          ? "bg-white/20 text-white"
-                          : "text-white/60 hover:text-white hover:bg-white/10"
-                      }`}
-                    >
-                      <s.icon className="h-3.5 w-3.5" />
-                      {s.label}
-                    </Link>
-                  );
-                })}
-              </div>
+          <div className="hidden md:block overflow-hidden border-t border-white/10 bg-[hsl(174,62%,18%)]">
+            <div className="no-scrollbar mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 py-1.5 sm:px-6" style={{ scrollbarWidth: "none" }}>
+              <span className="mr-2 shrink-0 text-xs font-bold text-white/50">Year {activeYear}</span>
+              {YEAR_SECTIONS.map((s) => {
+                const to = `/${s.path}?year=${encodeURIComponent(`Year ${activeYear}`)}`;
+                const active = activeSection === s.path;
+                return (
+                  <Link
+                    key={s.path}
+                    to={to}
+                    className={`flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                      active
+                        ? "bg-white/20 text-white"
+                        : "text-white/60 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <s.icon className="h-3.5 w-3.5" />
+                    {s.label}
+                  </Link>
+                );
+              })}
             </div>
-          )}
+          </div>
+        )}
       </nav>
     </>
   );
