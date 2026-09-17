@@ -27,7 +27,6 @@ jobs:
           set -e
           mkdir -p /tmp/website-only
           cp src/components/SiteFooter.tsx /tmp/website-only/SiteFooter.tsx
-          cp src/App.tsx /tmp/website-only/App.before.tsx
 
       - name: Checkout current APK/web source
         uses: actions/checkout@v4
@@ -40,7 +39,20 @@ jobs:
       - name: Sync shared application code and public assets
         run: |
           set -e
-          rsync -a --delete --exclude='components/SiteFooter.tsx' --exclude='components/MobileBottomNav.tsx' --exclude='components/NotificationBanner.tsx' --exclude='components/AdminNotifications.tsx' --exclude='pages/Notifications.tsx' --exclude='lib/notifications.ts' --exclude='lib/notification-navigation.ts' mobile-source/src/ src/
+          rsync -a --delete \
+            --exclude='components/SiteFooter.tsx' \
+            --exclude='components/MobileBottomNav.tsx' \
+            --exclude='components/OfflineStatusBanner.tsx' \
+            --exclude='components/NotificationBanner.tsx' \
+            --exclude='components/AdminNotifications.tsx' \
+            --exclude='components/MedicalLaunchExperience.tsx' \
+            --exclude='pages/Notifications.tsx' \
+            --exclude='lib/notifications.ts' \
+            --exclude='lib/notification-navigation.ts' \
+            --exclude='hooks/useMobileApp.ts' \
+            --exclude='hooks/useAutoSync.ts' \
+            --exclude='lib/otaUpdater.ts' \
+            mobile-source/src/ src/
           rsync -a --delete mobile-source/public/ public/
           cp mobile-source/package.json package.json
           cp mobile-source/package-lock.json package-lock.json
@@ -59,24 +71,139 @@ jobs:
           from pathlib import Path
           p = Path('src/App.tsx')
           s = p.read_text()
-          removals = [
+
+          # Remove mobile/native-only imports.
+          for x in [
+              'import { Suspense, lazy, useEffect } from "react";',
               'import MobileBottomNav from "@/components/MobileBottomNav";\n',
+              'import { useMobileApp } from "@/hooks/useMobileApp";\n',
               'import OfflineStatusBanner from "@/components/OfflineStatusBanner";\n',
               'import NotificationBanner from "@/components/NotificationBanner";\n',
               'import { setupNativeNotificationListener } from "@/lib/notifications";\n',
               'import { openNotificationAction } from "@/lib/notification-navigation";\n',
-          ]
-          for x in removals: s = s.replace(x, '')
-          s = s.replace('  useEffect(() => {\n    setupNativeNotificationListener((url) => {\n      openNotificationAction(url, navigate);\n    });\n    void initOtaUpdater();\n  }, [navigate]);', '  useEffect(() => {\n    void initOtaUpdater();\n  }, []);')
-          s = s.replace('  const navigate = useNavigate();\n  useMobileApp();', '  useMobileApp();')
-          s = s.replace('import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";', 'import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";')
-          s = s.replace('            <NotificationBanner />\n', '')
-          s = s.replace('            <OfflineStatusBanner />\n', '')
-          s = s.replace('            <MobileBottomNav />\n', '')
-          s = s.replace('            <Route path="/notifications" element={<SignedInRoute><Notifications /></SignedInRoute>} />\n', '')
-          s = s.replace('            <Route path="/admin/notifications" element={<AdminRoute><AdminNotifications /></AdminRoute>} />\n', '')
+              'import { useAutoSync } from "@/hooks/useAutoSync";\n',
+              'import MedicalLaunchExperience from "@/components/MedicalLaunchExperience";\n',
+              'import { initOtaUpdater } from "@/lib/otaUpdater";\n',
+          ]:
+              s = s.replace(x, '')
+
+          s = s.replace(
+              'import { Suspense, lazy, useEffect } from "react";',
+              'import { Suspense, lazy } from "react";'
+          )
+          s = s.replace(
+              'import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";',
+              'import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";'
+          )
+
+          # Remove notification-only lazy pages, but retain the general Updates page.
           s = s.replace('const Notifications = lazy(() => import("./pages/Notifications"));\n', '')
           s = s.replace('const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));\n', '')
+
+          # Remove the mobile bridge completely (native callbacks, OTA, mobile sync).
+          start = s.find('function MobileAppBridge() {')
+          if start != -1:
+              end = s.find('\nconst App = () =>', start)
+              if end == -1:
+                  raise SystemExit('Could not find end of MobileAppBridge')
+              s = s[:start] + s[end + 1:]
+
+          # Remove mobile-only UI and notification routes.
+          for x in [
+              '            <MobileAppBridge />\n',
+              '            <MedicalLaunchExperience />\n',
+              '            <NotificationBanner />\n',
+              '            <OfflineStatusBanner />\n',
+              '            <MobileBottomNav />\n',
+              '            <Route path="/notifications" element={<SignedInRoute><Notifications /></SignedInRoute>} />\n',
+              '            <Route path="/admin/notifications" element={<AdminRoute><AdminNotifications /></AdminRoute>} />\n',
+          ]:
+              s = s.replace(x, '')
+
+          # Keep the shared authentication/authorization changes from the APK.
+          # These routes are shared web functionality, not mobile UI.
+          s = s.replace(
+              '            <Route path="/my-revision" element={<MyRevision />} />',
+              '            <Route path="/my-revision" element={<SignedInRoute><MyRevision /></SignedInRoute>}'
+          )
+          s = s.replace(
+              '            <Route path="/revision-planner" element={<RevisionPlanner />} />',
+              '            <Route path="/revision-planner" element={<SignedInRoute><RevisionPlanner /></SignedInRoute>}'
+          )
+          s = s.replace(
+              '            <Route path="/mcqs" element={<Navigate to="/blog" replace />} />\n            <Route path="/mcqs/:id" element={<Navigate to="/blog" replace />} />',
+              '            <Route path="/mcqs" element={<Exams />} />\n            <Route path="/mcqs/:id" element={<ExamStart />} />'
+          )
+          s = s.replace(
+              '            <Route path="/contests/:slug/register" element={<ContestRegistration />} />',
+              '            <Route path="/contests/:slug/register" element={<SignedInRoute><ContestRegistration /></SignedInRoute>}'
+          )
+          s = s.replace(
+              '            <Route path="/contests/:slug/lobby" element={<ContestLobby />} />',
+              '            <Route path="/contests/:slug/lobby" element={<SignedInRoute><ContestLobby /></SignedInRoute>}'
+          )
+          s = s.replace(
+              '            <Route path="/contests/:slug/round/:roundId" element={<ContestRound />} />',
+              '            <Route path="/contests/:slug/round/:roundId" element={<SignedInRoute><ContestRound /></SignedInRoute>}'
+          )
+          s = s.replace(
+              '            <Route path="/contests/:slug/progress" element={<ContestProgress />} />',
+              '            <Route path="/contests/:slug/progress" element={<SignedInRoute><ContestProgress /></SignedInRoute>}'
+          )
+          s = s.replace(
+              '            <Route path="/contests/:slug/certificate/:attemptId" element={<ContestCertificate />} />',
+              '            <Route path="/contests/:slug/certificate/:attemptId" element={<SignedInRoute><ContestCertificate /></SignedInRoute>}'
+          )
+          for name, path in [
+              ('AdminEditor', '/admin/editor'),
+              ('CategoryManager', '/admin/categories'),
+              ('StudySystemAdmin', '/admin/study-system'),
+              ('ContestAdmin', '/admin/contests'),
+              ('ContestSetup', '/admin/contests/setup'),
+              ('ContestQuestionAdmin', '/admin/contests/questions'),
+              ('ContestOperations', '/admin/contests/operations'),
+              ('ContestRehearsal', '/admin/contests/rehearsal'),
+              ('ContestAppealsAdmin', '/admin/contests/appeals'),
+          ]:
+              s = s.replace(
+                  f'            <Route path="{path}" element={<{name} />} />',
+                  f'            <Route path="{path}" element={{<AdminRoute><{name} /></AdminRoute>}} />'
+              )
+          s = s.replace(
+              '            <Route path="/submit-story" element={<SubmitStory />} />',
+              '            <Route path="/submit-story" element={<SignedInRoute><SubmitStory /></SignedInRoute>}'
+          )
+          s = s.replace(
+              '            <Route path="/account" element={<Account />} />',
+              '            <Route path="/account" element={<SignedInRoute><Account /></SignedInRoute>}'
+          )
+          s = s.replace(
+              '            <Route path="/admin" element={<Admin />} />',
+              '            <Route path="/admin/payments" element={<AdminRoute><Navigate to="/admin#payments" replace /></AdminRoute>} />\n            <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>}'
+          )
+          s = s.replace(
+              '            <Route path="/admin/unedited-uploads" element={<Navigate to="/source-library" replace />} />',
+              '            <Route path="/admin/unedited-uploads" element={<AdminRoute><Navigate to="/source-library" replace /></AdminRoute>}'
+          )
+          s = s.replace(
+              '            <Route path="/unedited-uploads" element={<Navigate to="/source-library" replace />} />',
+              '            <Route path="/unedited-uploads" element={<AdminRoute><Navigate to="/source-library" replace /></AdminRoute>}'
+          )
+          s = s.replace(
+              '            <Route path="/source-library" element={<SourceLibrary />} />',
+              '            <Route path="/source-library" element={<AdminRoute><SourceLibrary /></AdminRoute>}'
+          )
+          s = s.replace(
+              '            <Route path="/source-library/:slug" element={<SourceLibrary />} />',
+              '            <Route path="/source-library/:slug" element={<AdminRoute><SourceLibrary /></AdminRoute>}'
+          )
+
+          # Ensure AccessRoute is imported because shared protected routes use it.
+          if 'import { AdminRoute, SignedInRoute } from "@/components/AccessRoute";' not in s:
+              anchor = 'import LearnerProfileGate from "@/components/LearnerProfileGate";\n'
+              s = s.replace(anchor, anchor + 'import { AdminRoute, SignedInRoute } from "@/components/AccessRoute";\n')
+
+          # Keep the website footer; mobile footer is intentionally not synced.
           p.write_text(s)
           PY
 
@@ -110,5 +237,5 @@ jobs:
             echo "Website is already synchronized with the mobile source."
             exit 0
           fi
-          git commit -m "Sync web features while preserving website-only UI"
+          git commit -m "Sync shared mobile features while preserving web-only UI"
           git push origin HEAD:main
