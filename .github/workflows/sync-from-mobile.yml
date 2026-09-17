@@ -56,6 +56,7 @@ jobs:
             --exclude='lib/otaUpdater.ts' \
             mobile-source/src/ src/
           rsync -a --delete mobile-source/public/ public/
+          rsync -a --delete mobile-source/scripts/ scripts/
           cp mobile-source/package.json package.json
           cp mobile-source/package-lock.json package-lock.json
           cp mobile-source/tsconfig.json tsconfig.json
@@ -151,7 +152,6 @@ jobs:
               anchor = 'import LearnerProfileGate from "@/components/LearnerProfileGate";\n'
               s = s.replace(anchor, anchor + 'import { AdminRoute, SignedInRoute } from "@/components/AccessRoute";\n')
 
-          # Re-add the website-only APK download route after the mobile-to-web transformation.
           if 'const AppDownload = lazy(() => import("./pages/AppDownload"));' not in s:
               anchor = 'const NotFound = lazy(() => import("./pages/NotFound"));'
               s = s.replace(anchor, 'const AppDownload = lazy(() => import("./pages/AppDownload"));\n' + anchor)
@@ -187,7 +187,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src public package.json package-lock.json tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts tailwind.config.ts postcss.config.js eslint.config.js supabase .github/workflows/sync-from-mobile.yml
+          git add src public scripts package.json package-lock.json tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts tailwind.config.ts postcss.config.js eslint.config.js supabase .github/workflows/sync-from-mobile.yml
           if git diff --cached --quiet; then
             echo "Website is already synchronized with the mobile source."
             exit 0
