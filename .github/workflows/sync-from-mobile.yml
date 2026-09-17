@@ -3,6 +3,8 @@ name: Sync website from Ompath mobile source
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -15,7 +17,7 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout website
         uses: actions/checkout@v4
@@ -75,10 +77,8 @@ jobs:
           from pathlib import Path
           p = Path('src/App.tsx')
           s = p.read_text()
-
           s = s.replace('import { Suspense, lazy, useEffect } from "react";', 'import { Suspense, lazy } from "react";')
           s = s.replace(', useNavigate', '')
-
           for x in [
               'import MobileBottomNav from "@/components/MobileBottomNav";\n',
               'import { useMobileApp } from "@/hooks/useMobileApp";\n',
@@ -93,14 +93,12 @@ jobs:
               'const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));\n',
           ]:
               s = s.replace(x, '')
-
           start = s.find('function MobileAppBridge() {')
           if start != -1:
               end = s.find('\nconst App = () =>', start)
               if end == -1:
                   raise SystemExit('Could not find MobileAppBridge end')
               s = s[:start] + s[end + 1:]
-
           for x in [
               '            <MobileAppBridge />\n',
               '            <MedicalLaunchExperience />\n',
@@ -111,7 +109,6 @@ jobs:
               '            <Route path="/admin/notifications" element={<AdminRoute><AdminNotifications /></AdminRoute>} />\n',
           ]:
               s = s.replace(x, '')
-
           replacements = {
               '            <Route path="/my-revision" element={<MyRevision />} />': '            <Route path="/my-revision" element={<SignedInRoute><MyRevision /></SignedInRoute>} />',
               '            <Route path="/revision-planner" element={<RevisionPlanner />} />': '            <Route path="/revision-planner" element={<SignedInRoute><RevisionPlanner /></SignedInRoute>} />',
@@ -123,7 +120,7 @@ jobs:
               '            <Route path="/contests/:slug/certificate/:attemptId" element={<ContestCertificate />} />': '            <Route path="/contests/:slug/certificate/:attemptId" element={<SignedInRoute><ContestCertificate /></SignedInRoute>} />',
               '            <Route path="/submit-story" element={<SubmitStory />} />': '            <Route path="/submit-story" element={<SignedInRoute><SubmitStory /></SignedInRoute>} />',
               '            <Route path="/account" element={<Account />} />': '            <Route path="/account" element={<SignedInRoute><Account /></SignedInRoute>} />',
-              '            <Route path="/admin" element={<Admin />} />': '            <Route path="/admin/payments" element={<AdminRoute><Navigate to="/admin#payments" replace /></AdminRoute>} />\n            <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />',
+              '            <Route path="/admin" element={<Admin />} />': '            <Route path="/admin/payments" element={<AdminRoute><Navigate to="/admin#payments" replace /></AdminRoute>} />\n            <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>}',
               '            <Route path="/admin/unedited-uploads" element={<Navigate to="/source-library" replace />} />': '            <Route path="/admin/unedited-uploads" element={<AdminRoute><Navigate to="/source-library" replace /></AdminRoute>} />',
               '            <Route path="/unedited-uploads" element={<Navigate to="/source-library" replace />} />': '            <Route path="/unedited-uploads" element={<AdminRoute><Navigate to="/source-library" replace /></AdminRoute>} />',
               '            <Route path="/source-library" element={<SourceLibrary />} />': '            <Route path="/source-library" element={<AdminRoute><SourceLibrary /></AdminRoute>} />',
@@ -131,7 +128,6 @@ jobs:
           }
           for old, new in replacements.items():
               s = s.replace(old, new)
-
           admin_routes = [
               ('/admin/editor', 'AdminEditor'),
               ('/admin/categories', 'CategoryManager'),
@@ -147,18 +143,15 @@ jobs:
               old = '            <Route path="' + path + '" element={<' + name + ' />} />'
               new = '            <Route path="' + path + '" element={<AdminRoute><' + name + ' /></AdminRoute>} />'
               s = s.replace(old, new)
-
           if 'import { AdminRoute, SignedInRoute } from "@/components/AccessRoute";' not in s:
               anchor = 'import LearnerProfileGate from "@/components/LearnerProfileGate";\n'
               s = s.replace(anchor, anchor + 'import { AdminRoute, SignedInRoute } from "@/components/AccessRoute";\n')
-
           if 'const AppDownload = lazy(() => import("./pages/AppDownload"));' not in s:
               anchor = 'const NotFound = lazy(() => import("./pages/NotFound"));'
               s = s.replace(anchor, 'const AppDownload = lazy(() => import("./pages/AppDownload"));\n' + anchor)
           if '<Route path="/download-app" element={<AppDownload />} />' not in s:
               anchor = '            <Route path="/about" element={<About />} />'
               s = s.replace(anchor, anchor + '\n            <Route path="/download-app" element={<AppDownload />} />')
-
           p.write_text(s)
           PY
 
