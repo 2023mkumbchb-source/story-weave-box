@@ -27,6 +27,7 @@ jobs:
           set -e
           mkdir -p /tmp/website-only
           cp src/components/SiteFooter.tsx /tmp/website-only/SiteFooter.tsx
+          cp src/pages/AppDownload.tsx /tmp/website-only/AppDownload.tsx
 
       - name: Checkout current APK/web source
         uses: actions/checkout@v4
@@ -47,6 +48,7 @@ jobs:
             --exclude='components/AdminNotifications.tsx' \
             --exclude='components/MedicalLaunchExperience.tsx' \
             --exclude='pages/Notifications.tsx' \
+            --exclude='pages/AppDownload.tsx' \
             --exclude='lib/notifications.ts' \
             --exclude='lib/notification-navigation.ts' \
             --exclude='hooks/useMobileApp.ts' \
@@ -64,6 +66,7 @@ jobs:
           cp mobile-source/postcss.config.js postcss.config.js
           cp mobile-source/eslint.config.js eslint.config.js
           cp /tmp/website-only/SiteFooter.tsx src/components/SiteFooter.tsx
+          cp /tmp/website-only/AppDownload.tsx src/pages/AppDownload.tsx
 
       - name: Make App.tsx web-specific
         run: |
@@ -90,7 +93,6 @@ jobs:
           ]:
               s = s.replace(x, '')
 
-          # Remove the native MobileAppBridge block.
           start = s.find('function MobileAppBridge() {')
           if start != -1:
               end = s.find('\nconst App = () =>', start)
@@ -109,7 +111,6 @@ jobs:
           ]:
               s = s.replace(x, '')
 
-          # Shared route/security changes from the mobile source.
           replacements = {
               '            <Route path="/my-revision" element={<MyRevision />} />': '            <Route path="/my-revision" element={<SignedInRoute><MyRevision /></SignedInRoute>} />',
               '            <Route path="/revision-planner" element={<RevisionPlanner />} />': '            <Route path="/revision-planner" element={<SignedInRoute><RevisionPlanner /></SignedInRoute>} />',
@@ -150,6 +151,14 @@ jobs:
               anchor = 'import LearnerProfileGate from "@/components/LearnerProfileGate";\n'
               s = s.replace(anchor, anchor + 'import { AdminRoute, SignedInRoute } from "@/components/AccessRoute";\n')
 
+          # Re-add the website-only APK download route after the mobile-to-web transformation.
+          if 'const AppDownload = lazy(() => import("./pages/AppDownload"));' not in s:
+              anchor = 'const NotFound = lazy(() => import("./pages/NotFound"));'
+              s = s.replace(anchor, 'const AppDownload = lazy(() => import("./pages/AppDownload"));\n' + anchor)
+          if '<Route path="/download-app" element={<AppDownload />} />' not in s:
+              anchor = '            <Route path="/about" element={<About />} />'
+              s = s.replace(anchor, anchor + '\n            <Route path="/download-app" element={<AppDownload />} />')
+
           p.write_text(s)
           PY
 
@@ -183,5 +192,5 @@ jobs:
             echo "Website is already synchronized with the mobile source."
             exit 0
           fi
-          git commit -m "Sync shared mobile features while preserving web-only UI"
+          git commit -m "Sync shared mobile features while preserving web-only APK and UI"
           git push origin HEAD:main
