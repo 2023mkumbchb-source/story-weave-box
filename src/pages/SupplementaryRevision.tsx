@@ -86,7 +86,7 @@ export default function SupplementaryRevision() {
         const material = classifySupplementaryMaterial(row.title, row.content_type, row.exam_type);
         const answer = assessAnswerReadiness({ kind: "article", material, containsAnswerKey: row.contains_answer_key, answerKeyVerified: row.answer_key_verified });
         if (!answer.ready) { withheld++; continue; }
-        rows.push({ id: row.id, title: row.title, category: row.category, type: "Article", resourceType: "article", material, answerReadiness: answer.label as AnswerReadiness, path: `/blog/${row.slug || row.id}`, group, size: 0 });
+        rows.push({ id: row.id, title: row.title, category: row.category, type: "Article", resourceType: "article", material, answerReadiness: answer.label as AnswerReadiness, path: buildBlogPath(row), group, size: 0 });
       }
       for (const row of exams.data || []) {
         if (!isPublicMcqSet(row)) { withheld++; continue; }
