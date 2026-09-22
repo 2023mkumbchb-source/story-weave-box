@@ -23,7 +23,7 @@ function cleanPublicSlug(rawSlug: string | null | undefined, fallbackTitle: stri
   const base = String(rawSlug || slugify(fallbackTitle) || fallback).trim().toLowerCase();
   return base
     .replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i, "")
-    .replace(/-[0-9a-f]{6}$/i, "")
+    .replace(/-[0-9a-f]{6,12}$/i, "")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "") || fallback;
 }
@@ -107,6 +107,7 @@ function sitemapFilterFromFile(file: string | null) {
     : f.includes("flashcards") ? "flashcards"
     : f.includes("stories") ? "stories"
     : f.includes("essays") ? "essays"
+    : f.includes("contests") ? "contests"
     : f.includes("pages") ? "pages"
     : "all";
   return { section, year };
@@ -172,6 +173,7 @@ serve(async (req) => {
     const includeMcqs = filter.section === "all" || filter.section === "mcqs";
     const includeFlashcards = filter.section === "all" || filter.section === "flashcards";
     const includeEssays = filter.section === "all" || filter.section === "essays";
+    const includeContests = filter.section === "all" || filter.section === "contests";
     const emittedPaths = new Set<string>();
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -278,9 +280,9 @@ serve(async (req) => {
     }
 
 
-    // Public contest briefings
+    // Public contest briefings (only in the all/contests sitemap, never duplicated into every section)
     for (const contest of (contests || []) as any[]) {
-      if (!contest.slug) continue;
+      if (!includeContests || !contest.slug) continue;
       const path = `/contests/${contest.slug}/briefing`;
       if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
       emittedPaths.add(path);
