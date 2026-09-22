@@ -151,12 +151,13 @@ serve(async (req) => {
     const { data: siteUrlSetting } = await supabase.from("app_settings").select("value").eq("key", "site_url").maybeSingle();
     const baseUrl = normalizeBaseUrl((siteUrlSetting as any)?.value);
 
-    const [articles, mcqs, flashcards, stories, essays] = await Promise.all([
+    const [articles, mcqs, flashcards, stories, essays, contests] = await Promise.all([
       fetchAllPublished(supabase, "articles", "id, title, slug, created_at, updated_at, category, og_image_url, featured_image"),
       fetchAllPublished(supabase, "mcq_sets", "id, title, slug, og_image_url, created_at, updated_at, category"),
       fetchAllPublished(supabase, "flashcard_sets", "id, title, slug, created_at, updated_at, category"),
       fetchAllPublished(supabase, "stories", "id, title, slug, created_at, category, cover_image_url", "created_at"),
       fetchAllPublished(supabase, "essays", "id, title, slug, created_at, updated_at, category"),
+      fetchAllPublished(supabase, "contests", "id, slug, title, subtitle, starts_at, ends_at, published, updated_at, created_at", "updated_at"),
     ]);
 
     const years = new Set<number>([1, 2, 3, 4, 5, 6]);
@@ -277,6 +278,18 @@ serve(async (req) => {
     }
 
 
+    // Public contest briefings
+    for (const contest of (contests || []) as any[]) {
+      if (!contest.slug) continue;
+      const path = `/contests/${contest.slug}/briefing`;
+      if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
+      emittedPaths.add(path);
+      const lastmod = (contest.updated_at || contest.created_at) ? new Date(contest.updated_at || contest.created_at).toISOString().split("T")[0] : "";
+      xml += `  <url>\\n    <loc>${baseUrl}${path}</loc>\\n`;
+      if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\\n`;
+      xml += `    <priority>0.6</priority>\\n    <changefreq>weekly</changefreq>\\n  </url>\\n`;
+    }
+
     // Essays
     for (const e of (essays || []) as any[]) {
       if (!includeEssays) continue;
@@ -307,6 +320,7 @@ serve(async (req) => {
   <url><loc>${DEFAULT_BASE_URL}/exams</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
   <url><loc>${DEFAULT_BASE_URL}/stories</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
   <url><loc>${DEFAULT_BASE_URL}/essays</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
+  <url><loc>${DEFAULT_BASE_URL}/contests</loc><priority>0.7</priority><changefreq>weekly</changefreq></url>
   <url><loc>${DEFAULT_BASE_URL}/year/1</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
   <url><loc>${DEFAULT_BASE_URL}/year/2</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
   <url><loc>${DEFAULT_BASE_URL}/year/3</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
