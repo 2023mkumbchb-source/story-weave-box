@@ -159,7 +159,7 @@ export default function Stories() {
   useEffect(() => {
     supabase
       .from("stories")
-      .select("*")
+      .select("id,title,content,category,published,created_at,cover_image_url,meta_title,meta_description,og_image_url,slug")
       .eq("published", true)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
