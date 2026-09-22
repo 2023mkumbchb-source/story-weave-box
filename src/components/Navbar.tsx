@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, GraduationCap, Home, LayoutDashboard, Menu, Trophy, ChevronRight, UserRound, Target, Database, ListChecks, Smartphone } from "lucide-react";
+import { BookOpen, GraduationCap, Home, LayoutDashboard, Menu, Trophy, ChevronRight, UserRound, Target, Database, Smartphone } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import ThemeToggle from "./ThemeToggle";
