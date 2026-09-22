@@ -621,8 +621,8 @@ export function isPublicStudyArticle(article: Pick<Article, "title">): boolean {
 
 export async function getArticles(): Promise<Article[]> {
   const { data, error } = await supabase
-     .from("articles")
-    .select("id,title,category,created_at,updated_at,published,slug,meta_description,og_image_url,tags,featured_image,content_kind,content_type,semester_number")
+    .from("articles")
+    .select("*")
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
   if (error) throw error;
