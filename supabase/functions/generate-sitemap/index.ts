@@ -287,9 +287,9 @@ serve(async (req) => {
       if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
       emittedPaths.add(path);
       const lastmod = (contest.updated_at || contest.created_at) ? new Date(contest.updated_at || contest.created_at).toISOString().split("T")[0] : "";
-      xml += `  <url>\\n    <loc>${baseUrl}${path}</loc>\\n`;
-      if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\\n`;
-      xml += `    <priority>0.6</priority>\\n    <changefreq>weekly</changefreq>\\n  </url>\\n`;
+      xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
+      if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += `    <priority>0.6</priority>\n    <changefreq>weekly</changefreq>\n  </url>\n`;
     }
 
     // Essays
