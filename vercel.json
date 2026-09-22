@@ -73,6 +73,16 @@
   ],
   "redirects": [
     {
+      "source": "/supplementary-revision",
+      "destination": "/my-revision",
+      "statusCode": 301
+    },
+    {
+      "source": "/revision-index",
+      "destination": "/my-revision",
+      "statusCode": 301
+    },
+    {
       "source": "/blog/victory-school-club-membership-system-project-guide",
       "destination": "/blog",
       "statusCode": 301
