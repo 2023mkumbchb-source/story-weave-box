@@ -891,10 +891,13 @@ export async function deleteArticle(id: string) {
 }
 
 // Flashcard Sets
+const FLASHCARD_LIST_COLUMNS = "id,title,created_at,updated_at,published,category,slug,meta_title,meta_description,og_image_url";
+
 export async function getFlashcardSets(): Promise<FlashcardSet[]> {
   const { data, error } = await supabase
     .from("flashcard_sets")
-    .select("*")
+    .select(FLASHCARD_LIST_COLUMNS)
+    .eq("published", true)
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
   if (error) throw error;
