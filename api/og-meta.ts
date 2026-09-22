@@ -443,6 +443,35 @@ async function fetchEssayByIdOrSlug(param: string) {
   return byId && byId.length > 0 ? byId[0] : null;
 }
 
+
+async function fetchEssayBySlugOrId(param: string) {
+  const decoded = decodeURIComponent(param).trim();
+  const cols = "id,title,slug,category,short_answer_questions,long_answer_questions,article_id,created_at,updated_at";
+  const bySlug = await sbFetch("essays",
+    `select=${cols}&slug=eq.${encodeURIComponent(decoded)}&published=eq.true&deleted_at=is.null&limit=1`
+  );
+  if (bySlug && bySlug.length > 0) return bySlug[0];
+  const id = extractUuidFromParam(param);
+  if (id) {
+    const byId = await sbFetch("essays",
+      `select=${cols}&id=eq.${encodeURIComponent(id)}&published=eq.true&deleted_at=is.null&limit=1`
+    );
+    if (byId && byId.length > 0) return byId[0];
+  }
+  const candidates = await sbFetch("essays", "select=id,title,slug&published=eq.true&deleted_at=is.null&limit=1000");
+  const wanted = decoded.toLowerCase();
+  const match = (candidates || []).find((row: Record<string, string>) =>
+    cleanPublicSlug(row.slug, row.title, "essay") === wanted ||
+    slugify(row.title || "") === wanted ||
+    String(row.slug || "").toLowerCase() === wanted
+  );
+  if (!match?.id) return null;
+  const byClean = await sbFetch("essays",
+    `select=${cols}&id=eq.${encodeURIComponent(match.id)}&published=eq.true&deleted_at=is.null&limit=1`
+  );
+  return byClean && byClean.length > 0 ? byClean[0] : null;
+}
+
 async function fetchStoryByParam(param: string) {
   const storyId = extractUuidFromParam(param);
   if (!storyId) return null;
@@ -855,7 +884,24 @@ ${explanationLine}
       }
 
     } else if (section === "essays" && param) {
-      return permanentRedirect("/blog");
+      const essay = await fetchEssayBySlugOrId(param);
+      if (!essay) return permanentRedirect(await closestLivePath("essays", param, "/essays", "essay"));
+      const canonicalEssayPath = `/essays/${cleanPublicSlug(essay.slug, essay.title, "essay")}`;
+      if (canonicalEssayPath !== `/essays/${param}`) return permanentRedirect(canonicalEssayPath);
+      const saq = Array.isArray(essay.short_answer_questions) ? essay.short_answer_questions : [];
+      const laq = Array.isArray(essay.long_answer_questions) ? essay.long_answer_questions : [];
+      title = `${essay.title} | Essay Questions | OmpathStudy Kenya`;
+      description = to160(`Practice ${saq.length + laq.length} structured short- and long-answer medical questions on ${essay.title}. Review model answers for exam revision.`);
+      keywords = `OmpathStudy, essay questions Kenya, SAQ, LAQ, ${essay.category || ""}, medical exams Kenya`;
+      type = "article";
+      const items = [...saq, ...laq].map((q: any, i: number) => q?.question ? `<li><strong>Q${i + 1}.</strong> ${htmlEscape(String(q.question))}${q.answer ? `<p><strong>Answer:</strong> ${htmlEscape(String(q.answer))}</p>` : ""}</li>` : "").filter(Boolean);
+      bodyExtra = items.length ? `<h2>Essay Questions and Answers</h2><ol>${items.join("")}</ol>` : "";
+      schemaJson = JSON.stringify({
+        "@context": "https://schema.org", "@type": "LearningResource", name: title,
+        description, url: absoluteUrl, datePublished: essay.created_at,
+        dateModified: essay.updated_at || essay.created_at,
+        learningResourceType: "Exam preparation", provider: { "@type": "Organization", name: "OmpathStudy" }
+      });
 
     } else if (section === "stories" && param) {
       const story = await fetchStoryByParam(param);
