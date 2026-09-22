@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { ArrowRight, BookMarked, BookOpen, ClipboardCheck, Clock, FileQuestion, GraduationCap, Images, Trophy } from "lucide-react";
 import {
   YEAR_CATEGORIES,
@@ -55,14 +55,12 @@ const YEAR3_PRIORITY = [
 
 export default function YearHub() {
   const { yearNumber } = useParams();
-  const location = useLocation();
   const parsedYear = Number(yearNumber);
   const isValidYear = YEAR_NUMBERS.includes(parsedYear as (typeof YEAR_NUMBERS)[number]);
 
   // Hooks must run unconditionally on every render (Rules of Hooks) — the
   // "invalid year" early return happens further down, after all of them,
   // and each effect guards itself with isValidYear instead.
-  const location2 = location;
   const [recent, setRecent] = useState<Article[]>([]);
   const [yearArticles, setYearArticles] = useState<Article[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
@@ -110,11 +108,6 @@ export default function YearHub() {
       </div>
     );
   }
-
-  const ogUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}${location.pathname}${location.search}`
-      : location.pathname;
 
   const title = `${yearLabel} Study Materials | OmpathStudy Kenya`;
   const description =
