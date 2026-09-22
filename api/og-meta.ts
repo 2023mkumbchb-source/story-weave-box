@@ -255,7 +255,7 @@ async function fetchArticleBySlug(slug: string) {
   // 1. Try exact slug match
   const bySlug = await sbFetch(
     "articles",
-    `select=${cols}&slug=eq.${encodeURIComponent(decoded)}&published=eq.true&deleted_at=is.null&limit=1`
+    `select=${cols}&slug=eq.${encodeURIComponent(decoded)}&published=eq.true&deleted_at=is.null&order=created_at.asc&limit=1`
   );
   if (bySlug && bySlug.length > 0) return bySlug[0];
 
@@ -474,7 +474,7 @@ async function fetchEssayBySlugOrId(param: string) {
     );
     if (byId && byId.length > 0) return byId[0];
   }
-  const candidates = await sbFetch("essays", "select=id,title,slug&published=eq.true&deleted_at=is.null&limit=1000");
+  const candidates = await sbFetch("essays", "select=id,title,slug&published=eq.true&deleted_at=is.null&order=created_at.asc&limit=1000");
   const wanted = decoded.toLowerCase();
   const match = (candidates || []).find((row: Record<string, string>) =>
     cleanPublicSlug(row.slug, row.title, "essay") === wanted ||
