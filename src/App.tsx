@@ -61,7 +61,17 @@ const ContestAppealsAdmin = lazy(() => import("./pages/ContestAppealsAdmin"));
 const AppDownload = lazy(() => import("./pages/AppDownload"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Avoid refetching large Supabase payloads every time a component remounts.
+      staleTime: 5 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    },
+  },
+});
 
 const RouteLoader = () => (
   <div className="flex min-h-[60vh] items-center justify-center">
