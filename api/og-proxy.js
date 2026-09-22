@@ -160,8 +160,8 @@ export default async function handler(req, res) {
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.meta_title || record.title,
-          description: record.meta_description || stripHtml(record.content) || `${record.title}`,
-          content: `<p>${esc(stripHtml(record.content, 3000))}</p>`,
+          description: record.meta_description || `${record.title}`,
+          content: `<p>${esc(record.meta_description || record.title)}</p>`,
           url: pageUrl,
           image: record.og_image_url || record.cover_image_url,
         }));
