@@ -54,7 +54,7 @@ export default function StoryRead() {
 
     supabase
       .from("stories")
-      .select("*")
+      .select("id,title,content,category,published,created_at,cover_image_url,meta_title,meta_description,og_image_url,slug")
       .eq("id", storyId)
       .maybeSingle()
       .then(({ data }) => {
