@@ -151,20 +151,6 @@ export default function Exams() {
     title: "Sample Pathology Exam",
     category: "Pathology",
     created_at: new Date().toISOString(),
-    questions: [
-      {
-        question: "Which process is the hallmark of acute inflammation in early tissue injury?",
-        options: ["Fibrosis", "Neutrophil recruitment", "Granuloma formation", "Metaplasia"],
-        correct_answer: 1,
-        explanation: "Acute inflammation is dominated by vascular changes and neutrophil migration.",
-      },
-      {
-        question: "A classic Reed-Sternberg cell is most associated with which disease?",
-        options: ["Burkitt lymphoma", "Hodgkin lymphoma", "Multiple myeloma", "AML"],
-        correct_answer: 1,
-        explanation: "Reed-Sternberg cells are pathognomonic for Hodgkin lymphoma.",
-      },
-    ],
   };
 
   const filteredExamSets = useMemo(() => {
