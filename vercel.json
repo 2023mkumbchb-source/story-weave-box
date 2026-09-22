@@ -300,6 +300,66 @@
       "destination": "/api/og-meta?path=/essays/:legacy"
     },
     {
+      "source": "/admin",
+      "destination": "/api/og-meta?path=/admin"
+    },
+    {
+      "source": "/login",
+      "destination": "/api/og-meta?path=/login"
+    },
+    {
+      "source": "/account/:path*",
+      "destination": "/api/og-meta?path=/account/:path*"
+    },
+    {
+      "source": "/auth/:path*",
+      "destination": "/api/og-meta?path=/auth/:path*"
+    },
+    {
+      "source": "/my-revision/:path*",
+      "destination": "/api/og-meta?path=/my-revision/:path*"
+    },
+    {
+      "source": "/revision-planner/:path*",
+      "destination": "/api/og-meta?path=/revision-planner/:path*"
+    },
+    {
+      "source": "/source-library/:path*",
+      "destination": "/api/og-meta?path=/source-library/:path*"
+    },
+    {
+      "source": "/submit-story",
+      "destination": "/api/og-meta?path=/submit-story"
+    },
+    {
+      "source": "/search",
+      "destination": "/api/og-meta?path=/search"
+    },
+    {
+      "source": "/exams/:id/start",
+      "destination": "/api/og-meta?path=/exams/:id/start"
+    },
+    {
+      "source": "/contests/:slug/register",
+      "destination": "/api/og-meta?path=/contests/:slug/register"
+    },
+    {
+      "source": "/contests/:slug/lobby",
+      "destination": "/api/og-meta?path=/contests/:slug/lobby"
+    },
+    {
+      "source": "/contests/:slug/progress",
+      "destination": "/api/og-meta?path=/contests/:slug/progress"
+    },
+    {
+      "source": "/contests/:slug/certificate/:path*",
+      "destination": "/api/og-meta?path=/contests/:slug/certificate/:path*"
+    },
+    {
+      "source": "/contests/:slug/round/:path*",
+      "destination": "/api/og-meta?path=/contests/:slug/round/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
