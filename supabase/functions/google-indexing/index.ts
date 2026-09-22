@@ -45,8 +45,17 @@ async function resolveBaseUrl(sb: any, bodySiteUrl?: unknown): Promise<string> {
   return normalizeBaseUrl((data as any)?.value);
 }
 
+function cleanPublicSlug(rawSlug: string | null | undefined, title: string, fallback: string): string {
+  const base = (rawSlug || slugFromTitle(title) || fallback).trim().toLowerCase();
+  return base
+    .replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i, "")
+    .replace(/-[0-9a-f]{6,12}$/i, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "") || fallback;
+}
+
 function buildArticleUrl(base: string, a: { id: string; title: string; slug?: string | null }) {
-  const slug = a.slug || slugFromTitle(a.title) || "article";
+  const slug = cleanPublicSlug(a.slug, a.title, "article");
   return `${base}/blog/${slug}`;
 }
 
@@ -129,18 +138,18 @@ serve(async (req) => {
       }
 
       if (contentType === "all" || contentType === "mcqs") {
-        const { data } = await sb.from("mcq_sets").select("id, title, category").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false });
+        const { data } = await sb.from("mcq_sets").select("id, title, category, slug").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false });
         (data || []).forEach(m => urls.push({
           type: "mcq", id: m.id, title: m.title, category: m.category,
-          url: `${baseUrl}/mcqs/${m.id}`, has_meta: true,
+          url: `${baseUrl}/mcqs/${cleanPublicSlug((m as any).slug, m.title, "quiz")}`, has_meta: true,
         }));
       }
 
       if (contentType === "all" || contentType === "flashcards") {
-        const { data } = await sb.from("flashcard_sets").select("id, title, category").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false });
+        const { data } = await sb.from("flashcard_sets").select("id, title, category, slug").eq("published", true).is("deleted_at", null).order("created_at", { ascending: false });
         (data || []).forEach(f => urls.push({
           type: "flashcard", id: f.id, title: f.title, category: f.category,
-          url: `${baseUrl}/flashcards/${f.id}`, has_meta: true,
+          url: `${baseUrl}/flashcards/${cleanPublicSlug((f as any).slug, f.title, "flashcards")}`, has_meta: true,
         }));
       }
 
