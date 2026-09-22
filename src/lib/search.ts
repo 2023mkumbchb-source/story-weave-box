@@ -202,7 +202,7 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
     hits.push({
       id: row.id, title: row.title, slug: row.slug, category: row.category, kind: "mcq",
       contentType: "MCQ Bank", reason: reasonFor(row), updated_at: row.updated_at,
-      href: `/exams/${row.slug || row.id}/start`, score: 70,
+      href: buildMcqPath(row), score: 70,
     });
   }
   for (const row of flashcards.data || []) {
