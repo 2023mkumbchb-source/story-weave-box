@@ -621,8 +621,8 @@ export function isPublicStudyArticle(article: Pick<Article, "title">): boolean {
 
 export async function getArticles(): Promise<Article[]> {
   const { data, error } = await supabase
-    .from("articles")
-    .select("*")
+     .from("articles")
+    .select("id,title,category,created_at,updated_at,published,slug,meta_description,og_image_url,tags,featured_image,content_kind,content_type,semester_number")
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
   if (error) throw error;
@@ -631,8 +631,8 @@ export async function getArticles(): Promise<Article[]> {
 
 export async function getPublishedArticles(): Promise<Article[]> {
   const { data, error } = await supabase
-    .from("articles")
-    .select("*")
+     .from("articles")
+    .select("id,title,category,created_at,updated_at,published,slug,meta_description,og_image_url,tags,featured_image,content_kind,content_type,semester_number")
     .eq("published", true)
     .eq("is_raw", false)
     .is("deleted_at", null)
@@ -991,10 +991,12 @@ export async function deleteFlashcardSet(id: string) {
 }
 
 // MCQ Sets
+const MCQ_LIST_COLUMNS = "id,title,slug,category,created_at,updated_at,published,meta_title,meta_description,og_image_url,featured_image,content_type,exam_year,unit";
+
 export async function getMcqSets(): Promise<McqSet[]> {
   const { data, error } = await supabase
     .from("mcq_sets")
-    .select("*")
+    .select(MCQ_LIST_COLUMNS)
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
   if (error) throw error;
