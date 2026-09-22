@@ -403,6 +403,10 @@ async function resolveCanonicalDetailPath(section: string, param: string): Promi
       const set = await fetchFlashcardSetBySlugOrId(param);
       return set ? `/flashcards/${cleanPublicSlug(set.slug, set.title, "flashcards")}` : "/flashcards";
     }
+    if (section === "essays") {
+      const essay = await fetchEssayBySlugOrId(param);
+      return essay ? `/essays/${cleanPublicSlug(essay.slug, essay.title, "essay")}` : "/essays";
+    }
   } catch {
     return null;
   }
