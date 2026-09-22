@@ -66,7 +66,7 @@ async function loadEntries(): Promise<LinkEntry[]> {
         supabase.from("articles").select("id,title,slug,meta_title,meta_description,tags,category,exam_type").eq("published", true).is("deleted_at", null).limit(1500),
         (supabase as any).from("flashcard_sets").select("id,title,slug,meta_title,meta_description,category").eq("published", true).is("deleted_at", null).limit(1200),
         (supabase as any).from("stories").select("id,title,slug,meta_title,meta_description").eq("published", true).limit(500),
-        supabase.from("medical_concepts").select("id,canonical_term,definition,importance,preferred_article_id").eq("approved", true).eq("enabled", true).limit(2000),
+        supabase.from("medical_concepts").select("id,canonical_term,importance,preferred_article_id").eq("approved", true).eq("enabled", true).limit(2000),
         supabase.from("medical_concept_aliases").select("concept_id,alias,abbreviation").eq("approved", true).limit(4000),
       ]);
       const entries: LinkEntry[] = [], seen = new Set<string>();
