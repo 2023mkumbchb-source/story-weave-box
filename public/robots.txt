@@ -1,39 +1,19 @@
-# General Bots
+# OmpathStudy crawl policy
 User-agent: *
 Allow: /
-
-# AI Models & LLM Crawlers
-User-agent: GPTBot
-Allow: /
-
-User-agent: CCBot
-Allow: /
-
-User-agent: Google-Extended
-Allow: /
-
-User-agent: Anthropic-ai
-Allow: /
-
-User-agent: Claude-Web
-Allow: /
-
-User-agent: OAI-SearchBot
-Allow: /
-
-User-agent: PerplexityBot
-Allow: /
-
-User-agent: FacebookBot
-Allow: /
-
-User-agent: Applebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Googlebot
-Allow: /
+Disallow: /account
+Disallow: /admin
+Disallow: /login
+Disallow: /auth/
+Disallow: /my-revision
+Disallow: /revision-planner
+Disallow: /source-library
+Disallow: /submit-story
+Disallow: /search
+Disallow: /contests/*/register
+Disallow: /contests/*/lobby
+Disallow: /contests/*/round/
+Disallow: /contests/*/progress
+Disallow: /contests/*/certificate/
 
 Sitemap: https://www.ompathstudy.com/sitemap.xml
