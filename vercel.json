@@ -307,22 +307,27 @@
       "source": "/login",
       "destination": "/api/og-meta?path=/login"
     },
+    { "source": "/account", "destination": "/api/og-meta?path=/account" },
     {
       "source": "/account/:path*",
       "destination": "/api/og-meta?path=/account/:path*"
     },
+    { "source": "/auth", "destination": "/api/og-meta?path=/auth" },
     {
       "source": "/auth/:path*",
       "destination": "/api/og-meta?path=/auth/:path*"
     },
+    { "source": "/my-revision", "destination": "/api/og-meta?path=/my-revision" },
     {
       "source": "/my-revision/:path*",
       "destination": "/api/og-meta?path=/my-revision/:path*"
     },
+    { "source": "/revision-planner", "destination": "/api/og-meta?path=/revision-planner" },
     {
       "source": "/revision-planner/:path*",
       "destination": "/api/og-meta?path=/revision-planner/:path*"
     },
+    { "source": "/source-library", "destination": "/api/og-meta?path=/source-library" },
     {
       "source": "/source-library/:path*",
       "destination": "/api/og-meta?path=/source-library/:path*"
