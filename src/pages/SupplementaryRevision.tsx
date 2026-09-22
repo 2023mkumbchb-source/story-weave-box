@@ -93,7 +93,7 @@ export default function SupplementaryRevision() {
         const group = classifySupplementaryResource(row.title, row.category); if (!group) continue;
         const answer = assessAnswerReadiness({ kind: "exam", material: "MCQs & timed exams", containsAnswerKey: row.contains_answer_key, answerKeyVerified: row.answer_key_verified });
         if (!answer.ready) { withheld++; continue; }
-        rows.push({ id: row.id, title: row.title, category: row.category, type: "Exam / MCQ", resourceType: "exam", material: "MCQs & timed exams", answerReadiness: answer.label as AnswerReadiness, path: `/exams/${row.slug || row.id}/start`, group, size: 0 });
+        rows.push({ id: row.id, title: row.title, category: row.category, type: "Exam / MCQ", resourceType: "exam", material: "MCQs & timed exams", answerReadiness: answer.label as AnswerReadiness, path: buildMcqPath(row), group, size: 0 });
       }
       for (const row of flashcards.data || []) {
         const group = classifySupplementaryResource(row.title, row.category); if (!group) continue;
