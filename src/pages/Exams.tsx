@@ -5,7 +5,7 @@ import { ArrowRight, CheckCircle, Clock, Loader2, Phone, Shield, Sparkles, Troph
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { getSetting, getCategoryDisplayName, getYearFromCategory, buildExamPath, normalizeMcqQuestions } from "@/lib/store";
+import { getSetting, getCategoryDisplayName, getYearFromCategory, buildExamPath } from "@/lib/store";
 import { updateMetaTags } from "@/lib/seo";
 import { dedupeResourceSummaries, isPublicMcqSet } from "@/lib/content-policy";
 
@@ -13,7 +13,6 @@ interface ExamSet {
   id: string;
   title: string;
   category: string;
-  questions: { question: string; options: string[]; correct_answer: number; explanation?: string }[];
   created_at: string;
 }
 
@@ -74,8 +73,7 @@ export default function Exams() {
 
     const usable = ((data || []) as unknown as ExamSet[])
       .filter(isPublicMcqSet)
-      .map((exam) => ({ ...exam, questions: normalizeMcqQuestions(exam.questions || []) }))
-      .filter((exam) => exam.questions.length > 0);
+
     setExamSets(dedupeResourceSummaries(usable));
     setLoading(false);
   };
@@ -243,7 +241,7 @@ export default function Exams() {
                     <h2 className="font-serif text-lg font-bold text-foreground">{exam.title}</h2>
                     {/* CHANGED: removed "Section B SAQs · Section C LAQ" — MCQs only */}
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {exam.questions.length} MCQs · {exam.questions.length} minutes · Section A
+                      Timed MCQ exam · Section A
                     </p>
                   </div>
                   <span className="rounded-full border border-border bg-secondary px-3 py-1 text-[10px] font-semibold text-foreground">
