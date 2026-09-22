@@ -47,7 +47,7 @@ export default function EssayStudy() {
               const e = fallbackData as unknown as Essay | null;
               setEssay(e);
               if (e) {
-                const canonicalSlug = String(e.slug || e.title || e.id).trim().toLowerCase().replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i, "").replace(/-[0-9a-f]{6}$/i, "").replace(/-+/g, "-").replace(/^-|-$/g, "");
+                const canonicalSlug = String(e.slug || e.title || e.id).trim().toLowerCase().replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i, "").replace(/-[0-9a-f]{6,12}$/i, "").replace(/-+/g, "-").replace(/^-|-$/g, "");
                 const canonicalPath = `/essays/${canonicalSlug}`;
                 if (location.pathname !== canonicalPath) navigate(canonicalPath, { replace: true });
                 updateMetaTags({ title: `${e.title} – Essay`, description: `Practice structured medical answers for ${e.title} here.`, url: `${SITE_URL}${canonicalPath}`, type: "article" });
