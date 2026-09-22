@@ -194,7 +194,7 @@ function tokenScore(target: string, candidate: string): number {
   return overlap / (new Set([...a, ...b]).size || 1);
 }
 
-async function closestLivePath(table: string, param: string, prefix: "/blog" | "/mcqs" | "/flashcards", fallback: string): Promise<string> {
+async function closestLivePath(table: string, param: string, prefix: "/blog" | "/mcqs" | "/flashcards" | "/essays" | "/contests", fallback: string): Promise<string> {
   const rows = await sbFetch(table, "select=id,title,slug&published=eq.true&deleted_at=is.null&limit=1000");
   let best: Record<string, string> | null = null;
   let score = 0;
