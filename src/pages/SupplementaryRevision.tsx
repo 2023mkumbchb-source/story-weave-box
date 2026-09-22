@@ -99,7 +99,7 @@ export default function SupplementaryRevision() {
         const group = classifySupplementaryResource(row.title, row.category); if (!group) continue;
         const answer = assessAnswerReadiness({ kind: "flashcard", material: "Flashcards", containsAnswerKey: row.contains_answer_key, answerKeyVerified: row.answer_key_verified });
         if (!answer.ready) { withheld++; continue; }
-        rows.push({ id: row.id, title: row.title, category: row.category, type: "Flashcards", resourceType: "flashcard", material: "Flashcards", answerReadiness: answer.label as AnswerReadiness, path: `/flashcards/${row.slug || row.id}`, group, size: 0 });
+        rows.push({ id: row.id, title: row.title, category: row.category, type: "Flashcards", resourceType: "flashcard", material: "Flashcards", answerReadiness: answer.label as AnswerReadiness, path: buildFlashcardPath(row), group, size: 0 });
       }
       rows.sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group) || a.title.localeCompare(b.title));
       setAllResources(rows); setWithheldCount(withheld); setResourcesLoading(false);
