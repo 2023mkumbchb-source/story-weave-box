@@ -151,9 +151,9 @@ serve(async (req) => {
     const baseUrl = normalizeBaseUrl((siteUrlSetting as any)?.value);
 
     const [articles, mcqs, flashcards, stories] = await Promise.all([
-      fetchAllPublished(supabase, "articles", "id, title, slug, created_at, updated_at, category, og_image_url, featured_image, content, original_notes"),
-      fetchAllPublished(supabase, "mcq_sets", "id, title, slug, og_image_url, created_at, updated_at, category, questions"),
-      fetchAllPublished(supabase, "flashcard_sets", "id, title, slug, created_at, updated_at, category, cards"),
+      fetchAllPublished(supabase, "articles", "id, title, slug, created_at, updated_at, category, og_image_url, featured_image"),
+      fetchAllPublished(supabase, "mcq_sets", "id, title, slug, og_image_url, created_at, updated_at, category"),
+      fetchAllPublished(supabase, "flashcard_sets", "id, title, slug, created_at, updated_at, category"),
       fetchAllPublished(supabase, "stories", "id, title, slug, created_at, category, cover_image_url", "created_at"),
     ]);
 
@@ -203,8 +203,8 @@ serve(async (req) => {
       if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
       emittedPaths.add(path);
       const lastmod = (a.updated_at || a.created_at) ? new Date(a.updated_at || a.created_at).toISOString().split("T")[0] : "";
-      const imageUrl = a.og_image_url || a.featured_image || extractFirstImage(a.content) || extractFirstImage(a.original_notes) || null;
-      const contentImages = extractContentImages(a.content, a.original_notes);
+      const imageUrl = a.og_image_url || a.featured_image || null;
+      const contentImages: { loc: string; caption: string }[] = [];
       xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
@@ -244,7 +244,6 @@ serve(async (req) => {
     // MCQs
     for (const m of (mcqs || []) as any[]) {
       if (!includeMcqs || !matchesYear(m.category, filter.year)) continue;
-      if (!Array.isArray(m.questions) || m.questions.length < 5) continue;
       const mcqSlug = cleanPublicSlug(m.slug, m.title, "quiz");
       const path = `/mcqs/${mcqSlug}`;
       if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
@@ -262,7 +261,6 @@ serve(async (req) => {
     // Flashcards
     for (const f of (flashcards || []) as any[]) {
       if (!includeFlashcards || !matchesYear(f.category, filter.year)) continue;
-      if (!Array.isArray(f.cards) || f.cards.length < 5) continue;
       const flashcardSlug = cleanPublicSlug(f.slug, f.title, "flashcards");
       const path = `/flashcards/${flashcardSlug}`;
       if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
