@@ -184,6 +184,7 @@ serve(async (req) => {
         ["/stories", "0.8", "daily"],
         ["/flashcards", "0.8", "daily"],
         ["/mcqs", "0.8", "daily"],
+        ["/essays", "0.8", "weekly"],
         ["/exams", "0.8", "weekly"],
       ].forEach(([path, priority, changefreq]) => {
         emittedPaths.add(path);
