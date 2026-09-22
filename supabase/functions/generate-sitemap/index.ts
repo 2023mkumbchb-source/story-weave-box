@@ -106,6 +106,7 @@ function sitemapFilterFromFile(file: string | null) {
     : f.includes("mcqs") ? "mcqs"
     : f.includes("flashcards") ? "flashcards"
     : f.includes("stories") ? "stories"
+    : f.includes("essays") ? "essays"
     : f.includes("pages") ? "pages"
     : "all";
   return { section, year };
@@ -150,11 +151,12 @@ serve(async (req) => {
     const { data: siteUrlSetting } = await supabase.from("app_settings").select("value").eq("key", "site_url").maybeSingle();
     const baseUrl = normalizeBaseUrl((siteUrlSetting as any)?.value);
 
-    const [articles, mcqs, flashcards, stories] = await Promise.all([
+    const [articles, mcqs, flashcards, stories, essays] = await Promise.all([
       fetchAllPublished(supabase, "articles", "id, title, slug, created_at, updated_at, category, og_image_url, featured_image"),
       fetchAllPublished(supabase, "mcq_sets", "id, title, slug, og_image_url, created_at, updated_at, category"),
       fetchAllPublished(supabase, "flashcard_sets", "id, title, slug, created_at, updated_at, category"),
       fetchAllPublished(supabase, "stories", "id, title, slug, created_at, category, cover_image_url", "created_at"),
+      fetchAllPublished(supabase, "essays", "id, title, slug, created_at, updated_at, category"),
     ]);
 
     const years = new Set<number>([1, 2, 3, 4, 5, 6]);
@@ -168,6 +170,7 @@ serve(async (req) => {
     const includeStories = filter.section === "all" || filter.section === "stories";
     const includeMcqs = filter.section === "all" || filter.section === "mcqs";
     const includeFlashcards = filter.section === "all" || filter.section === "flashcards";
+    const includeEssays = filter.section === "all" || filter.section === "essays";
     const emittedPaths = new Set<string>();
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -270,6 +273,20 @@ serve(async (req) => {
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n`;
       xml += `  </url>\n`;
+    }
+
+
+    // Essays
+    for (const e of (essays || []) as any[]) {
+      if (!includeEssays) continue;
+      const essaySlug = cleanPublicSlug(e.slug, e.title, "essay");
+      const path = `/essays/${essaySlug}`;
+      if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
+      emittedPaths.add(path);
+      const lastmod = (e.updated_at || e.created_at) ? new Date(e.updated_at || e.created_at).toISOString().split("T")[0] : "";
+      xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
+      if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += `    <priority>0.7</priority>\n    <changefreq>weekly</changefreq>\n  </url>\n`;
     }
 
     xml += `</urlset>`;
