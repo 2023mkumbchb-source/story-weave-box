@@ -67,7 +67,7 @@ export default function Exams() {
   const loadExams = async () => {
     const { data } = await supabase
       .from("mcq_sets")
-      .select("*")
+      .select("id,title,category,questions,created_at,updated_at")
       .eq("published", true)
       .or("title.ilike.%exam%,category.ilike.Weekly Exam%")
       .order("updated_at", { ascending: false });
