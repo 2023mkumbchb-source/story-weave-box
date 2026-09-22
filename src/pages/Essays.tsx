@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Loader2, FileText, ChevronRight, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { getCategoryDisplayName, getYearFromCategory } from "@/lib/store";
+import { getCategoryDisplayName, getYearFromCategory, buildEssayPath } from "@/lib/store";
 import { updateMetaTags } from "@/lib/seo";
 
 interface Essay {
@@ -94,7 +94,7 @@ export default function Essays() {
                   transition={{ delay: Math.min(i, 8) * 0.04 }}
                 >
                   <Link
-                    to={`/essays/${e.slug || e.id}`}
+                    to={buildEssayPath(e)}
                     className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 sm:p-5 transition-shadow hover:shadow-md"
                   >
                     <div className="min-w-0 flex-1">
