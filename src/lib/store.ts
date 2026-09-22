@@ -1166,7 +1166,13 @@ export async function deleteArticleCategory(id: string) {
   if (error) throw error;
 }
 
+const SETTINGS_CACHE_TTL_MS = 5 * 60_000;
+const settingsCache = new Map<string, { value: string; expiresAt: number }>();
+
 export async function getSetting(key: string): Promise<string> {
+  const cached = settingsCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+
   const { data, error } = await supabase
     .from("app_settings")
     .select("value")
@@ -1176,11 +1182,15 @@ export async function getSetting(key: string): Promise<string> {
     console.error(`Failed to load setting "${key}":`, error.message);
     return "";
   }
-  return data?.value || "";
+
+  const value = data?.value || "";
+  settingsCache.set(key, { value, expiresAt: Date.now() + SETTINGS_CACHE_TTL_MS });
+  return value;
 }
 
 export async function saveSetting(key: string, value: string): Promise<void> {
   const normalized = value.trim();
+  settingsCache.delete(key);
   const { data: existing, error: existingError } = await supabase
     .from("app_settings")
     .select("id")
