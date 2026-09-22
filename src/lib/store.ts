@@ -901,10 +901,12 @@ export async function getFlashcardSets(): Promise<FlashcardSet[]> {
   return (data || []) as unknown as FlashcardSet[];
 }
 
+const FLASHCARD_DETAIL_COLUMNS = "id,title,cards,created_at,updated_at,published,original_notes,category,is_raw,meta_title,meta_description,og_image_url,slug";
+
 export async function getPublishedFlashcardSets(): Promise<FlashcardSet[]> {
   const { data, error } = await supabase
     .from("flashcard_sets")
-    .select("*")
+    .select(FLASHCARD_DETAIL_COLUMNS)
     .eq("published", true)
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
@@ -915,7 +917,7 @@ export async function getPublishedFlashcardSets(): Promise<FlashcardSet[]> {
 export async function getFlashcardSetById(id: string): Promise<FlashcardSet | null> {
   const { data, error } = await supabase
     .from("flashcard_sets")
-    .select("*")
+    .select(FLASHCARD_DETAIL_COLUMNS)
     .eq("id", id)
     .eq("published", true)
     .is("deleted_at", null)
@@ -931,7 +933,7 @@ export async function getFlashcardSetBySlugOrId(param: string): Promise<Flashcar
   if (id) return getFlashcardSetById(id);
   const { data } = await supabase
     .from("flashcard_sets")
-    .select("*")
+    .select(FLASHCARD_DETAIL_COLUMNS)
     .eq("slug", v)
     .eq("published", true)
     .is("deleted_at", null)
@@ -940,7 +942,7 @@ export async function getFlashcardSetBySlugOrId(param: string): Promise<Flashcar
   const titlePart = v.replace(/-[0-9a-f]{6}$/, "");
   const { data: list } = await supabase
     .from("flashcard_sets")
-    .select("*")
+    .select(FLASHCARD_DETAIL_COLUMNS)
     .or(`slug.ilike.${titlePart}%,slug.ilike.%${titlePart}%`)
     .eq("published", true)
     .is("deleted_at", null)
