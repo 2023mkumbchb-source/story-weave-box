@@ -178,7 +178,7 @@ function cleanPublicSlug(rawSlug: string | null | undefined, fallbackTitle: stri
   const base = String(rawSlug || slugify(fallbackTitle) || fallback).trim().toLowerCase();
   return base
     .replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i, "")
-    .replace(/-[0-9a-f]{6}$/i, "")
+    .replace(/-[0-9a-f]{6,12}$/i, "")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "") || fallback;
 }
@@ -293,8 +293,9 @@ async function fetchArticleBySlug(slug: string) {
     "articles",
     `select=id,title,slug&published=eq.true&deleted_at=is.null&limit=1000`
   );
+  const wantedCanonical = cleanPublicSlug(decoded, "", "article");
   const match = (candidates || []).find((row: Record<string, string>) =>
-    cleanPublicSlug(row.slug, row.title, "article") === decoded ||
+    cleanPublicSlug(row.slug, row.title, "article") === wantedCanonical ||
     slugify(row.title || "") === decoded ||
     String(row.slug || "").toLowerCase() === decoded
   );
@@ -333,8 +334,9 @@ async function fetchMcqSetBySlugOrId(param: string) {
     `select=id,title,slug&published=eq.true&deleted_at=is.null&limit=1000`
   );
   const wanted = decoded.toLowerCase();
+  const wantedCanonical = cleanPublicSlug(decoded, "", "quiz");
   const match = (candidates || []).find((row: Record<string, string>) =>
-    cleanPublicSlug(row.slug, row.title, "quiz") === wanted ||
+    cleanPublicSlug(row.slug, row.title, "quiz") === wantedCanonical ||
     slugify(row.title || "") === wanted ||
     String(row.slug || "").toLowerCase() === wanted
   );
@@ -656,7 +658,7 @@ export default async function handler(req: Request): Promise<Response> {
     const legacySection = legacyParts[0] || "";
     const legacyParam = legacyParts[1] || "";
     if (
-      ["blog", "mcqs", "flashcards"].includes(legacySection) &&
+      ["blog", "mcqs", "flashcards", "essays"].includes(legacySection) &&
       extractUuidFromParam(legacyParam)
     ) {
       const target = await resolveCanonicalDetailPath(legacySection, legacyParam);
