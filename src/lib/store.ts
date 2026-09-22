@@ -458,7 +458,7 @@ function cleanPublicSlug(rawSlug: string, fallbackTitle: string, fallback = "stu
   const base = (rawSlug || slugifyTitle(fallbackTitle) || fallback).trim().toLowerCase();
   return base
     .replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i, "")
-    .replace(/-[0-9a-f]{6}$/i, "")
+    .replace(/-[0-9a-f]{6,12}$/i, "")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "") || fallback;
 }
@@ -522,7 +522,7 @@ async function hydrateLegacySource<T extends Record<string, any> | null>(article
   return { ...article, original_notes: source, content } as T;
 }
 
-export function buildMcqPath(set: { id: string; title: string; slug?: string | null }): string {
+export function buildEssayPath(essay: { id: string; title: string; slug?: string | null }): string {\n  const rawSlug = typeof essay.slug === "string" ? essay.slug.trim() : "";\n  return `/essays/${cleanPublicSlug(rawSlug, essay.title, "essay")}`;\n}\n\nexport function buildMcqPath(set: { id: string; title: string; slug?: string | null }): string {
   const rawSlug = typeof set.slug === "string" ? set.slug.trim() : "";
   return `/mcqs/${cleanPublicSlug(rawSlug, set.title, "quiz")}`;
 }
