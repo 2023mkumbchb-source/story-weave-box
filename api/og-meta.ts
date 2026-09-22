@@ -589,6 +589,21 @@ function getCardBack(c: unknown): string {
   return cleanForMetaSnippet(raw);
 }
 
+const NOINDEX_PATH_PREFIXES = [
+  "/admin", "/login", "/account", "/auth/", "/my-revision",
+  "/revision-planner", "/source-library", "/submit-story", "/search",
+];
+
+function isNoindexPath(path: string): boolean {
+  const clean = (path || "/").split("?")[0].replace(/\/+$/, "") || "/";
+  if (NOINDEX_PATH_PREFIXES.some((prefix) => clean === prefix || clean.startsWith(prefix))) return true;
+  const parts = clean.split("/").filter(Boolean);
+  if (parts[0] === "exams" && parts.length >= 3 && parts[2] === "start") return true;
+  if (parts[0] === "contests" && parts.length >= 2 && ["register", "lobby", "progress", "certificate"].includes(parts[1])) return true;
+  if (parts[0] === "contests" && parts.length >= 3 && parts[2] === "round") return true;
+  return false;
+}
+
 function buildHtml(opts: {
   title: string;
   description: string;
@@ -614,6 +629,7 @@ function buildHtml(opts: {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${title}</title>
     <meta name="description" content="${desc}" />
+    ${isNoindexPath(opts.url) ? '<meta name="robots" content="noindex,follow" />' : ""}
     ${keywords ? `<meta name="keywords" content="${keywords}" />` : ""}
     <link rel="canonical" href="${url}" />
     <meta property="og:title" content="${title}" />
@@ -652,6 +668,10 @@ export default async function handler(req: Request): Promise<Response> {
   const ua = req.headers.get("user-agent");
   const url = new URL(req.url);
   const originalPath = url.searchParams.get("path") || "/";
+  if (isNoindexPath(originalPath)) {
+    const noindexHtml = buildHtml({ title: "OmpathStudy", description: "OmpathStudy medical education resource.", url: `https://www.ompathstudy.com${originalPath.split("?")[0]}`, ogImage: OG_FALLBACK_IMAGE });
+    return new Response(noindexHtml, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex, follow", "cache-control": "public, max-age=300, stale-while-revalidate=60" } });
+  }
 
   if (!isCrawler(ua)) {
     // Legacy UUID / UUID-prefixed detail URLs must collapse to the single
