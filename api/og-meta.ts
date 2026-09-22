@@ -25,6 +25,11 @@ const STATIC_PAGE_META: Record<string, { title: string; description: string; lin
     description: "Study active-recall medical flashcards by year and unit for fast revision across core medical subjects.",
     links: ["/", "/blog", "/mcqs", "/exams", "/year/1", "/year/2", "/year/3", "/year/4", "/year/5", "/year/6"],
   },
+  "/essays": {
+    title: "Medical Essay Questions & Answers | OmpathStudy Kenya",
+    description: "Practice structured short- and long-answer medical questions with model answers for exam revision.",
+    links: ["/", "/blog", "/mcqs", "/flashcards", "/exams", "/year/1", "/year/2", "/year/3", "/year/4", "/year/5", "/year/6"],
+  },
   "/exams": {
     title: "Timed Medical Exams | OmpathStudy Kenya",
     description: "Take timed medical exams and past-paper style MCQ practice for MBChB revision by year and unit.",
