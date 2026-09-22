@@ -306,6 +306,7 @@ serve(async (req) => {
   <url><loc>${DEFAULT_BASE_URL}/flashcards</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
   <url><loc>${DEFAULT_BASE_URL}/exams</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
   <url><loc>${DEFAULT_BASE_URL}/stories</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
+  <url><loc>${DEFAULT_BASE_URL}/essays</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
   <url><loc>${DEFAULT_BASE_URL}/year/1</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
   <url><loc>${DEFAULT_BASE_URL}/year/2</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
   <url><loc>${DEFAULT_BASE_URL}/year/3</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
