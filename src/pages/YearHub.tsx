@@ -12,6 +12,7 @@ import { Helmet } from "react-helmet-async";
 import { getUnitsForYear, unitPath, type Unit } from "@/lib/academic";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getYear3Semester } from "@/lib/year3Semesters";
+import { SITE_URL } from "@/lib/seo";
 
 function year3SemesterFor(article: Article): 1 | 2 | 3 | null {
   if ([1, 2, 3].includes(Number(article.semester_number))) return Number(article.semester_number) as 1 | 2 | 3;
@@ -156,7 +157,8 @@ export default function YearHub() {
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={ogUrl} />
+        <meta property="og:url" content={`${SITE_URL}/year/${parsedYear}`} />
+        <link rel="canonical" href={`${SITE_URL}/year/${parsedYear}`} />
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
