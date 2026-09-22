@@ -661,10 +661,18 @@ export default async function handler(req: Request): Promise<Response> {
     const legacyParts = originalPath.split("?")[0].split("/").filter(Boolean);
     const legacySection = legacyParts[0] || "";
     const legacyParam = legacyParts[1] || "";
-    if (
+    const legacyFallback =
+      legacySection === "mcqs" ? "quiz" :
+      legacySection === "flashcards" ? "flashcards" :
+      legacySection === "essays" ? "essay" : "article";
+    const normalizedLegacyParam = cleanPublicSlug(legacyParam, "", legacyFallback);
+    const isLegacyDetailVariant =
       ["blog", "mcqs", "flashcards", "essays"].includes(legacySection) &&
-      extractUuidFromParam(legacyParam)
-    ) {
+      (
+        !!extractUuidFromParam(legacyParam) ||
+        normalizedLegacyParam !== legacyParam.toLowerCase()
+      );
+    if (isLegacyDetailVariant) {
       const target = await resolveCanonicalDetailPath(legacySection, legacyParam);
       if (target && target !== `/${legacySection}/${legacyParam}`) {
         return permanentRedirect(target);
