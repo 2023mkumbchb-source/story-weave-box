@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, ChevronDown, ChevronUp, FileText, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { getArticleById, getCategoryDisplayName, buildBlogPath } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
-import { updateMetaTags } from "@/lib/seo";
+import { SITE_URL, updateMetaTags } from "@/lib/seo";
 
 interface Essay {
   id: string;
@@ -19,6 +19,8 @@ interface Essay {
 
 export default function EssayStudy() {
   const { slug } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [essay, setEssay] = useState<Essay | null>(null);
   const [loading, setLoading] = useState(true);
   const [openSaq, setOpenSaq] = useState<Set<number>>(new Set());
@@ -45,10 +47,10 @@ export default function EssayStudy() {
               const e = fallbackData as unknown as Essay | null;
               setEssay(e);
               if (e) {
-                updateMetaTags({
-                  title: `${e.title} – Essay`,
-                  description: `Practice structured medical answers for ${e.title} here.`,
-                });
+                const canonicalSlug = String(e.slug || e.title || e.id).trim().toLowerCase().replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i, "").replace(/-[0-9a-f]{6}$/i, "").replace(/-+/g, "-").replace(/^-|-$/g, "");
+                const canonicalPath = `/essays/${canonicalSlug}`;
+                if (location.pathname !== canonicalPath) navigate(canonicalPath, { replace: true });
+                updateMetaTags({ title: `${e.title} – Essay`, description: `Practice structured medical answers for ${e.title} here.`, url: `${SITE_URL}${canonicalPath}`, type: "article" });
               }
               setLoading(false);
             });
@@ -56,14 +58,14 @@ export default function EssayStudy() {
         const e = data as unknown as Essay | null;
         setEssay(e);
         if (e) {
-          updateMetaTags({
-            title: `${e.title} – Essay`,
-            description: `Practice structured medical answers for ${e.title} here.`,
-          });
+          const canonicalSlug = String(e.slug || e.title || e.id).trim().toLowerCase().replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i, "").replace(/-[0-9a-f]{6}$/i, "").replace(/-+/g, "-").replace(/^-|-$/g, "");
+          const canonicalPath = `/essays/${canonicalSlug}`;
+          if (location.pathname !== canonicalPath) navigate(canonicalPath, { replace: true });
+          updateMetaTags({ title: `${e.title} – Essay`, description: `Practice structured medical answers for ${e.title} here.`, url: `${SITE_URL}${canonicalPath}`, type: "article" });
         }
         setLoading(false);
       });
-  }, [slug]);
+  }, [slug, location.pathname, navigate]);
 
   useEffect(() => {
     let mounted = true;
