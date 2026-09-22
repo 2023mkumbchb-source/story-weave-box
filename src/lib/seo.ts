@@ -95,7 +95,7 @@ export function updateMetaTags({ title, description, image, url, type = "website
   document.title = title;
 
   // ✅ Always use www canonical — never fall back to window.location.href
-  const normalizedPath = window.location.pathname.replace(/\\/+$/, "") || "/";
+  const normalizedPath = window.location.pathname.replace(/\/+$/, "") || "/";
   const canonicalUrl = url || `${SITE_URL}${normalizedPath}`;
   const keywordContent = keywords && keywords.length ? keywords.join(", ") : buildKeywords(title);
 
