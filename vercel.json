@@ -280,6 +280,26 @@
       "destination": "/api/og-meta?path=/flashcards/:legacy"
     },
     {
+      "source": "/essays/:legacy([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}.*)",
+      "destination": "/api/og-meta?path=/essays/:legacy"
+    },
+    {
+      "source": "/blog/:legacy([a-z0-9-]+-[0-9a-fA-F]{6,12})",
+      "destination": "/api/og-meta?path=/blog/:legacy"
+    },
+    {
+      "source": "/mcqs/:legacy([a-z0-9-]+-[0-9a-fA-F]{6,12})",
+      "destination": "/api/og-meta?path=/mcqs/:legacy"
+    },
+    {
+      "source": "/flashcards/:legacy([a-z0-9-]+-[0-9a-fA-F]{6,12})",
+      "destination": "/api/og-meta?path=/flashcards/:legacy"
+    },
+    {
+      "source": "/essays/:legacy([a-z0-9-]+-[0-9a-fA-F]{6,12})",
+      "destination": "/api/og-meta?path=/essays/:legacy"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
