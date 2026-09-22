@@ -1,192 +1,77 @@
-name: Sync website from Ompath mobile source
+name: Sync Shared Logic from Ompath mobile
 
 on:
-  push:
-    branches: [main]
-  schedule:
-    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
-  group: sync-from-mobile
+  group: sync-shared-logic-from-mobile
   cancel-in-progress: true
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
-      - name: Checkout website
+      - name: Checkout website repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Save website-only files before sync
-        run: |
-          set -e
-          mkdir -p /tmp/website-only
-          cp src/components/SiteFooter.tsx /tmp/website-only/SiteFooter.tsx
-          cp src/pages/AppDownload.tsx /tmp/website-only/AppDownload.tsx
-          cp src/components/AccessRoute.tsx /tmp/website-only/AccessRoute.tsx
-
-      - name: Checkout current APK/web source
+      - name: Checkout mobile repository
         uses: actions/checkout@v4
         with:
           repository: 2023mkumbchb-source/ompathstudy-mobile
           ref: main
           path: mobile-source
           fetch-depth: 1
-
-      - name: Sync shared application code and public assets
+      - name: Copy only explicitly shared logic
+        shell: bash
         run: |
-          set -e
-          rsync -a --delete \
-            --exclude='components/SiteFooter.tsx' \
-            --exclude='components/MobileBottomNav.tsx' \
-            --exclude='components/OfflineStatusBanner.tsx' \
-            --exclude='components/NotificationBanner.tsx' \
-            --exclude='components/AdminNotifications.tsx' \
-            --exclude='components/MedicalLaunchExperience.tsx' \
-            --exclude='pages/Notifications.tsx' \
-            --exclude='pages/AppDownload.tsx' \
-            --exclude='lib/notifications.ts' \
-            --exclude='lib/notification-navigation.ts' \
-            --exclude='hooks/useMobileApp.ts' \
-            --exclude='hooks/useAutoSync.ts' \
-            --exclude='lib/otaUpdater.ts' \
-            --exclude='components/AccessRoute.tsx' \
-            mobile-source/src/ src/
-          rsync -a --delete mobile-source/public/ public/
-          rsync -a --delete mobile-source/scripts/ scripts/
-          cp mobile-source/package.json package.json
-          cp mobile-source/package-lock.json package-lock.json
-          cp mobile-source/tsconfig.json tsconfig.json
-          cp mobile-source/tsconfig.app.json tsconfig.app.json
-          cp mobile-source/tsconfig.node.json tsconfig.node.json
-          cp mobile-source/vite.config.ts vite.config.ts
-          cp mobile-source/tailwind.config.ts tailwind.config.ts
-          cp mobile-source/postcss.config.js postcss.config.js
-          cp mobile-source/eslint.config.js eslint.config.js
-          cp /tmp/website-only/SiteFooter.tsx src/components/SiteFooter.tsx
-          cp /tmp/website-only/AppDownload.tsx src/pages/AppDownload.tsx
-          cp /tmp/website-only/AccessRoute.tsx src/components/AccessRoute.tsx
-
-      - name: Make App.tsx web-specific
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('src/App.tsx')
-          s = p.read_text()
-          s = s.replace('import { Suspense, lazy, useEffect } from "react";', 'import { Suspense, lazy } from "react";')
-          s = s.replace(', useNavigate', '')
-          for x in [
-              'import MobileBottomNav from "@/components/MobileBottomNav";\n',
-              'import { useMobileApp } from "@/hooks/useMobileApp";\n',
-              'import OfflineStatusBanner from "@/components/OfflineStatusBanner";\n',
-              'import NotificationBanner from "@/components/NotificationBanner";\n',
-              'import { setupNativeNotificationListener } from "@/lib/notifications";\n',
-              'import { openNotificationAction } from "@/lib/notification-navigation";\n',
-              'import { useAutoSync } from "@/hooks/useAutoSync";\n',
-              'import MedicalLaunchExperience from "@/components/MedicalLaunchExperience";\n',
-              'import { initOtaUpdater } from "@/lib/otaUpdater";\n',
-              'const Notifications = lazy(() => import("./pages/Notifications"));\n',
-              'const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));\n',
-          ]:
-              s = s.replace(x, '')
-          start = s.find('function MobileAppBridge() {')
-          if start != -1:
-              end = s.find('\nconst App = () =>', start)
-              if end == -1:
-                  raise SystemExit('Could not find MobileAppBridge end')
-              s = s[:start] + s[end + 1:]
-          for x in [
-              '            <MobileAppBridge />\n',
-              '            <MedicalLaunchExperience />\n',
-              '            <NotificationBanner />\n',
-              '            <OfflineStatusBanner />\n',
-              '            <MobileBottomNav />\n',
-              '            <Route path="/notifications" element={<SignedInRoute><Notifications /></SignedInRoute>} />\n',
-              '            <Route path="/admin/notifications" element={<AdminRoute><AdminNotifications /></AdminRoute>} />\n',
-          ]:
-              s = s.replace(x, '')
-          replacements = {
-              '            <Route path="/my-revision" element={<MyRevision />} />': '            <Route path="/my-revision" element={<SignedInRoute><MyRevision /></SignedInRoute>} />',
-              '            <Route path="/revision-planner" element={<RevisionPlanner />} />': '            <Route path="/revision-planner" element={<SignedInRoute><RevisionPlanner /></SignedInRoute>} />',
-              '            <Route path="/mcqs" element={<Navigate to="/blog" replace />} />\n            <Route path="/mcqs/:id" element={<Navigate to="/blog" replace />} />': '            <Route path="/mcqs" element={<Exams />} />\n            <Route path="/mcqs/:id" element={<ExamStart />} />',
-              '            <Route path="/contests/:slug/register" element={<ContestRegistration />} />': '            <Route path="/contests/:slug/register" element={<SignedInRoute><ContestRegistration /></SignedInRoute>} />',
-              '            <Route path="/contests/:slug/lobby" element={<ContestLobby />} />': '            <Route path="/contests/:slug/lobby" element={<SignedInRoute><ContestLobby /></SignedInRoute>} />',
-              '            <Route path="/contests/:slug/round/:roundId" element={<ContestRound />} />': '            <Route path="/contests/:slug/round/:roundId" element={<SignedInRoute><ContestRound /></SignedInRoute>} />',
-              '            <Route path="/contests/:slug/progress" element={<ContestProgress />} />': '            <Route path="/contests/:slug/progress" element={<SignedInRoute><ContestProgress /></SignedInRoute>} />',
-              '            <Route path="/contests/:slug/certificate/:attemptId" element={<ContestCertificate />} />': '            <Route path="/contests/:slug/certificate/:attemptId" element={<SignedInRoute><ContestCertificate /></SignedInRoute>} />',
-              '            <Route path="/submit-story" element={<SubmitStory />} />': '            <Route path="/submit-story" element={<SignedInRoute><SubmitStory /></SignedInRoute>} />',
-              '            <Route path="/account" element={<Account />} />': '            <Route path="/account" element={<SignedInRoute><Account /></SignedInRoute>} />',
-              '            <Route path="/admin" element={<Admin />} />': '            <Route path="/admin/payments" element={<AdminRoute><Navigate to="/admin#payments" replace /></AdminRoute>} />\n            <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>}',
-              '            <Route path="/admin/unedited-uploads" element={<Navigate to="/source-library" replace />} />': '            <Route path="/admin/unedited-uploads" element={<AdminRoute><Navigate to="/source-library" replace /></AdminRoute>} />',
-              '            <Route path="/unedited-uploads" element={<Navigate to="/source-library" replace />} />': '            <Route path="/unedited-uploads" element={<AdminRoute><Navigate to="/source-library" replace /></AdminRoute>} />',
-              '            <Route path="/source-library" element={<SourceLibrary />} />': '            <Route path="/source-library" element={<AdminRoute><SourceLibrary /></AdminRoute>} />',
-              '            <Route path="/source-library/:slug" element={<SourceLibrary />} />': '            <Route path="/source-library/:slug" element={<AdminRoute><SourceLibrary /></AdminRoute>} />',
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require("fs");
+          const path = require("path");
+          const sharedFiles = ["src/lib/academic.ts"];
+          for (const file of sharedFiles) {
+            if (!file.startsWith("src/lib/")) throw new Error("Refusing to sync non-library path: " + file);
+            const source = path.join("mobile-source", file);
+            if (!fs.existsSync(source)) throw new Error("Missing mobile source file: " + file);
+            fs.mkdirSync(path.dirname(file), { recursive: true });
+            fs.copyFileSync(source, file);
           }
-          for old, new in replacements.items():
-              s = s.replace(old, new)
-          admin_routes = [
-              ('/admin/editor', 'AdminEditor'),
-              ('/admin/categories', 'CategoryManager'),
-              ('/admin/study-system', 'StudySystemAdmin'),
-              ('/admin/contests', 'ContestAdmin'),
-              ('/admin/contests/setup', 'ContestSetup'),
-              ('/admin/contests/questions', 'ContestQuestionAdmin'),
-              ('/admin/contests/operations', 'ContestOperations'),
-              ('/admin/contests/rehearsal', 'ContestRehearsal'),
-              ('/admin/contests/appeals', 'ContestAppealsAdmin'),
-          ]
-          for path, name in admin_routes:
-              old = '            <Route path="' + path + '" element={<' + name + ' />} />'
-              new = '            <Route path="' + path + '" element={<AdminRoute><' + name + ' /></AdminRoute>} />'
-              s = s.replace(old, new)
-          if 'import { AdminRoute, SignedInRoute } from "@/components/AccessRoute";' not in s:
-              anchor = 'import LearnerProfileGate from "@/components/LearnerProfileGate";\n'
-              s = s.replace(anchor, anchor + 'import { AdminRoute, SignedInRoute } from "@/components/AccessRoute";\n')
-          if 'const AppDownload = lazy(() => import("./pages/AppDownload"));' not in s:
-              anchor = 'const NotFound = lazy(() => import("./pages/NotFound"));'
-              s = s.replace(anchor, 'const AppDownload = lazy(() => import("./pages/AppDownload"));\n' + anchor)
-          if '<Route path="/download-app" element={<AppDownload />} />' not in s:
-              anchor = '            <Route path="/about" element={<About />} />'
-              s = s.replace(anchor, anchor + '\n            <Route path="/download-app" element={<AppDownload />} />')
-          p.write_text(s)
-          PY
-
-      - name: Sync Supabase migrations and functions without removing website-only APIs
+          NODE
+      - name: Check for changes
+        id: changes
+        shell: bash
         run: |
-          set -e
-          mkdir -p supabase
-          if [ -d mobile-source/supabase/migrations ]; then
-            mkdir -p supabase/migrations
-            rsync -a mobile-source/supabase/migrations/ supabase/migrations/
+          if git diff --quiet -- src/lib/academic.ts; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
-          if [ -d mobile-source/supabase/functions ]; then
-            mkdir -p supabase/functions
-            rsync -a mobile-source/supabase/functions/ supabase/functions/
-          fi
-
-      - name: Build the synchronized website
+      - name: Create sync branch and commit
+        if: ${{ steps.changes.outputs.changed == 'true' }}
+        shell: bash
         run: |
-          npm ci --legacy-peer-deps
-          npm run build
-        env:
-          VITE_SUPABASE_URL: https://dekyjrfwvavtoivqivno.supabase.co
-          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_jOXeiFMWJj1z_M-zShimXA_cG9f2QxL
-
-      - name: Commit synchronized changes
-        run: |
+          set -euo pipefail
+          branch="sync/shared-logic-from-mobile-${GITHUB_RUN_ID}"
+          git switch -c "$branch"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src public scripts package.json package-lock.json tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts tailwind.config.ts postcss.config.js eslint.config.js supabase .github/workflows/sync-from-mobile.yml
-          if git diff --cached --quiet; then
-            echo "Website is already synchronized with the mobile source."
-            exit 0
-          fi
-          git commit -m "Sync shared mobile features while preserving web-only APK and UI"
-          git push origin HEAD:main
+          git add src/lib/academic.ts
+          git commit -m "Sync shared logic from mobile"
+          git push --set-upstream origin "$branch"
+      - name: Open sync pull request
+        if: ${{ steps.changes.outputs.changed == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh pr create \
+            --base main \
+            --head "sync/shared-logic-from-mobile-${GITHUB_RUN_ID}" \
+            --title "Sync shared logic from mobile" \
+            --body "Automated shared-logic sync. Page layouts, styling, responsive design, components, navigation, website-only code and APK-only code are intentionally excluded."
