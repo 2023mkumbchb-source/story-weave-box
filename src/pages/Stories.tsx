@@ -12,6 +12,7 @@ interface Story {
   published: boolean;
   created_at: string;
   cover_image_url?: string | null;
+  meta_description?: string | null;
 }
 
 function formatDate(iso: string): string {
