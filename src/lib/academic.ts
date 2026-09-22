@@ -168,7 +168,7 @@ export function resourcePath(r: UnitResource): string {
   // MCQ sets power the timed exam flow directly (see ExamStart.tsx, which
   // resolves this same slug-or-id against the mcq_sets table) -- link there
   // instead of a fuzzy title search on the blog.
-  if (r.kind === "mcq") return `/exams/${r.slug || r.id}/start`;
+  if (r.kind === "mcq") return `/mcqs/${r.slug || r.id}`;
   if (r.kind === "flashcard") return `/flashcards/${r.slug || r.id}`;
   return `/blog/${r.slug || r.id}`;
 }
