@@ -210,7 +210,7 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
     hits.push({
       id: row.id, title: row.title, slug: row.slug, category: row.category, kind: "flashcard",
       contentType: "Flashcards", reason: reasonFor(row), updated_at: row.updated_at,
-      href: `/flashcards/${row.slug || row.id}`, score: 65,
+      href: buildFlashcardPath(row), score: 65,
     });
   }
   for (const row of units.data || []) {
