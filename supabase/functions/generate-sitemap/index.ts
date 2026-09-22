@@ -207,7 +207,7 @@ serve(async (req) => {
       if (!includeBlog || !matchesYear(a.category, filter.year)) continue;
       const articleSlug = cleanPublicSlug(a.slug, a.title, "article");
       const path = `/blog/${articleSlug}`;
-      if (emittedPaths.has(path) || emittedEssaySlugs.has(essaySlug) || EXCLUDED_PATHS.has(path)) continue;
+      if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
       emittedPaths.add(path);
       const lastmod = (a.updated_at || a.created_at) ? new Date(a.updated_at || a.created_at).toISOString().split("T")[0] : "";
       const imageUrl = a.og_image_url || a.featured_image || null;
@@ -298,7 +298,8 @@ serve(async (req) => {
       if (!includeEssays) continue;
       const essaySlug = cleanPublicSlug(e.slug, e.title, "essay");
       const path = `/essays/${essaySlug}`;
-      if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
+      if (emittedPaths.has(path) || emittedEssaySlugs.has(essaySlug) || EXCLUDED_PATHS.has(path)) continue;
+      emittedEssaySlugs.add(essaySlug);
       emittedPaths.add(path);
       const lastmod = (e.updated_at || e.created_at) ? new Date(e.updated_at || e.created_at).toISOString().split("T")[0] : "";
       xml += `  <url>\n    <loc>${baseUrl}${path}</loc>\n`;
