@@ -207,7 +207,7 @@ serve(async (req) => {
       if (!includeBlog || !matchesYear(a.category, filter.year)) continue;
       const articleSlug = cleanPublicSlug(a.slug, a.title, "article");
       const path = `/blog/${articleSlug}`;
-      if (emittedPaths.has(path) || EXCLUDED_PATHS.has(path)) continue;
+      if (emittedPaths.has(path) || emittedEssaySlugs.has(essaySlug) || EXCLUDED_PATHS.has(path)) continue;
       emittedPaths.add(path);
       const lastmod = (a.updated_at || a.created_at) ? new Date(a.updated_at || a.created_at).toISOString().split("T")[0] : "";
       const imageUrl = a.og_image_url || a.featured_image || null;
@@ -293,6 +293,7 @@ serve(async (req) => {
     }
 
     // Essays
+    const emittedEssaySlugs = new Set<string>();
     for (const e of (essays || []) as any[]) {
       if (!includeEssays) continue;
       const essaySlug = cleanPublicSlug(e.slug, e.title, "essay");
