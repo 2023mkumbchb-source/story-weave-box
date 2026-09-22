@@ -2,7 +2,13 @@ const SUPABASE_URL = "https://dekyjrfwvavtoivqivno.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_jOXeiFMWJj1z_M-zShimXA_cG9f2QxL";
 
 async function fetchFromSupabase(table, field, value) {
-  const url = `${SUPABASE_URL}/rest/v1/${table}?${field}=eq.${encodeURIComponent(value)}&select=*&limit=1`;
+  const columns = {
+    articles: "id,title,meta_title,meta_description,og_image_url,cover_image",
+    mcq_sets: "id,title,meta_title,meta_description,og_image_url",
+    flashcard_sets: "id,title,meta_title,meta_description,og_image_url",
+    stories: "id,title,meta_title,meta_description,og_image_url,cover_image_url",
+  }[table] || "id,title,meta_title,meta_description,og_image_url";
+  const url = `${SUPABASE_URL}/rest/v1/${table}?${field}=eq.${encodeURIComponent(value)}&select=${columns}&limit=1`;
   const res = await fetch(url, {
     headers: {
       apikey: SUPABASE_ANON_KEY,
@@ -91,8 +97,8 @@ export default async function handler(req, res) {
       if (record) {
         return res.status(200).send(buildHTML({
           title: record.meta_title || record.title,
-          description: record.meta_description || stripHtml(record.content) || `${record.title}`,
-          content: `<p>${esc(stripHtml(record.content, 3000))}</p>`,
+          description: record.meta_description || `${record.title}`,
+          content: `<p>${esc(record.meta_description || record.title)}</p>`,
           url: pageUrl,
           image: record.og_image_url || record.cover_image,
         }));
@@ -111,11 +117,8 @@ export default async function handler(req, res) {
       if (!record) record = await fetchFromSupabase("mcq_sets", "slug", mcq);
       pageUrl = `https://www.ompathstudy.com/mcqs/${mcq}`;
       if (record) {
-        const qCount = Array.isArray(record.questions) ? record.questions.length : 0;
-        const desc = record.meta_description || `Practice ${qCount} MCQs on ${record.title} with OmpathStudy. Built for Kenyan medical students.`;
-        const qList = Array.isArray(record.questions)
-          ? record.questions.slice(0, 20).map((q, i) => `<p><strong>Q${i+1}:</strong> ${esc(q.question || q.text || "")}</p>`).join("")
-          : "";
+        const desc = record.meta_description || `Practice medical MCQs on ${record.title} with OmpathStudy. Built for Kenyan medical students.`;
+        const qList = `<p>${esc(desc)}</p>`;
         return res.status(200).send(buildHTML({
           title: record.meta_title || `${record.title} | MCQ Quiz | OmpathStudy Kenya`,
           description: desc,
