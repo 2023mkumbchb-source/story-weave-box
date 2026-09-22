@@ -35,6 +35,11 @@ const STATIC_PAGE_META: Record<string, { title: string; description: string; lin
     description: "Take timed medical exams and past-paper style MCQ practice for MBChB revision by year and unit.",
     links: ["/", "/blog", "/mcqs", "/flashcards", "/year/1", "/year/2", "/year/3", "/year/4", "/year/5", "/year/6"],
   },
+  "/contests": {
+    title: "Medical Knowledge Contests | OmpathStudy Kenya",
+    description: "OmpathStudy medical knowledge contests for students across Kenya, with published briefings and competition information.",
+    links: ["/", "/blog", "/mcqs", "/flashcards", "/exams", "/year/1", "/year/2", "/year/3", "/year/4", "/year/5", "/year/6"],
+  },
   "/stories": {
     title: "Medical School Stories | OmpathStudy Kenya",
     description: "Read reflective medical school stories and student experiences from Kenya and East Africa.",
@@ -721,6 +726,17 @@ export default async function handler(req: Request): Promise<Response> {
       description = pages[section].description;
       keywords = pages[section].keywords;
       bodyExtra = await buildLiveIndexLinks(section);
+    } else if (section === "contests" && param && parts[2] === "briefing") {
+      const rows = await sbFetch("contests", `select=slug,title,subtitle,share_image_url,starts_at,ends_at,subjects,years,format,teams&slug=eq.${encodeURIComponent(param)}&published=eq.true&limit=1`);
+      const contest = rows?.[0];
+      if (!contest) return permanentRedirect("/contests");
+      title = `${contest.title} | Contest Briefing | OmpathStudy`;
+      description = toMetaDescription(contest.subtitle || "Read the published OmpathStudy medical knowledge contest briefing.", "Read the published OmpathStudy medical knowledge contest briefing for medical students in Kenya.");
+      ogImage = contest.share_image_url || OG_FALLBACK_IMAGE;
+      keywords = `OmpathStudy, medical contest Kenya, ${contest.title}, contest briefing, medical students Kenya`;
+      type = "article";
+      bodyExtra = `<section><h2>Contest briefing</h2><p>${htmlEscape(contest.subtitle || "Published contest briefing.")}</p><p><strong>Subjects:</strong> ${htmlEscape(Array.isArray(contest.subjects) ? contest.subjects.join(", ") : "")}</p><p><strong>Eligible years:</strong> ${htmlEscape(Array.isArray(contest.years) ? contest.years.map((y: unknown) => `Year ${y}`).join(", ") : "")}</p><p><strong>Format:</strong> ${htmlEscape(String(contest.format || ""))}</p><p><strong>Representation:</strong> ${htmlEscape(String(contest.teams || ""))}</p></section>`;
+      schemaJson = JSON.stringify({ "@context": "https://schema.org", "@type": "Event", name: contest.title, description, url: absoluteUrl, startDate: contest.starts_at, endDate: contest.ends_at, organizer: { "@type": "Organization", name: "OmpathStudy" } });
     } else if (section === "contests" && param) {
       const rows = await sbFetch("contests", `select=slug,title,subtitle,share_image_url,starts_at&slug=eq.${encodeURIComponent(param)}&published=eq.true&limit=1`);
       const contest = rows?.[0];
@@ -959,7 +975,7 @@ ${explanationLine}
     // pages are removed/consolidated cleanly in Google + Ahrefs reports.
     const safeSection = (() => {
       const seg = (new URL(req.url).searchParams.get("path") || "/").split("?")[0].split("/").filter(Boolean)[0] || "";
-      if (["blog", "mcqs", "flashcards", "stories", "exams"].includes(seg)) return `/${seg}`;
+      if (["blog", "mcqs", "flashcards", "stories", "exams", "essays", "contests"].includes(seg)) return `/${seg}`;
       return "/";
     })();
     console.error("og-meta soft-redirect:", err instanceof Error ? err.message : String(err));
