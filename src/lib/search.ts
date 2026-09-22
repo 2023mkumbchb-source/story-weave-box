@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getAcademicYears, type ResourceType } from "./academic";
+import { buildBlogPath, buildFlashcardPath, buildMcqPath } from "./store";
 import { dedupeResourceSummaries, hasStoryContent, isPublicMcqSet, isPublicStudyTitle } from "./content-policy";
 
 /** Accepts "Year 2", "2", or 2 and returns the numeric year, or null. */
@@ -191,7 +192,7 @@ export async function globalSearch(query: string, filters: SearchFilters = {}): 
     hits.push({
       id: row.id, title: row.title, slug: row.slug, category: row.category, kind: "article",
       contentType: ct, reason: reasonFor(row), updated_at: row.updated_at, exam_year: row.exam_year,
-      href: `/blog/${row.slug || row.id}`,
+      href: buildBlogPath(row),
       score: row.title.toLowerCase().includes(primary) ? 100 : 60,
     });
   }
