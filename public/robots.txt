@@ -1,15 +1,6 @@
 # OmpathStudy crawl policy
 User-agent: *
 Allow: /
-Disallow: /account
-Disallow: /admin
-Disallow: /login
-Disallow: /auth/
-Disallow: /my-revision
-Disallow: /revision-planner
-Disallow: /source-library
-Disallow: /submit-story
-Disallow: /search
 Disallow: /contests/*/register
 Disallow: /contests/*/lobby
 Disallow: /contests/*/round/
