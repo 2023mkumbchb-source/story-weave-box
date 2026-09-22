@@ -21,6 +21,7 @@ export default async function handler(req, res) {
     "flashcards-year-6.xml",
     "stories.xml",
     "essays.xml",
+    "contests.xml",
   ];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
