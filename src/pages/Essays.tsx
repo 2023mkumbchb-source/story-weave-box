@@ -37,7 +37,7 @@ export default function Essays() {
   useEffect(() => {
     supabase
       .from("essays")
-      .select("*")
+      .select("id,slug,title,category,short_answer_questions,long_answer_questions,created_at,article_id")
       .eq("published", true)
       .is("deleted_at", null)
       .order("updated_at", { ascending: false })
