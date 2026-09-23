@@ -57,3 +57,5 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+# Trigger production deployment for the imported Year 4 article fix.
