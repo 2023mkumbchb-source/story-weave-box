@@ -751,6 +751,22 @@ async function fetchArticleBySlugOrId(slugOrId: string): Promise<Article | null>
   const slugMatch = slugMatches?.[0];
   if (slugMatch) return hydrateLegacySource(slugMatch as unknown as Article);
 
+  // Year 4 Google Drive ingestion may temporarily expose the source/file ID
+  // in a generated link before the canonical Ompath slug is assigned. Resolve
+  // that identifier here so imported articles never fall through to
+  // "Article unavailable".
+  const { data: sourceMatches, error: sourceError } = await supabase
+    .from("articles")
+    .select(ARTICLE_DETAIL_COLUMNS)
+    .eq("source_reference", slugOrId)
+    .eq("published", true)
+    .is("deleted_at", null)
+    .order("updated_at", { ascending: false })
+    .limit(1);
+  if (sourceError) throw sourceError;
+  const sourceMatch = sourceMatches?.[0];
+  if (sourceMatch) return hydrateLegacySource(sourceMatch as unknown as Article);
+
   const { data, error } = await supabase
     .from("articles")
     .select("id, title")
