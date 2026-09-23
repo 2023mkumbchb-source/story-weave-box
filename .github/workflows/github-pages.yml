@@ -20,33 +20,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-
       - name: Install dependencies
         run: npm ci
-
       - name: Build production site
         run: npm run build
         env:
           VITE_SUPABASE_URL: https://dekyjrfwvavtoivqivno.supabase.co
           VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_jOXeiFMWJj1z_M-zShimXA_cG9f2QxL
-
       - name: Preserve SPA routes on GitHub Pages
         run: cp dist/index.html dist/404.html
-
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
-
   deploy:
     environment:
       name: github-pages
@@ -58,4 +51,4 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-# Trigger production deployment for the imported Year 4 article fix.
+# Force a fresh GitHub Pages deployment.
