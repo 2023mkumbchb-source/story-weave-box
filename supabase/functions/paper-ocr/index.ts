@@ -85,15 +85,32 @@ async function callVision(prompt: string, images: { mime: string; data: string }
 
 /* ─── Scanned page helpers ─── */
 
-const IMG_RE = /!\[[^\]]*\]\(\s*(\S+?)\s*\)/g;
+const IMG_RE = /!\\[[^\\]]*\\]\\(\\s*(\\S+?)\\s*\\)/g;
+const URL_RE = /https?:\\/\\/[^\\s)"'<>]+/gi;
+
+function normalizeScanUrl(url: string): string {
+  return url
+    .replace(/[\\],.;:!?]+$/, "")
+    .replace(/^https:\\/\\/(?:www\\.)?ompathstudy\\.com\\/uploads\\//i, "https://cdn.ompathstudy.com/uploads/");
+}
 
 function pageUrls(article: any): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const field of [article.original_notes, article.content]) {
-    for (const m of String(field || "").matchAll(IMG_RE)) {
-      const url = m[1];
-      if (!/^https?:\/\//.test(url) || seen.has(url)) continue;
+    const source = String(field || "").replace(/\\\\\\//g, "/");
+    for (const m of source.matchAll(IMG_RE)) {
+      const url = normalizeScanUrl(m[1]);
+      if (!/^https?:\\/\\//.test(url) || seen.has(url)) continue;
+      if (/\\.pdf(?:\\?|$)/i.test(url)) continue;
+      seen.add(url);
+      out.push(url);
+    }
+    for (const m of source.matchAll(URL_RE)) {
+      const url = normalizeScanUrl(m[0]);
+      if (!/^https?:\\/\\//.test(url) || seen.has(url)) continue;
+      if (/\\.pdf(?:\\?|$)/i.test(url)) continue;
+      if (!/(?:\\/uploads\\/|\\.(?:jpe?g|png|webp)(?:\\?|$))/i.test(url)) continue;
       seen.add(url);
       out.push(url);
     }
@@ -204,6 +221,7 @@ Deno.serve(async (req) => {
       if (body.original_notes) patch.original_notes = body.original_notes;
       if (body.meta_description) patch.meta_description = String(body.meta_description).slice(0, 300);
       if (body.published !== undefined) patch.published = !!body.published;
+      if (body.is_raw !== undefined) patch.is_raw = !!body.is_raw;
       const { error } = await sb.from("articles").update(patch).eq("id", articleId);
       if (error) throw error;
       return json({ ok: true, length: content.length });
