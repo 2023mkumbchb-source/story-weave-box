@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   MBCHB_2026_TRIMESTER_1,
   YEAR_TEACHING_STAFF,
-  YEAR_4_WEEKLY_TIMETABLE,
+  YEAR_4_ROTATION_GRIDS,
 } from "@/lib/timetable2026";
 
 type UnitBundle = { unit: Unit; resources: UnitResource[] };
@@ -307,16 +307,23 @@ export default function SemesterDashboard() {
                       </div>
                     </div>
                     <div className="mt-4 space-y-2">
-                      {YEAR_4_WEEKLY_TIMETABLE.map((row) => (
-                        <div key={row.day} className="rounded-xl border border-border bg-card p-3">
-                          <p className="text-xs font-bold text-foreground">{row.day}</p>
-                          <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground"><strong>G1:</strong> {row.group1}</p>
-                          <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground"><strong>G2:</strong> {row.group2}</p>
-                        </div>
+                      {YEAR_4_ROTATION_GRIDS.map((grid, index) => (
+                        <details key={grid.label} open={index === 0} className="rounded-xl border border-border bg-card p-3">
+                          <summary className="cursor-pointer text-xs font-bold text-foreground">{grid.label}</summary>
+                          <div className="mt-3 space-y-2">
+                            {grid.slots.map((row) => (
+                              <div key={row.day} className="rounded-lg border border-border bg-background p-3">
+                                <p className="text-[11px] font-bold text-foreground">{row.day}</p>
+                                <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground"><strong>G1:</strong> {row.group1}</p>
+                                <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground"><strong>G2:</strong> {row.group2}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </details>
                       ))}
                     </div>
                     <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">
-                      The official timetable contains multiple rotation grids; this view shows one published grid and keeps both groups visible because the student's individual group is not stored in the Ompath profile.
+                      The official timetable contains multiple rotation grids. Ompath keeps all published grids visible because the student's individual rotation/group is not stored in the Ompath profile; no rotation is guessed.
                     </p>
                   </div>
                 </div>
