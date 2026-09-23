@@ -18,6 +18,7 @@ import LearnerProfileGate from "@/components/LearnerProfileGate";
 import { AdminRoute, SignedInRoute } from "@/components/AccessRoute";
 
 const Index = lazy(() => import("./pages/Index"));
+const Timetable2026 = lazy(() => import("./pages/Timetable2026"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const Flashcards = lazy(() => import("./pages/Flashcards"));
@@ -87,6 +88,7 @@ const AnimatedRoutes = () => {
         <Suspense fallback={<RouteLoader />}>
           <Routes location={location}>
             <Route path="/" element={<Index />} />
+            <Route path="/timetable-2026" element={<Timetable2026 />} />
             <Route path="/year/:yearNumber" element={<YearHub />} />
             <Route path="/year/:yearNumber/unit/:unitSlug" element={<UnitPage />} />
             <Route path="/my-revision" element={<SignedInRoute><MyRevision /></SignedInRoute>} />
