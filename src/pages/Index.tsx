@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
 import { getSubjectKey, subjectColor } from "@/components/subjectTheme";
 import { useAuth } from "@/hooks/useAuth";
+import SemesterDashboard from "@/components/SemesterDashboard";
 
 /* Resource tiles — the Geeky Medics "Explore our resources" block: a small number
    of large, colour-blocked entry points instead of a wall of small links. */
@@ -251,6 +252,8 @@ export default function Index() {
           </motion.div>
         </motion.div>
       </section>
+
+      <SemesterDashboard />
 
       {/* ── Resource tiles ── */}
       <section className="mx-auto max-w-6xl px-5 py-10 sm:py-14">
