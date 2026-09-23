@@ -6,7 +6,7 @@ import DOMPurify from "dompurify";
 
 export interface PublishingExtras {
   countdown?: { enabled: boolean; label?: string; start_datetime?: string; end_datetime?: string; target_datetime?: string; display_style: "banner" | "inline" | "floating" } | null;
-  html_embed?: { position: "top" | "bottom" | "both"; code: string } | null;
+  html_embed?: { position: "top" | "bottom" | "both"; code: string; vimeo_url?: string } | null;
   password_protected?: boolean;
   access_password?: string;
   scheduled_at?: string | null;
@@ -98,7 +98,7 @@ export default function PublishingSettingsPanel({ value, onChange, content }: Pr
   }, [content]);
 
   const countdown = v.countdown || { enabled: false, label: "Exam starts in", start_datetime: "", end_datetime: "", display_style: "banner" as const };
-  const embed = v.html_embed || { position: "bottom" as const, code: "" };
+  const embed = v.html_embed || { position: "bottom" as const, code: "", vimeo_url: "" };
 
   return (
     <div className="space-y-2">
@@ -243,6 +243,20 @@ export default function PublishingSettingsPanel({ value, onChange, content }: Pr
             placeholder="Set a password"
             className="h-7 text-xs"
           />
+        )}
+      </Panel>
+
+      <Panel icon={<span className="text-[11px] font-bold">V</span>} title="Vimeo Video">
+        <Input
+          value={embed.vimeo_url || ""}
+          onChange={(e) => set("html_embed", { ...embed, vimeo_url: e.target.value.trim() })}
+          placeholder="https://vimeo.com/123456789"
+          className="h-7 text-xs"
+        />
+        {embed.vimeo_url && (
+          <p className="text-[10px] text-muted-foreground">
+            Vimeo videos are rendered through the official Vimeo player; no Vimeo token is exposed to visitors.
+          </p>
         )}
       </Panel>
 
