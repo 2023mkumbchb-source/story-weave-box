@@ -1,8 +1,11 @@
-import { useState, useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { ChevronDown, Calendar, Lock, Code2, Tag, Image as ImageIcon, Clock, ListTree, MessageSquare, Timer, Eye, GraduationCap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import DOMPurify from "dompurify";
+import { useState } from "react";
 
 export interface PublishingExtras {
   countdown?: { enabled: boolean; label?: string; start_datetime?: string; end_datetime?: string; target_datetime?: string; display_style: "banner" | "inline" | "floating" } | null;
@@ -74,6 +77,38 @@ interface Props {
   value: PublishingExtras;
   onChange: (next: PublishingExtras) => void;
   content: string;
+}
+
+function VimeoConnectionStatus() {
+  const [state, setState] = useState<{ loading: boolean; connected?: boolean; name?: string; error?: string }>({ loading: false });
+
+  const check = async () => {
+    setState({ loading: true });
+    try {
+      const { data, error } = await supabase.functions.invoke("vimeo-api", { body: { action: "status" } });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      setState({ loading: false, connected: !!data?.connected, name: data?.account?.name || "" });
+    } catch (error: any) {
+      setState({ loading: false, connected: false, error: error?.message || "Vimeo connection failed" });
+    }
+  };
+
+  return (
+    <div className="mt-2 rounded-md border border-border bg-muted/30 p-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[10px]">
+          <p className="font-semibold text-foreground">Vimeo account</p>
+          <p className="text-muted-foreground">
+            {state.connected ? `Connected${state.name ? ` as ${state.name}` : ""}` : state.error || "Not checked"}
+          </p>
+        </div>
+        <Button type="button" variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => void check()} disabled={state.loading}>
+          {state.loading ? "Checking…" : "Check connection"}
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 export default function PublishingSettingsPanel({ value, onChange, content }: Props) {
@@ -246,7 +281,7 @@ export default function PublishingSettingsPanel({ value, onChange, content }: Pr
         )}
       </Panel>
 
-      <Panel icon={<span className="text-[11px] font-bold">V</span>} title="Vimeo Video">
+      <Panel icon={<span className="text-[11px] font-bold">V</span>} title="Vimeo Connection & Video">
         <Input
           value={embed.vimeo_url || ""}
           onChange={(e) => set("html_embed", { ...embed, vimeo_url: e.target.value.trim() })}
@@ -258,6 +293,7 @@ export default function PublishingSettingsPanel({ value, onChange, content }: Pr
             Vimeo videos are rendered through the official Vimeo player; no Vimeo token is exposed to visitors.
           </p>
         )}
+        <VimeoConnectionStatus />
       </Panel>
 
       <Panel icon={<Code2 className="h-3.5 w-3.5" />} title="HTML Embed Block">
