@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowRight, BookMarked, BookOpen, ClipboardCheck, Clock, FileQuestion, GraduationCap, Images, Trophy } from "lucide-react";
+import { Link, useLocation, useParams } from "react-router-dom";
+import { ArrowRight, BookMarked, BookOpen, ClipboardCheck, Clock, ExternalLink, FileQuestion, FolderOpen, GraduationCap, Images, Stethoscope, Trophy } from "lucide-react";
 import {
   YEAR_CATEGORIES,
   getPublishedArticleSummaries,
@@ -13,6 +13,7 @@ import { getUnitsForYear, unitPath, type Unit } from "@/lib/academic";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getYear3Semester } from "@/lib/year3Semesters";
 import { SITE_URL } from "@/lib/seo";
+import { YEAR4_RESOURCE_GROUPS, YEAR4_SOURCE_FOLDER } from "@/lib/year4Resources";
 
 function year3SemesterFor(article: Article): 1 | 2 | 3 | null {
   if ([1, 2, 3].includes(Number(article.semester_number))) return Number(article.semester_number) as 1 | 2 | 3;
@@ -55,6 +56,7 @@ const YEAR3_PRIORITY = [
 
 export default function YearHub() {
   const { yearNumber } = useParams();
+  const location = useLocation();
   const parsedYear = Number(yearNumber);
   const isValidYear = YEAR_NUMBERS.includes(parsedYear as (typeof YEAR_NUMBERS)[number]);
 
@@ -214,6 +216,49 @@ export default function YearHub() {
         </section>
       )}
 
+      {parsedYear === 4 && (
+        <section className="mt-6" aria-labelledby="year-four-library">
+          <div className="border-b border-border pb-4">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-primary">
+                  <Stethoscope className="h-4 w-4" /> Clinical resource library
+                </p>
+                <h2 id="year-four-library" className="mt-1 font-serif text-2xl font-bold text-foreground">Year 4 study files</h2>
+                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">Open a clinical discipline, then choose its block notes, books or revision collection. Files retain their original document format.</p>
+              </div>
+              <a href={YEAR4_SOURCE_FOLDER} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-primary/50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <FolderOpen className="h-4 w-4" /> All Year 4 files <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </div>
+          </div>
+
+          <div className="divide-y divide-border border-b border-border">
+            {YEAR4_RESOURCE_GROUPS.map((group, index) => (
+              <article key={group.title} className="grid gap-4 py-5 md:grid-cols-[3rem_minmax(0,1fr)_auto] md:items-start">
+                <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-sm font-bold text-primary" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                <div className="min-w-0">
+                  <h3 className="font-serif text-xl font-bold text-foreground">{group.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{group.description}</p>
+                  {group.collections.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2" aria-label={`${group.title} collections`}>
+                      {group.collections.map((collection) => (
+                        <a key={collection.href} href={collection.href} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                          <FolderOpen className="h-3.5 w-3.5" /> {collection.label}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <a href={group.folderHref} target="_blank" rel="noreferrer" aria-label={`Open all ${group.title} files`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                  Open files <ExternalLink className="h-4 w-4" />
+                </a>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
       {hasAponeurosis && (
         <Link
           to={`/blog?year=${encodeURIComponent(yearLabel)}&unit=${encodeURIComponent(`${yearLabel}: Aponeurosis - Anatomy`)}`}
@@ -273,7 +318,7 @@ export default function YearHub() {
               <Link
                 key={a.id}
                 to={buildBlogPath(a)}
-                state={{ from: `${location2.pathname}${location2.search}` }}
+                state={{ from: `${location.pathname}${location.search}` }}
                 className="group flex items-start gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/40"
               >
                 <BookOpen className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
