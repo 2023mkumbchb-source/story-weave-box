@@ -85,34 +85,35 @@ async function callVision(prompt: string, images: { mime: string; data: string }
 
 /* ─── Scanned page helpers ─── */
 
-const IMG_RE = /!\\[[^\\]]*\\]\\(\\s*(\\S+?)\\s*\\)/g;
-const URL_RE = /https?:\\/\\/[^\\s)"'<>]+/gi;
+const IMG_RE = /!\[[^\]]*\]\(\s*(\S+?)\s*\)/g;
+const URL_RE = /https?:\/\/[^\s)"'<>]+/gi;
 
 function normalizeScanUrl(url: string): string {
   return url
-    .replace(/[\\],.;:!?]+$/, "")
-    .replace(/^https:\\/\\/(?:www\\.)?ompathstudy\\.com\\/uploads\\//i, "https://cdn.ompathstudy.com/uploads/");
+    .replace(/[\],.;:!?]+$/, "")
+    .replace(/^https:\/\/(?:www\.)?ompathstudy\.com\/uploads\//i, "https://cdn.ompathstudy.com/uploads/");
 }
 
 function pageUrls(article: any): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const field of [article.original_notes, article.content]) {
-    const source = String(field || "").replace(/\\\\\\//g, "/");
+    const source = String(field || "").replace(/\\\//g, "/");
     for (const m of source.matchAll(IMG_RE)) {
       const url = normalizeScanUrl(m[1]);
-      if (!/^https?:\\/\\//.test(url) || seen.has(url)) continue;
-      if (/\\.pdf(?:\\?|$)/i.test(url)) continue;
+      if (!/^https?:\/\//.test(url) || seen.has(url)) continue;
+      if (/\.pdf(?:\?|$)/i.test(url)) continue;
       seen.add(url);
       out.push(url);
     }
     for (const m of source.matchAll(URL_RE)) {
       const url = normalizeScanUrl(m[0]);
-      if (!/^https?:\\/\\//.test(url) || seen.has(url)) continue;
-      if (/\\.pdf(?:\\?|$)/i.test(url)) continue;
-      if (!/(?:\\/uploads\\/|\\.(?:jpe?g|png|webp)(?:\\?|$))/i.test(url)) continue;
-      seen.add(url);
-      out.push(url);
+      if (!/^https?:\/\//.test(url) || seen.has(url)) continue;
+      if (/\.pdf(?:\?|$)/i.test(url)) continue;
+      if (/(?:\/uploads\/|\.(?:jpe?g|png|webp)(?:\?|$))/i.test(url)) {
+        seen.add(url);
+        out.push(url);
+      }
     }
   }
   return out;
