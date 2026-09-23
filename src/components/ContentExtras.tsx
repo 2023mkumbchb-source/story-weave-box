@@ -6,7 +6,7 @@ import { sanitizeEmbed } from "@/components/PublishingSettings";
 
 export interface ExtrasData {
   countdown?: { enabled: boolean; label?: string; start_datetime?: string; end_datetime?: string; target_datetime?: string; display_style: "banner" | "inline" | "floating" } | null;
-  html_embed?: { position: "top" | "bottom" | "both"; code: string } | null;
+  html_embed?: { position: "top" | "bottom" | "both"; code: string; vimeo_url?: string } | null;
   password_protected?: boolean;
   access_password?: string;
   toc_enabled?: boolean;
@@ -60,6 +60,41 @@ export function Countdown({ data }: { data: ExtrasData["countdown"] }) {
   return (
     <div className="-mx-4 mb-4 bg-primary px-4 py-3 text-center text-primary-foreground sm:mx-0 sm:rounded-lg">
       {inner}
+    </div>
+  );
+}
+
+export function VimeoEmbed({ url }: { url?: string }) {
+  if (!url) return null;
+  let source: URL;
+  try {
+    source = new URL(url);
+  } catch {
+    return null;
+  }
+  if (source.protocol !== "https:" || !["vimeo.com", "www.vimeo.com", "player.vimeo.com"].includes(source.hostname)) return null;
+
+  const match = source.pathname.match(/(?:video\/)?(\d{6,})/);
+  const id = match?.[1];
+  if (!id) return null;
+
+  const player = new URL(`https://player.vimeo.com/video/${id}`);
+  const hash = source.searchParams.get("h");
+  if (hash) player.searchParams.set("h", hash);
+
+  return (
+    <div className="my-6 not-prose overflow-hidden rounded-xl border border-border bg-black shadow-sm">
+      <div className="aspect-video w-full">
+        <iframe
+          src={player.toString()}
+          title="Vimeo video"
+          className="h-full w-full"
+          loading="lazy"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      </div>
     </div>
   );
 }
