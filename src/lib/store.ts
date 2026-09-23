@@ -751,6 +751,20 @@ async function fetchArticleBySlugOrId(slugOrId: string): Promise<Article | null>
   const slugMatch = slugMatches?.[0];
   if (slugMatch) return hydrateLegacySource(slugMatch as unknown as Article);
 
+  // Some imported Year 4 links were created before the final uniqueness suffix
+  // was added to the canonical slug. Resolve the stable slug prefix as well.
+  const { data: slugPrefixMatches, error: slugPrefixError } = await supabase
+    .from("articles")
+    .select(ARTICLE_DETAIL_COLUMNS)
+    .ilike("slug", normalizedParam + "-%")
+    .eq("published", true)
+    .is("deleted_at", null)
+    .order("updated_at", { ascending: false })
+    .limit(1);
+  if (slugPrefixError) throw slugPrefixError;
+  const slugPrefixMatch = slugPrefixMatches?.[0];
+  if (slugPrefixMatch) return hydrateLegacySource(slugPrefixMatch as unknown as Article);
+
   // Year 4 Google Drive ingestion may temporarily expose the source/file ID
   // in a generated link before the canonical Ompath slug is assigned. Resolve
   // that identifier here so imported articles never fall through to
