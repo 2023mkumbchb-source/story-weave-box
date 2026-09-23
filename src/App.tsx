@@ -152,7 +152,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <BrowserRouter basename="/story-weave-box">
             <ScrollToTop />
             <ScrollProgressBar />
             <BackToTopButton />
