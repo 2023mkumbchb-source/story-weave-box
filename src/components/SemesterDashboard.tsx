@@ -336,9 +336,14 @@ export default function SemesterDashboard() {
               <GraduationCap className="h-4 w-4 text-primary" />
               <span>Teaching period: 7 Sep–4 Dec 2026 · End-semester CAT: 8–12 Dec 2026.</span>
             </div>
-            <Link to={`/year/${studyYear}`} className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline">
-              Open full Year {studyYear} curriculum <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+            <div className="flex flex-wrap items-center gap-4">
+              <Link to="/timetable-2026" className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline">
+                View Years 1–6 timetable <CalendarDays className="h-3.5 w-3.5" />
+              </Link>
+              <Link to={`/year/${studyYear}`} className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline">
+                Open full Year {studyYear} curriculum <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </div>
         </div>
       </div>
