@@ -522,7 +522,12 @@ async function hydrateLegacySource<T extends Record<string, any> | null>(article
   return { ...article, original_notes: source, content } as T;
 }
 
-export function buildEssayPath(essay: { id: string; title: string; slug?: string | null }): string {\n  const rawSlug = typeof essay.slug === "string" ? essay.slug.trim() : "";\n  return `/essays/${cleanPublicSlug(rawSlug, essay.title, "essay")}`;\n}\n\nexport function buildMcqPath(set: { id: string; title: string; slug?: string | null }): string {
+export function buildEssayPath(essay: { id: string; title: string; slug?: string | null }): string {
+  const rawSlug = typeof essay.slug === "string" ? essay.slug.trim() : "";
+  return `/essays/${cleanPublicSlug(rawSlug, essay.title, "essay")}`;
+}
+
+export function buildMcqPath(set: { id: string; title: string; slug?: string | null }): string {
   const rawSlug = typeof set.slug === "string" ? set.slug.trim() : "";
   return `/mcqs/${cleanPublicSlug(rawSlug, set.title, "quiz")}`;
 }
