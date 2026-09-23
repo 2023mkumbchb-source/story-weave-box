@@ -1,5 +1,30 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callOmniRoute, omniRouteConfig } from "../_shared/omniroute.ts";
+interface OmniRouteConfig { base: string; key: string; model: string; }
+function omniRouteConfig(): OmniRouteConfig | null {
+  const base = (Deno.env.get("OMNIROUTE_BASE_URL") || "").trim();
+  const key = (Deno.env.get("OMNIROUTE_API_KEY") || "").trim();
+  if (!base || !key) return null;
+  return { base: base.replace(/\/+$/, ""), key, model: (Deno.env.get("OMNIROUTE_MODEL") || "").trim() || "ompathstudy" };
+}
+function chatCompletionsUrl(base: string): string {
+  const b = base.replace(/\/+$/, "");
+  return /\/v1$/.test(b) ? b + "/chat/completions" : b + "/v1/chat/completions";
+}
+async function callOmniRoute(cfg: OmniRouteConfig, opts: { messages: Array<{ role: string; content: unknown }>; temperature?: number; maxTokens?: number; timeoutMs?: number }): Promise<string> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? 60000);
+  try {
+    const body: Record<string, unknown> = { model: cfg.model, messages: opts.messages, stream: false };
+    if (typeof opts.temperature === "number") body.temperature = opts.temperature;
+    if (typeof opts.maxTokens === "number") body.max_tokens = opts.maxTokens;
+    const res = await fetch(chatCompletionsUrl(cfg.base), { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + cfg.key }, body: JSON.stringify(body), signal: controller.signal });
+    if (!res.ok) throw new Error("OmniRoute error (" + res.status + "): " + (await res.text().catch(() => "")).slice(0, 300));
+    const data = await res.json();
+    const content = data?.choices?.[0]?.message?.content;
+    if (typeof content !== "string" || !content.trim()) throw new Error("OmniRoute returned an empty response");
+    return content;
+  } finally { clearTimeout(timeout); }
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
