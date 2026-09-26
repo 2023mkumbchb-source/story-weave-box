@@ -23,8 +23,8 @@ export interface PaymentSettings {
 }
 
 export const DEFAULT_PLANS: AccessPlan[] = [
-  { id: "semester", label: "Semester pass (3 months)", price: 300, days: 90, download: true },
-  { id: "annual", label: "Annual pass (12 months)", price: 1000, days: 365, download: true },
+  { id: "semester", label: "Semester pass (3 months)", price: 700, days: 90, download: true },
+  { id: "annual", label: "Annual pass (12 months)", price: 2000, days: 365, download: true },
 ];
 
 export const DEFAULT_SETTINGS: PaymentSettings = {
