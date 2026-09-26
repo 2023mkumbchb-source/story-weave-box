@@ -215,40 +215,47 @@ def extract_text(path, mime, name):
 
 
 # ------------------------------------------------------------- classify -----
-CATEGORY_RULES = [
-    ("Past Papers", r"past\s*paper|previous\s*paper|\bpapers?\b|\bmsc\b|marking\s*scheme"),
-    ("CATs & Tests", r"\bcat\s*[1-3]?\b|\bcat\b|\btest\b|\bquiz\b|\bmidterm\b|\bexam\b"),
-    ("MCQs & Question Banks", r"\bmcq|multiple\s*choice|question\s*bank|\bq\.?bank"),
-    ("Practical & Spotters", r"spot|spotters?|practical|viva|osce|histolog|slide\s*review"),
-    ("Revision", r"revis|summary|summary|high\s*yield|marathon|revision"),
-    ("Lecture Materials", r"lecture|slides?|presentation|notes?\s*\d|week\s*\d"),
-    ("Notes", r"note|handout|chapter|manual|guide|textbook"),
+# Most specific discipline first: "anatomy / histology / questions" is Histology.
+DISCIPLINE_PRIORITY = [
+    (r"\bneuroanatomy\b", "Neuroanatomy"),
+    (r"\bhistolog", "Histology"),
+    (r"\bembryolog", "Embryology"),
+    (r"\bgross anatomy\b", "Gross Anatomy"),
+    (r"\banatomy\b", "Anatomy"),
+    (r"\bphysiolog", "Physiology"),
+    (r"\bbiochem", "Biochemistry"),
+    (r"\boral biology\b", "Oral Biology"),
+    (r"\bbehaviou?ral", "Behavioural Sciences"),
+    (r"\bict\b", "ICT"),
 ]
 
-UNIT_ALIASES = {
-    "anatomy": "Anatomy",
-    "anat": "Anatomy",
-    "physiology": "Physiology",
-    "physio": "Physiology",
-    "biochemistry": "Biochemistry",
-    "biochem": "Biochemistry",
-    "oral biology": "Oral Biology",
-    "oral": "Oral Biology",
-    "behavioural sciences": "Behavioural Sciences",
-    "behavioral sciences": "Behavioural Sciences",
-    "behavioural science": "Behavioural Sciences",
-    "psychology": "Behavioural Sciences",
-    "ict": "ICT",
-    "computer": "ICT",
-    "histology": "Histology",
-    "embryology": "Embryology",
-}
+# File names carry the strongest signal about what a resource actually is.
+FILENAME_TYPES = [
+    ("MCQs & Question Banks", r"\bmcq|multiple\s*choice|question\s*bank|\bq\.?bank"),
+    ("Essays & SAQs", r"\bsaqs?\b|\blaqs?\b|essay|short\s*answer|long\s*answer"),
+    ("CATs & Tests", r"\bcats?\s*[1-3]?\b|continuous\s*assessment|weekly\s*review\s*test|\bquiz\b|\bmidterm\b|\btest\b"),
+    ("Past Papers", r"past\s*paper|previous\s*(year\s*)?paper|marking\s*scheme|\bpaper\s*[123]\b"
+                    r"|\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*(19|20)\d{2}\b"),
+    ("Practical & Spotters", r"\bpat\b|\bspots?\b|practical|viva|\bosce\b"),
+    ("Revision", r"revis|summary|checklist|high\s*yield|marathon|key\s*points|\boutline\b"),
+]
+
+# Folder names describe the collection the file belongs to.
+TRAIL_TYPES = [
+    (r"\bspots?\b|\bpat\b|practical\s*session|lab\s*manual|exercise", "Practical & Spotters"),
+    (r"weekly\s*review\s*test", "CATs & Tests"),
+    (r"\bquestions?\b", "MCQs & Question Banks"),
+    (r"\bnotes?\b", "Notes"),
+    (r"\btextbooks?\b", "Books & Reference"),
+    (r"summary\s*of\s*modules", "Revision"),
+    (r"\bmodules?\b|\bslides?\b", "Lecture Materials"),
+]
 
 
 def unit_of(rec):
-    joined = " / ".join(rec["trail"]).lower()
-    for alias, canonical in UNIT_ALIASES.items():
-        if alias in joined:
+    trail = " / ".join(rec["trail"]).lower()
+    for pattern, canonical in DISCIPLINE_PRIORITY:
+        if re.search(pattern, trail):
             return canonical
     if rec["trail"]:
         return rec["trail"][0].strip()[:40] or "General"
@@ -256,10 +263,16 @@ def unit_of(rec):
 
 
 def content_type_of(rec):
-    blob = (rec["name"] + " " + " ".join(rec["trail"])).lower()
-    for label, pattern in CATEGORY_RULES:
-        if re.search(pattern, blob):
+    low = rec["name"].lower()
+    trail = " / ".join(rec["trail"]).lower()
+    for label, pattern in FILENAME_TYPES:
+        if re.search(pattern, low):
             return label
+    for pattern, label in TRAIL_TYPES:
+        if re.search(pattern, trail):
+            return label
+    if low.endswith((".pptx", ".ppt")):
+        return "Lecture Materials"
     return "Other Resources"
 
 
