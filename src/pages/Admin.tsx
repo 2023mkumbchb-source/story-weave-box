@@ -494,13 +494,20 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Desktop: Horizontal tabs */}
-      <div className="mb-8 hidden sm:flex gap-1 rounded-xl border border-border bg-secondary/50 p-1 overflow-x-auto">
-        {tabs.map((t) => (
-          <button key={t.id} onClick={() => { if (t.id === "unedited") { navigate("/source-library"); return; } if (t.id === "editor") { navigate("/admin/editor"); return; } if (t.id === "categories") { navigate("/admin/categories"); return; } setTabAndHash(t.id); }}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${tab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-            <t.icon className="h-4 w-4" />{t.label}
-          </button>
+      {/* Desktop: Grouped admin navigation */}
+      <div className="mb-8 hidden sm:grid gap-3 rounded-xl border border-border bg-secondary/30 p-3 md:grid-cols-2 xl:grid-cols-4">
+        {tabGroups.map(group => (
+          <div key={group.label} className="rounded-lg border border-border/70 bg-card p-2">
+            <p className="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{group.label}</p>
+            <div className="flex flex-wrap gap-1">
+              {group.items.map(t => (
+                <button key={t.id} onClick={() => { if (t.id === "unedited") { navigate("/source-library"); return; } if (t.id === "editor") { navigate("/admin/editor"); return; } if (t.id === "categories") { navigate("/admin/categories"); return; } setTabAndHash(t.id); }}
+                  className={`flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors ${tab === t.id ? "bg-primary/10 text-primary ring-1 ring-primary/30" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+                  <t.icon className="h-3.5 w-3.5" /><span>{t.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
 
