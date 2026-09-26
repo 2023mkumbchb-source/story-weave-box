@@ -1,13 +1,17 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { AwsClient } from "https://esm.sh/aws4fetch@1.0.20";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CLIENT_SECRET = Deno.env.get("GOOGLE_DRIVE_CLIENT_SECRET")!;
 const REDIRECT_URI = "https://dekyjrfwvavtoivqivno.supabase.co/functions/v1/google-drive-oauth";
 const APP_ORIGIN = "https://ompathstudy.com";
-const BUCKET = "study-resources";
+const BUCKET = Deno.env.get("R2_BUCKET")!;
+const R2_ACCOUNT_ID = Deno.env.get("R2_ACCOUNT_ID")!;
+const R2_PUBLIC_BASE = (Deno.env.get("R2_PUBLIC_BASE") || "https://cdn.ompathstudy.com").replace(/\/+$/, "");
 const MAX_BUFFER_BYTES = 45 * 1024 * 1024;
+const r2 = new AwsClient({ accessKeyId: Deno.env.get("R2_ACCESS_KEY_ID")!, secretAccessKey: Deno.env.get("R2_SECRET_ACCESS_KEY")!, service: "s3", region: "auto" });
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": APP_ORIGIN,
@@ -231,10 +235,10 @@ async function processJob(userId: string, jobId: string) {
     const storagePath = ["year-1", relative, filename].filter(Boolean).join("/");
     const contentType = contentTypeForMime(item.mime_type, outputName);
 
-    const { error: uploadError } = await admin.storage.from(BUCKET).upload(storagePath, body, { contentType, cacheControl: "31536000", upsert: true });
-    if (uploadError) throw uploadError;
+    const r2Response = await r2.fetch(`https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${BUCKET}/${storagePath}`, { method: "PUT", body, headers: { "Content-Type": contentType, "Cache-Control": "public, max-age=31536000, immutable" } });
+    if (!r2Response.ok) throw new Error(`R2 upload failed: ${r2Response.status} ${(await r2Response.text()).slice(0, 300)}`);
 
-    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${storagePath.split("/").map(encodeURIComponent).join("/")}`;
+    const publicUrl = `${R2_PUBLIC_BASE}/${storagePath.split("/").map(encodeURIComponent).join("/")}`;
     const baseTitle = outputName.replace(/\.[^.]+$/, "").trim();
     const category = inferCategory(item.relative_path || outputName);
 
