@@ -81,7 +81,7 @@ export default function PaymentSettingsAdmin() {
 
   const addPlan = () => setPlans((prev) => [
     ...prev,
-    { id: `plan-${Date.now().toString(36)}`, label: "New pass", price: 300, days: 90, download: true },
+    { id: `plan-${Date.now().toString(36)}`, label: "New pass", price: 700, days: 90, download: true },
   ]);
 
   const removePlan = (i: number) => setPlans((prev) => prev.filter((_, idx) => idx !== i));
