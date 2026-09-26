@@ -235,7 +235,7 @@ serve(async (req) => {
       const plan =
         plans.find((p) => p.id === requestedPlan) ??
         plans.find((p) => Number(p.price) === Number(payment.amount)) ??
-        { id: "semester", label: "Semester pass (3 months)", price: Number(payment.amount || 0), days: 90, download: true };
+        { id: "semester", label: "Semester pass (3 months)", price: 700, days: 90, download: true };
 
       const expires = new Date(Date.now() + Math.max(1, Number(plan.days) || 1) * 86_400_000).toISOString();
 
