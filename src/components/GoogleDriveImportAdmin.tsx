@@ -16,6 +16,7 @@ export default function GoogleDriveImportAdmin() {
   const [pending, setPending] = useState(0);
   const [autoRunning, setAutoRunning] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [testing, setTesting] = useState(false);
 
   const loadJob = async () => {
     try {
@@ -56,6 +57,18 @@ export default function GoogleDriveImportAdmin() {
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
   }, []);
+
+  const testConnection = async () => {
+    setTesting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("google-drive-import", { body: { action: "test", folder_id: folderId } });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "Google Drive test passed", description: `${data.folder?.name || "Folder"} is visible. ${data.child_count ?? 0} immediate items found.` });
+    } catch (err: any) {
+      toast({ title: "Google Drive test failed", description: err.message, variant: "destructive" });
+    } finally { setTesting(false); }
+  };
 
   const startImport = async () => {
     if (!email) {
@@ -161,7 +174,7 @@ export default function GoogleDriveImportAdmin() {
         />
         <p className="mt-2 text-xs text-muted-foreground">Folder ID from the shared Drive URL. The importer scans recursively and saves Google Drive links only. It never copies the files.</p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button onClick={startImport} disabled={!email || importing} className="gap-2">
+          <Button variant="outline" onClick={testConnection} disabled={!email || testing || importing} className="gap-2">\n            {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}\n            {testing ? "Testing…" : "Test folder access"}\n          </Button>\n          <Button onClick={startImport} disabled={!email || importing || testing} className="gap-2">
             {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <HardDrive className="h-4 w-4" />}
             {importing ? "Indexing…" : "Index Year 1 links"}
           </Button>
