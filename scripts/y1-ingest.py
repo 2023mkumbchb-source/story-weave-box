@@ -478,9 +478,98 @@ def cmd_run(limit=None):
     log("DONE ok=%d fail=%d skip=%d" % (ok, fail, skip))
 
 
+def fetch_year1_rows():
+    rows, offset = [], 0
+    while True:
+        r = requests.get(
+            BASE + "/rest/v1/articles",
+            params={
+                "select": "id,source_reference,content,category,unit,content_type",
+                "source_type": "eq.google_drive_year1",
+                "order": "id.asc",
+                "limit": 200,
+                "offset": offset,
+            },
+            headers=SB_HDRS,
+            timeout=120,
+        )
+        r.raise_for_status()
+        batch = r.json()
+        if not batch:
+            return rows
+        rows += batch
+        offset += len(batch)
+
+
+def ensure_categories(cats):
+    """Make sure each 'Year 1: Unit' label exists in the category list."""
+    for name in sorted(cats):
+        requests.post(
+            BASE + "/rest/v1/article_categories",
+            headers=dict(SB_HDRS, **{
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal,resolution=ignore-duplicates",
+            }),
+            data=json.dumps({"name": name}),
+            timeout=60,
+        )
+
+
+def cmd_reclassify():
+    """Re-apply the current classification to everything already published."""
+    manifest = os.path.join(WORK, "manifest.json")
+    recs = {r["id"]: r for r in json.load(open(manifest))} if os.path.exists(manifest) else {}
+    rows = fetch_year1_rows()
+    log("rows=%d manifest=%d" % (len(rows), len(recs)))
+    changed = cats = 0
+    wanted = set()
+    for row in rows:
+        rec = recs.get(row.get("source_reference"))
+        if not rec:
+            continue
+        unit, ctype = unit_of(rec), content_type_of(rec)
+        cat = "Year 1: %s" % unit
+        wanted.add(cat)
+        body = row["content"] or ""
+        new_body = re.sub(
+            r"^\*\*Year 1 · [^\n]*\*\*$",
+            "**Year 1 · %s · %s**" % (unit, ctype),
+            body,
+            count=1,
+            flags=re.M,
+        )
+        patch = {}
+        if row.get("category") != cat:
+            patch["category"] = cat
+        if row.get("unit") != unit:
+            patch["unit"] = unit
+        if row.get("content_type") != ctype:
+            patch["content_type"] = ctype
+        if new_body != body:
+            patch["content"] = new_body
+        patch["tags"] = ["Year 1", unit, ctype]
+        p = requests.patch(
+            BASE + "/rest/v1/articles?id=eq." + row["id"],
+            headers=dict(SB_HDRS, **{
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal",
+            }),
+            data=json.dumps(patch),
+            timeout=120,
+        )
+        if p.status_code >= 300:
+            log("FAIL reclass %s :: %s" % (row["id"], p.text[:200]))
+            continue
+        changed += 1
+    ensure_categories(wanted)
+    log("reclassified=%d categories=%d" % (changed, len(wanted)))
+
+
 if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else "run"
     if mode == "scan":
         cmd_scan()
+    elif mode == "reclassify":
+        cmd_reclassify()
     else:
         cmd_run(int(sys.argv[2]) if len(sys.argv) > 2 else None)
