@@ -1,17 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { AwsClient } from "https://esm.sh/aws4fetch@1.0.20";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CLIENT_SECRET = Deno.env.get("GOOGLE_DRIVE_CLIENT_SECRET")!;
 const REDIRECT_URI = "https://dekyjrfwvavtoivqivno.supabase.co/functions/v1/google-drive-oauth";
 const APP_ORIGIN = "https://ompathstudy.com";
-const BUCKET = Deno.env.get("R2_BUCKET")!;
-const R2_ACCOUNT_ID = Deno.env.get("R2_ACCOUNT_ID")!;
-const R2_PUBLIC_BASE = (Deno.env.get("R2_PUBLIC_BASE") || "https://cdn.ompathstudy.com").replace(/\/+$/, "");
-const MAX_BUFFER_BYTES = 45 * 1024 * 1024;
-const r2 = new AwsClient({ accessKeyId: Deno.env.get("R2_ACCESS_KEY_ID")!, secretAccessKey: Deno.env.get("R2_SECRET_ACCESS_KEY")!, service: "s3", region: "auto" });
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": APP_ORIGIN,
@@ -211,57 +206,43 @@ async function processJob(userId: string, jobId: string) {
       return { done: false, kind: "folder", discovered };
     }
 
-    const fileSize = Number(item.size_bytes || 0);
-    if (fileSize > MAX_BUFFER_BYTES) throw new Error(`File is ${Math.round(fileSize / 1024 / 1024)} MB; this importer buffers files in an Edge Function and skips files over 45 MB.`);
+    const baseTitle = item.name.replace(/\.[^.]+$/, "").trim();
+    const category = inferCategory(item.relative_path || item.name);
+    const fileUrl = item.web_url || `https://drive.google.com/file/d/${encodeURIComponent(item.google_file_id)}/view`;
 
-    let response: Response;
-    let outputName = item.name;
-    if (item.mime_type.startsWith("application/vnd.google-apps.")) {
-      const exportMime = item.mime_type.includes("spreadsheet")
-        ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        : "application/pdf";
-      const params = new URLSearchParams({ mimeType: exportMime });
-      response = await driveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(item.google_file_id)}/export?${params}`, token);
-      outputName = `${item.name}${extensionForMime(item.mime_type)}`;
-    } else {
-      response = await driveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(item.google_file_id)}?alt=media&supportsAllDrives=true`, token);
-    }
-
-    const body = new Uint8Array(await response.arrayBuffer());
-    if (body.byteLength > MAX_BUFFER_BYTES) throw new Error(`Downloaded file is ${Math.round(body.byteLength / 1024 / 1024)} MB; over the 45 MB safety limit.`);
-
-    const relative = (item.relative_path || outputName).split("/").slice(0, -1).map(safeSegment).join("/");
-    const filename = safeSegment(outputName);
-    const storagePath = ["year-1", relative, filename].filter(Boolean).join("/");
-    const contentType = contentTypeForMime(item.mime_type, outputName);
-
-    const r2Response = await r2.fetch(`https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${BUCKET}/${storagePath}`, { method: "PUT", body, headers: { "Content-Type": contentType, "Cache-Control": "public, max-age=31536000, immutable" } });
-    if (!r2Response.ok) throw new Error(`R2 upload failed: ${r2Response.status} ${(await r2Response.text()).slice(0, 300)}`);
-
-    const publicUrl = `${R2_PUBLIC_BASE}/${storagePath.split("/").map(encodeURIComponent).join("/")}`;
-    const baseTitle = outputName.replace(/\.[^.]+$/, "").trim();
-    const category = inferCategory(item.relative_path || outputName);
-
+    const filePath = `drive://${item.google_file_id}`;
     const { data: resource, error: resourceError } = await admin.from("study_resources").upsert({
-      year: 1, title: baseTitle || "Untitled resource", category, file_name: outputName,
-      file_path: storagePath, file_type: contentType, file_size: body.byteLength, storage_url: publicUrl,
-      google_drive_file_id: item.google_file_id, source_modified_at: item.modified_time, download_enabled: true,
-      published: true, updated_at: new Date().toISOString(),
+      year: 1,
+      title: baseTitle || "Untitled resource",
+      category,
+      file_name: item.name,
+      file_path: filePath,
+      file_type: item.mime_type,
+      file_size: Number(item.size_bytes || 0),
+      storage_url: fileUrl,
+      google_drive_file_id: item.google_file_id,
+      source_modified_at: item.modified_time,
+      download_enabled: true,
+      published: true,
+      updated_at: new Date().toISOString(),
     }, { onConflict: "file_path" }).select("id").single();
     if (resourceError) throw resourceError;
 
     await admin.from("google_drive_import_items").update({
-      status: "imported", storage_path: storagePath, public_url: publicUrl, updated_at: new Date().toISOString(), error: null,
+      status: "imported",
+      public_url: fileUrl,
+      updated_at: new Date().toISOString(),
+      error: null,
     }).eq("id", item.id);
 
-    const { data: latest } = await admin.from("google_drive_import_jobs").select("completed_items,imported_bytes").eq("id", jobId).single();
+    const { data: latest } = await admin.from("google_drive_import_jobs")
+      .select("completed_items").eq("id", jobId).single();
     await admin.from("google_drive_import_jobs").update({
       completed_items: Number(latest?.completed_items || 0) + 1,
-      imported_bytes: Number(latest?.imported_bytes || 0) + body.byteLength,
       updated_at: new Date().toISOString(),
     }).eq("id", jobId);
 
-    return { done: false, kind: "file", resource_id: resource.id, name: outputName, bytes: body.byteLength };
+    return { done: false, kind: "link", resource_id: resource.id, name: item.name, url: fileUrl };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     await admin.from("google_drive_import_items").update({ status: "failed", error: message, updated_at: new Date().toISOString() }).eq("id", item.id);
