@@ -32,7 +32,7 @@ export default function GoogleDriveImportAdmin() {
   useEffect(() => {
     loadConnection();
     const onMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
+      if (event.origin !== "https://dekyjrfwvavtoivqivno.supabase.co") return;
       if (event.data?.source === "ompathstudy-google-drive") loadConnection();
     };
     window.addEventListener("message", onMessage);
