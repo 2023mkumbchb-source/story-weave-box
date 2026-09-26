@@ -14,6 +14,7 @@ export default function GoogleDriveImportAdmin() {
   const [folderId, setFolderId] = useState("1WlGy6RNS6ICDqik8DzJ9T5avvjjRE9Ng");
   const [job, setJob] = useState<any>(null);
   const [pending, setPending] = useState(0);
+  const [autoRunning, setAutoRunning] = useState(false);
   const [importing, setImporting] = useState(false);
 
   const loadJob = async () => {
@@ -67,7 +68,7 @@ export default function GoogleDriveImportAdmin() {
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
       setJob(data.job);
-      toast({ title: "Year 1 import queued", description: "The importer will discover the folder tree and then copy files into OmpathStudy Storage." });
+      toast({ title: "Year 1 links queued", description: "The importer will index the Drive folder and save links only. Your files stay in Google Drive." });
       await runImport(data.job.id);
     } catch (err: any) {
       toast({ title: "Could not start import", description: err.message, variant: "destructive" });
@@ -158,15 +159,15 @@ export default function GoogleDriveImportAdmin() {
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           aria-label="Google Drive folder ID"
         />
-        <p className="mt-2 text-xs text-muted-foreground">Folder ID from the shared Drive URL. The importer works recursively and can resume after interruptions.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Folder ID from the shared Drive URL. The importer scans recursively and saves Google Drive links only. It never copies the files.</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button onClick={startImport} disabled={!email || importing} className="gap-2">
             {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <HardDrive className="h-4 w-4" />}
-            {importing ? "Importing…" : "Import Year 1"}
+            {importing ? "Indexing…" : "Index Year 1 links"}
           </Button>
           {job?.id && job.status !== "completed" && !importing && (
             <Button variant="outline" onClick={() => runImport(job.id)} className="gap-2">
-              <RefreshCw className="h-4 w-4" /> Resume import
+              <RefreshCw className="h-4 w-4" /> Resume indexing
             </Button>
           )}
         </div>
