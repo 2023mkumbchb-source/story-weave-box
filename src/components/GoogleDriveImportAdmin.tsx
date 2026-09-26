@@ -12,6 +12,22 @@ export default function GoogleDriveImportAdmin() {
   const [connecting, setConnecting] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [folderId, setFolderId] = useState("1WlGy6RNS6ICDqik8DzJ9T5avvjjRE9Ng");
+  const [job, setJob] = useState<any>(null);
+  const [pending, setPending] = useState(0);
+  const [importing, setImporting] = useState(false);
+
+  const loadJob = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("google-drive-import", { body: { action: "status" } });
+      if (error) throw error;
+      const latest = data?.jobs?.[0] ?? null;
+      setJob(latest);
+      if (latest?.id) {
+        const { data: status } = await supabase.functions.invoke("google-drive-import", { body: { action: "status", job_id: latest.id } });
+        setPending(status?.pending ?? 0);
+      }
+    } catch { /* no job yet */ }
+  };
 
   const loadConnection = async () => {
     setLoading(true);
@@ -31,6 +47,7 @@ export default function GoogleDriveImportAdmin() {
 
   useEffect(() => {
     loadConnection();
+    loadJob();
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== "https://dekyjrfwvavtoivqivno.supabase.co") return;
       if (event.data?.source === "ompathstudy-google-drive") loadConnection();
@@ -38,6 +55,46 @@ export default function GoogleDriveImportAdmin() {
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
   }, []);
+
+  const startImport = async () => {
+    if (!email) {
+      toast({ title: "Connect Google Drive first", variant: "destructive" });
+      return;
+    }
+    setImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("google-drive-import", { body: { action: "start", folder_id: folderId } });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      setJob(data.job);
+      toast({ title: "Year 1 import queued", description: "The importer will discover the folder tree and then copy files into OmpathStudy Storage." });
+      await runImport(data.job.id);
+    } catch (err: any) {
+      toast({ title: "Could not start import", description: err.message, variant: "destructive" });
+      setImporting(false);
+    }
+  };
+
+  const runImport = async (jobId: string) => {
+    setImporting(true);
+    try {
+      for (let i = 0; i < 5000; i++) {
+        const { data, error } = await supabase.functions.invoke("google-drive-import", { body: { action: "process", job_id: jobId } });
+        if (error) throw new Error(error.message);
+        if (data?.error) throw new Error(data.error);
+        const { data: status, error: statusError } = await supabase.functions.invoke("google-drive-import", { body: { action: "status", job_id: jobId } });
+        if (statusError) throw new Error(statusError.message);
+        setJob(status?.job ?? null);
+        setPending(status?.pending ?? 0);
+        if (data?.done || status?.job?.status === "completed") break;
+      }
+    } catch (err: any) {
+      toast({ title: "Import paused", description: err.message, variant: "destructive" });
+    } finally {
+      setImporting(false);
+      await loadJob();
+    }
+  };
 
   const connect = async () => {
     setConnecting(true);
@@ -101,7 +158,29 @@ export default function GoogleDriveImportAdmin() {
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           aria-label="Google Drive folder ID"
         />
-        <p className="mt-2 text-xs text-muted-foreground">Folder ID from the shared Drive URL.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Folder ID from the shared Drive URL. The importer works recursively and can resume after interruptions.</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button onClick={startImport} disabled={!email || importing} className="gap-2">
+            {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <HardDrive className="h-4 w-4" />}
+            {importing ? "Importing…" : "Import Year 1"}
+          </Button>
+          {job?.id && job.status !== "completed" && !importing && (
+            <Button variant="outline" onClick={() => runImport(job.id)} className="gap-2">
+              <RefreshCw className="h-4 w-4" /> Resume import
+            </Button>
+          )}
+        </div>
+        {job && (
+          <div className="mt-4 rounded-lg border border-border bg-background p-4 text-sm">
+            <div className="flex flex-wrap justify-between gap-2">
+              <span>Status: <strong>{job.status}</strong></span>
+              <span>Pending: <strong>{pending}</strong></span>
+              <span>Imported: <strong>{job.completed_items ?? 0}</strong></span>
+              <span>Failed: <strong>{job.failed_items ?? 0}</strong></span>
+            </div>
+            {job.last_error && <p className="mt-2 text-xs text-destructive">{job.last_error}</p>}
+          </div>
+        )}
       </div>
     </div>
   );
