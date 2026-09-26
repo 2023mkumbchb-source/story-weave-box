@@ -270,6 +270,30 @@ Deno.serve(async (req) => {
       return json({ job });
     }
 
+    if (action === "test") {
+      const folderId = String(body.folder_id || "").trim();
+      if (!folderId) throw new Error("folder_id is required");
+      const connection = await getConnection(user.id);
+      const { token } = await refreshAccessToken(connection);
+      const params = new URLSearchParams({
+        fields: "id,name,mimeType,webViewLink",
+        supportsAllDrives: "true",
+      });
+      const folderResponse = await driveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(folderId)}?${params}`, token);
+      const folder = await folderResponse.json();
+      if (folder.mimeType !== "application/vnd.google-apps.folder") throw new Error("The supplied ID is not a Google Drive folder.");
+      const childParams = new URLSearchParams({
+        q: `'${folderId}' in parents and trashed = false`,
+        pageSize: "100",
+        fields: "files(id,name,mimeType)",
+        includeItemsFromAllDrives: "true",
+        supportsAllDrives: "true",
+      });
+      const childResponse = await driveFetch(`https://www.googleapis.com/drive/v3/files?${childParams}`, token);
+      const children = await childResponse.json();
+      return json({ ok: true, folder, child_count: (children.files || []).length });
+    }
+
     if (action === "status") {
       const jobId = String(body.job_id || "").trim();
       if (jobId) {
