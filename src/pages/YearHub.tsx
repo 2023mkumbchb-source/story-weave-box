@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { ArrowRight, BookMarked, CalendarDays, BookOpen, ClipboardCheck, Clock, FileQuestion, FolderOpen, GraduationCap, Images, Stethoscope, Trophy } from "lucide-react";
+import { ArrowRight, BookMarked, CalendarDays, BookOpen, ClipboardCheck, Clock, FileQuestion, FolderOpen, GraduationCap, Images, ListChecks, Pill, Flame, Stethoscope, Trophy } from "lucide-react";
 import {
   YEAR_CATEGORIES,
   getPublishedArticleSummaries,
@@ -132,6 +132,23 @@ export default function YearHub() {
       description: "Quick review cards for this year",
       to: `/flashcards?year=${encodeURIComponent(yearLabel)}`,
       icon: GraduationCap,
+    },
+    ...(parsedYear >= 4 ? [{
+      title: "Pharmacology",
+      description: "Cancer drugs, common-condition drugs, interactions, drills",
+      to: "/pharmacology",
+      icon: Pill,
+    }, {
+      title: "Must-knows by unit",
+      description: "What every Year 4 must know, with progress ticks",
+      to: "/must-knows",
+      icon: ListChecks,
+    }] : []),
+    {
+      title: "Daily dose",
+      description: "Five questions a day, with a streak",
+      to: "/daily",
+      icon: Flame,
     },
     ...(parsedYear >= 4 ? [{
       title: "Clinical simulator",

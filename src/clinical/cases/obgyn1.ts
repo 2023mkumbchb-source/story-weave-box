@@ -19,7 +19,7 @@ export const OBGYN_1: CaseDef[] = [
     },
     exKey: ["vit", "oref", "ofhr", "ofh", "ouid", "oed"],
     ix: [
-      { id: "urine", group: "Bedside", label: "Urine dipstick / protein:creatinine ratio", result: "Protein 3+; PCR 0.9 g/mmol (significant proteinuria).", meaning: "Hypertension + proteinuria after 20 weeks = pre-eclampsia.", use: "key" },
+      { id: "urine", group: "Bedside", label: "Urine dipstick / protein:creatinine ratio", result: "Protein 3+; PCR 90 mg/mmol (significant proteinuria is >30 mg/mmol).", meaning: "Hypertension + proteinuria after 20 weeks = pre-eclampsia.", use: "key" },
       { id: "fbc", group: "Blood", label: "FBC, platelets", result: "Hb 10.2, platelets 82 ×10⁹/L (low).", meaning: "Thrombocytopenia suggests severe disease (HELLP).", use: "key" },
       { id: "lft", group: "Blood", label: "LFTs, LDH, creatinine, urate", result: "AST 186, ALT 154, LDH 640, bilirubin 28, creatinine 112, urate high.", meaning: "Liver involvement: HELLP syndrome (haemolysis, elevated liver enzymes, low platelets).", use: "key" },
       { id: "ctg", group: "Bedside", label: "Cardiotocography (CTG) / fetal assessment", result: "Baseline 156, reduced variability, no accelerations, no decelerations.", meaning: "Non-reassuring (suspicious) CTG — placental insufficiency.", use: "key" },

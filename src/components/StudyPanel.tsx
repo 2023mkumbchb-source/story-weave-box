@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, CalendarDays, ClipboardList, Download, Network, Stethoscope, Target, FileQuestion, FolderOpen, GraduationCap, Hourglass, MapPin, PenLine, Star, Timer, Trophy } from "lucide-react";
+import { BookOpen, CalendarDays, ClipboardList, Flame, ListChecks, Pill, Download, Network, Stethoscope, Target, FileQuestion, FolderOpen, GraduationCap, Hourglass, MapPin, PenLine, Star, Timer, Trophy } from "lucide-react";
 import registry from "@/data/libraries.json";
 import { useAuth } from "@/hooks/useAuth";
 import { buildBlogPath } from "@/lib/store";
@@ -147,7 +147,8 @@ export default function StudyPanel({ year: preferredYear }: { year?: number | nu
     ...(year <= 4 ? [{ to: `/course-outlines/year-${year}`, label: "Outlines", icon: ClipboardList }] : []),
     { to: "/dashboard", label: "My day", icon: Target },
     { to: "/study-map", label: "Study map", icon: Network },
-    ...(year >= 4 ? [{ to: "/clinical", label: "Clinical sim", icon: Stethoscope }] : []),
+    ...(year >= 4 ? [{ to: "/clinical", label: "Clinical sim", icon: Stethoscope }, { to: "/pharmacology", label: "Pharmacology", icon: Pill }, { to: "/must-knows", label: "Must-knows", icon: ListChecks }] : []),
+    { to: "/daily", label: "Daily dose", icon: Flame },
     { to: "/revise", label: "Smart revision", icon: Timer },
     { to: "/revision-planner", label: "Planner", icon: Hourglass },
   ];

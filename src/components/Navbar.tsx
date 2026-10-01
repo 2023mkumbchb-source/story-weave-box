@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, GraduationCap, Home, LayoutDashboard, Network, Stethoscope, Menu, Trophy, ChevronRight, UserRound, Target, Database, Smartphone, ListChecks } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { BookOpen, GraduationCap, Home, LayoutDashboard, Network, Stethoscope, Menu, Trophy, ChevronRight, UserRound, Target, Database, Smartphone, ListChecks, Pill, Flame, ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import ThemeToggle from "./ThemeToggle";
 import HeaderSearch from "./HeaderSearch";
@@ -32,6 +32,30 @@ function getActiveYear(pathname: string, search: string): number | null {
   return null;
 }
 
+/** Secondary links live in a dropdown so the bar never overflows on laptop screens. */
+function MoreMenu({ links, isActive }: { links: { to: string; label: string; icon: typeof Home }[]; isActive: (to: string) => boolean }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", close); document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", esc); };
+  }, [open]);
+  const anyActive = links.some((l) => isActive(l.to));
+  return (
+    <div className="relative" ref={ref}>
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu" className={`inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${anyActive || open ? "bg-white/20" : "text-white/70 hover:bg-white/10 hover:text-white"}`}>More <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} /></button>
+      {open && (
+        <div role="menu" className="absolute right-0 top-full z-50 mt-1.5 w-52 rounded-xl border border-white/10 bg-[hsl(174,62%,18%)] p-1.5 shadow-xl">
+          {links.map((l) => <Link key={l.to} to={l.to} role="menuitem" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${isActive(l.to) ? "bg-white/20" : "text-white/80 hover:bg-white/10 hover:text-white"}`}><l.icon className="h-4 w-4 shrink-0 opacity-80" /> {l.label}</Link>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -41,21 +65,24 @@ export default function Navbar() {
   const [hidden, setHidden] = useState(false);
 
   const links = useMemo(() => {
-    const base = [
+    const base: { to: string; label: string; icon: typeof Home; more?: boolean }[] = [
       { to: "/", label: "Home", icon: Home },
       { to: "/dashboard", label: "My Day", icon: LayoutDashboard },
-      { to: "/study-map", label: "Study Map", icon: Network },
+      { to: "/study-map", label: "Study Map", icon: Network, more: true },
       { to: "/clinical", label: "Clinical Sim", icon: Stethoscope },
+      { to: "/pharmacology", label: "Pharmacology", icon: Pill },
+      { to: "/must-knows", label: "Must-Knows", icon: ListChecks },
+      { to: "/daily", label: "Daily Dose", icon: Flame, more: true },
       { to: "/my-revision", label: "My Revision", icon: Target },
-      { to: "/revision-index", label: "Exam Revision", icon: ListChecks },
+      { to: "/revision-index", label: "Exam Revision", icon: ListChecks, more: true },
       { to: "/contests", label: "Mega Contest", icon: Trophy },
-      { to: "/account", label: "Account", icon: UserRound },
-      { to: "/download-app", label: "Download APK", icon: Smartphone },
+      { to: "/account", label: "Account", icon: UserRound, more: true },
+      { to: "/download-app", label: "Download APK", icon: Smartphone, more: true },
     ];
     if (isAdmin) {
-      base.push({ to: "/admin", label: "Dashboard", icon: LayoutDashboard });
-      base.push({ to: "/admin/study-system", label: "Study System", icon: Database });
-      base.push({ to: "/admin/contests", label: "Contest Admin", icon: Trophy });
+      base.push({ to: "/admin", label: "Dashboard", icon: LayoutDashboard, more: true });
+      base.push({ to: "/admin/study-system", label: "Study System", icon: Database, more: true });
+      base.push({ to: "/admin/contests", label: "Contest Admin", icon: Trophy, more: true });
     }
     return base;
   }, [isAdmin]);
@@ -166,7 +193,7 @@ export default function Navbar() {
 
             <HeaderSearch variant="desktop" />
 
-            {links.map((l) => (
+            {links.filter((l) => !l.more).map((l) => (
               <Link
                 key={l.to}
                 to={l.to}
@@ -177,6 +204,7 @@ export default function Navbar() {
                 {l.label}
               </Link>
             ))}
+            <MoreMenu links={links.filter((l) => l.more)} isActive={isActive} />
             <ThemeToggle />
           </div>
 

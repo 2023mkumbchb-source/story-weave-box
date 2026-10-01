@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Calculator, ClipboardCheck, FlaskConical, HelpCircle, Layers, MessageCircleQuestion, Pill, ScanLine, ShieldAlert, Timer, type LucideIcon } from "lucide-react";
+import { BookX, Calculator, ClipboardCheck, FlaskConical, HelpCircle, Layers, MessageCircleQuestion, Pill, ScanLine, ShieldAlert, Timer, type LucideIcon } from "lucide-react";
 import { updateMetaTags } from "@/lib/seo";
 
 const lz = <K extends string>(loader: () => Promise<Record<K, React.ComponentType>>, name: K) => lazy(() => loader().then((m) => ({ default: m[name] })));
@@ -16,6 +16,7 @@ const QuizLab = lz(() => import("@/components/clinical/labs/Quiz"), "QuizLab");
 const ToolsLab = lz(() => import("@/components/clinical/labs/Tools"), "ToolsLab");
 const OsceLab = lz(() => import("@/components/clinical/labs/Osce"), "OsceLab");
 const CounselList = lz(() => import("@/components/clinical/labs/Osce"), "CounselList");
+const MistakesLab = lz(() => import("@/components/clinical/labs/Mistakes"), "MistakesLab");
 const CounselRunner = lz(() => import("@/components/clinical/labs/Osce"), "CounselRunner");
 
 const LABS: Record<string, { title: string; h1: string; blurb: string; icon: LucideIcon; wide?: boolean }> = {
@@ -27,6 +28,7 @@ const LABS: Record<string, { title: string; h1: string; blurb: string; icon: Luc
   quiz: { title: "Rapid-fire clinical quiz", h1: "Mixed questions, all rotations", blurb: "Short single-best-answer questions with reasoning. The ones you miss come back sooner.", icon: HelpCircle },
   tools: { title: "Ward tools", h1: "Calculators, scores and normal values", blurb: "Fluid and dose maths, Parkland, GCS, CURB-65, Wells, anion gap, EDD, normal ranges and checklists.", icon: Calculator, wide: true },
   osce: { title: "OSCE circuit", h1: "Timed stations, back to back", blurb: "History, examination, interpretation, emergency, counselling and mental state examination — against the clock.", icon: Timer },
+  mistakes: { title: "Mistakes notebook", h1: "Your mistakes, until you master them", blurb: "Every question you get wrong, anywhere on the site, waits here until you answer it right twice in a row.", icon: BookX },
   counsel: { title: "Counselling stations", h1: "Communication and counselling", blurb: "Breaking bad news, HIV, family planning, insulin teaching, inhalers, consent and suicide risk.", icon: MessageCircleQuestion },
 };
 
@@ -49,6 +51,7 @@ export default function ClinicalLab() {
   else if (lab === "quiz") view = <QuizLab />;
   else if (lab === "tools") view = <ToolsLab />;
   else if (lab === "osce") view = <><OsceLab /><h2 className="mt-8 font-serif text-lg font-bold text-foreground">Counselling stations on their own</h2><div className="mt-2"><CounselList /></div></>;
+  else if (lab === "mistakes") view = <MistakesLab />;
   else if (lab === "counsel") view = id ? <CounselRunner /> : <CounselList />;
 
   return (

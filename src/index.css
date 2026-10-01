@@ -419,6 +419,12 @@ body.no-copy img {
   }
 }
 
+/* Printing a revision sheet (must-knows): drop the site chrome. */
+@media print {
+  .no-print, header, nav, footer, [role="banner"] { display: none !important; }
+  body { background: #fff !important; }
+}
+
 /* Words a learner searched for, painted inside the opened note (CSS Custom Highlight API). */
 ::highlight(search-hit) { background-color: #fde047; color: #000; }
 ::highlight(search-hit-current) { background-color: #fb923c; color: #000; }

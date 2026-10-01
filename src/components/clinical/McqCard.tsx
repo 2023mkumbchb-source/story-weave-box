@@ -2,6 +2,7 @@ import { useState } from "react";
 import { CheckCircle2, CircleDashed, Lightbulb, RotateCcw, XCircle } from "lucide-react";
 import { scoreMcq, type McqResult } from "@/clinical/engine";
 import type { MCQ } from "@/clinical/types";
+import { recordMcq } from "@/clinical/mistakes";
 
 interface Props {
   q: MCQ;
@@ -25,12 +26,12 @@ export default function McqCard({ q, onDone, label }: Props) {
   const submit = () => {
     const r = scoreMcq(q, picked, hints, attempt > 0);
     setResult(r);
-    if (r.allRight || attempt >= 1) { setDone(true); onDone(r, hints); }
+    if (r.allRight || attempt >= 1) { setDone(true); onDone(r, hints); recordMcq(q, r.allRight && attempt === 0); }
   };
   const retry = () => { setAttempt(1); setResult(null); setPicked([]); };
   const reveal = () => {
     const r = scoreMcq(q, picked, hints, true);
-    setResult({ ...r, earned: 0 }); setDone(true); onDone({ ...r, earned: 0 }, hints);
+    setResult({ ...r, earned: 0 }); setDone(true); onDone({ ...r, earned: 0 }, hints); recordMcq(q, false);
   };
 
   const locked = done;

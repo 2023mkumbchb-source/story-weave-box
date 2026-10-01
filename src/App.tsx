@@ -55,6 +55,9 @@ const ClinicalHub = lazy(() => import("./pages/ClinicalHub"));
 const ClinicalCase = lazy(() => import("./pages/ClinicalCase"));
 const ClinicalPractice = lazy(() => import("./pages/ClinicalPractice"));
 const ClinicalLab = lazy(() => import("./pages/ClinicalLab"));
+const Pharmacology = lazy(() => import("./pages/Pharmacology"));
+const MustKnows = lazy(() => import("./pages/MustKnows"));
+const DailyDose = lazy(() => import("./pages/DailyDose"));
 const GlobalSearch = lazy(() => import("./pages/GlobalSearch"));
 const StudySystemAdmin = lazy(() => import("./pages/StudySystemAdmin"));
 const CategoryManager = lazy(() => import("./pages/CategoryManager"));
@@ -139,6 +142,12 @@ const AnimatedRoutes = () => {
             <Route path="/clinical/osce" element={<ClinicalLab />} />
             <Route path="/clinical/counsel" element={<ClinicalLab />} />
             <Route path="/clinical/counsel/:id" element={<ClinicalLab />} />
+            <Route path="/clinical/mistakes" element={<ClinicalLab />} />
+            <Route path="/pharmacology" element={<Pharmacology />} />
+            <Route path="/pharmacology/drug/:id" element={<Pharmacology />} />
+            <Route path="/must-knows" element={<MustKnows />} />
+            <Route path="/must-knows/:unit" element={<MustKnows />} />
+            <Route path="/daily" element={<DailyDose />} />
             <Route path="/study-map/:system" element={<RailLayout><StudyMap /></RailLayout>} />
             <Route path="/search" element={<RailLayout><GlobalSearch /></RailLayout>} />
             <Route path="/blog" element={<Blog />} />

@@ -41,7 +41,7 @@ export const MEDICINE_2: CaseDef[] = [
       { name: "Pneumocystis pneumonia (PCP) or other HIV opportunistic infection", aliases: ["pcp", "pneumocystis", "opportunistic infection", "pjp"], tier: "dangerous", why: "With CD4 <200, PCP causes subacute breathlessness and hypoxia; it can co-exist with TB.", for: ["Breathlessness, hypoxia, advanced HIV"], against: ["Effusion and cavity are not typical of PCP"], separate: { ask: "Dry cough, exertional dyspnoea", exam: "Hypoxia out of proportion to signs", ix: "CXR (bilateral ground glass), LDH, β-D-glucan" } },
     ],
     twist: { text: "The result of the HIV test returns positive (CD4 112). The nurse asks when you will start antiretroviral therapy.", q: mcq("tb-tw", "management", "What is the right approach to starting antiretrovirals (ART) in TB/HIV co-infection?", [
-      o("Start TB treatment first, then begin ART within about 2 weeks (CD4 <50: within 2 weeks; others within 8 weeks)", true, "Early ART lowers mortality; delaying it too long is dangerous."),
+      o("Start TB treatment first, then begin ART within 2–8 weeks (within 2 weeks if CD4 is below 50)", true, "Early ART lowers mortality; delaying it too long is dangerous."),
       o("Start ART the same day as TB treatment regardless", false, "Increases the risk of IRIS and overlapping toxicity."),
       o("Defer ART until TB treatment is completed (6 months)", false, "Many die in the interval."),
       o("Never give ART with rifampicin", false, "Rifampicin interacts with some ARVs, but they can be adjusted; ART should not be withheld."),
