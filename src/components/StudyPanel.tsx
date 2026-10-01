@@ -127,6 +127,8 @@ export default function StudyPanel({ year: preferredYear }: { year?: number | nu
   useEffect(() => { setRecentArticles(getRecentArticles().slice(0, 3)); }, []);
 
   const lib = registry.libraries.find((l) => l.year === year);
+  let lastOutline: { id: string; title: string; year: number } | null = null;
+  try { lastOutline = JSON.parse(localStorage.getItem("ompath_last_outline") ?? "null"); } catch { /* none yet */ }
   const cfg = useSiteConfig();
   const { streak } = useStudyLog();
   const nextDate = cfg.keyDates.filter((d) => d.date && daysBetween(new Date(), parseDate(d.date)) >= 0).sort((a, b) => a.date.localeCompare(b.date))[0];
@@ -140,7 +142,7 @@ export default function StudyPanel({ year: preferredYear }: { year?: number | nu
     { to: "/contests", label: "Contests", icon: Trophy },
     { to: `/flashcards?year=${encodeURIComponent(`Year ${year}`)}`, label: "Flashcards", icon: GraduationCap },
     { to: "/essays", label: "Essays", icon: PenLine },
-    ...(year === 4 ? [{ to: "/course-outlines", label: "Outlines", icon: ClipboardList }] : []),
+    ...(year <= 4 ? [{ to: `/course-outlines/year-${year}`, label: "Outlines", icon: ClipboardList }] : []),
     { to: "/revise", label: "Smart revision", icon: Timer },
     { to: "/revision-planner", label: "Planner", icon: Hourglass },
   ];
@@ -172,6 +174,12 @@ export default function StudyPanel({ year: preferredYear }: { year?: number | nu
           ))}
         </div>
       </Card>
+
+      {lastOutline && (
+        <Card title="Your outline" icon={ClipboardList}>
+          <Link to={`/course-outlines/${lastOutline.id}`} className="block truncate rounded-md px-1.5 py-1 text-xs font-bold text-foreground hover:bg-muted hover:text-primary">Continue {lastOutline.title} (Year {lastOutline.year}) →</Link>
+        </Card>
+      )}
 
       {recentArticles.length > 0 && (
         <Card title="Continue reading" icon={BookOpen}>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, CalendarDays, CheckCircle2, Circle, Flame, FolderOpen, GraduationCap, Timer, Trophy } from "lucide-react";
+import { useTopicFlags, toggleFlag } from "@/lib/topicFlags";
+import { BookOpen, CalendarDays, CheckCircle2, Circle, Flag, Flame, FolderOpen, GraduationCap, Timer, Trophy } from "lucide-react";
 import registry from "@/data/libraries.json";
 import FocusTimer from "@/components/FocusTimer";
 import { useMyYear } from "@/components/StudyPanel";
@@ -38,6 +39,7 @@ export default function SmartRevision() {
   const names = useMemo(() => unitNameMap(cfg), [cfg]);
   const [group, setGroup] = useState("");
   const { streak, todayMinutes, week, done } = useStudyLog();
+  const flagged = useTopicFlags();
 
   useEffect(() => { updateMetaTags({ title: "Smart Revision from your timetable | Ompath Study", description: "Spaced revision built from your MBChB timetable: what to review today, what to skim before class, plus a focus timer and study streak." }); }, []);
   useEffect(() => { setGroup(safeGet(groupKey(year)) ?? ""); }, [year]);
@@ -103,6 +105,21 @@ export default function SmartRevision() {
               </ul>
             )}
           </section>
+
+          {flagged.length > 0 && (
+            <section aria-labelledby="hard-topics">
+              <h2 id="hard-topics" className="flex items-center gap-2 font-serif text-xl font-bold text-foreground"><Flag className="h-5 w-5 text-rose-600" /> Topics you flagged as hard</h2>
+              <p className="mt-1 text-xs text-muted-foreground">Flag topics in any course outline and they wait for you here.</p>
+              <ul className="mt-3 space-y-2">
+                {flagged.slice(0, 12).map((f) => (
+                  <li key={f.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                    <Link to={`/course-outlines/${f.outlineId}#${encodeURIComponent(f.id)}`} className="min-w-0 flex-1"><span className="block break-words text-sm font-bold text-foreground">{f.title}</span><span className="block text-[11px] text-muted-foreground">{f.outlineTitle}</span></Link>
+                    <button type="button" onClick={() => toggleFlag(f)} className="shrink-0 rounded-full border border-border px-2.5 py-1 text-[11px] font-bold hover:border-primary/50">Got it</button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <section aria-labelledby="week-plan">
             <h2 id="week-plan" className="font-serif text-xl font-bold text-foreground">This week's classes</h2>

@@ -1,4 +1,6 @@
-// Year 4 MBChB course outlines (Mount Kenya University), turned into tick-able checklists.
+import { MORE_OUTLINES } from "./courseOutlinesMore.ts";
+
+// MBChB course outlines (Years 3 and 4 curated here; Years 1–4 also get checklists built from the library) (Mount Kenya University), turned into tick-able checklists.
 // Item ids are permanent: they key each student's saved progress, so never reuse or renumber them.
 
 export interface OutlineItem {
@@ -7,6 +9,8 @@ export interface OutlineItem {
   week?: string;
   detail?: string;
   lecturer?: string;
+  /** Set on checklist items built from a library file: opens that file in the viewer. */
+  file?: [id: string, name: string, kind: "pdf" | "ppt" | "doc" | "video" | "img" | "zip" | "file"];
 }
 export interface OutlineSection {
   id: string;
@@ -17,12 +21,16 @@ export interface OutlineSection {
 export interface OutlineDocument { label: string; fileId: string; name: string }
 export interface CourseOutline {
   id: string;
+  /** MBChB year this outline belongs to (1–6). */
+  year: number;
+  /** True for checklists built from the library's lecture slides rather than a department document. */
+  auto?: boolean;
   department: string;
   title: string;
   summary: string;
   team?: string;
   assessment?: string;
-  /** Slugs of the matching folder in the Year 4 library, e.g. ["psychiatry"]. */
+  /** Slugs of the matching folder in that year's library, e.g. ["psychiatry"]. */
   librarySlugs?: string[];
   documents?: OutlineDocument[];
   sections: OutlineSection[];
@@ -40,6 +48,7 @@ const NEEMA = "Dr. Neema";
 /* ------------------------------ Psychiatry ------------------------------ */
 const psychiatry: CourseOutline = {
   id: "psychiatry",
+  year: 4,
   department: "Psychiatry",
   title: "Year 4 Psychiatry — Junior Clerkship",
   summary: "Mount Kenya University, Department of Psychiatry & Mental Health. Three semesters of weekly lectures with a clinical rotation each week.",
@@ -173,6 +182,7 @@ const psychiatry: CourseOutline = {
 /* --------------------------- Internal Medicine --------------------------- */
 const internalMedicine: CourseOutline = {
   id: "internal-medicine",
+  year: 4,
   department: "Internal Medicine",
   title: "Internal Medicine — Junior Clerkship (Year 4)",
   summary: "Mount Kenya University, Department of Internal Medicine (unit code MBIM). Six units across three trimesters; the 6th-year senior clerkship topics are listed after.",
@@ -202,6 +212,7 @@ const internalMedicine: CourseOutline = {
 /* ------------------------ Clinical Pharmacology ------------------------ */
 const pharmacology: CourseOutline = {
   id: "pharmacology",
+  year: 4,
   department: "Clinical Pharmacology",
   title: "Clinical Pharmacology — MBChB Level IV",
   summary: "Mount Kenya University, Dr. K. Ndemo. Three trimester units (MBPL 4411, 4422, 4433). Week numbers follow the order in each outline PDF; open the PDF for the full sub-topic detail.",
@@ -263,4 +274,4 @@ const pharmacology: CourseOutline = {
   ],
 };
 
-export const COURSE_OUTLINES: CourseOutline[] = [psychiatry, internalMedicine, pharmacology];
+export const COURSE_OUTLINES: CourseOutline[] = [psychiatry, internalMedicine, pharmacology, ...MORE_OUTLINES];

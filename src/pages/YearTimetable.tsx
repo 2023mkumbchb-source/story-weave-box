@@ -119,8 +119,8 @@ export default function YearTimetable() {
               <span><span className="block font-serif text-lg font-bold text-foreground">Year {tt.year} notes &amp; past papers</span><span className="block text-xs text-muted-foreground">Slides, textbooks and past papers, sorted by subject</span></span>
             </Link>
           )}
-          {tt.year === 4 && (
-            <Link to="/course-outlines" className="group flex items-center gap-3 rounded-2xl border-2 border-primary/30 bg-primary/5 p-4 transition-colors hover:bg-primary/10">
+          {tt.year <= 4 && (
+            <Link to={`/course-outlines/year-${tt.year}`} className="group flex items-center gap-3 rounded-2xl border-2 border-primary/30 bg-primary/5 p-4 transition-colors hover:bg-primary/10">
               <ExternalLink className="h-6 w-6 text-primary" />
               <span><span className="block font-serif text-lg font-bold text-foreground">Course outlines &amp; tracker</span><span className="block text-xs text-muted-foreground">Tick off topics as you revise</span></span>
             </Link>

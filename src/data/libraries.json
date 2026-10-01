@@ -51,21 +51,80 @@
       "department": "Psychiatry",
       "title": "Year 4 Psychiatry Course Outline",
       "tagline": "Weekly scope, lecturers and rotation focus",
-      "theme": 292
+      "theme": 292,
+      "year": 4
     },
     {
       "slug": "internal-medicine",
       "department": "Internal Medicine",
       "title": "Year 4 Internal Medicine Course Outline",
       "tagline": "Every system and topic, trimester by trimester",
-      "theme": 18
+      "theme": 18,
+      "year": 4
     },
     {
       "slug": "pharmacology",
       "department": "Clinical Pharmacology",
       "title": "Year 4 Clinical Pharmacology Course Outline",
       "tagline": "MBPL 4411, 4422 and 4433 week by week",
-      "theme": 205
+      "theme": 205,
+      "year": 4
+    },
+    {
+      "slug": "obstetrics-gynaecology",
+      "department": "Obstetrics & Gynaecology",
+      "title": "Year 4 Obstetrics & Gynaecology Course Outline",
+      "tagline": "Obstetrics I–IV and Gynaecology I–II, week by week",
+      "theme": 330,
+      "year": 4
+    },
+    {
+      "slug": "chemical-pathology",
+      "department": "Chemical Pathology",
+      "title": "Year 3 Chemical Pathology Course Outline (MBPA 3600)",
+      "tagline": "Two semesters of clinical chemistry, topic by topic",
+      "theme": 160,
+      "year": 3
+    },
+    {
+      "slug": "general-systemic-pathology",
+      "department": "General & Systemic Pathology",
+      "title": "Year 3 General & Systemic Pathology Course Outline",
+      "tagline": "Every unit across three semesters",
+      "theme": 25,
+      "year": 3
+    },
+    {
+      "slug": "haematology-blood-transfusion",
+      "department": "Haematology & Blood Transfusion",
+      "title": "Year 3 Haematology & Blood Transfusion Course Outline",
+      "tagline": "Semesters 2 and 3, topic by topic",
+      "theme": 350,
+      "year": 3
+    },
+    {
+      "slug": "immunopathology",
+      "department": "Immunopathology",
+      "title": "Year 3 Immunopathology Course Outline",
+      "tagline": "Hypersensitivity, immunodeficiency, vaccines and transplantation",
+      "theme": 270,
+      "year": 3
+    },
+    {
+      "slug": "medical-virology",
+      "department": "Medical Virology",
+      "title": "Year 3 Medical Virology Course Outline (MBMM 3333)",
+      "tagline": "Virus families, antivirals and vaccines, week by week",
+      "theme": 120,
+      "year": 3
+    },
+    {
+      "slug": "basic-pharmacology",
+      "department": "Basic Pharmacology",
+      "title": "Year 3 Basic Pharmacology Course Outline (MBPL 3811–3833)",
+      "tagline": "Three trimesters, from principles to oncology drugs",
+      "theme": 205,
+      "year": 3
     }
   ],
   "contactWhatsApp": "254115475543",
@@ -162,5 +221,6 @@
         "theme": 0
       }
     ]
-  }
+  },
+  "thumbnailCredit": "Compiled by Abongo Davis"
 }

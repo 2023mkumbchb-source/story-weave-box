@@ -50,7 +50,7 @@ h1{font-family:Georgia,"Times New Roman",serif;font-size:${size}px;line-height:1
 <div class="stack"><div class="card a"></div><div class="card b"></div><div class="card c"><i style="top:34px;right:70px"></i><i style="top:62px"></i><i style="top:88px;opacity:.5"></i><i style="top:114px"></i><i style="top:140px;opacity:.5;right:60px"></i></div></div>
 <div class="tag">${esc(tag)}</div><h1>${esc(title)}</h1><div class="sub">${esc(subtitle)}</div>
 ${chip ? `<div class="chip">${esc(chip)}</div>` : ""}
-<div class="foot"><span>Used at MKU &amp; other universities</span><span><b>${esc(registry.credit)}</b></span></div>
+<div class="foot"><span>Used at MKU &amp; other universities</span><span><b>${esc((registry.thumbnailCredit ?? registry.credit))}</b></span></div>
 </div></body></html>`;
 }
 
@@ -69,12 +69,12 @@ for (const lib of registry.libraries) {
   }
 }
 for (const o of registry.outlines) {
-  jobs.push({ name: `outline-${o.slug}.jpg`, tag: "Year 4 · Course outline", title: o.department, subtitle: `${o.tagline} — tick off topics as you revise`, chip: "Progress tracker", palette: PALETTE[hash(o.slug) % PALETTE.length] });
+  jobs.push({ name: `outline-${o.slug}.jpg`, tag: `Year ${o.year} · Course outline`, title: o.department, subtitle: `${o.tagline} — tick off topics as you revise`, chip: "Progress tracker", palette: PALETTE[hash(o.slug) % PALETTE.length] });
 }
 for (const y of registry.timetables.years) {
   jobs.push({ name: `timetable-${y.slug}.jpg`, tag: `Year ${y.year} · ${registry.timetables.term}`, title: `Year ${y.year} Timetable`, subtitle: `${registry.timetables.period} · units, venues & lecturers`, chip: "MKU MBChB", palette: PALETTE[hash(`tt-${y.slug}`) % PALETTE.length] });
 }
-jobs.push({ name: "outline-all.jpg", tag: "Year 4 · MBChB", title: "Course Outlines", subtitle: "Psychiatry, Internal Medicine & Clinical Pharmacology with a tick-off tracker", chip: "3 outlines", palette: PALETTE[3] });
+jobs.push({ name: "outline-all.jpg", tag: "Years 1–4 · MBChB", title: "Course Outlines", subtitle: "Every unit across Years 1–4 with a tick-off tracker", chip: `${registry.outlines.length} outlines + checklists`, palette: PALETTE[3] });
 
 // One browser for every image: drive it over the DevTools protocol and save compressed JPEGs (~60-80 KB each).
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "og-"));

@@ -123,7 +123,7 @@ export function prettyTitle(/** @type {string} */ name) {
     .replace(/\s*\(\d\)\s*$/, "")
     .replace(/\s+/g, " ")
     .replace(/\s+([,.;:])/g, "$1")
-    .replace(/^[\s\-–._]+|[\s\-–._]+$/g, "");
+    .replace(/^[\s\-–._]+|[\s\-–._,;:]+$/g, "");
   const letters = t.replace(/[^A-Za-z]/g, "");
   const shouting = letters.length > 3 && t === t.toUpperCase();
   const lower = letters.length > 3 && t === t.toLowerCase();

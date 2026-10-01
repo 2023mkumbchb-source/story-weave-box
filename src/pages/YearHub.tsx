@@ -241,13 +241,13 @@ export default function YearHub() {
         </section>
       )}
 
-      {parsedYear === 4 && (
-        <Link to="/course-outlines" className="group mt-6 flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 transition-colors hover:border-primary/50 hover:bg-primary/10">
+      {parsedYear <= 4 && (
+        <Link to={`/course-outlines/year-${parsedYear}`} className="group mt-6 flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 transition-colors hover:border-primary/50 hover:bg-primary/10">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"><ClipboardCheck className="h-6 w-6" /></span>
           <span className="min-w-0 flex-1">
             <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">New · Revision tracker</span>
             <span className="mt-0.5 block font-serif text-lg font-bold text-foreground sm:text-xl">Course outlines &amp; progress tracker</span>
-            <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground sm:text-sm">Psychiatry, Internal Medicine and Clinical Pharmacology week by week — tick each topic once you have covered it.</span>
+            <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground sm:text-sm">Every {yearLabel} unit, topic by topic and linked to the notes — tick each one off once you have covered it, and flag the hard ones.</span>
           </span>
           <ArrowRight className="h-5 w-5 shrink-0 text-primary transition-transform group-hover:translate-x-1" />
         </Link>
