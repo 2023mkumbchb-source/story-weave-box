@@ -152,7 +152,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter basename="/story-weave-box">
+          <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <ScrollToTop />
             <ScrollProgressBar />
             <BackToTopButton />
