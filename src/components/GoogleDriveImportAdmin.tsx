@@ -34,12 +34,12 @@ export default function GoogleDriveImportAdmin() {
   const loadConnection = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("google_drive_connections")
         .select("google_email")
         .maybeSingle();
       if (error) throw error;
-      setEmail(data?.google_email ?? null);
+      setEmail((data as { google_email?: string } | null)?.google_email ?? null);
     } catch (err: any) {
       toast({ title: "Could not check Google Drive connection", description: err.message, variant: "destructive" });
     } finally {
