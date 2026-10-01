@@ -172,7 +172,8 @@ export default function Navbar() {
         <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-3 px-4 py-2 sm:px-6">
           <Link to="/" className="flex shrink-0 items-center gap-2 text-lg font-bold text-white">
             <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-white/10 p-1">
-              <img src={ompathLogo} alt="Ompath Study logo" width="32" height="32" className="h-full w-full object-contain" decoding="async" fetchPriority="high" />
+              <img src={ompathLogo} alt="Ompath Study logo" width="32" height="32" className="h-full w-full object-contain" decoding="async" // @ts-expect-error fetchpriority is valid HTML
+fetchpriority="high" />
             </div>
             <span className="font-serif">Ompath Study</span>
           </Link>
