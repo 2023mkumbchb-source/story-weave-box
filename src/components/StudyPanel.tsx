@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { buildBlogPath } from "@/lib/store";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
 import { MBCHB_2026_TRIMESTER_1 } from "@/lib/timetable2026";
-import { useSiteConfig, useTimetable } from "@/lib/siteConfig";
+import { formatUnitEntry, unitNameMap, useSiteConfig, useTimetable } from "@/lib/siteConfig";
 import { useStudyLog } from "@/lib/studyLog";
 import { libraryPath } from "@/lib/libraryMeta";
 import { startDownload } from "@/lib/driveDownload";
@@ -38,6 +38,7 @@ const parseDate = (iso: string) => { const [y, m, d] = iso.split("-").map(Number
 /** The next teaching day's sessions for a year, with a group picker that is remembered on this device. */
 export function TodayClasses({ year, wide = false }: { year: number; wide?: boolean }) {
   const tables = useTimetable(year);
+  const names = unitNameMap(useSiteConfig());
   const groups = useMemo(() => [...new Set(tables.flatMap((t) => t.rows.map((r) => r.group ?? "").filter(Boolean)))].sort(), [tables]);
   const [group, setGroup] = useState("");
   const [showAll, setShowAll] = useState(false);
@@ -81,11 +82,11 @@ export function TodayClasses({ year, wide = false }: { year: number; wide?: bool
           <p className="mb-1.5 text-[11px] font-bold text-foreground">{notStarted ? "First week · " : ""}{label}{found.offset > 1 ? "" : ` · ${found.day}`}</p>
           <ul className={`space-y-1.5 ${wide ? "sm:grid sm:grid-cols-2 sm:gap-2 sm:space-y-0" : ""}`}>
             {found.rows.flatMap((r, i) => r.entries.map((e, k) => ({ r, i, e, k }))).slice(0, wide ? (showAll ? 60 : 6) : 5).map(({ r, i, e, k }) => {
-              const [code, ...rest] = e.split(" · ");
+              const { title, sub } = formatUnitEntry(e, names);
               return (
                 <li key={`${i}-${k}`} className="flex items-start gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5">
                   <Timer className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
-                  <span className="min-w-0 text-[11px] leading-snug"><span className="font-bold text-foreground">{code}</span>{rest.length > 0 && <span className="flex items-center gap-1 text-muted-foreground"><MapPin className="h-2.5 w-2.5" />{rest.join(" · ")}</span>}{r.group ? <span className="text-primary"> · group {r.group}</span> : null}</span>
+                  <span className="min-w-0 text-[11px] leading-snug"><span className="font-bold text-foreground">{title}</span>{sub && <span className="flex items-center gap-1 text-muted-foreground"><MapPin className="h-2.5 w-2.5 shrink-0" />{sub}</span>}{r.group ? <span className="text-primary"> · group {r.group}</span> : null}</span>
                 </li>
               );
             })}

@@ -22,9 +22,19 @@ export interface SiteConfig {
 
 export const DEFAULT_UNIT_NAMES: Record<string, string> = {
   MBHA: "Human Anatomy", MBMB: "Medical Biochemistry", MBMP: "Medical Physiology", MBMM: "Medical Microbiology",
-  MBPA: "Pathology", MBPL: "Pharmacology", MBPE: "Paediatrics", MBSG: "Surgery", MBOG: "Obstetrics & Gynaecology",
-  MBIM: "Internal Medicine", MBPS: "Psychiatry", BND: "Nutrition & Dietetics", BMS: "Behavioural Sciences", BUCU: "Common Unit (ICT)",
+  MBPA: "Pathology", MBPL: "Pharmacology", MBPE: "Paediatrics & Child Health", MBSG: "General Surgery", MBOG: "Obstetrics & Gynaecology",
+  MBIM: "Internal Medicine", MBPS: "Psychiatry & Mental Health", BND: "Nutrition & Dietetics", BMS: "Behavioural Sciences", BUCU: "Communication & ICT Skills",
+  MBCS: "Clinical Specialties", MBDS: "Dental Surgery", MBPH: "Public Health", MBHR: "Health Systems & Research",
 };
+
+/** "MBHA 1124 Ca · Dissection" → { title: "Human Anatomy", sub: "Dissection · MBHA 1124 Ca" }. Unknown codes are left as they are. */
+export function formatUnitEntry(entry: string, names: Record<string, string>): { title: string; sub: string } {
+  const [head, ...rest] = entry.split(" · ");
+  const m = head.match(/^([A-Z]{3,4})\s?\d{3,4}/);
+  const name = m ? names[m[1]] : undefined;
+  if (!name) return { title: head, sub: rest.join(" · ") };
+  return { title: name, sub: [...rest, head.trim()].join(" · ") };
+}
 
 export const DEFAULT_CONFIG: SiteConfig = {
   announcement: { enabled: false, text: "", link: "", tone: "info" },

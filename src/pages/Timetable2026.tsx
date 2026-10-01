@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { DEFAULT_UNIT_NAMES, formatUnitEntry } from "@/lib/siteConfig";
 import { CalendarDays, ChevronDown, GraduationCap, Hospital, UsersRound } from "lucide-react";
 import {
   MBCHB_2026_TRIMESTER_1,
@@ -70,7 +71,9 @@ const YEAR4_UNITS = [
 ] as const;
 
 function cleanText(value: string) {
-  return value.replace(/\s+/g, " ").trim();
+  const v = value.replace(/\s+/g, " ").trim();
+  const { title, sub } = formatUnitEntry(v, DEFAULT_UNIT_NAMES);
+  return sub ? `${title} · ${sub}` : title;
 }
 
 function semesterWeek() {
