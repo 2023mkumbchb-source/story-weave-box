@@ -135,7 +135,7 @@ export default function YearHub() {
     },
     ...(parsedYear >= 4 ? [{
       title: "Clinical simulator",
-      description: "Ward-round cases: history, exam, differentials, emergencies",
+      description: "Cold-patient ward rounds, OSCE circuit, ECG stations, drug reasoning, why ladders",
       to: "/clinical",
       icon: Stethoscope,
     }] : []),

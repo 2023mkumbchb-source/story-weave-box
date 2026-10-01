@@ -1,7 +1,7 @@
 // Clinical reasoning simulator — data shapes. A case is data only, so more cases can be added (or generated) without touching the engine.
 
 export type Rotation = "medicine" | "obgyn" | "paeds" | "surgery" | "psychiatry";
-export type Skill = "history" | "examination" | "differentials" | "investigations" | "interpretation" | "emergency" | "management" | "pathophysiology" | "consultant";
+export type Skill = "history" | "examination" | "differentials" | "investigations" | "interpretation" | "emergency" | "management" | "pathophysiology" | "consultant" | "presentation" | "problemlist" | "pharmacology" | "reporting" | "imaging" | "communication";
 
 export const ROTATIONS: { id: Rotation; label: string; short: string; emoji: string; blurb: string }[] = [
   { id: "medicine", label: "Internal Medicine", short: "Medicine", emoji: "🩺", blurb: "Cardiac, respiratory, renal, endocrine, neurology, haematology, infections, GI" },
@@ -15,6 +15,8 @@ export const SKILLS: { id: Skill; label: string }[] = [
   { id: "history", label: "History taking" }, { id: "examination", label: "Examination" }, { id: "differentials", label: "Differentials" },
   { id: "investigations", label: "Choosing investigations" }, { id: "interpretation", label: "Interpreting results" }, { id: "emergency", label: "Emergency response" },
   { id: "management", label: "Management" }, { id: "pathophysiology", label: "Pathophysiology" }, { id: "consultant", label: "Consultant questions" },
+  { id: "presentation", label: "Case presentation" }, { id: "problemlist", label: "Problem list" }, { id: "pharmacology", label: "Drug reasoning" },
+  { id: "reporting", label: "Examination reporting" }, { id: "imaging", label: "Imaging & ECG" }, { id: "communication", label: "Counselling" },
 ];
 
 export const BODY_SYSTEMS = ["Cardiovascular", "Respiratory", "Renal / urinary", "Gastrointestinal / hepatobiliary", "Neurological", "Endocrine / metabolic", "Haematological", "Infective / immune", "Musculoskeletal / trauma", "Obstetric / gynaecological", "Psychiatric", "Toxic / drug-related"] as const;

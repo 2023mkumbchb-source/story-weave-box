@@ -54,6 +54,7 @@ const StudyMap = lazy(() => import("./pages/StudyMap"));
 const ClinicalHub = lazy(() => import("./pages/ClinicalHub"));
 const ClinicalCase = lazy(() => import("./pages/ClinicalCase"));
 const ClinicalPractice = lazy(() => import("./pages/ClinicalPractice"));
+const ClinicalLab = lazy(() => import("./pages/ClinicalLab"));
 const GlobalSearch = lazy(() => import("./pages/GlobalSearch"));
 const StudySystemAdmin = lazy(() => import("./pages/StudySystemAdmin"));
 const CategoryManager = lazy(() => import("./pages/CategoryManager"));
@@ -125,6 +126,19 @@ const AnimatedRoutes = () => {
             <Route path="/clinical/consultant" element={<ClinicalPractice />} />
             <Route path="/clinical/reason" element={<ClinicalPractice />} />
             <Route path="/clinical/cards" element={<ClinicalPractice />} />
+            <Route path="/clinical/stations" element={<ClinicalLab />} />
+            <Route path="/clinical/stations/:id" element={<ClinicalLab />} />
+            <Route path="/clinical/why" element={<ClinicalLab />} />
+            <Route path="/clinical/why/:id" element={<ClinicalLab />} />
+            <Route path="/clinical/traps" element={<ClinicalLab />} />
+            <Route path="/clinical/drugs" element={<ClinicalLab />} />
+            <Route path="/clinical/drugs/:id" element={<ClinicalLab />} />
+            <Route path="/clinical/findings" element={<ClinicalLab />} />
+            <Route path="/clinical/quiz" element={<ClinicalLab />} />
+            <Route path="/clinical/tools" element={<ClinicalLab />} />
+            <Route path="/clinical/osce" element={<ClinicalLab />} />
+            <Route path="/clinical/counsel" element={<ClinicalLab />} />
+            <Route path="/clinical/counsel/:id" element={<ClinicalLab />} />
             <Route path="/study-map/:system" element={<RailLayout><StudyMap /></RailLayout>} />
             <Route path="/search" element={<RailLayout><GlobalSearch /></RailLayout>} />
             <Route path="/blog" element={<Blog />} />

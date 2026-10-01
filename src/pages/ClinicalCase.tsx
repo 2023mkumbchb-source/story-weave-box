@@ -1,16 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
-import { AlertTriangle, ArrowRight, BookOpen, CheckCircle2, ChevronDown, ClipboardList, FolderOpen, MessageSquare, Plus, RotateCcw, Search, Siren, Stethoscope, Trash2, Zap } from "lucide-react";
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { AlertTriangle, ArrowRight, BookOpen, CheckCircle2, ChevronDown, ClipboardList, Clock, FolderOpen, MessageSquare, Plus, RotateCcw, Search, Siren, Stethoscope, Trash2, Zap } from "lucide-react";
 import { getCase, ROTATIONS, BODY_SYSTEMS } from "@/clinical";
 import { EXAM_SETS, HISTORY_SETS } from "@/clinical/templates";
-import { addScore, caseHasStage, matchDdx, MODE_INFO, pct, STAGES_BY_MODE, type SkillTally } from "@/clinical/engine";
+import { addScore, caseHasStage, matchDdx, MODE_INFO, pct, STAGES_BY_MODE, stagesHandOver, type SkillTally } from "@/clinical/engine";
+import { COLD } from "@/clinical/extras/cold";
+import { matchQuestion } from "@/clinical/roleplay";
+import { TRAPS } from "@/clinical/traps";
+import { osceNextUrl, recordOsceStation } from "@/clinical/osce";
+import { ColdStage, DrugStage, PresentStage, ProblemsStage, ReportStage, WhyStage } from "@/components/clinical/CaseStages";
 import { recordAttempt } from "@/clinical/progress";
 import { SKILLS, type CaseDef, type Ddx, type ExItem, type HxItem } from "@/clinical/types";
 import McqCard from "@/components/clinical/McqCard";
 import { updateMetaTags } from "@/lib/seo";
 import { logStudy } from "@/lib/studyLog";
 
-const STAGE_LABEL: Record<string, string> = { intro: "Presentation", history: "History", exam: "Examination", ddx: "Differentials", ix: "Investigations", event: "Emergency", twist: "New information", dx: "Diagnosis", mgmt: "Management", consult: "Consultant", summary: "Summary" };
+const NEXT_LABEL: Record<string, string> = { history: "Take the history", exam: "Examine the patient", report: "Report your findings", problems: "Formulate the problem list", ddx: "Differential diagnosis", ix: "Choose investigations", event: "Continue", twist: "Continue", dx: "Name the diagnosis", mgmt: "Plan management", drug: "Drug reasoning", why: "The why ladder", consult: "The consultant has questions", present: "Present to the consultant", summary: "See summary" };
+const STAGE_LABEL: Record<string, string> = { cold: "Cold call", report: "Report", problems: "Problems", drug: "Drugs", why: "Why?", present: "Present", intro: "Presentation", history: "History", exam: "Examination", ddx: "Differentials", ix: "Investigations", event: "Emergency", twist: "New information", dx: "Diagnosis", mgmt: "Management", consult: "Consultant", summary: "Summary" };
 const TIER: Record<Ddx["tier"], { label: string; cls: string }> = { likely: { label: "Most likely", cls: "bg-emerald-500/15 text-emerald-700" }, possible: { label: "Possible", cls: "bg-sky-500/15 text-sky-700" }, dangerous: { label: "Can’t-miss", cls: "bg-rose-500/15 text-rose-700" } };
 
 export default function ClinicalCase() {
@@ -19,14 +25,14 @@ export default function ClinicalCase() {
   const c = id ? getCase(id) : undefined;
   const mode = STAGES_BY_MODE[sp.get("mode") ?? ""] ? (sp.get("mode") as string) : "full";
   if (!c) return <Navigate to="/clinical" replace />;
-  return <Runner key={`${c.id}-${mode}-${sp.get("r") ?? ""}`} c={c} mode={mode} />;
+  return <Runner key={`${c.id}-${mode}-${sp.get("r") ?? ""}`} c={c} mode={mode} limit={Number(sp.get("limit")) || 0} circuit={sp.get("circuit") === "1"} />;
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`rounded-2xl border border-border bg-card p-4 sm:p-5 ${className}`}>{children}</div>;
 }
 
-function Runner({ c, mode }: { c: CaseDef; mode: string }) {
+function Runner({ c, mode, limit, circuit }: { c: CaseDef; mode: string; limit: number; circuit: boolean }) {
   const stages = useMemo(() => STAGES_BY_MODE[mode].filter((s) => caseHasStage(c, s)), [c, mode]);
   const [si, setSi] = useState(0);
   const stage = stages[si];
@@ -54,7 +60,9 @@ function Runner({ c, mode }: { c: CaseDef; mode: string }) {
   const exFinding = (e: ExItem) => c.ex[e.id] ?? e.def;
 
   // Teaching modes that skip the fact-finding hand over the key facts instead.
-  const handedOver = mode !== "full" && mode !== "history" && mode !== "exam";
+  const handedOver = stagesHandOver(stages);
+  const nextLabel = NEXT_LABEL[stages[si + 1]] ?? "Continue";
+  const deep = mode === "full" || mode === "long";
   const knownHx = handedOver ? c.hxKey : asked;
   const knownEx = handedOver ? c.exKey : examined;
   const ixOrdered = mode === "ix" ? Array.from(new Set([...ordered])) : ordered;
@@ -92,6 +100,13 @@ function Runner({ c, mode }: { c: CaseDef; mode: string }) {
   };
   const finishIx = () => { if (!ixReviewed) { add("investigations", Math.max(0, (ixKeyOrdered.length - ixWasted.length * 0.5) / Math.max(ixKey.length, 1))); setIxReviewed(true); } };
 
+  // ---- OSCE-style countdown: when time is up the current fact-finding stage closes by itself
+  const [left, setLeft] = useState(limit);
+  useEffect(() => { if (!limit || stage === "summary") return; const t = setInterval(() => setLeft((x) => x - 1), 1000); return () => clearInterval(t); }, [limit, stage]);
+  const expired = limit > 0 && left <= 0;
+  useEffect(() => { if (!expired) return; if (stage === "history") finishHistory(); else if (stage === "exam") finishExam(); else if (stage === "ix") finishIx(); }, [expired, stage]); // eslint-disable-line react-hooks/exhaustive-deps
+  const clock = `${Math.floor(Math.max(left, 0) / 60)}:${String(Math.max(left, 0) % 60).padStart(2, "0")}`;
+
   // ---- summary & saving
   const total = useMemo(() => { const v = Object.values(tally) as [number, number][]; const e = v.reduce((s, x) => s + x[0], 0); const t = v.reduce((s, x) => s + x[1], 0); return t ? e / t : 0; }, [tally]);
   useEffect(() => {
@@ -107,16 +122,18 @@ function Runner({ c, mode }: { c: CaseDef; mode: string }) {
     <div className="min-h-dvh bg-muted/20" ref={top}>
       <section className="border-b border-border bg-gradient-to-br from-primary/10 via-background to-background">
         <div className="mx-auto max-w-6xl px-4 py-5 sm:px-5 sm:py-7">
-          <p className="flex flex-wrap items-center gap-x-2 text-[11px] font-bold uppercase tracking-[0.14em] text-primary"><Link to="/clinical" className="hover:underline">Clinical simulator</Link> › {rot.emoji} {rot.label} <span className="rounded-full bg-primary/10 px-2 py-0.5">{MODE_INFO[mode].label}</span> {c.emergency && <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-2 py-0.5 text-rose-700"><Siren className="h-3 w-3" /> Emergency</span>}</p>
-          <h1 className="mt-1 font-serif text-xl font-bold leading-tight text-foreground sm:text-3xl">{mode === "full" || stage === "summary" ? c.title : "Case " + c.id.split("-").pop()?.toUpperCase()}</h1>
+          <p className="flex flex-wrap items-center gap-x-2 text-[11px] font-bold uppercase tracking-[0.14em] text-primary"><Link to="/clinical" className="hover:underline">Clinical simulator</Link> › {rot.emoji} {rot.label} <span className="rounded-full bg-primary/10 px-2 py-0.5">{MODE_INFO[mode].label}</span> {limit > 0 && stage !== "summary" && <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${expired ? "bg-rose-500/15 text-rose-700" : left < 30 ? "bg-amber-500/20 text-amber-700" : "bg-muted text-foreground"}`}><Clock className="h-3 w-3" /> {expired ? "Time up" : clock}</span>} {c.emergency && mode !== "cold" && <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-2 py-0.5 text-rose-700"><Siren className="h-3 w-3" /> Emergency</span>}</p>
+          <h1 className="mt-1 font-serif text-xl font-bold leading-tight text-foreground sm:text-3xl">{deep || stage === "summary" ? c.title : "Case " + c.id.split("-").pop()?.toUpperCase()}</h1>
           <ol className="mt-3 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }} aria-label="Case progress">
-            {stages.map((s, i) => <li key={s} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${i === si ? "bg-primary text-primary-foreground" : i < si ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>{i + 1}. {STAGE_LABEL[s]}</li>)}
+            {stages.map((s, i) => <li key={s} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${i === si ? "bg-primary text-primary-foreground" : i < si ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>{i + 1}. {mode === "cold" && i > si ? "•••" : STAGE_LABEL[s]}</li>)}
           </ol>
         </div>
       </section>
 
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-5 px-4 py-6 sm:px-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-4">
+          {stage === "cold" && <ColdStage c={c} onScore={add} onNext={next} onVitals={() => setExamined((a) => (a.includes("vit") ? a : [...a, "vit"]))} />}
+
           {stage === "intro" && (
             <>
               <Card>
@@ -124,7 +141,7 @@ function Runner({ c, mode }: { c: CaseDef; mode: string }) {
                 <p className="text-sm leading-relaxed text-foreground sm:text-base">{c.vignette}</p>
                 {handedOver && <p className="mt-3 rounded-lg bg-primary/5 px-3 py-2 text-xs text-muted-foreground">In this mode the key history and examination findings are handed over for you (see the notebook).</p>}
               </Card>
-              {mode === "full" && (
+              {deep && (
                 <Card>
                   <h2 className="font-serif text-lg font-bold text-foreground">First thoughts: which systems could explain this?</h2>
                   <p className="mt-0.5 text-xs text-muted-foreground">Before you ask a single question, commit to where you think the problem lies. Select every system that could contribute.</p>
@@ -138,7 +155,7 @@ function Runner({ c, mode }: { c: CaseDef; mode: string }) {
                   )}
                 </Card>
               )}
-              <button type="button" onClick={next} disabled={mode === "full" && !sysDone} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-40">{mode === "full" ? "Go to the bedside" : "Start"} <ArrowRight className="h-4 w-4" /></button>
+              <button type="button" onClick={next} disabled={deep && !sysDone} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-40">{deep ? "Go to the bedside" : "Start"} <ArrowRight className="h-4 w-4" /></button>
             </>
           )}
 
@@ -146,8 +163,8 @@ function Runner({ c, mode }: { c: CaseDef; mode: string }) {
             <>
               <Card>
                 <h2 className="flex items-center gap-2 font-serif text-lg font-bold text-foreground"><MessageSquare className="h-5 w-5 text-primary" /> Take the history</h2>
-                <p className="mt-0.5 text-xs text-muted-foreground">Tap a question to ask it. The patient only tells you what you ask. {asked.length} asked.</p>
-                <HistoryList items={hxItems} asked={asked} answer={hxAnswer} onAsk={(id) => !hxReviewed && setAsked((a) => (a.includes(id) ? a : [...a, id]))} locked={hxReviewed} keys={c.hxKey} />
+                <p className="mt-0.5 text-xs text-muted-foreground">{mode === "cold" ? "Type your questions as you would say them." : "Type a question, or tap one from the list."} The patient only tells you what you ask. {asked.length} asked.</p>
+                <HistoryList items={hxItems} asked={asked} answer={hxAnswer} onAsk={(id) => !hxReviewed && setAsked((a) => (a.includes(id) ? a : [...a, id]))} locked={hxReviewed} keys={c.hxKey} hideList={mode === "cold"} />
               </Card>
               {!hxReviewed ? (
                 <button type="button" onClick={finishHistory} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground">I have enough history <ArrowRight className="h-4 w-4" /></button>
@@ -161,7 +178,7 @@ function Runner({ c, mode }: { c: CaseDef; mode: string }) {
                       </ul>
                     )}
                   </Card>
-                  <button type="button" onClick={next} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground">{mode === "history" ? "See summary" : "Examine the patient"} <ArrowRight className="h-4 w-4" /></button>
+                  <button type="button" onClick={next} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground">{nextLabel} <ArrowRight className="h-4 w-4" /></button>
                 </>
               )}
             </>
@@ -184,7 +201,7 @@ function Runner({ c, mode }: { c: CaseDef; mode: string }) {
                       <ul className="mt-2 space-y-2">{c.exKey.filter((k) => !examined.includes(k)).map((k) => { const e = exItems.find((x) => x.id === k); return e ? <li key={k} className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs leading-relaxed"><b>△ You didn’t examine: {e.label}</b><br />You would have found: {exFinding(e)}<br /><span className="text-muted-foreground">Why it matters: {e.looking}</span></li> : null; })}</ul>
                     )}
                   </Card>
-                  <button type="button" onClick={next} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground">{mode === "exam" ? "See summary" : "Differential diagnosis"} <ArrowRight className="h-4 w-4" /></button>
+                  <button type="button" onClick={next} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground">{nextLabel} <ArrowRight className="h-4 w-4" /></button>
                 </>
               )}
             </>
@@ -236,7 +253,7 @@ function Runner({ c, mode }: { c: CaseDef; mode: string }) {
                       <div className="mt-2 rounded-lg bg-primary/5 p-3 text-xs leading-relaxed"><b className="text-primary">How to separate it</b><br /><b>Ask:</b> {d.separate.ask}<br /><b>Examine:</b> {d.separate.exam}<br /><b>Investigate:</b> {d.separate.ix}</div>
                     </Card>
                   ))}
-                  <button type="button" onClick={next} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground">{mode === "ddx" ? "See summary" : "Choose investigations"} <ArrowRight className="h-4 w-4" /></button>
+                  <button type="button" onClick={next} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground">{nextLabel} <ArrowRight className="h-4 w-4" /></button>
                 </>
               )}
             </>
@@ -264,7 +281,7 @@ function Runner({ c, mode }: { c: CaseDef; mode: string }) {
                       {ixKey.every((x) => ixOrdered.includes(x.id)) && ixWasted.length === 0 && <li className="rounded-lg bg-emerald-500/10 px-3 py-2">✓ A focused, sensible set of investigations.</li>}
                     </ul>
                   </Card>
-                  <button type="button" onClick={next} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground">{mode === "ix" ? "See summary" : "Continue"} <ArrowRight className="h-4 w-4" /></button>
+                  <button type="button" onClick={next} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground">{nextLabel} <ArrowRight className="h-4 w-4" /></button>
                 </>
               )}
             </>
@@ -277,8 +294,11 @@ function Runner({ c, mode }: { c: CaseDef; mode: string }) {
                 <p className="mt-1 text-sm leading-relaxed text-foreground">{c.event.text}</p>
                 <p className="mt-2 rounded-lg bg-card px-3 py-2 text-xs font-semibold text-foreground">{c.event.vitals}</p>
               </div>
+              {mode === "cold" && (ixKeyOrdered.length < Math.ceil(ixKey.length / 2) || exKeyDone.length < Math.ceil(c.exKey.length / 2)) && (
+                <div className="rounded-2xl border border-amber-500/50 bg-amber-500/10 p-3 text-xs leading-relaxed text-foreground"><b>This is what happens when the work-up is incomplete.</b> You did not request all the key tests or complete the key examination, so the diagnosis was still unclear and nobody noticed the trend in time. Nothing rescued you — the patient simply got worse. The full list of what you missed is in the summary.</div>
+              )}
               <McqCard q={c.event.q} label="Act now" onDone={mcqDone(c.event.q.id, "emergency")} />
-              {answered.includes(c.event.q.id) && <button type="button" onClick={next} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground">{mode === "emergency" ? "See summary" : "Patient stabilised — continue"} <ArrowRight className="h-4 w-4" /></button>}
+              {answered.includes(c.event.q.id) && <button type="button" onClick={next} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground">{stages[si + 1] === "summary" ? "See summary" : "Patient stabilised — continue"} <ArrowRight className="h-4 w-4" /></button>}
             </>
           )}
 
@@ -300,7 +320,7 @@ function Runner({ c, mode }: { c: CaseDef; mode: string }) {
           {stage === "mgmt" && (
             <>
               <McqCard q={c.mgmt} label="Management" onDone={mcqDone(c.mgmt.id, "management")} />
-              {answered.includes(c.mgmt.id) && <button type="button" onClick={next} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground">The consultant has questions <ArrowRight className="h-4 w-4" /></button>}
+              {answered.includes(c.mgmt.id) && <button type="button" onClick={next} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground">{nextLabel} <ArrowRight className="h-4 w-4" /></button>}
             </>
           )}
 
@@ -312,15 +332,21 @@ function Runner({ c, mode }: { c: CaseDef; mode: string }) {
               ))}
               {answered.includes(c.consultant[consultIdx].id) && (consultIdx < c.consultant.length - 1
                 ? <button type="button" onClick={() => setConsultIdx((i) => i + 1)} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground">Next question <ArrowRight className="h-4 w-4" /></button>
-                : <button type="button" onClick={next} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground">Case summary <ArrowRight className="h-4 w-4" /></button>)}
+                : <button type="button" onClick={next} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground">{nextLabel} <ArrowRight className="h-4 w-4" /></button>)}
             </>
           )}
 
-          {stage === "summary" && <Summary c={c} tally={tally} total={total} hints={hints} mode={mode} />}
+          {stage === "report" && <ReportStage c={c} onScore={add} onNext={next} nextLabel={nextLabel} />}
+          {stage === "problems" && <ProblemsStage c={c} onScore={add} onNext={next} nextLabel={nextLabel} />}
+          {stage === "drug" && <DrugStage c={c} onScore={add} onNext={next} nextLabel={nextLabel} />}
+          {stage === "why" && <WhyStage c={c} onScore={add} onNext={next} nextLabel={nextLabel} />}
+          {stage === "present" && <PresentStage c={c} onScore={add} onNext={next} />}
+
+          {stage === "summary" && <Summary c={c} tally={tally} total={total} hints={hints} mode={mode} circuit={circuit} />}
         </div>
 
         <aside className="min-w-0 lg:sticky lg:top-20 lg:self-start">
-          <Notebook c={c} hx={knownHx} ex={knownEx} hxItems={hxItems} exItems={exItems} hxAnswer={hxAnswer} exFinding={exFinding} ddx={ddChecked ? ddEntered : []} ix={c.ix.filter((x) => ixOrdered.includes(x.id))} />
+          <Notebook c={c} vignette={mode === "cold" ? COLD[c.id] ?? c.vignette : c.vignette} hx={knownHx} ex={knownEx} hxItems={hxItems} exItems={exItems} hxAnswer={hxAnswer} exFinding={exFinding} ddx={ddChecked ? ddEntered : []} ix={c.ix.filter((x) => ixOrdered.includes(x.id))} />
         </aside>
       </div>
     </div>
@@ -336,13 +362,38 @@ function Group({ title, children, defaultOpen = false }: { title: string; childr
   );
 }
 
-function HistoryList({ items, asked, answer, onAsk, locked, keys }: { items: HxItem[]; asked: string[]; answer: (h: HxItem) => string; onAsk: (id: string) => void; locked: boolean; keys: string[] }) {
+function HistoryList({ items, asked, answer, onAsk, locked, keys, hideList }: { items: HxItem[]; asked: string[]; answer: (h: HxItem) => string; onAsk: (id: string) => void; locked: boolean; keys: string[]; hideList: boolean }) {
   const [q, setQ] = useState("");
+  const [say, setSay] = useState("");
+  const [reply, setReply] = useState("");
+  const [showList, setShowList] = useState(!hideList);
+  const listVisible = showList || locked;
+  const ask = () => {
+    if (!say.trim() || locked) return;
+    const m = matchQuestion(say, items);
+    if (!m) setReply("“Sorry doctor, I am not sure what you are asking. Could you put it another way?”");
+    else if (asked.includes(m.id)) setReply("“You already asked me that, doctor.”");
+    else { onAsk(m.id); setReply(""); }
+    setSay("");
+  };
   const groups = useMemo(() => { const m = new Map<string, HxItem[]>(); items.forEach((i) => { if (!q || i.label.toLowerCase().includes(q.toLowerCase())) m.set(i.group, [...(m.get(i.group) ?? []), i]); }); return [...m.entries()]; }, [items, q]);
   return (
     <div className="mt-3 space-y-2">
-      <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a question…" aria-label="Find a question" className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/30" /></div>
-      {groups.map(([g, list], gi) => (
+      {!locked && (
+        <div className="rounded-xl border border-primary/25 bg-primary/5 p-3">
+          <label className="block text-xs font-bold text-foreground" htmlFor="ask-own">Ask the patient in your own words</label>
+          <div className="mt-1.5 flex gap-2"><input id="ask-own" value={say} onChange={(e) => setSay(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") ask(); }} placeholder="e.g. Do you sleep on extra pillows?" className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30" /><button type="button" onClick={ask} disabled={!say.trim()} className="shrink-0 rounded-lg bg-primary px-4 text-xs font-bold text-primary-foreground disabled:opacity-40">Ask</button></div>
+          {reply && <p className="mt-2 rounded-lg bg-muted/60 px-3 py-2 text-xs italic text-foreground">{reply}</p>}
+          {hideList && <button type="button" onClick={() => setShowList((v) => !v)} className="mt-2 text-[11px] font-bold text-primary hover:underline">{showList ? "Hide the question list (harder)" : "Need prompts? Show the question list"}</button>}
+        </div>
+      )}
+      {!listVisible && asked.length > 0 && (
+        <ul className="space-y-1.5">
+          {asked.map((id) => { const h = items.find((x) => x.id === id); return h ? <li key={id} className="text-xs leading-relaxed"><span className="font-bold text-muted-foreground">You asked about {h.label.split(/[:—(]/)[0].trim().toLowerCase().replace(/[?]$/, "")}.</span><br /><span className="inline-block rounded-lg bg-muted/60 px-3 py-2 text-foreground"><b className="text-primary">Patient:</b> {answer(h)}</span></li> : null; })}
+        </ul>
+      )}
+      {listVisible && <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a question…" aria-label="Find a question" className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/30" /></div>}
+      {listVisible && groups.map(([g, list], gi) => (
         <Group key={g} title={`${g} (${list.filter((x) => asked.includes(x.id)).length}/${list.length})`} defaultOpen={gi === 0 || Boolean(q)}>
           {list.map((h) => (
             <div key={h.id}>
@@ -396,14 +447,14 @@ function IxList({ c, ordered, onOrder, locked }: { c: CaseDef; ordered: string[]
   );
 }
 
-function Notebook({ c, hx, ex, hxItems, exItems, hxAnswer, exFinding, ddx, ix }: { c: CaseDef; hx: string[]; ex: string[]; hxItems: HxItem[]; exItems: ExItem[]; hxAnswer: (h: HxItem) => string; exFinding: (e: ExItem) => string; ddx: string[]; ix: CaseDef["ix"] }) {
+function Notebook({ c, vignette, hx, ex, hxItems, exItems, hxAnswer, exFinding, ddx, ix }: { c: CaseDef; vignette: string; hx: string[]; ex: string[]; hxItems: HxItem[]; exItems: ExItem[]; hxAnswer: (h: HxItem) => string; exFinding: (e: ExItem) => string; ddx: string[]; ix: CaseDef["ix"] }) {
   const facts = [...hx.map((id) => hxItems.find((x) => x.id === id)).filter(Boolean).map((h) => ({ k: `h-${h!.id}`, label: h!.label.split(/[:—(]/)[0].trim().replace(/[?]$/, ""), text: hxAnswer(h!) })), ...ex.map((id) => exItems.find((x) => x.id === id)).filter(Boolean).map((e) => ({ k: `e-${e!.id}`, label: e!.label.split(/[:—(]/)[0].trim(), text: exFinding(e!) }))];
   const [open, setOpen] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches);
   return (
     <details open={open} onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)} className="rounded-2xl border border-border bg-card">
       <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-bold text-foreground"><BookOpen className="h-4 w-4 text-primary" /> Case notebook <span className="ml-auto text-[11px] font-semibold text-muted-foreground">{facts.length + ix.length} findings</span></summary>
       <div className="max-h-[70vh] space-y-3 overflow-y-auto px-4 pb-4 text-xs leading-relaxed">
-        <p className="rounded-lg bg-primary/5 p-2.5 text-foreground">{c.vignette}</p>
+        <p className="rounded-lg bg-primary/5 p-2.5 text-foreground">{vignette}</p>
         {facts.length === 0 && <p className="text-muted-foreground">Nothing yet — what you learn will be written here.</p>}
         {facts.map((f) => <p key={f.k}><b className="text-foreground">{f.label}:</b> <span className="text-muted-foreground">{f.text}</span></p>)}
         {ix.filter((x) => x.use !== "low").length > 0 && <div><p className="mb-1 font-bold text-foreground">Results</p>{ix.filter((x) => x.use !== "low").map((x) => <p key={x.id}><b className="text-foreground">{x.label}:</b> <span className="text-muted-foreground">{x.result}</span></p>)}</div>}
@@ -413,7 +464,9 @@ function Notebook({ c, hx, ex, hxItems, exItems, hxAnswer, exFinding, ddx, ix }:
   );
 }
 
-function Summary({ c, tally, total, hints, mode }: { c: CaseDef; tally: SkillTally; total: number; hints: number; mode: string }) {
+function Summary({ c, tally, total, hints, mode, circuit }: { c: CaseDef; tally: SkillTally; total: number; hints: number; mode: string; circuit: boolean }) {
+  const traps = TRAPS.filter((t) => t.rot === c.rotation || t.rot === "all").slice(0, 3);
+  const navigate = useNavigate();
   const rows = SKILLS.filter((s) => tally[s.id]);
   return (
     <>
@@ -446,7 +499,16 @@ function Summary({ c, tally, total, hints, mode }: { c: CaseDef; tally: SkillTal
         <ul className="mt-2 space-y-2 text-sm">{c.thinkIf.map(([a, b]) => <li key={a} className="rounded-lg bg-primary/5 p-3"><b className="text-foreground">{a}</b><br /><span className="text-muted-foreground">→ {b}</span></li>)}</ul>
       </Card>
 
+      {traps.length > 0 && (
+        <Card>
+          <h3 className="font-serif text-lg font-bold text-foreground">Ward-round traps to avoid</h3>
+          <ul className="mt-2 space-y-2 text-xs leading-relaxed">{traps.map((t) => <li key={t.id} className="rounded-lg bg-amber-500/10 p-3"><b className="text-foreground">{t.title}</b><br /><span className="text-muted-foreground">{t.scenario}</span><br /><span className="italic text-foreground">{t.lecturer}</span></li>)}</ul>
+          <Link to="/clinical/traps" className="mt-2 inline-block text-xs font-bold text-primary hover:underline">Practise all ward-round traps →</Link>
+        </Card>
+      )}
+
       <div className="flex flex-wrap gap-2">
+        {circuit && <button type="button" onClick={() => { recordOsceStation(Math.round(total * 100)); navigate(osceNextUrl()); }} className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">Next OSCE station <ArrowRight className="h-4 w-4" /></button>}
         <Link to={`/clinical/case/${c.id}?mode=${mode}&r=${Date.now()}`} className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-bold hover:border-primary/50"><RotateCcw className="h-4 w-4" /> Try this case again</Link>
         <Link to={`/search?q=${encodeURIComponent(c.revise)}`} className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-bold hover:border-primary/50"><FolderOpen className="h-4 w-4" /> Revise “{c.revise}” on the site</Link>
         <Link to="/clinical" className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">Next case <ArrowRight className="h-4 w-4" /></Link>

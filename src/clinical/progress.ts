@@ -3,6 +3,7 @@ import { useSyncExternalStore } from "react";
 import { SKILLS, type Skill } from "./types";
 import type { SkillTally } from "./engine";
 
+/** caseId is a case id, or "x-…" for practice drills (stations, ladders, quizzes, OSCE). */
 export interface Attempt { caseId: string; at: number; mode: string; tally: SkillTally; score: number; hints: number }
 const KEY = "ompath_clinical_attempts";
 const DRILL_KEY = "ompath_clinical_drills";
@@ -41,9 +42,10 @@ export function useClinicalProgress() {
   const skillPct = SKILLS.map((k) => ({ skill: k.id as Skill, label: k.label, pct: totals[k.id] && totals[k.id][1] > 0 ? Math.round((totals[k.id][0] / totals[k.id][1]) * 100) : null, seen: totals[k.id]?.[1] ?? 0 }));
   const weak = skillPct.filter((x) => x.pct !== null && x.seen >= 2).sort((a, b) => (a.pct as number) - (b.pct as number)).slice(0, 2).filter((x) => (x.pct as number) < 75);
   const lastByCase: Record<string, Attempt> = {};
-  s.attempts.forEach((a) => { lastByCase[a.caseId] = a; });
+  s.attempts.forEach((a) => { if (!a.caseId.startsWith("x-")) lastByCase[a.caseId] = a; }); // x-… ids are practice drills, not cases
   const days = new Set(s.attempts.map((a) => new Date(a.at).toDateString()));
   let streak = 0;
   for (let i = days.has(new Date().toDateString()) ? 0 : 1; i < 400; i++) { const d = new Date(); d.setDate(d.getDate() - i); if (days.has(d.toDateString())) streak++; else break; }
-  return { attempts: s.attempts, drills: s.drills, skillPct, weak, lastByCase, streak, totalCases: Object.keys(lastByCase).length };
+  const practice = s.attempts.filter((a) => a.caseId.startsWith("x-")).length;
+  return { attempts: s.attempts, drills: s.drills, skillPct, weak, lastByCase, streak, totalCases: Object.keys(lastByCase).length, practice };
 }

@@ -37,23 +37,45 @@ export function addScore(tally: SkillTally, skill: Skill, earned: number, total 
 
 export const STAGES_BY_MODE: Record<string, string[]> = {
   full: ["intro", "history", "exam", "ddx", "ix", "event", "twist", "dx", "mgmt", "consult", "summary"],
+  cold: ["cold", "history", "exam", "problems", "ddx", "ix", "event", "twist", "dx", "mgmt", "drug", "why", "consult", "present", "summary"],
+  long: ["intro", "history", "exam", "report", "problems", "ddx", "ix", "event", "twist", "dx", "mgmt", "drug", "consult", "present", "summary"],
   ddx: ["intro", "ddx", "summary"],
   history: ["intro", "history", "summary"],
   exam: ["intro", "exam", "summary"],
+  report: ["intro", "exam", "report", "summary"],
   ix: ["intro", "ix", "summary"],
   emergency: ["intro", "event", "summary"],
+  problems: ["intro", "problems", "summary"],
+  present: ["intro", "present", "summary"],
+  drug: ["intro", "drug", "summary"],
+  why: ["intro", "why", "summary"],
 };
 
-export const MODE_INFO: Record<string, { label: string; blurb: string }> = {
+export const MODE_INFO: Record<string, { label: string; blurb: string; hard?: boolean }> = {
   full: { label: "Full ward round", blurb: "From the first sentence to the management plan." },
+  cold: { label: "Cold patient", blurb: "One line from the nurse. Nothing else. You decide everything.", hard: true },
+  long: { label: "Long case", blurb: "History, examination, report, problem list, plan — then present to the consultant." },
   ddx: { label: "Differential diagnosis", blurb: "Handover given — generate and justify differentials." },
   history: { label: "History taking", blurb: "Ask the right questions; see what you missed." },
   exam: { label: "Examination", blurb: "Choose what to examine and why." },
+  report: { label: "Report the examination", blurb: "Examine, then report normal and abnormal findings like a doctor." },
   ix: { label: "Investigation interpretation", blurb: "Order tests and read the results." },
   emergency: { label: "Emergency", blurb: "The patient deteriorates — what do you do NOW?" },
+  problems: { label: "Problem list", blurb: "Name every active problem and rank what threatens life first." },
+  present: { label: "Present to the consultant", blurb: "Present the patient in order; get graded on 8 criteria." },
+  drug: { label: "Drug reasoning", blurb: "Why this drug? Class, mechanism, adverse effects, cautions, special groups." },
+  why: { label: "Why ladder", blurb: "Keep asking why until you reach the physiology." },
 };
 
+/** Stages that only make sense when the learner has seen the patient, so key facts are handed over in modes that skip them. */
+export const stagesHandOver = (stages: string[]) => !stages.includes("history") && !stages.includes("exam") && !stages.includes("cold");
+
+import { CASE_DRUGS } from "./extras/drugs";
+import { PROBLEMS } from "./extras/problems";
+
 export function caseHasStage(c: CaseDef, stage: string): boolean {
+  if (stage === "drug") return Boolean(CASE_DRUGS[c.id]?.length);
+  if (stage === "problems") return Boolean(PROBLEMS[c.id]);
   if (stage === "event") return Boolean(c.event);
   if (stage === "twist") return Boolean(c.twist);
   return true;

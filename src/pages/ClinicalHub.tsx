@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, Brain, Layers, ClipboardList, Dices, Flame, Gauge, MessageSquare, RotateCcw, Siren, Stethoscope, Target, TestTube2, Workflow } from "lucide-react";
+import { ArrowRight, Brain, Calculator, CalendarDays, ClipboardCheck, ClipboardList, Dices, Flame, Gauge, HelpCircle, Layers, MessageSquare, Pill, Presentation, RotateCcw, ScanLine, ShieldAlert, Siren, Snowflake, Stethoscope, Target, TestTube2, Timer, Workflow, FileText, ListChecks, HelpingHand } from "lucide-react";
+import { COLD } from "@/clinical/extras/cold";
+import { BANK } from "@/clinical/bank";
+import { STATIONS } from "@/clinical/stations";
 import { ALL_CASES, ROTATIONS } from "@/clinical";
 import { MODE_INFO } from "@/clinical/engine";
 import { resetClinical, useClinicalProgress } from "@/clinical/progress";
@@ -8,7 +11,23 @@ import type { CaseDef, Rotation, Skill } from "@/clinical/types";
 import { updateMetaTags } from "@/lib/seo";
 
 const LEVEL = ["", "Foundation", "Core", "Challenging"];
-const MODE_ICON: Record<string, typeof Stethoscope> = { full: Stethoscope, ddx: Brain, history: MessageSquare, exam: Target, ix: TestTube2, emergency: Siren };
+const MODE_ICON: Record<string, typeof Stethoscope> = { full: Stethoscope, cold: Snowflake, long: FileText, ddx: Brain, history: MessageSquare, exam: Target, report: ClipboardCheck, ix: TestTube2, emergency: Siren, problems: ListChecks, present: Presentation, drug: Pill, why: HelpingHand };
+const DEEP = ["full", "long"];
+
+const LABS: { to: string; label: string; blurb: string; icon: typeof Stethoscope }[] = [
+  { to: "/clinical/osce", label: "OSCE circuit", blurb: "Six timed stations back to back", icon: Timer },
+  { to: "/clinical/stations", label: "ECG & imaging", blurb: `${STATIONS.length} stations: describe → interpret → diagnose`, icon: ScanLine },
+  { to: "/clinical/why", label: "Why ladders", blurb: "Keep asking why down to the physiology", icon: Layers },
+  { to: "/clinical/traps", label: "Ward-round traps", blurb: "What lecturers catch you on", icon: ShieldAlert },
+  { to: "/clinical/drugs", label: "Drug reasoning", blurb: "Why this drug, what can go wrong", icon: Pill },
+  { to: "/clinical/findings", label: "Normal or abnormal?", blurb: "Report findings like a doctor", icon: ClipboardCheck },
+  { to: "/clinical/quiz", label: "Rapid-fire quiz", blurb: `${BANK.length}+ questions with reasoning`, icon: HelpCircle },
+  { to: "/clinical/counsel", label: "Counselling", blurb: "Bad news, HIV, consent, suicide risk", icon: MessageSquare },
+  { to: "/clinical/tools", label: "Ward tools", blurb: "Calculators, scores, normal values", icon: Calculator },
+  { to: "/clinical/consultant", label: "Consultant interrogation", blurb: "Rapid-fire from every case", icon: Gauge },
+  { to: "/clinical/reason", label: "Reverse reasoning", blurb: "From a finding back to the disease", icon: Workflow },
+  { to: "/clinical/cards", label: "Recall cards", blurb: "If you see THIS → think THESE", icon: Layers },
+];
 
 /** Which case best trains a weak skill: the one with most questions of that kind, least recently done. */
 function pickForSkill(skill: Skill, last: Record<string, { at: number; score: number }>): CaseDef | undefined {
@@ -29,14 +48,15 @@ export default function ClinicalHub() {
 
   const list = useMemo(() => ALL_CASES.filter((c) => (rot === "all" || c.rotation === rot) && (!level || c.level === level)), [rot, level]);
   const open = (c: CaseDef, m = mode) => navigate(`/clinical/case/${c.id}?mode=${m}`);
-  const random = (filter?: (c: CaseDef) => boolean) => {
+  const random = (filter?: (c: CaseDef) => boolean, m = mode) => {
     const pool = ALL_CASES.filter(filter ?? (() => true));
     const unseen = pool.filter((c) => !prog.lastByCase[c.id]);
     const pick = (unseen.length ? unseen : pool)[Math.floor(Math.random() * (unseen.length ? unseen.length : pool.length))];
-    if (pick) open(pick);
+    if (pick) open(pick, m);
   };
   const due = ALL_CASES.filter((c) => { const a = prog.lastByCase[c.id]; return a && a.score < 75 && Date.now() - a.at > 2 * 86_400_000; });
   const weakCase = prog.weak[0] ? pickForSkill(prog.weak[0].skill, prog.lastByCase) : undefined;
+  const weakQs = Object.values(prog.drills).filter(([r, s]) => s - r > 0).length;
   const byRot = (r: Rotation) => { const cs = ALL_CASES.filter((c) => c.rotation === r); return { n: cs.length, done: cs.filter((c) => prog.lastByCase[c.id]).length }; };
 
   return (
@@ -48,11 +68,11 @@ export default function ClinicalHub() {
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">Meet a patient you have never seen. Ask, examine, think in differentials, read the results, handle the emergency and answer the consultant — and learn <b>why</b> at every step. Not a question bank: a ward round.</p>
           <div className="mt-5 flex flex-wrap gap-2">
             <button type="button" onClick={() => random()} className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground"><Dices className="h-4 w-4" /> Random ward round</button>
-            <button type="button" onClick={() => random((c) => Boolean(c.emergency || c.event))} className="inline-flex items-center gap-2 rounded-full border border-rose-500/50 bg-rose-500/10 px-5 py-2.5 text-sm font-bold text-rose-700"><Siren className="h-4 w-4" /> Emergency mode</button>
-            <Link to="/clinical/consultant" className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:border-primary/50"><Gauge className="h-4 w-4 text-primary" /> Consultant interrogation</Link>
-            <Link to="/clinical/cards" className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:border-primary/50"><Layers className="h-4 w-4 text-primary" /> Recall cards</Link>
-            <Link to="/clinical/reason" className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:border-primary/50"><Workflow className="h-4 w-4 text-primary" /> Reverse reasoning</Link>
-            <button type="button" onClick={() => random((c) => c.rotation === "psychiatry")} className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:border-primary/50"><Brain className="h-4 w-4 text-primary" /> Psychiatry / MSE</button>
+            <button type="button" onClick={() => random(undefined, "cold")} className="inline-flex items-center gap-2 rounded-full border border-sky-500/50 bg-sky-500/10 px-5 py-2.5 text-sm font-bold text-sky-800"><Snowflake className="h-4 w-4" /> Cold patient</button>
+            <button type="button" onClick={() => random((c) => Boolean(c.emergency || c.event), "emergency")} className="inline-flex items-center gap-2 rounded-full border border-rose-500/50 bg-rose-500/10 px-5 py-2.5 text-sm font-bold text-rose-700"><Siren className="h-4 w-4" /> Emergency mode</button>
+            <button type="button" onClick={() => open(ALL_CASES[Math.floor(Date.now() / 86_400_000) % ALL_CASES.length], "full")} className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:border-primary/50"><CalendarDays className="h-4 w-4 text-primary" /> Case of the day</button>
+            <Link to="/clinical/osce" className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:border-primary/50"><Timer className="h-4 w-4 text-primary" /> OSCE circuit</Link>
+            <button type="button" onClick={() => random((c) => c.rotation === "psychiatry", "report")} className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:border-primary/50"><Brain className="h-4 w-4 text-primary" /> Psychiatry / MSE</button>
           </div>
         </div>
       </section>
@@ -64,9 +84,19 @@ export default function ClinicalHub() {
             <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {Object.entries(MODE_INFO).map(([id, m]) => { const Icon = MODE_ICON[id]; return (
                 <button key={id} type="button" onClick={() => setMode(id)} aria-pressed={mode === id} className={`flex min-w-0 flex-col items-start rounded-xl border p-3 text-left transition-colors ${mode === id ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/50"}`}>
-                  <Icon className="h-4 w-4 text-primary" /><span className="mt-1 text-sm font-bold text-foreground">{m.label}</span><span className="text-[11px] leading-snug text-muted-foreground">{m.blurb}</span>
+                  <Icon className="h-4 w-4 text-primary" /><span className="mt-1 flex flex-wrap items-center gap-1.5 text-sm font-bold text-foreground">{m.label}{m.hard && <span className="rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sky-800">Hardest</span>}</span><span className="text-[11px] leading-snug text-muted-foreground">{m.blurb}</span>
                 </button>); })}
             </div>
+          </section>
+
+          <section aria-label="Practice labs">
+            <h2 className="font-serif text-lg font-bold text-foreground">Practice labs</h2>
+            <p className="text-xs text-muted-foreground">Skills on their own — pick the one you want to sharpen.</p>
+            <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {LABS.map((l) => (
+                <li key={l.to}><Link to={l.to} className="group flex h-full min-w-0 flex-col rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/50"><l.icon className="h-4 w-4 text-primary" /><span className="mt-1 text-sm font-bold leading-snug text-foreground">{l.label}</span><span className="text-[11px] leading-snug text-muted-foreground">{l.blurb}</span></Link></li>
+              ))}
+            </ul>
           </section>
 
           <section aria-label="Cases">
@@ -86,9 +116,9 @@ export default function ClinicalHub() {
                 return (
                   <li key={c.id}>
                     <button type="button" onClick={() => open(c)} className="group flex h-full w-full min-w-0 flex-col rounded-2xl border border-border bg-card p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-[var(--shadow-elevated)]">
-                      <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground"><span>{r.emoji} {r.short}</span><span>·</span><span>{LEVEL[c.level]}</span>{c.emergency && <span className="rounded-full bg-rose-500/15 px-1.5 py-0.5 text-rose-700">Emergency</span>}</span>
-                      <span className="mt-1 font-serif text-base font-bold leading-snug text-foreground">{mode === "full" ? c.title : "Case " + c.id.split("-").pop()?.toUpperCase()}</span>
-                      <span className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{c.vignette}</span>
+                      <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground"><span>{r.emoji} {r.short}</span><span>·</span><span>{LEVEL[c.level]}</span>{c.emergency && mode !== "cold" && <span className="rounded-full bg-rose-500/15 px-1.5 py-0.5 text-rose-700">Emergency</span>}</span>
+                      <span className="mt-1 font-serif text-base font-bold leading-snug text-foreground">{DEEP.includes(mode) ? c.title : "Case " + c.id.split("-").pop()?.toUpperCase()}</span>
+                      <span className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{mode === "cold" ? COLD[c.id] ?? c.vignette : c.vignette}</span>
                       <span className="mt-2 flex items-center justify-between text-[11px] font-bold"><span className={a ? (a.score >= 75 ? "text-emerald-700" : "text-amber-700") : "text-muted-foreground"}>{a ? `Last: ${a.score}%` : "Not tried"}</span><ArrowRight className="h-4 w-4 text-primary transition-transform group-hover:translate-x-0.5" /></span>
                     </button>
                   </li>
@@ -102,7 +132,7 @@ export default function ClinicalHub() {
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
           <section className="rounded-2xl border border-border bg-card p-4">
             <h2 className="flex items-center gap-2 font-serif text-lg font-bold text-foreground"><ClipboardList className="h-4 w-4 text-primary" /> My progress</h2>
-            <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><Flame className="h-4 w-4 text-amber-500" /> {prog.streak}-day streak · {prog.totalCases}/{ALL_CASES.length} cases tried · {prog.attempts.length} attempts</p>
+            <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><Flame className="h-4 w-4 text-amber-500" /> {prog.streak}-day streak · {prog.totalCases}/{ALL_CASES.length} cases tried · {prog.practice} drills</p>
             <ul className="mt-3 space-y-2">
               {prog.skillPct.map((s) => <li key={s.skill}><div className="flex justify-between text-[11px] font-bold"><span>{s.label}</span><span className={s.pct === null ? "text-muted-foreground" : s.pct >= 75 ? "text-emerald-700" : s.pct >= 50 ? "text-amber-700" : "text-rose-700"}>{s.pct === null ? "—" : `${s.pct}%`}</span></div><div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-muted"><div className={`h-full rounded-full ${s.pct === null ? "" : s.pct >= 75 ? "bg-emerald-500" : s.pct >= 50 ? "bg-amber-500" : "bg-rose-500"}`} style={{ width: `${s.pct ?? 0}%` }} /></div></li>)}
             </ul>
@@ -112,6 +142,7 @@ export default function ClinicalHub() {
           <section className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
             <h2 className="font-serif text-lg font-bold text-foreground">Revise what you struggle with</h2>
             {prog.weak.length === 0 && due.length === 0 && <p className="mt-1 text-xs text-muted-foreground">Complete a few cases and I will point you to your weak spots here.</p>}
+            {weakQs > 0 && <Link to="/clinical/quiz" className="mt-2 block rounded-lg border border-border bg-card px-3 py-2 text-xs font-bold hover:border-primary/50">Spaced review: {weakQs} question{weakQs === 1 ? "" : "s"} you missed are due →</Link>}
             {prog.weak.map((w) => <p key={w.skill} className="mt-1 text-xs text-foreground">Weak: <b>{w.label}</b> ({w.pct}%)</p>)}
             {weakCase && <button type="button" onClick={() => open(weakCase, "full")} className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-left text-xs font-bold hover:border-primary/50">Practise it: {weakCase.title} →</button>}
             {due.slice(0, 3).map((c) => <button key={c.id} type="button" onClick={() => open(c, "full")} className="mt-1.5 w-full rounded-lg border border-border bg-card px-3 py-2 text-left text-xs font-bold hover:border-primary/50">Revisit (scored {prog.lastByCase[c.id].score}%): {c.title}</button>)}
