@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/library/prerender.mjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "library:finalize": "node scripts/library/finalize-library.mjs",
+    "library:og": "node scripts/library/generate-og.mjs",
+    "library:outlines": "node scripts/library/export-outlines.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, X, BookOpen, Clock, ArrowLeft, ChevronDown, LayoutGrid, List, ArrowRight, SlidersHorizontal, Sparkles, TrendingUp, Star, Zap } from "lucide-react";
+import { Search, X, BookOpen, Clock, ArrowLeft, ChevronDown, LayoutGrid, List, ArrowRight, SlidersHorizontal, Sparkles, TrendingUp, Star, Zap, CalendarDays, FolderOpen, LayoutDashboard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   getCategoryDisplayName,
@@ -17,6 +17,11 @@ import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
 import { updateMetaTags } from "@/lib/seo";
 import { getAllCategories } from "@/lib/store";
 import { getYear3Semester, OTHER_UNITS_LABEL, semesterGroupSortKey } from "@/lib/year3Semesters";
+import registry from "@/data/libraries.json";
+import { libraryPath } from "@/lib/libraryMeta";
+import YearLibrarySection from "@/components/YearLibrarySection";
+import LibrarySearchHits from "@/components/LibrarySearchHits";
+import StudyPanel from "@/components/StudyPanel";
 
 const YEARS = ["All", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
 const INITIAL_PER_GROUP = 6;
@@ -471,6 +476,8 @@ export default function Blog() {
   };
 
   const yearRoute = selectedYear.match(/^Year\s([1-5])$/)?.[1];
+  const yearNum = selectedYear === "All" ? null : Number(selectedYear.slice(5));
+  const libYear = yearNum && registry.libraries.some((l) => l.year === yearNum) ? yearNum : null;
 
   if (loading) {
     return (
@@ -503,7 +510,9 @@ export default function Blog() {
       <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)]">
         {/* Desktop-only sidebar */}
         <aside className="hidden lg:block">
-          <div className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-sm">
+          <div className="sticky top-20 max-h-[calc(100dvh-6rem)] space-y-3 overflow-y-auto pr-1">
+            <StudyPanel year={yearNum} />
+            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Browse</p>
             <button
               onClick={() => { setYear("All"); setUnit(null); }}
@@ -513,7 +522,8 @@ export default function Blog() {
             </button>
             {["Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"].map(y => {
               const coreGroups = sidebarGroups[y] || [];
-              if (coreGroups.length === 0) return null;
+              const yearN = Number(y.slice(5));
+              const libDef = registry.libraries.find((l) => l.year === yearN);
               const isOpen = selectedYear === y;
               const theme = YEAR_THEMES[y];
               return (
@@ -537,6 +547,11 @@ export default function Blog() {
                         transition={{ duration: 0.2 }}
                         className="mt-1 space-y-0.5 border-l border-border pl-3 overflow-hidden"
                       >
+                        <li className="space-y-0.5 py-1">
+                          {libDef && <Link to={libraryPath(libDef)} className="flex items-center gap-2 rounded-md bg-primary/10 px-2 py-1.5 text-xs font-bold text-primary hover:bg-primary/15"><FolderOpen className="h-3.5 w-3.5" /> Drive library · books, slides, papers</Link>}
+                          <Link to={`/timetable/year-${yearN}`} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"><CalendarDays className="h-3.5 w-3.5 text-primary" /> Timetable</Link>
+                          {coreGroups.length === 0 && !libDef && <p className="px-2 pt-1 text-[11px] text-muted-foreground">Notes for {y} are on the way.</p>}
+                        </li>
                         {coreGroups.map(group => (
                           <li key={group.group} className="py-1">
                             <div className="mb-1 flex items-center justify-between px-2 text-[10px] font-bold uppercase tracking-wider text-foreground/70">
@@ -563,6 +578,7 @@ export default function Blog() {
                 </div>
               );
             })}
+            </div>
           </div>
         </aside>
 
@@ -659,6 +675,11 @@ export default function Blog() {
         </div>
       </motion.div>
 
+      <details className="group mb-5 rounded-xl border border-border bg-card p-3 lg:hidden">
+        <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-bold text-foreground"><LayoutDashboard className="h-4 w-4 text-primary" /> My study desk <span className="ml-auto text-[11px] font-semibold text-muted-foreground">timetable · shortcuts · saved files</span></summary>
+        <div className="mt-3"><StudyPanel year={yearNum} /></div>
+      </details>
+
       {showYearPicker ? (
         /* Year picker with enhanced cards */
         <motion.div
@@ -711,6 +732,30 @@ export default function Blog() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.25 }}
       >
+      {/* Year tabs */}
+      <div ref={resultsAnchorRef} className="mb-5 flex gap-1 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0" style={{ scrollbarWidth: "none" }}>
+        {YEARS.map((year, i) => (
+          <motion.button
+            key={year}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05, duration: 0.3 }}
+            onClick={() => setYear(year)}
+            className={`shrink-0 rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${
+              selectedYear === year
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+          >
+            {year}
+          </motion.button>
+        ))}
+      </div>
+
+      {/* Drive course-work library: the first thing under the year tabs */}
+      {!search.trim() && libYear && !selectedUnit && <YearLibrarySection year={libYear} />}
+      {search.trim() && <LibrarySearchHits query={search} year={yearNum} />}
+
       {/* Continue reading */}
       {!search.trim() && selectedYear !== "All" && !selectedUnit && filteredRecentArticles.length > 0 && (
         <motion.div
@@ -745,26 +790,6 @@ export default function Blog() {
           </div>
         </motion.div>
       )}
-
-      {/* Year tabs */}
-      <div ref={resultsAnchorRef} className="mb-5 flex gap-1 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0" style={{ scrollbarWidth: "none" }}>
-        {YEARS.map((year, i) => (
-          <motion.button
-            key={year}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05, duration: 0.3 }}
-            onClick={() => setYear(year)}
-            className={`shrink-0 rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${
-              selectedYear === year
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            }`}
-          >
-            {year}
-          </motion.button>
-        ))}
-      </div>
 
       {/* Semester step — Year 3 only */}
       {selectedYear === "Year 3" && !search.trim() && !selectedSemester && !selectedUnit && (

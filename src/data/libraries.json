@@ -1,0 +1,166 @@
+{
+  "siteUrl": "https://www.ompathstudy.com",
+  "brand": "Ompath Study",
+  "credit": "Compiled by Abongo Davis",
+  "audience": "MBChB students at Mount Kenya University and other universities",
+  "libraries": [
+    {
+      "year": 1,
+      "slug": "year-1",
+      "label": "Year 1",
+      "dataFile": "year1-library.json",
+      "title": "Year 1 Notes Library",
+      "tagline": "Anatomy, Physiology, Biochemistry & Behavioural Sciences",
+      "rootLabel": "subjects",
+      "theme": 168
+    },
+    {
+      "year": 2,
+      "slug": "year-2",
+      "label": "Year 2",
+      "dataFile": "year2-library.json",
+      "title": "Year 2 Notes Library",
+      "tagline": "Biochemistry, Immunology, Microbiology, Physiology & Epidemiology",
+      "rootLabel": "subjects",
+      "theme": 205
+    },
+    {
+      "year": 3,
+      "slug": "year-3",
+      "label": "Year 3",
+      "dataFile": "year3-library.json",
+      "title": "Year 3 Notes Library",
+      "tagline": "Pathology, Pharmacology, Microbiology & Clinical Methods",
+      "rootLabel": "subjects",
+      "theme": 262
+    },
+    {
+      "year": 4,
+      "slug": "year-4",
+      "label": "Year 4",
+      "dataFile": "year4-library.json",
+      "title": "Year 4 Notes Library",
+      "tagline": "Internal Medicine, Paediatrics, Obstetrics, Surgery & Pharmacology",
+      "rootLabel": "departments",
+      "theme": 18
+    }
+  ],
+  "outlines": [
+    {
+      "slug": "psychiatry",
+      "department": "Psychiatry",
+      "title": "Year 4 Psychiatry Course Outline",
+      "tagline": "Weekly scope, lecturers and rotation focus",
+      "theme": 292
+    },
+    {
+      "slug": "internal-medicine",
+      "department": "Internal Medicine",
+      "title": "Year 4 Internal Medicine Course Outline",
+      "tagline": "Every system and topic, trimester by trimester",
+      "theme": 18
+    },
+    {
+      "slug": "pharmacology",
+      "department": "Clinical Pharmacology",
+      "title": "Year 4 Clinical Pharmacology Course Outline",
+      "tagline": "MBPL 4411, 4422 and 4433 week by week",
+      "theme": 205
+    }
+  ],
+  "contactWhatsApp": "254115475543",
+  "timetables": {
+    "term": "Trimester 1",
+    "period": "September–December 2026",
+    "source": "Official MKU School of Medicine timetable (venues edition)",
+    "dates": [
+      {
+        "label": "Teaching",
+        "value": "7 Sept – 4 Dec 2026"
+      },
+      {
+        "label": "End-of-semester CAT",
+        "value": "8 – 12 Dec 2026"
+      },
+      {
+        "label": "Christmas break",
+        "value": "22 Dec – 2 Jan"
+      }
+    ],
+    "years": [
+      {
+        "year": 1,
+        "slug": "year-1",
+        "intake": "2026 intake",
+        "pages": [
+          2,
+          3,
+          4
+        ],
+        "theme": 0
+      },
+      {
+        "year": 2,
+        "slug": "year-2",
+        "intake": "2025 intake",
+        "pages": [
+          5,
+          6
+        ],
+        "theme": 0
+      },
+      {
+        "year": 3,
+        "slug": "year-3",
+        "intake": "2024 intake",
+        "pages": [
+          7,
+          8
+        ],
+        "theme": 0
+      },
+      {
+        "year": 4,
+        "slug": "year-4",
+        "intake": "2023 intake",
+        "pages": [
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "theme": 0
+      },
+      {
+        "year": 5,
+        "slug": "year-5",
+        "intake": "2022 intake",
+        "pages": [
+          16,
+          17,
+          18,
+          19
+        ],
+        "theme": 0
+      },
+      {
+        "year": 6,
+        "slug": "year-6",
+        "intake": "2021 intake",
+        "pages": [
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26
+        ],
+        "theme": 0
+      }
+    ]
+  }
+}

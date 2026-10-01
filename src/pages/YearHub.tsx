@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { ArrowRight, BookMarked, BookOpen, ClipboardCheck, Clock, FileQuestion, FolderOpen, GraduationCap, Images, Stethoscope, Trophy } from "lucide-react";
+import { ArrowRight, BookMarked, CalendarDays, BookOpen, ClipboardCheck, Clock, FileQuestion, FolderOpen, GraduationCap, Images, Stethoscope, Trophy } from "lucide-react";
 import {
   YEAR_CATEGORIES,
   getPublishedArticleSummaries,
@@ -13,7 +13,9 @@ import { getUnitsForYear, unitPath, type Unit } from "@/lib/academic";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getYear3Semester } from "@/lib/year3Semesters";
 import { SITE_URL } from "@/lib/seo";
-import { YEAR4_RESOURCE_GROUPS, YEAR4_SOURCE_FOLDER } from "@/lib/year4Resources";
+import YearLibrarySection from "@/components/YearLibrarySection";
+import { TodayClasses } from "@/components/StudyPanel";
+import { useAuth } from "@/hooks/useAuth";
 
 function year3SemesterFor(article: Article): 1 | 2 | 3 | null {
   if ([1, 2, 3].includes(Number(article.semester_number))) return Number(article.semester_number) as 1 | 2 | 3;
@@ -58,6 +60,7 @@ export default function YearHub() {
   const { yearNumber } = useParams();
   const location = useLocation();
   const parsedYear = Number(yearNumber);
+  const { user } = useAuth();
   const isValidYear = YEAR_NUMBERS.includes(parsedYear as (typeof YEAR_NUMBERS)[number]);
 
   // Hooks must run unconditionally on every render (Rules of Hooks) — the
@@ -168,7 +171,23 @@ export default function YearHub() {
         <p className="text-xs font-semibold uppercase tracking-wide text-primary">Study navigation</p>
         <h1 className="mt-1 font-serif text-3xl font-bold text-foreground">{yearLabel}</h1>
         <p className="mt-2 text-sm text-muted-foreground">Choose a section below to continue with {yearLabel} content only.</p>
+        <div className="mt-5 rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-primary"><CalendarDays className="h-4 w-4" /> {user ? "Your timetable" : "Timetable"} · {yearLabel}</p>
+          <TodayClasses year={parsedYear} wide />
+          {!user && <p className="mt-2 text-[11px] text-muted-foreground"><Link to="/login" className="font-bold text-primary hover:underline">Sign in</Link> and your group is remembered on every visit.</p>}
+        </div>
       </div>
+
+      <YearLibrarySection year={parsedYear} />
+
+      <Link to={`/timetable/year-${parsedYear}`} className="group mt-4 flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-primary/5">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><CalendarDays className="h-5 w-5" /></span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-serif text-lg font-bold text-foreground">{yearLabel} timetable · Sept–Dec 2026</span>
+          <span className="block text-xs text-muted-foreground">Weekly schedule, units, venues and lecturers — with a share button.</span>
+        </span>
+        <ArrowRight className="h-4 w-4 shrink-0 text-primary transition-transform group-hover:translate-x-0.5" />
+      </Link>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         {sections.map((section) => (
@@ -217,46 +236,15 @@ export default function YearHub() {
       )}
 
       {parsedYear === 4 && (
-        <section className="mt-6" aria-labelledby="year-four-library">
-          <div className="border-b border-border pb-4">
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-primary">
-                  <Stethoscope className="h-4 w-4" /> Clinical resource library
-                </p>
-                <h2 id="year-four-library" className="mt-1 font-serif text-2xl font-bold text-foreground">Year 4 study files</h2>
-                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">Open a clinical discipline, then choose its block notes, books or revision collection. Files retain their original document format.</p>
-              </div>
-              <Link to={YEAR4_SOURCE_FOLDER} className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-primary/50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <FolderOpen className="h-4 w-4" /> All Year 4 files <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-          </div>
-
-          <div className="divide-y divide-border border-b border-border">
-            {YEAR4_RESOURCE_GROUPS.map((group, index) => (
-              <article key={group.title} className="grid gap-4 py-5 md:grid-cols-[3rem_minmax(0,1fr)_auto] md:items-start">
-                <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-sm font-bold text-primary" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
-                <div className="min-w-0">
-                  <h3 className="font-serif text-xl font-bold text-foreground">{group.title}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{group.description}</p>
-                  {group.collections.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2" aria-label={`${group.title} collections`}>
-                      {group.collections.map((collection) => (
-                        <Link key={collection.href} to={collection.href} className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                          <FolderOpen className="h-3.5 w-3.5" /> {collection.label}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <Link to={group.folderHref} aria-label={`Open all ${group.title} files`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                  Browse &amp; download <ArrowRight className="h-4 w-4" />
-                </Link>
-              </article>
-            ))}
-          </div>
-        </section>
+        <Link to="/course-outlines" className="group mt-6 flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 transition-colors hover:border-primary/50 hover:bg-primary/10">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"><ClipboardCheck className="h-6 w-6" /></span>
+          <span className="min-w-0 flex-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">New · Revision tracker</span>
+            <span className="mt-0.5 block font-serif text-lg font-bold text-foreground sm:text-xl">Course outlines &amp; progress tracker</span>
+            <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground sm:text-sm">Psychiatry, Internal Medicine and Clinical Pharmacology week by week — tick each topic once you have covered it.</span>
+          </span>
+          <ArrowRight className="h-5 w-5 shrink-0 text-primary transition-transform group-hover:translate-x-1" />
+        </Link>
       )}
 
       {hasAponeurosis && (

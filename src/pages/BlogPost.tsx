@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useLayoutEffect, forwardRef, memo } from "react";
+import StudyPanel from "@/components/StudyPanel";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft, Loader2, GraduationCap, ListChecks,
@@ -1203,7 +1204,7 @@ const ArticleContent = memo(function ArticleContent({ content, articleId, catego
 function SidebarToc({ items, activeId }: { items: TocItem[]; activeId: string }) {
   if (items.length < 1) return null;
   return (
-    <nav className="sticky top-20 space-y-0.5">
+    <nav className="space-y-0.5">
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Contents</p>
       {items.map(item => (
         <a
@@ -1786,10 +1787,13 @@ export default function BlogPost() {
 
       {/* Main layout */}
       <div className="mx-auto max-w-6xl px-3 py-5 sm:px-5 sm:py-8">
-        <div className={slideDeck ? "" : toc.length > 0 ? "lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10" : "max-w-3xl mx-auto"}>
-          {!slideDeck && toc.length > 0 && (
+        <div className={slideDeck ? "" : "lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10"}>
+          {!slideDeck && (
             <aside className="hidden lg:block">
-              <SidebarToc items={toc} activeId={activeSection} />
+              <div className="sticky top-20 max-h-[calc(100dvh-6rem)] space-y-4 overflow-y-auto pr-1">
+                {toc.length > 0 && <SidebarToc items={toc} activeId={activeSection} />}
+                <StudyPanel year={Number(/Years*([1-6])/i.exec(yearName || "")?.[1]) || null} />
+              </div>
             </aside>
           )}
 

@@ -26,6 +26,9 @@ export default async function handler(req, res) {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${sections.map((file) => `  <sitemap>\n    <loc>https://www.ompathstudy.com/sitemap/${file}</loc>\n  </sitemap>`).join("\n")}
+  <sitemap>
+    <loc>https://www.ompathstudy.com/library-sitemap.xml</loc>
+  </sitemap>
 </sitemapindex>`;
 
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
