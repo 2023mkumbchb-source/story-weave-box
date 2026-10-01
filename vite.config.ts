@@ -2,9 +2,10 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
-export default defineConfig(() => ({
-  // GitHub Pages serves this project from /story-weave-box/; Vercel serves from the root.
-  base: process.env.VERCEL ? "/" : "/story-weave-box/",
+export default defineConfig(({ command }) => ({
+  // Vercel, the Lovable preview and the local dev server all serve from the root; only the
+  // GitHub Pages pipelines (which run in Actions, outside Vercel) need the /story-weave-box/ subfolder.
+  base: command === "serve" || !process.env.GITHUB_ACTIONS || process.env.VERCEL ? "/" : "/story-weave-box/",
   server: {
     host: "::",
     port: 8080,

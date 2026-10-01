@@ -482,7 +482,8 @@ function ClassicHeroInner({
           src={heroImage}
           alt={title}
           loading="eager"
-          fetchPriority="high"
+          // @ts-expect-error fetchpriority is valid HTML
+          fetchpriority="high"
           decoding="async"
           className="absolute inset-0 h-full w-full animate-hero-pan object-cover object-center"
         />
