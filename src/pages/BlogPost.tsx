@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useLayoutEffect, forwardRef, memo } from "react";
+import ConnectedLearning from "@/components/ConnectedLearning";
 import SearchHighlightBar from "@/components/SearchHighlightBar";
 import StudyPanel from "@/components/StudyPanel";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
@@ -1795,6 +1796,7 @@ export default function BlogPost() {
             <aside className="hidden lg:block">
               <div className="sticky top-20 max-h-[calc(100dvh-6rem)] space-y-4 overflow-y-auto pr-1">
                 {toc.length > 0 && <SidebarToc items={toc} activeId={activeSection} />}
+                <ConnectedLearning target={{ id: `note:${article.id}`, title: article.title, where: article.category, year: Number((yearName || "").match(/[1-6]/)?.[0]) || null }} />
                 <StudyPanel year={Number(/Years*([1-6])/i.exec(yearName || "")?.[1]) || null} />
               </div>
             </aside>
@@ -1972,6 +1974,7 @@ export default function BlogPost() {
             {(article as any).comments_enabled !== false && <ArticleComments articleId={article.id} />}
             </PasswordGate>
           </article>
+          {!slideDeck && <ConnectedLearning className="mt-6 lg:hidden" target={{ id: `note:${article.id}`, title: article.title, where: article.category, year: Number((yearName || "").match(/[1-6]/)?.[0]) || null }} />}
           {slideDeck ? (
             <SlidePreviewModal
               deck={slideDeck}

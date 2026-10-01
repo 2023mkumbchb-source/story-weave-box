@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarDays, CheckCircle2, ChevronRight, Circle, ClipboardList, Flag, Flame, FolderOpen, GraduationCap, Hourglass, Minus, Plus, Star, Target, Timer, Trophy } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronRight, Circle, ClipboardList, Flag, Flame, FolderOpen, GraduationCap, Hourglass, Minus, Network, Plus, Star, Target, Timer, Trophy } from "lucide-react";
 import registry from "@/data/libraries.json";
 import { useAuth } from "@/hooks/useAuth";
 import { useOutlineProgress } from "@/hooks/useOutlineProgress";
@@ -13,6 +13,11 @@ import { useTopicFlags } from "@/lib/topicFlags";
 import { loadYearOutlines } from "@/lib/outlineEngine";
 import { libraryPath, prettyTitle } from "@/lib/libraryMeta";
 import { updateMetaTags } from "@/lib/seo";
+import { bySystem, loadGraph } from "@/lib/connections";
+import { classify, COMPANIONS, disciplineById, SYSTEMS } from "@/lib/concepts";
+import { sessionsForDay, dayNameOf } from "@/lib/revisionPlan";
+import { todayIso } from "@/lib/studyLog";
+import { NodeRow } from "@/components/ConnectedLearning";
 import type { CourseOutline } from "@/data/courseOutlines";
 
 const GOAL_KEY = "ompath_daily_goal";
@@ -57,6 +62,8 @@ export default function Dashboard() {
   const [goal, setGoalState] = useState(readGoal);
   const [outlines, setOutlines] = useState<CourseOutline[]>([]);
   const [group, setGroup] = useState("");
+  const [graph, setGraph] = useState<Awaited<ReturnType<typeof loadGraph>> | null>(null);
+  useEffect(() => { let on = true; loadGraph().then((g) => { if (on) setGraph(g); }).catch(() => undefined); return () => { on = false; }; }, []);
 
   useEffect(() => { updateMetaTags({ title: "My study dashboard | Ompath Study", description: "Your day at a glance: timetable, revision due today, daily goal, streak and course-outline progress." }); }, []);
   useEffect(() => { try { setGroup(localStorage.getItem(`ompath_group_y${year}`) ?? ""); } catch { setGroup(""); } }, [year]);
@@ -70,6 +77,33 @@ export default function Dashboard() {
   const hello = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const lib = registry.libraries.find((l) => l.year === year);
   const maxMin = Math.max(goal, ...week.map((w) => w.minutes));
+
+  // Today's connection: a body system picked by the date, seen through every discipline that has something for this year.
+  const spotlight = useMemo(() => {
+    if (!graph) return null;
+    const day = Math.floor(Date.now() / 86_400_000);
+    const yr = year <= 4 ? year : null;
+    for (let k = 0; k < SYSTEMS.length; k++) {
+      const system = SYSTEMS[(day + k) % SYSTEMS.length];
+      const groups = bySystem(graph, system.id, yr).filter((g) => g.items.some((i) => i.type !== "file") || g.items.length);
+      if (groups.length >= 2) return { system, groups: groups.slice(0, 5).map((g) => ({ discipline: g.discipline, item: g.items.find((i) => i.type === "note") ?? g.items[0] })) };
+    }
+    return null;
+  }, [graph, year]);
+
+  // Pair today's classes: whatever you sit through, these are the subjects that complete it.
+  const pairs = useMemo(() => {
+    const seen = new Set<string>();
+    const out: { subject: string; companions: string[] }[] = [];
+    for (const s of sessionsForDay(tables, dayNameOf(todayIso()), group, names)) {
+      if (seen.has(s.key)) continue;
+      seen.add(s.key);
+      const d = classify(s.subject, s.subject).discipline;
+      const companions = (COMPANIONS[d] ?? []).map((c) => disciplineById(c).label);
+      if (companions.length) out.push({ subject: s.subject, companions });
+    }
+    return out.slice(0, 4);
+  }, [tables, group, names]);
 
   const progress = outlines.map((o) => {
     const total = o.sections.reduce((n, s) => n + s.items.length, 0);
@@ -131,6 +165,29 @@ export default function Dashboard() {
             )}
           </Panel>
 
+          {(spotlight || pairs.length > 0) && (
+            <Panel title="Connect your learning" icon={Network} action={<Link to="/study-map" className="text-xs font-bold text-primary hover:underline">Open the Study map →</Link>}>
+              {spotlight && (
+                <div>
+                  <p className="text-sm font-bold text-foreground">Today's connection: {spotlight.system.emoji} {spotlight.system.label}</p>
+                  <p className="mb-2 text-xs text-muted-foreground">One system, every angle — read down the list.</p>
+                  <div className="divide-y divide-border">
+                    {spotlight.groups.map((g) => <div key={g.discipline.id} className="py-1"><p className="px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{g.discipline.label}</p><NodeRow n={g.item} /></div>)}
+                  </div>
+                  <Link to={`/study-map/${spotlight.system.id}`} className="mt-2 inline-block text-xs font-bold text-primary hover:underline">All {spotlight.system.label.toLowerCase()} material →</Link>
+                </div>
+              )}
+              {pairs.length > 0 && (
+                <div className={spotlight ? "mt-4 border-t border-border pt-3" : ""}>
+                  <p className="text-sm font-bold text-foreground">Pair today's classes</p>
+                  <ul className="mt-1.5 space-y-1.5">
+                    {pairs.map((p) => <li key={p.subject} className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">{p.subject}</span> goes with {p.companions.map((c, i) => <span key={c}>{i > 0 ? ", " : ""}<Link to={`/search?q=${encodeURIComponent(c)}&year=${year}`} className="font-semibold text-primary hover:underline">{c}</Link></span>)}</li>)}
+                  </ul>
+                </div>
+              )}
+            </Panel>
+          )}
+
           <Panel title="Course outline progress" icon={ClipboardList} action={<Link to={`/course-outlines/year-${Math.min(year, 4)}`} className="text-xs font-bold text-primary hover:underline">All Year {Math.min(year, 4)} →</Link>}>
             {year > 4 ? <p className="text-sm text-muted-foreground">Outlines are available for Years 1–4.</p> : progress.length === 0 ? <p className="text-sm text-muted-foreground">Loading…</p> : (
               <ul className="space-y-3">
@@ -163,6 +220,7 @@ export default function Dashboard() {
                 { to: `/exams?year=${encodeURIComponent(`Year ${year}`)}`, label: "Exams", icon: Trophy },
                 { to: `/flashcards?year=${encodeURIComponent(`Year ${year}`)}`, label: "Flashcards", icon: GraduationCap },
                 { to: "/contests", label: "Contests", icon: Trophy },
+                { to: "/study-map", label: "Study map", icon: Network },
               ].map((l) => <Link key={l.label} to={l.to} className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-bold text-foreground hover:border-primary/50 hover:text-primary"><l.icon className="h-4 w-4 text-primary" /> {l.label}</Link>)}
             </div>
           </Panel>

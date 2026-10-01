@@ -119,6 +119,8 @@ export function prettyTitle(/** @type {string} */ name) {
     .replace(/\s+_\s+/g, " – ")
     .replace(/_+/g, " ")
     .replace(/^copy of\s+/i, "")
+    .replace(/^~\$/, "")
+    .replace(/^\d{1,2}[.\-]\d{1,2}[.\-]\d{2,4}\s+/, "")
     .replace(/\s*[-–]?\s*copy(?:\s*\(\d+\))?\s*$/i, "")
     .replace(/\s*\(\d\)\s*$/, "")
     .replace(/\s+/g, " ")

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, ChevronLeft, ChevronRight, Download, Flag, Loader2 } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, Download, Flag, Loader2, Network } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import registry from "@/data/libraries.json";
 import { prettyTitle } from "@/lib/libraryMeta";
+import ConnectedLearning from "@/components/ConnectedLearning";
 
 export type DriveKind = "pdf" | "ppt" | "doc" | "video" | "img" | "zip" | "file";
 export type DriveFile = [id: string, name: string, kind: DriveKind];
@@ -37,6 +38,7 @@ export default function DriveFileViewer({ items, index, onIndexChange, onDownloa
   const file = open ? items[index as number] : null;
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [showRel, setShowRel] = useState(false);
   const isBroken = Boolean(file && (failed || broken?.has(file[0])));
 
   useEffect(() => { setLoaded(false); setFailed(false); }, [file?.[0]]);
@@ -86,6 +88,7 @@ export default function DriveFileViewer({ items, index, onIndexChange, onDownloa
                 aria-label="Next file"
                 className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border disabled:opacity-40"
               ><ChevronRight className="h-4 w-4" /></button>
+              <button type="button" onClick={() => setShowRel((v) => !v)} aria-pressed={showRel} aria-label="Show connected notes and files" className={`inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-bold ${showRel ? "border-primary bg-primary/10 text-primary" : "border-border"}`}><Network className="h-3.5 w-3.5" /><span className="hidden sm:inline">Connected</span></button>
               {!isBroken && (
                 <button
                   type="button"
@@ -96,6 +99,11 @@ export default function DriveFileViewer({ items, index, onIndexChange, onDownloa
             </div>
 
             <div className="relative min-h-0 flex-1 bg-muted/30">
+              {showRel && (
+                <div className="absolute inset-y-0 right-0 z-20 w-full overflow-y-auto border-l border-border bg-card p-3 shadow-xl sm:w-96">
+                  <ConnectedLearning key={file[0]} target={{ id: `file:${file[0]}`, title: cleanName(file[1]), where: where ?? "", year: Number((where ?? "").match(/[1-6]/)?.[0]) || null }} onNavigate={() => onIndexChange(null)} />
+                </div>
+              )}
               {isBroken ? (
                 <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
                   <AlertTriangle className="h-9 w-9 text-amber-500" />

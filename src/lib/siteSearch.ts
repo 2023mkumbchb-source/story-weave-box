@@ -40,6 +40,7 @@ const rank = (title: string, q: string, terms: string[]) => {
 interface PageDef { title: string; href: string; words: string }
 const PAGES: PageDef[] = [
   { title: "My dashboard", href: "/dashboard", words: "dashboard progress goal streak overview home" },
+  { title: "Study map — every system, every discipline", href: "/study-map", words: "study map connected learning anatomy histology embryology physiology pathology pharmacology system cardiovascular respiratory" },
   { title: "Smart revision", href: "/revise", words: "revision revise spaced review timer pomodoro focus streak flagged" },
   { title: "Revision planner", href: "/revision-planner", words: "planner plan schedule exam" },
   { title: "My revision", href: "/my-revision", words: "my revision saved progress" },

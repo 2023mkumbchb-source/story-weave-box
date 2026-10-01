@@ -49,6 +49,7 @@ const RevisionPlanner = lazy(() => import("./pages/RevisionPlanner"));
 const RevisionIndex = lazy(() => import("./pages/RevisionIndex"));
 const SmartRevision = lazy(() => import("./pages/SmartRevision"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const StudyMap = lazy(() => import("./pages/StudyMap"));
 const GlobalSearch = lazy(() => import("./pages/GlobalSearch"));
 const StudySystemAdmin = lazy(() => import("./pages/StudySystemAdmin"));
 const CategoryManager = lazy(() => import("./pages/CategoryManager"));
@@ -114,6 +115,8 @@ const AnimatedRoutes = () => {
             <Route path="/revision-index" element={<RevisionIndex />} />
             <Route path="/revise" element={<SmartRevision />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/study-map" element={<StudyMap />} />
+            <Route path="/study-map/:system" element={<StudyMap />} />
             <Route path="/search" element={<GlobalSearch />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />

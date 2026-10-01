@@ -13,6 +13,8 @@ import ShareButton from "@/components/ShareButton";
 import { findOutline, libraryFileNames, loadYearOutlines, OUTLINE_YEARS } from "@/lib/outlineEngine";
 import { toggleFlag, useTopicFlags } from "@/lib/topicFlags";
 import { Skeleton } from "@/components/ui/skeleton";
+import ConnectedLearning from "@/components/ConnectedLearning";
+import { Link2 } from "lucide-react";
 
 // Turn an outline title into a library search: first clause, no roman numerals/brackets, first three real words.
 const STOP = new Set(["and","the","of","in","for","to","a","an","i","ii","iii","iv","vs","thread","introduction","overview","principles","disorders","drugs","agents","used"]);
@@ -353,6 +355,7 @@ function SectionCard({ outline, section, done, flagged, signedIn, names, open, r
   const ids = section.items.map((i) => i.id);
   const doneN = ids.filter((id) => done.has(id)).length;
   const complete = signedIn && doneN === ids.length && ids.length > 0;
+  const [conn, setConn] = useState<Set<string>>(new Set());
   const items = section.items.filter((i) => (!remainingOnly || !done.has(i.id)) && (!flaggedOnly || flagged.has(i.id)));
   if ((remainingOnly || flaggedOnly) && items.length === 0) return null;
 
@@ -415,6 +418,7 @@ function SectionCard({ outline, section, done, flagged, signedIn, names, open, r
                           <button type="button" onClick={() => startDownload(item.file![0], item.file![1])} aria-label={`Download ${item.title}`} className="rounded-full border border-primary/30 p-1.5 text-primary hover:bg-primary hover:text-primary-foreground"><Download className="h-3.5 w-3.5" /></button>
                         </>
                       )}
+                      <button type="button" onClick={() => setConn((c) => { const n = new Set(c); if (n.has(item.id)) n.delete(item.id); else n.add(item.id); return n; })} aria-pressed={conn.has(item.id)} aria-label={`Show what connects to ${item.title}`} title="Connected notes, files and other disciplines" className={`rounded-full p-1.5 transition-colors ${conn.has(item.id) ? "text-primary" : "text-muted-foreground/50 hover:text-primary"}`}><Link2 className="h-4 w-4" /></button>
                       <button
                         type="button"
                         onClick={() => toggleFlag({ id: item.id, outlineId: outline.id, outlineTitle: outline.department, title: item.title })}
@@ -425,6 +429,7 @@ function SectionCard({ outline, section, done, flagged, signedIn, names, open, r
                       ><Flag className={`h-4 w-4 ${isFlagged ? "fill-current" : ""}`} /></button>
                     </div>
                   </div>
+                  {conn.has(item.id) && <div className="px-4 pb-3 print:hidden"><ConnectedLearning target={{ id: `topic:${item.id}`, title: item.title, where: `${outline.department} ${section.title}`, year: outline.year }} /></div>}
                 </li>
               );
             })}

@@ -7,6 +7,7 @@ import { startDownload } from "@/lib/driveDownload";
 import { countFiles, folderMeta, libraryPath, resolveSlugs } from "@/lib/libraryMeta";
 import ShareButton from "@/components/ShareButton";
 import FileThumb from "@/components/FileThumb";
+import ConnectedLearning from "@/components/ConnectedLearning";
 import { useAuth } from "@/hooks/useAuth";
 import { updateSiteConfig, useSiteConfig } from "@/lib/siteConfig";
 import { addRecent, toggleSaved, useFileShelf } from "@/lib/fileShelf";
@@ -185,6 +186,10 @@ export default function StudyFileLibrary({ def, slugs }: { def: LibraryDef; slug
               </p>
             )}
           </>
+        )}
+
+        {lib && !results && !notFound && chain.length > 0 && (
+          <ConnectedLearning className="mt-8" target={{ title: chain.filter((n) => !/lecture slides|notes|handouts|textbooks|reference|questions|past papers|videos|practicals|lab manuals|images|atlas/i.test(n.n)).map((n) => n.n).join(" ") || chain[0].n, where: `${def.label} › ${chain.map((n) => n.n).join(" › ")}`, year: def.year }} />
         )}
 
         <p className="mt-10 border-t border-border pt-4 text-center text-xs text-muted-foreground">
