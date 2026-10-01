@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import ShareButton from "@/components/ShareButton";
 import { timetableMeta } from "@/lib/libraryMeta";
 import { updateMetaTags, SITE_URL } from "@/lib/seo";
-import { OFFICIAL_2026_SCHEDULES, YEAR_TEACHING_STAFF } from "@/lib/timetable2026";
+import { YEAR_TEACHING_STAFF } from "@/lib/timetable2026";
+import { useTimetable } from "@/lib/siteConfig";
 
 const pageUrl = (n: number) => `${import.meta.env.BASE_URL}timetable/p-${String(n).padStart(2, "0")}.jpg`;
 
@@ -15,6 +16,7 @@ export default function YearTimetable() {
   const { year } = useParams();
   const tt = registry.timetables.years.find((y) => y.slug === year);
   const [zoom, setZoom] = useState<number | null>(null);
+  const schedules = useTimetable(tt?.year ?? 1);
   const meta = useMemo(() => (tt ? timetableMeta(registry, tt) : null), [tt]);
 
   useEffect(() => {
@@ -25,7 +27,6 @@ export default function YearTimetable() {
 
   if (!tt || !meta) return <Navigate to="/timetable/year-1" replace />;
   const t = registry.timetables;
-  const schedules = OFFICIAL_2026_SCHEDULES[tt.year] ?? [];
   const staff = YEAR_TEACHING_STAFF[tt.year] ?? [];
   const hasLibrary = registry.libraries.some((l) => l.year === tt.year);
 

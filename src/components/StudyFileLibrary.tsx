@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { AlertTriangle, BadgeCheck, ChevronRight, Download, File, FileText, Film, FolderOpen, Image as ImageIcon, Loader2, Presentation, Search, Archive, Eye, Star } from "lucide-react";
+import { AlertTriangle, BadgeCheck, ChevronRight, Download, File, FileText, Film, FolderOpen, Image as ImageIcon, Loader2, Presentation, Search, Archive, Eye, EyeOff, Pencil, Star } from "lucide-react";
 import registry from "@/data/libraries.json";
 import { updateMetaTags, SITE_URL } from "@/lib/seo";
 import { startDownload } from "@/lib/driveDownload";
 import { countFiles, folderMeta, libraryPath, resolveSlugs } from "@/lib/libraryMeta";
 import ShareButton from "@/components/ShareButton";
 import FileThumb from "@/components/FileThumb";
+import { useAuth } from "@/hooks/useAuth";
+import { updateSiteConfig, useSiteConfig } from "@/lib/siteConfig";
 import { addRecent, toggleSaved, useFileShelf } from "@/lib/fileShelf";
 import { loadBrokenLinks, loadLibrary } from "@/lib/libraryData";
 import DriveFileViewer, { cleanName, canPreview, downloadUrl, reportUrl, thumbUrl, type DriveFile, type DriveKind } from "@/components/DriveFileViewer";
@@ -201,7 +203,13 @@ const IMAGE_PAGE = 48;
 
 type Row = { file: DriveFile; where?: string };
 
-function FileList({ rows, broken, trail }: { rows: Row[]; broken: Set<string>; trail: string }) {
+function FileList({ rows: allRows, broken, trail }: { rows: Row[]; broken: Set<string>; trail: string }) {
+  const { isAdmin } = useAuth();
+  const cfg = useSiteConfig();
+  const hidden = useMemo(() => new Set(cfg.hiddenFiles), [cfg.hiddenFiles]);
+  const rows = useMemo(() => allRows.filter((r) => isAdmin || !hidden.has(r.file[0])).map((r) => (cfg.renames[r.file[0]] ? { ...r, file: [r.file[0], cfg.renames[r.file[0]], r.file[2]] as DriveFile } : r)), [allRows, hidden, cfg.renames, isAdmin]);
+  const toggleHidden = (id: string) => updateSiteConfig((c) => ({ ...c, hiddenFiles: c.hiddenFiles.includes(id) ? c.hiddenFiles.filter((x) => x !== id) : [...c.hiddenFiles, id] })).catch(() => window.alert("Could not save — are you signed in as admin?"));
+  const rename = (id: string, current: string) => { const next = window.prompt("New title for this file (leave empty to restore the original):", cleanName(current)); if (next === null) return; updateSiteConfig((c) => { const renames = { ...c.renames }; if (next.trim()) renames[id] = next.trim(); else delete renames[id]; return { ...c, renames }; }).catch(() => window.alert("Could not save — are you signed in as admin?")); };
   const [badImages, setBadImages] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<Kind | "all">("all");
   const [viewing, setViewing] = useState<number | null>(null);
@@ -262,7 +270,7 @@ function FileList({ rows, broken, trail }: { rows: Row[]; broken: Set<string>; t
               );
             }
             return (
-              <li key={id} className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-primary/5">
+              <li key={id} className={`group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-primary/5 ${hidden.has(id) ? "bg-amber-500/5 opacity-60" : ""}`}>
                 <button
                   type="button"
                   onClick={() => { if (viewable) setViewing(indexOf.get(id) ?? null); else { addRecent(file, trail); startDownload(id, name); } }}
@@ -274,6 +282,12 @@ function FileList({ rows, broken, trail }: { rows: Row[]; broken: Set<string>; t
                     <span className="block truncate text-[11px] text-muted-foreground">{KIND_LABEL[kind]}{where ? ` · ${where}` : ""}</span>
                   </span>
                 </button>
+                {isAdmin && (
+                  <span className="flex shrink-0 gap-0.5">
+                    <button type="button" onClick={() => rename(id, name)} aria-label="Rename file" title="Rename (admin)" className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>
+                    <button type="button" onClick={() => toggleHidden(id)} aria-label={hidden.has(id) ? "Unhide file" : "Hide file"} title={hidden.has(id) ? "Hidden from learners — tap to show" : "Hide from learners (admin)"} className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-primary">{hidden.has(id) ? <EyeOff className="h-3.5 w-3.5 text-amber-600" /> : <Eye className="h-3.5 w-3.5" />}</button>
+                  </span>
+                )}
                 <button type="button" onClick={() => toggleSaved(file, trail)} aria-pressed={saved} aria-label={saved ? `Remove ${cleanName(name)} from saved files` : `Save ${cleanName(name)}`} title={saved ? "Saved — tap to remove" : "Save for later"} className={`shrink-0 rounded-full p-1.5 transition-colors ${saved ? "text-amber-500" : "text-muted-foreground/60 hover:text-amber-500"}`}><Star className={`h-4 w-4 ${saved ? "fill-current" : ""}`} /></button>
                 {viewable && (
                   <button

@@ -134,6 +134,12 @@ export default function YearHub() {
       icon: GraduationCap,
     },
     {
+      title: "Smart revision",
+      description: "Daily review built from your timetable",
+      to: "/revise",
+      icon: CalendarDays,
+    },
+    {
       title: "Exams",
       description: "Timed tests filtered to this year",
       to: `/exams?year=${encodeURIComponent(yearLabel)}`,

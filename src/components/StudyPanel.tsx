@@ -5,7 +5,9 @@ import registry from "@/data/libraries.json";
 import { useAuth } from "@/hooks/useAuth";
 import { buildBlogPath } from "@/lib/store";
 import { getRecentArticles, type RecentArticle } from "@/lib/progress-store";
-import { MBCHB_2026_TRIMESTER_1, OFFICIAL_2026_SCHEDULES } from "@/lib/timetable2026";
+import { MBCHB_2026_TRIMESTER_1 } from "@/lib/timetable2026";
+import { useSiteConfig, useTimetable } from "@/lib/siteConfig";
+import { useStudyLog } from "@/lib/studyLog";
 import { libraryPath } from "@/lib/libraryMeta";
 import { startDownload } from "@/lib/driveDownload";
 import { shelfToFile, toggleSaved, useFileShelf, type ShelfItem } from "@/lib/fileShelf";
@@ -34,7 +36,7 @@ const parseDate = (iso: string) => { const [y, m, d] = iso.split("-").map(Number
 
 /** The next teaching day's sessions for a year, with a group picker that is remembered on this device. */
 export function TodayClasses({ year, wide = false }: { year: number; wide?: boolean }) {
-  const tables = OFFICIAL_2026_SCHEDULES[year] ?? [];
+  const tables = useTimetable(year);
   const groups = useMemo(() => [...new Set(tables.flatMap((t) => t.rows.map((r) => r.group ?? "").filter(Boolean)))].sort(), [tables]);
   const [group, setGroup] = useState("");
   useEffect(() => { setGroup(safeGet(`ompath_group_y${year}`) ?? ""); }, [year]);
@@ -125,7 +127,10 @@ export default function StudyPanel({ year: preferredYear }: { year?: number | nu
   useEffect(() => { setRecentArticles(getRecentArticles().slice(0, 3)); }, []);
 
   const lib = registry.libraries.find((l) => l.year === year);
-  const catIn = daysBetween(new Date(), parseDate(MBCHB_2026_TRIMESTER_1.catStartDate));
+  const cfg = useSiteConfig();
+  const { streak } = useStudyLog();
+  const nextDate = cfg.keyDates.filter((d) => d.date && daysBetween(new Date(), parseDate(d.date)) >= 0).sort((a, b) => a.date.localeCompare(b.date))[0];
+  const catIn = nextDate ? daysBetween(new Date(), parseDate(nextDate.date)) : -1;
   const name = (user?.user_metadata?.full_name as string | undefined)?.split(" ")[0] ?? user?.email?.split("@")[0];
 
   const links = [
@@ -136,6 +141,7 @@ export default function StudyPanel({ year: preferredYear }: { year?: number | nu
     { to: `/flashcards?year=${encodeURIComponent(`Year ${year}`)}`, label: "Flashcards", icon: GraduationCap },
     { to: "/essays", label: "Essays", icon: PenLine },
     ...(year === 4 ? [{ to: "/course-outlines", label: "Outlines", icon: ClipboardList }] : []),
+    { to: "/revise", label: "Smart revision", icon: Timer },
     { to: "/revision-planner", label: "Planner", icon: Hourglass },
   ];
 
@@ -149,10 +155,11 @@ export default function StudyPanel({ year: preferredYear }: { year?: number | nu
           </select>
         </div>
         {catIn >= 0 ? (
-          <p className="mt-2 flex items-baseline gap-1.5"><span className="font-serif text-3xl font-bold leading-none text-primary">{catIn}</span><span className="text-[11px] font-semibold text-muted-foreground">day{catIn === 1 ? "" : "s"} to end-of-semester CATs (8 Dec)</span></p>
+          <p className="mt-2 flex items-baseline gap-1.5"><span className="font-serif text-3xl font-bold leading-none text-primary">{catIn}</span><span className="text-[11px] font-semibold text-muted-foreground">day{catIn === 1 ? "" : "s"} to {nextDate?.label}</span></p>
         ) : (
-          <p className="mt-2 text-[11px] font-semibold text-muted-foreground">Trimester 1 CATs: 8–12 Dec 2026</p>
+          <p className="mt-2 text-[11px] font-semibold text-muted-foreground">No upcoming dates set</p>
         )}
+        <Link to="/revise" className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-700">🔥 {streak}-day streak · Smart revision →</Link>
         {!user && <Link to="/login" className="mt-2 inline-block text-[11px] font-bold text-primary hover:underline">Sign in to keep your progress →</Link>}
       </section>
 

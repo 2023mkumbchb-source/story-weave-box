@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, FolderOpen } from "lucide-react";
 import registry from "@/data/libraries.json";
 import { loadLibrary, type LibraryNode } from "@/lib/libraryData";
+import { loadSiteConfig } from "@/lib/siteConfig";
 import { libraryPath, prettyTitle } from "@/lib/libraryMeta";
 import FileThumb, { KIND_LABEL } from "@/components/FileThumb";
 import type { DriveFile } from "@/components/DriveFileViewer";
@@ -10,15 +11,16 @@ import type { DriveFile } from "@/components/DriveFileViewer";
 type Hit = { file: DriveFile; where: string; href: string; yearLabel: string };
 const LIMIT = 8;
 
-function collect(nodes: LibraryNode[], needles: string[], trail: string[], out: Hit[], href: string, yearLabel: string, slugs: string[] = []) {
+function collect(nodes: LibraryNode[], needles: string[], trail: string[], out: Hit[], href: string, yearLabel: string, slugs: string[] = [], hidden: Set<string> = new Set()) {
   for (const n of nodes) {
     const here = [...trail, n.n];
     const hereSlugs = [...slugs, n.s];
     for (const file of n.f ?? []) {
       if (out.length >= LIMIT) return;
+      if (hidden.has(file[0])) continue;
       if (needles.every((w) => file[1].toLowerCase().includes(w))) out.push({ file, where: here.join(" › "), href: `${href}/${hereSlugs.join("/")}`, yearLabel });
     }
-    if (n.d) collect(n.d, needles, here, out, href, yearLabel, hereSlugs);
+    if (n.d) collect(n.d, needles, here, out, href, yearLabel, hereSlugs, hidden);
     if (out.length >= LIMIT) return;
   }
 }
@@ -35,10 +37,11 @@ export default function LibrarySearchHits({ query, year }: { query: string; year
     const timer = setTimeout(async () => {
       const defs = registry.libraries.filter((l) => !year || l.year === year);
       const out: Hit[] = [];
+      const hidden = new Set((await loadSiteConfig()).hiddenFiles);
       for (const def of defs) {
         try {
           const lib = await loadLibrary(def.dataFile);
-          collect(lib.d, needles, [], out, libraryPath(def), def.label);
+          collect(lib.d, needles, [], out, libraryPath(def), def.label, [], hidden);
         } catch { /* a library that fails to load is just skipped */ }
         if (out.length >= LIMIT) break;
       }
