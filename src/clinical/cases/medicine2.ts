@@ -1,0 +1,228 @@
+import type { CaseDef } from "../types";
+import { mcq, o } from "../templates";
+
+export const MEDICINE_2: CaseDef[] = [
+  {
+    id: "med-tb", rotation: "medicine", title: "Cough, night sweats and a ‘white-out’ on one side", level: 2, setting: "Medical outpatient referral → admission", tags: ["tuberculosis", "HIV", "pleural effusion", "opportunistic infection"],
+    involved: ["Respiratory", "Infective / immune"],
+    vignette: "A 34-year-old woman, a market trader, has had a cough for two months with drenching night sweats and weight loss. For the past week she is also short of breath and has right-sided chest pain on deep breathing.",
+    hsets: ["core"], esets: ["general", "resp"],
+    hx: {
+      onset: "Cough for 2 months; breathlessness for a week.", prog: "Steadily worse; now breathless walking 100 m.", cough: "Productive of mucoid sputum, once streaked with blood. Pleuritic right chest pain for a week.", fever: "Evening fevers and drenching night sweats for 6 weeks.",
+      wt: "Lost about 8 kg in two months; poor appetite.", sob: "Breathless on exertion, no orthopnoea.", pmh: "No known illnesses; has never had an HIV test.", sex: "Husband died 3 years ago ‘of a long illness’. Never tested for HIV.",
+      travel: "Her late husband and a neighbour had TB; crowded one-room home.", drugs: "No medication; took herbal tea.", occ: "Sells vegetables in a crowded market.", alc: "None.", smoke: "Non-smoker.", swell: "No leg swelling.", gu: "Normal.", neuro: "No headache or confusion.",
+    },
+    hxKey: ["cough", "fever", "wt", "sex", "travel", "sob"],
+    ex: {
+      vit: "BP 100/62, pulse 108, RR 28, SpO₂ 90% on room air, temperature 38.1 °C, weight 46 kg (BMI 17).", face: "Pale.", mouth: "Oral candidiasis (white plaques on tongue and palate).", nodes: "Matted, non-tender cervical and axillary lymph nodes.", nutr: "Wasted, temporal wasting.", hands: "Finger clubbing absent; pale palms.",
+      rr: "Tachypnoeic; speaks in short phrases.", chest: "Reduced expansion on the right; stony dull percussion from the base to the mid-zone; trachea central.", breath: "Absent breath sounds and reduced vocal resonance over the right lower and mid zones; bronchial breathing above the effusion.",
+      neck: "JVP normal.", pulse: "108/min, regular.",
+    },
+    exKey: ["vit", "mouth", "nodes", "chest", "breath", "nutr"],
+    ix: [
+      { id: "cxr", group: "Imaging", label: "Chest X-ray", result: "Right-sided homogeneous opacity from the costophrenic angle to the mid-zone with a meniscus sign. Right upper lobe patchy infiltrate with a small cavity. Mediastinum central.", meaning: "A moderate right pleural effusion plus upper-lobe cavitating disease: strongly suggests TB (pleural + parenchymal).", use: "key" },
+      { id: "hiv", group: "Blood", label: "HIV test (with counselling)", result: "HIV-1 positive. CD4 count 112 cells/µL.", meaning: "Advanced HIV (CD4 <200) — explains oral candidiasis, wasting, nodes and the risk of TB and other opportunistic infections.", use: "key" },
+      { id: "xpert", group: "Microbiology", label: "Sputum GeneXpert MTB/RIF (and AFB smear)", result: "MTB detected, rifampicin resistance NOT detected.", meaning: "Confirms pulmonary TB and shows rifampicin sensitivity: start standard first-line treatment.", use: "key" },
+      { id: "tap", group: "Pleural", label: "Diagnostic pleural aspiration", result: "Straw-coloured exudate: protein 52 g/L, LDH high, lymphocytes predominate, ADA 78 U/L (raised), glucose low. Gram stain negative.", meaning: "Lymphocytic exudate with high ADA = tuberculous pleural effusion in a high-prevalence setting.", use: "useful" },
+      { id: "fbc", group: "Blood", label: "FBC, ESR", result: "Hb 8.4 g/dL, WBC 3.9, platelets 410, ESR 98.", meaning: "Anaemia of chronic disease, HIV-related; marrow suppression and TB drugs both matter.", use: "useful" },
+      { id: "lft", group: "Blood", label: "Liver and renal function (before TB drugs)", result: "ALT 38, bilirubin normal, creatinine 70 µmol/L.", meaning: "Baseline for hepatotoxic TB drugs.", use: "useful" },
+      { id: "ct", group: "Imaging", label: "CT chest with contrast", result: "Not done.", meaning: "", use: "low", note: "Costly and not needed: CXR, GeneXpert and fluid studies are sufficient to treat." },
+    ],
+    interpret: [mcq("tb-i1", "interpretation", "How do the pleural fluid findings (lymphocytic exudate, high ADA, low glucose) change your thinking?", [
+      o("They support tuberculous pleurisy, which in this patient with HIV and cavitating lung disease is the leading diagnosis", true, "Lymphocytic exudate + high ADA is the classic pattern."),
+      o("They indicate a bacterial parapneumonic effusion needing a chest drain", false, "Would show neutrophils, low pH and positive Gram stain."),
+      o("They indicate heart failure (transudate)", false, "Protein 52 g/L means exudate."),
+      o("They are non-specific; no change", false, "In this context they are highly informative."),
+    ], ["Transudate or exudate? Which cells predominate?", "ADA is an enzyme from activated T-lymphocytes.", "Think of the patient’s weight loss, night sweats and HIV.", "TB pleurisy."], "Always sample the effusion (Light’s criteria) — then use the cell type and ADA to narrow the cause.", { after: "tap" })],
+    ddx: [
+      { name: "Pulmonary and pleural tuberculosis with advanced HIV", aliases: ["tb", "tuberculosis", "pulmonary tb", "tb pleural effusion", "hiv", "hiv tb co-infection", "pleural tb"], tier: "likely", why: "Chronic cough, night sweats, weight loss, nodes and a pleural effusion in a poor-resource, high-HIV-prevalence setting.", for: ["Months of constitutional symptoms", "TB contacts, crowding", "Oral thrush and nodes (HIV)", "Cavity on CXR"], against: ["None — but other causes can co-exist"], separate: { ask: "TB contacts, night sweats, weight loss, HIV risk", exam: "Nodes, oral candida, wasting, effusion signs", ix: "GeneXpert, CXR, pleural fluid ADA, HIV test" } },
+      { name: "Bacterial pneumonia with parapneumonic effusion", aliases: ["pneumonia", "bacterial pneumonia", "empyema", "parapneumonic effusion"], tier: "possible", why: "Fever, cough and a pleural effusion can result from bacterial pneumonia.", for: ["Fever, productive cough, pleuritic pain"], against: ["Two-month history, wasting, night sweats", "Lymphocytic fluid, upper-lobe cavity"], separate: { ask: "Acute onset over days, rigors, rusty sputum", exam: "Focal bronchial breathing, high fever", ix: "Neutrophilia, CRP, pleural fluid pH and cell type" } },
+      { name: "Lung cancer with malignant effusion", aliases: ["lung cancer", "carcinoma", "malignancy", "lung malignancy", "malignant effusion"], tier: "possible", why: "Weight loss, haemoptysis and an effusion should raise malignancy.", for: ["Weight loss, haemoptysis, effusion"], against: ["Young non-smoker, fever and night sweats", "Lymphocytic exudate with high ADA"], separate: { ask: "Smoking, hoarseness", exam: "Clubbing, hard nodes", ix: "Pleural cytology, CT, biopsy" } },
+      { name: "Pneumocystis pneumonia (PCP) or other HIV opportunistic infection", aliases: ["pcp", "pneumocystis", "opportunistic infection", "pjp"], tier: "dangerous", why: "With CD4 <200, PCP causes subacute breathlessness and hypoxia; it can co-exist with TB.", for: ["Breathlessness, hypoxia, advanced HIV"], against: ["Effusion and cavity are not typical of PCP"], separate: { ask: "Dry cough, exertional dyspnoea", exam: "Hypoxia out of proportion to signs", ix: "CXR (bilateral ground glass), LDH, β-D-glucan" } },
+    ],
+    twist: { text: "The result of the HIV test returns positive (CD4 112). The nurse asks when you will start antiretroviral therapy.", q: mcq("tb-tw", "management", "What is the right approach to starting antiretrovirals (ART) in TB/HIV co-infection?", [
+      o("Start TB treatment first, then begin ART within about 2 weeks (CD4 <50: within 2 weeks; others within 8 weeks)", true, "Early ART lowers mortality; delaying it too long is dangerous."),
+      o("Start ART the same day as TB treatment regardless", false, "Increases the risk of IRIS and overlapping toxicity."),
+      o("Defer ART until TB treatment is completed (6 months)", false, "Many die in the interval."),
+      o("Never give ART with rifampicin", false, "Rifampicin interacts with some ARVs, but they can be adjusted; ART should not be withheld."),
+    ], ["Which has the higher mortality — untreated TB or untreated HIV?", "Early ART improves survival but timing matters.", "IRIS = immune reconstitution inflammatory syndrome.", "TB treatment first, then ART within 2–8 weeks."], "Remember to give cotrimoxazole prophylaxis and pyridoxine with isoniazid.") },
+    dx: { q: mcq("tb-dx", "pathophysiology", "What is the best working diagnosis?", [
+      o("Pulmonary and tuberculous pleural effusion with newly diagnosed advanced HIV (CD4 112)", true, "Explains every finding."),
+      o("Community-acquired pneumonia with empyema", false, "Not the tempo or the fluid."),
+      o("Bronchial carcinoma", false, "Not supported."),
+      o("Congestive cardiac failure", false, "Exudate, no cardiac signs."),
+    ], ["Which diagnosis explains the sweats, weight loss, nodes, thrush and effusion?", "Both a lung and a pleural process; plus the immune state.", "Think Kenya: TB/HIV syndemic.", "TB + HIV."], "In Kenya every patient with TB should be offered an HIV test, and every HIV-positive patient screened for TB."),
+    },
+    mgmt: mcq("tb-mx", "management", "Which management steps are appropriate? (select all)", [
+      o("Standard first-line anti-TB therapy (HRZE for 2 months then HR for 4 months) with pyridoxine", true, "GeneXpert shows rifampicin sensitivity."),
+      o("Cotrimoxazole prophylaxis and ART within 2–8 weeks of starting TB treatment, with adherence counselling", true, "Reduces opportunistic infection and mortality."),
+      o("Oxygen, therapeutic drainage if she is very breathless, and nutritional support", true, "Relieves symptoms and supports recovery."),
+      o("Contact tracing, notification and infection control (isolation until non-infectious)", true, "Public health duty."),
+      o("Start streptomycin only", false, "Monotherapy causes resistance."),
+      o("Wait for the culture result before treating", false, "Treat on GeneXpert + clinical picture."),
+    ], ["Standard regimen letters?", "What do you add for HIV?", "Who else needs attention?", "HRZE + pyridoxine, ART, cotrimoxazole, drainage as needed, contact tracing."], "Check LFTs periodically; stop and reassess if jaundice or ALT >3× upper limit with symptoms."),
+    consultant: [
+      mcq("tb-c1", "consultant", "Why does HIV make TB more likely and more atypical?", [
+        o("CD4 T-cell depletion impairs granuloma formation, so primary progression and extrapulmonary/disseminated disease are more common", true, "Cavities are less frequent at low CD4."),
+        o("HIV directly infects the lung epithelium and causes TB", false, "No."),
+        o("HIV vaccines suppress immunity", false, "No."),
+        o("TB prevents HIV from replicating", false, "No."),
+      ], ["Which immune cell organises a granuloma?", "What does HIV destroy?", "Atypical presentation = less cavitation.", "CD4 depletion."], "Always test HIV in TB and vice versa."),
+      mcq("tb-c2", "consultant", "Which are well-known adverse effects of first-line TB drugs? (select all)", [
+        o("Isoniazid: hepatitis and peripheral neuropathy (give pyridoxine)", true, "Classic."), o("Rifampicin: hepatitis, orange body fluids, enzyme induction/drug interactions", true, "Interacts with ARVs and contraceptives."),
+        o("Pyrazinamide: hepatitis and hyperuricaemia", true, "Gout flare."), o("Ethambutol: optic neuritis (colour vision)", true, "Check vision."),
+      ], ["Four drugs, four toxicities.", "Which one is orange?", "Which one needs vitamin B6?", "All four statements are true."], "Always counsel before starting treatment."),
+      mcq("tb-c3", "consultant", "What would kill this patient first, and what else are you worried about?", [
+        o("Hypoxic respiratory failure from effusion/PCP and advanced HIV complications", true, "Immediate priority."), o("TB meningitis or miliary TB (disseminated)", true, "Common in advanced HIV."),
+        o("IRIS after starting ART", true, "Paradoxical worsening."), o("Drug-induced liver injury", true, "Common with HRZE."),
+      ], ["Think breathing first, then disseminated disease.", "What can happen once ART restores immunity?", "Which organ do TB drugs injure?", "All of the above."], "A consultant wants you to prioritise: airway/breathing, then life-threatening complications, then drug safety."),
+    ],
+    chain: { risk: "Crowding, TB contacts, untreated HIV, malnutrition", patho: "M. tuberculosis → granuloma/cavity; hypersensitivity in the pleura → exudative effusion; HIV depletes CD4 cells", symptoms: "Cough, night sweats, weight loss, pleuritic pain, breathlessness", signs: "Fever, wasting, oral thrush, nodes, stony-dull chest with absent breath sounds", ix: "CXR (effusion + cavity), GeneXpert, HIV/CD4, pleural fluid (lymphocytic exudate, ADA)", dx: "Pulmonary + pleural TB with advanced HIV", mx: "HRZE, ART within 2–8 weeks, cotrimoxazole, pyridoxine, drainage if distressed", comp: "Respiratory failure, IRIS, drug hepatitis, MDR-TB if non-adherent, disseminated TB" },
+    mustKnow: ["Cough >2 weeks + night sweats + weight loss = think TB; test HIV in every TB patient.", "GeneXpert MTB/RIF gives diagnosis and rifampicin resistance in 2 hours.", "Lymphocytic exudate with high ADA = TB pleurisy until proven otherwise.", "Standard TB treatment is HRZE for 2 months then HR for 4 months.", "Start ART within 2–8 weeks of TB treatment; add cotrimoxazole prophylaxis.", "Isoniazid needs pyridoxine; monitor LFTs.", "Always do contact tracing and notify."],
+    thinkIf: [["Chronic cough + night sweats + weight loss + effusion", "TB (especially with HIV)."], ["Hypoxia out of proportion to chest signs in advanced HIV", "Pneumocystis pneumonia."], ["Unilateral effusion + smoker + haemoptysis + nodes", "Lung cancer with malignant effusion."]],
+    revise: "tuberculosis",
+  },
+  {
+    id: "med-pe", rotation: "medicine", title: "Sudden breathlessness after an operation", level: 3, setting: "Surgical ward — medical review", tags: ["pulmonary embolism", "DVT", "post-operative", "collapse"], emergency: true,
+    involved: ["Respiratory", "Cardiovascular", "Haematological"],
+    vignette: "A 38-year-old woman, five days after an abdominal hysterectomy for fibroids, suddenly becomes breathless and has a sharp pain on the right side of the chest when breathing in. She is anxious and says her left calf has been sore since yesterday.",
+    hsets: ["core"], esets: ["general", "cvs", "resp", "abcde"],
+    hx: {
+      onset: "Sudden — about 40 minutes ago.", prog: "Getting worse.", sev: "Struggling to speak in sentences.", cp: "Sharp right-sided pain on inspiration.", sob: "Severe breathlessness at rest; no orthopnoea.", cough: "Dry cough, a small amount of blood-stained sputum once.",
+      swell: "Left calf swollen and tender since yesterday.", palp: "Racing heart and light-headedness.", fever: "Low-grade temperature after surgery.", pmh: "Fibroids; no other illness. Not on oestrogens.", adm: "Hysterectomy 5 days ago; spent most days in bed.", drugs: "Post-operative analgesics; no thromboprophylaxis because stockings were ‘not available’.",
+      fh: "Mother had a clot in the leg after a long flight.", smoke: "Smokes occasionally.", alc: "None.",
+    },
+    hxKey: ["onset", "cp", "sob", "swell", "adm", "drugs", "fh", "cough"],
+    ex: {
+      vit: "BP 98/60 mmHg, pulse 122/min regular, RR 32/min, SpO₂ 86% on room air, temperature 37.8 °C.", gcs: "Alert, anxious.", pulse: "Tachycardic, small volume.", neck: "JVP raised (4 cm above sternal angle).", hs: "Loud P2, right ventricular heave; no murmur.", bases: "Clear lungs; a pleural rub at the right base.",
+      oed: "Left calf swollen, warm and tender (3 cm larger than right); no oedema on the right.", rr: "Tachypnoeic, speaking in words.", chest: "Resonant, no effusion.", breath: "Vesicular breath sounds; pleural rub right base.", mouth: "Mild central cyanosis.",
+      A: "Patent, can speak words.", B: "RR 32, SpO₂ 86%.", C: "BP 98/60, HR 122, cool peripheries.", D: "Alert.", E: "Left calf swollen, tender; surgical wound clean.",
+    },
+    exKey: ["vit", "oed", "neck", "hs", "mouth"],
+    ix: [
+      { id: "ecg", group: "Bedside", label: "12-lead ECG", result: "Sinus tachycardia 122/min. S1Q3T3 pattern, new right bundle branch block, T-wave inversion V1–V4.", meaning: "Right heart strain from acute pulmonary hypertension — supports a significant PE.", use: "key" },
+      { id: "echo", group: "Imaging", label: "Bedside echocardiogram", result: "Dilated right ventricle with septal flattening (D-shaped LV), reduced RV function, dilated IVC. LV normal.", meaning: "Acute right ventricular overload — features of intermediate/high-risk (submassive/massive) PE.", use: "key" },
+      { id: "ctpa", group: "Imaging", label: "CT pulmonary angiogram", result: "Filling defects in both main pulmonary arteries extending into lobar branches (saddle-type) with RV dilatation.", meaning: "Confirms bilateral central PE.", use: "key" },
+      { id: "cxr", group: "Imaging", label: "Chest X-ray", result: "Clear lung fields; small right pleural effusion; wedge-shaped peripheral opacity at the right base (Hampton hump).", meaning: "A normal CXR with severe hypoxia suggests PE; the wedge opacity is a pulmonary infarct.", use: "useful" },
+      { id: "abg", group: "Blood", label: "Arterial blood gas", result: "pH 7.48, PaO₂ 6.8 kPa (low), PaCO₂ 3.2 kPa (low), HCO₃ 24.", meaning: "Hypoxaemia with respiratory alkalosis from hyperventilation — typical of PE.", use: "useful" },
+      { id: "trop", group: "Blood", label: "Troponin / BNP", result: "Troponin mildly raised; BNP raised.", meaning: "RV strain/myocardial injury — worse prognosis.", use: "useful" },
+      { id: "ddimer", group: "Blood", label: "D-dimer", result: "Markedly raised.", meaning: "", use: "low", note: "D-dimer is raised after surgery for any reason and is only useful to exclude PE in low-probability patients. This patient is high risk and unstable: go straight to imaging." },
+    ],
+    interpret: [mcq("pe-i1", "interpretation", "ECG shows sinus tachycardia, S1Q3T3, new RBBB and T-wave inversion V1–V4; echo shows a dilated RV with D-shaped septum. What does this indicate?", [
+      o("Acute right ventricular strain from a large pulmonary embolism", true, "Pulmonary vascular obstruction raises RV afterload."),
+      o("Acute anterior STEMI", false, "ST elevation with coronary territory pattern is absent."),
+      o("Left heart failure", false, "LV is normal."),
+      o("Pericardial tamponade", false, "No effusion."),
+    ], ["Which ventricle is dilated?", "What raises right ventricular pressure suddenly?", "Calf swelling + surgery + sudden hypoxia.", "Acute PE with RV strain."], "RV strain on ECG/echo and raised troponin identify patients at higher risk of death.", { after: "echo" })],
+    ddx: [
+      { name: "Acute pulmonary embolism (from calf DVT)", aliases: ["pulmonary embolism", "pe", "pulmonary thromboembolism", "dvt", "venous thromboembolism", "vte"], tier: "likely", why: "Virchow’s triad: surgery and immobility (stasis + endothelial injury); sudden pleuritic pain, hypoxia, tachycardia, and a swollen calf.", for: ["Post-operative immobility, calf swelling", "Sudden dyspnoea, pleuritic pain, haemoptysis", "Clear lungs with severe hypoxia", "Raised JVP and loud P2"], against: ["None"], separate: { ask: "Calf pain, immobility, previous clots", exam: "Unilateral calf swelling, RV heave, raised JVP", ix: "CTPA, echo, ECG" } },
+      { name: "Post-operative pneumonia / atelectasis", aliases: ["pneumonia", "atelectasis", "chest infection", "hospital acquired pneumonia"], tier: "possible", why: "Common after abdominal surgery; causes fever and dyspnoea.", for: ["Post-op, low-grade fever"], against: ["Clear chest, sudden onset, calf swelling, shock"], separate: { ask: "Productive cough, gradual onset", exam: "Focal crackles/bronchial breathing", ix: "CXR consolidation, CRP, WCC" } },
+      { name: "Acute coronary syndrome", aliases: ["myocardial infarction", "acs", "mi"], tier: "dangerous", why: "Sudden chest pain, tachycardia and hypotension: always exclude ischaemia.", for: ["Chest pain, tachycardia"], against: ["Pleuritic pain, young woman, ECG not ischaemic territory"], separate: { ask: "Exertional/central pain", exam: "Calf signs, JVP", ix: "ECG, troponin, echo" } },
+      { name: "Haemorrhage / hypovolaemic shock (internal bleeding after surgery)", aliases: ["haemorrhage", "bleeding", "hypovolaemic shock", "internal bleeding", "hypovolaemia"], tier: "dangerous", why: "Tachycardia and hypotension after surgery must make you check the wound and drains.", for: ["Post-op, tachycardia, hypotension"], against: ["Raised JVP (bleeding lowers it), hypoxia, calf swelling"], separate: { ask: "Abdominal pain/distension", exam: "JVP low in bleeding, wound/drain output", ix: "Hb, ultrasound" } },
+    ],
+    event: { when: "after-ix", title: "She is crashing", text: "While she is being prepared for CT her blood pressure falls and she becomes drowsy and grey.", vitals: "BP 70/40 mmHg, pulse 140/min, SpO₂ 78% on 15 L oxygen, GCS 11. Massive PE with obstructive shock.", q: mcq("pe-ev", "emergency", "What do you do NOW? (select all)", [
+      o("Call for senior and ICU help; high-flow oxygen; IV access; careful small fluid challenge only", true, "Obstructive shock — oxygenate and avoid large fluid loads that overstretch the RV."),
+      o("Start unfractionated heparin immediately and give systemic thrombolysis (e.g. alteplase) if no absolute contraindication", true, "Haemodynamically unstable PE needs reperfusion; recent surgery is a relative contraindication — weigh against death."),
+      o("Consider vasopressor (noradrenaline) to support RV perfusion; surgical embolectomy/catheter therapy if lysis is contraindicated", true, "Options when unstable."),
+      o("Large-volume saline resuscitation (2 L rapidly)", false, "Overdistends a failing right ventricle."),
+      o("Wait for the D-dimer result", false, "No role in a collapsed patient."),
+    ], ["Which circulatory problem causes shock here — pump, volume or obstruction?", "How do you reverse a clot in the pulmonary artery?", "Why can too much fluid be harmful in RV failure?", "Oxygen + heparin + thrombolysis (or embolectomy), cautious fluids, vasopressor."], "In unstable PE, treat first and confirm with bedside echo — do not wait for CT.") },
+    dx: { q: mcq("pe-dx", "pathophysiology", "What is the diagnosis?", [
+      o("Massive bilateral pulmonary embolism from a left calf DVT, with obstructive shock and RV failure", true, "Matches all the evidence."),
+      o("Post-operative pneumonia", false, "No."), o("Acute anterior MI", false, "No."), o("Pneumothorax", false, "Breath sounds are present; no hyper-resonance."),
+    ], ["Which diagnosis explains hypoxia, shock, raised JVP and calf swelling?", "Obstructive shock.", "Virchow’s triad.", "PE."], "Always search for the source: a DVT."),
+    },
+    mgmt: mcq("pe-mx", "management", "After stabilisation, which steps are appropriate? (select all)", [
+      o("Therapeutic anticoagulation (LMWH → DOAC or warfarin) for at least 3 months", true, "Provoked PE: typically 3 months."), o("Compression Doppler of the legs and consider an IVC filter only if anticoagulation is contraindicated", true, "IVC filter is rarely needed."),
+      o("ICU/HDU monitoring, oxygen and early mobilisation once stable", true, "Support."), o("Plan thromboprophylaxis for future operations", true, "She is at high risk next time."),
+      o("No anticoagulation because she has just had surgery", false, "Anticoagulation is life-saving."),
+    ], ["What prevents the clot growing?", "How long is treatment for a surgery-provoked PE?", "Where did the clot come from?", "Anticoagulate ≥3 months, find the source, prevent recurrence."], "Prevention: prophylactic LMWH and early mobilisation after surgery."),
+    consultant: [
+      mcq("pe-c1", "pathophysiology", "Explain Virchow’s triad and apply it to this patient.", [
+        o("Stasis (bed rest), endothelial injury (surgery) and hypercoagulability (post-operative state)", true, "All three present."), o("Fever, tachycardia and hypotension", false, "Not the triad."), o("Hypoxia, hypercapnia and acidosis", false, "No."), o("Obesity, smoking and diabetes", false, "Risk factors, not the triad."),
+      ], ["Three factors that predispose to thrombosis.", "One is blood flow, one is the vessel wall, one is the blood.", "Surgery, immobility.", "Stasis, endothelial injury, hypercoagulability."], "Link every DVT/PE to the triad."),
+      mcq("pe-c2", "consultant", "Why is the lung field clear and the patient so hypoxic?", [
+        o("The alveoli are ventilated but not perfused — ventilation–perfusion mismatch (dead space)", true, "No blood flows past ventilated alveoli."), o("The alveoli are full of fluid", false, "That is pulmonary oedema."), o("The airways are obstructed by sputum", false, "No."), o("Low haemoglobin", false, "Hb is normal."),
+      ], ["What does the clot block?", "Is it airflow or blood flow?", "V/Q mismatch.", "Blood flow blocked."], "A clear CXR with severe hypoxia = think PE."),
+      mcq("pe-c3", "consultant", "How does the Wells score help? (select all that apply)", [
+        o("It estimates the pre-test probability of PE", true, "Clinical gestalt plus risk factors."), o("Low probability → D-dimer first; high probability → go straight to CTPA", true, "Avoids useless D-dimers."), o("It replaces imaging in high-risk patients", false, "No."), o("It diagnoses DVT only", false, "There are Wells scores for DVT and PE."),
+      ], ["Probability before testing.", "When is D-dimer useful?", "High risk goes straight to imaging.", "First two statements."], "Know when D-dimer is useful: to rule out in low/intermediate probability."),
+    ],
+    chain: { risk: "Surgery, immobility, previous thrombosis, family history, smoking, oestrogens, pregnancy, malignancy", patho: "Calf DVT embolises to the pulmonary arteries → V/Q mismatch, raised RV afterload, RV failure", symptoms: "Sudden dyspnoea, pleuritic pain, haemoptysis, collapse", signs: "Tachycardia, tachypnoea, hypoxia, raised JVP, loud P2, calf swelling", ix: "ECG (RV strain), echo (dilated RV), CTPA (filling defects), ABG", dx: "Massive PE with obstructive shock", mx: "O₂, heparin, thrombolysis if unstable, anticoagulation ≥3 months", comp: "Cardiac arrest, pulmonary infarct, chronic thromboembolic pulmonary hypertension" },
+    mustKnow: ["Sudden dyspnoea + clear chest + risk factors → PE until proven otherwise.", "Unstable PE: treat without waiting for CT (heparin ± thrombolysis).", "Avoid large fluid boluses in RV failure.", "D-dimer only rules OUT PE in low-probability patients.", "Always examine the calves.", "Provoked PE: anticoagulate for 3 months.", "Post-operative prophylaxis saves lives."],
+    thinkIf: [["Sudden dyspnoea + pleuritic pain + swollen calf", "PE/DVT."], ["Shock with a raised JVP", "Obstructive: PE, tamponade, tension pneumothorax."], ["Shock with a low JVP", "Hypovolaemia: bleeding, dehydration, sepsis."]],
+    revise: "pulmonary embolism",
+  },
+  {
+    id: "med-stroke", rotation: "medicine", title: "Sudden weakness and loss of speech", level: 2, setting: "Emergency department", tags: ["stroke", "atrial fibrillation", "neurology", "emergency"], emergency: true,
+    involved: ["Neurological", "Cardiovascular"],
+    vignette: "A 70-year-old man, a retired teacher with hypertension, is brought in 90 minutes after his wife found him unable to speak properly and unable to use his right arm and leg. He was perfectly well at breakfast.",
+    hsets: ["core"], esets: ["general", "cvs", "neuro", "abcde"],
+    hx: {
+      onset: "Sudden, found at 07:30; last seen well at 07:00 (so onset ≤ 90 min ago).", prog: "Not improving.", neuro: "Right face droop, right arm and leg weakness, speech slurred and he cannot find words. No headache, no seizure, no vomiting.",
+      pmh: "Hypertension for 12 years; irregular heartbeat noticed by a nurse last year but not investigated.", drugs: "Amlodipine irregularly; no aspirin, no anticoagulant.", smoke: "Ex-smoker.", alc: "Occasional.", fh: "Mother had a stroke at 75.", palp: "Wife says the pulse is ‘all over the place’.", cp: "No chest pain.", fever: "None.",
+      allergy: "None.",
+    },
+    hxKey: ["onset", "neuro", "pmh", "drugs", "palp", "fh"],
+    hxExtra: [{ id: "bleedrisk", group: "Presenting complaint", label: "Any head injury, recent surgery, bleeding disorder, or anticoagulant use? (thrombolysis safety)", def: "No head injury, no surgery in the last 3 months, no bleeding problems, no blood thinners.", why: "These determine whether thrombolysis is safe." }],
+    ex: {
+      vit: "BP 182/104, pulse 118 irregularly irregular, RR 18, SpO₂ 96%, temperature 36.9 °C, glucose 7.2 mmol/L.", gcs: "GCS 14 (E4 V3 M6).", pulse: "Irregularly irregular, rate 118.", hs: "Irregular rhythm; no murmurs.", neck: "No carotid bruit; JVP normal.",
+      cn: "Right facial droop with forehead sparing (UMN); eyes deviated to the left; pupils equal and reactive; visual fields full.", tone: "Right arm power 1/5, right leg 2/5; right plantar upgoing; increased tone developing; reflexes brisk on the right.", sens: "Reduced sensation on the right side.",
+      speech: "Non-fluent (Broca) dysphasia: understands but cannot produce fluent speech.", mening: "No neck stiffness.", A: "Patent.", B: "Normal.", C: "AF at 118, BP 182/104.", D: "GCS 14, glucose 7.2.", E: "No injuries.",
+    },
+    exKey: ["vit", "cn", "tone", "speech", "pulse", "gcs"],
+    ix: [
+      { id: "glu", group: "Bedside", label: "Capillary glucose (immediately)", result: "7.2 mmol/L.", meaning: "Hypoglycaemia is the commonest stroke mimic — excluded.", use: "key" },
+      { id: "ctnc", group: "Imaging", label: "Non-contrast CT head (urgent)", result: "No intracranial haemorrhage. Early loss of grey–white differentiation and hyperdense left MCA sign. No mass.", meaning: "Haemorrhage excluded: ischaemic stroke in the left MCA territory; thrombolysis can be considered within the window.", use: "key" },
+      { id: "ecg", group: "Bedside", label: "12-lead ECG", result: "Atrial fibrillation with ventricular rate 118; LVH.", meaning: "AF is the likely source of a cardioembolic stroke.", use: "key" },
+      { id: "fbc", group: "Blood", label: "FBC, clotting (INR), U&E", result: "Hb 13.4, platelets 238, INR 1.0, creatinine normal.", meaning: "Safe to thrombolyse; no coagulopathy.", use: "useful" },
+      { id: "lipid", group: "Blood", label: "Lipid profile and HbA1c", result: "LDL 3.9 mmol/L, HbA1c 5.8%.", meaning: "Vascular risk assessment.", use: "useful" },
+      { id: "echo", group: "Imaging", label: "Echocardiogram (later)", result: "Dilated left atrium, EF 50%, no thrombus visible on TTE.", meaning: "Source assessment and LA size.", use: "useful" },
+      { id: "lp", group: "Other", label: "Lumbar puncture", result: "Not done.", meaning: "", use: "low", note: "No features of meningitis or subarachnoid haemorrhage with a clear CT; an LP would delay treatment and carries risk." },
+      { id: "mri", group: "Imaging", label: "MRI brain before treating", result: "Not available urgently.", meaning: "", use: "low", note: "Do not delay thrombolysis for MRI; non-contrast CT is sufficient to exclude haemorrhage." },
+    ],
+    interpret: [mcq("st-i1", "interpretation", "CT head is normal except early ischaemic changes; no blood. Time since onset ≤ 2 hours. What next?", [
+      o("Treat as acute ischaemic stroke: assess for IV thrombolysis (alteplase/tenecteplase) within 4.5 hours of onset, lower BP only if >185/110 before lysis", true, "Time is brain; CT excludes haemorrhage."),
+      o("Give aspirin only and send home", false, "Misses the thrombolysis window."),
+      o("Perform an LP to exclude subarachnoid haemorrhage", false, "CT negative within 6 hours rules out SAH sufficiently."),
+      o("Start heparin infusion for AF", false, "Anticoagulating an acute large infarct is dangerous."),
+    ], ["Haemorrhage or infarct?", "What is the time window for thrombolysis?", "BP targets for lysis candidates.", "Lysis if <4.5 h and no contraindication."], "Contraindications to lysis: haemorrhage, recent major surgery/trauma, INR >1.7, glucose <2.7, BP >185/110 uncontrolled, rapidly improving signs (relative).", { after: "ctnc" })],
+    ddx: [
+      { name: "Acute ischaemic stroke (cardioembolic from atrial fibrillation) — left MCA territory", aliases: ["stroke", "ischaemic stroke", "cva", "cerebrovascular accident", "mca stroke", "embolic stroke", "thromboembolic stroke"], tier: "likely", why: "Sudden onset focal deficit (right hemiparesis + dysphasia) in a hypertensive man with irregular pulse.", for: ["Sudden onset, right face/arm/leg weakness, dysphasia", "AF, hypertension"], against: ["None"], separate: { ask: "Sudden vs gradual, headache, seizure", exam: "Cortical signs (dysphasia) = MCA", ix: "CT head, ECG, glucose" } },
+      { name: "Intracerebral haemorrhage", aliases: ["haemorrhagic stroke", "intracerebral haemorrhage", "brain haemorrhage", "ich", "bleed"], tier: "dangerous", why: "Hypertensive men can bleed; clinically indistinguishable from ischaemic stroke.", for: ["Severe hypertension, sudden deficit"], against: ["No headache/vomiting; CT shows no blood"], separate: { ask: "Severe headache, vomiting, reduced consciousness", exam: "Rapid drop in GCS", ix: "Non-contrast CT — mandatory before treatment" } },
+      { name: "Hypoglycaemia / metabolic stroke mimic", aliases: ["hypoglycaemia", "metabolic", "low glucose"], tier: "possible", why: "Hypoglycaemia can cause focal deficits; always check glucose.", for: ["Focal deficit"], against: ["Glucose 7.2"], separate: { ask: "Diabetes, insulin, sweating", exam: "Capillary glucose", ix: "Glucose" } },
+      { name: "Todd paralysis, space-occupying lesion or CNS infection", aliases: ["todd", "tumour", "brain tumour", "abscess", "encephalitis", "meningitis", "seizure", "mass lesion"], tier: "possible", why: "Seizure with post-ictal weakness, tumour or abscess can mimic stroke.", for: ["Focal weakness"], against: ["No seizure, sudden onset, AF, normal temperature"], separate: { ask: "Witnessed seizure, fever, weight loss", exam: "Fever, neck stiffness, papilloedema", ix: "CT/MRI, LP only if indicated" } },
+    ],
+    event: { when: "after-ix", title: "Drowsy after the scan", text: "While waiting for the thrombolysis decision he becomes progressively drowsy and vomits. His right pupil becomes larger and sluggish.", vitals: "GCS 10, BP 200/110, pulse 60/min, irregular breathing.", q: mcq("st-ev", "emergency", "What do you do NOW?", [
+      o("Airway protection, 30° head-up, urgent repeat CT, call neurosurgery/ICU; treat raised ICP (osmotic therapy) and withhold thrombolysis", true, "Malignant MCA infarct or haemorrhagic transformation with herniation."),
+      o("Give thrombolysis immediately because GCS is falling", false, "Could worsen haemorrhage."),
+      o("Reassure and observe", false, "Herniation is a neurosurgical emergency."),
+      o("Give a large fluid bolus to treat hypotension", false, "He is hypertensive with Cushing-type response."),
+    ], ["Which compartment is expanding?", "Large pupil + falling GCS + slow pulse + high BP.", "Which scan do you repeat?", "Raised ICP management and neurosurgery."], "Cushing reflex (hypertension, bradycardia, irregular breathing) signals impending herniation.") },
+    dx: { q: mcq("st-dx", "pathophysiology", "What is the working diagnosis?", [
+      o("Acute left MCA ischaemic stroke, cardioembolic from untreated atrial fibrillation", true, "Cortical signs plus AF."),
+      o("Haemorrhagic stroke", false, "CT shows no blood."), o("Todd paralysis", false, "No seizure."), o("Brain abscess", false, "No fever or tempo."),
+    ], ["Which artery supplies the face, arm and language area?", "Why AF?", "Embolus.", "Left MCA cardioembolic."], "Left-sided cortical stroke: right hemiparesis + dysphasia ± right hemianopia."),
+    },
+    mgmt: mcq("st-mx", "management", "Which steps are appropriate in the first hours? (select all)", [
+      o("IV thrombolysis if within 4.5 h and no contraindications; consider thrombectomy for large vessel occlusion where available", true, "Reperfusion salvages brain."), o("Admit to a stroke unit; swallow screen before oral intake; maintain normoglycaemia and treat fever", true, "Reduces complications and mortality."),
+      o("Aspirin 24 h after lysis (or immediately if not lysed), then statin; start anticoagulation for AF at 2–14 days depending on infarct size", true, "Secondary prevention."), o("Early rehabilitation (physio, speech therapy, OT) and control BP gradually", true, "Recovery."),
+      o("Lower BP aggressively to normal now", false, "Hypoperfuses the penumbra; permissive hypertension unless lysis or >220/120."), o("Give oral food to avoid weakness", false, "Dysphagia risk: swallow screen first."),
+    ], ["Reperfusion, then prevention.", "What does AF need long term?", "Why permissive hypertension?", "Lysis/thrombectomy, stroke unit, antiplatelet then anticoagulant, rehab."], "Time is brain: every minute 1.9 million neurons are lost."),
+    consultant: [
+      mcq("st-c1", "consultant", "Which findings localise a lesion to the left MCA cortex? (select all)", [
+        o("Right face and arm > leg weakness", true, "MCA supplies lateral motor cortex."), o("Dysphasia (dominant hemisphere)", true, "Language cortex."), o("Right homonymous hemianopia (optic radiation)", true, "Often present."), o("Left leg weakness predominantly", false, "That is the ACA territory."),
+      ], ["Which vessel supplies the lateral hemisphere?", "Which side is language in a right-handed person?", "Face and arm are lateral.", "First three."], "Localisation drives the differential and prognosis."),
+      mcq("st-c2", "pathophysiology", "Why does AF cause stroke?", [
+        o("Stasis in the left atrial appendage → thrombus → embolises to the brain", true, "Hence anticoagulation."), o("AF raises the sodium level", false, "No."), o("AF causes cerebral vasospasm", false, "No."), o("AF is a marker with no mechanism", false, "It is causal."),
+      ], ["Think of virchow again: stasis.", "Where does the clot form?", "Left atrial appendage.", "Stasis, thrombus, embolus."], "CHA₂DS₂-VASc guides anticoagulation."),
+      mcq("st-c3", "consultant", "What would you do about his blood pressure of 182/104? (select the best)", [
+        o("Allow permissive hypertension unless thrombolysis is planned (then <185/110) or BP >220/120", true, "Preserves penumbral perfusion."), o("Lower to 120/80 immediately with IV labetalol", false, "Risks extending the infarct."), o("Ignore BP entirely", false, "Lysis candidates need control."), o("Give a vasopressor", false, "No."),
+      ], ["Why does the brain lose autoregulation after a stroke?", "What target before lysis?", "Do you treat 182/104 otherwise?", "Permissive hypertension."], "Know the thresholds: 185/110 for lysis; 220/120 otherwise."),
+    ],
+    chain: { risk: "Hypertension, AF, age, smoking, dyslipidaemia, family history", patho: "AF → left atrial thrombus → embolus occludes left MCA → infarct and penumbra", symptoms: "Sudden right hemiparesis, speech disturbance", signs: "Right UMN facial palsy, hemiparesis with upgoing plantar, expressive dysphasia, irregular pulse", ix: "Glucose, non-contrast CT (no bleed), ECG (AF), echo", dx: "Acute left MCA ischaemic stroke (cardioembolic)", mx: "Thrombolysis ≤4.5 h ± thrombectomy, stroke unit, antiplatelet, later anticoagulation, rehab", comp: "Herniation, aspiration pneumonia, DVT, recurrent stroke, depression" },
+    mustKnow: ["Sudden focal deficit = stroke until proven otherwise; ‘time is brain’.", "Check glucose first, then non-contrast CT to exclude haemorrhage.", "Thrombolysis within 4.5 hours of onset if no contraindication.", "AF → anticoagulate for secondary prevention (once safe).", "Permissive hypertension unless BP >185/110 pre-lysis or >220/120.", "Swallow screen before any oral intake.", "Left MCA: right face/arm weakness + dysphasia ± hemianopia."],
+    thinkIf: [["Sudden focal neurological deficit", "Treat as possible stroke until assessed; glucose + CT."], ["Thunderclap headache + neck stiffness", "Subarachnoid haemorrhage."], ["Irregularly irregular pulse + embolic event", "Atrial fibrillation as source."]],
+    revise: "stroke",
+  },
+]

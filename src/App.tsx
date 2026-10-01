@@ -1,4 +1,5 @@
 import { Suspense, lazy } from "react";
+import RailLayout from "@/components/RailLayout";
 import SearchPalette from "@/components/SearchPalette";
 import AnnouncementBar from "@/components/AnnouncementBar";
 import { Toaster } from "@/components/ui/toaster";
@@ -50,6 +51,9 @@ const RevisionIndex = lazy(() => import("./pages/RevisionIndex"));
 const SmartRevision = lazy(() => import("./pages/SmartRevision"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const StudyMap = lazy(() => import("./pages/StudyMap"));
+const ClinicalHub = lazy(() => import("./pages/ClinicalHub"));
+const ClinicalCase = lazy(() => import("./pages/ClinicalCase"));
+const ClinicalPractice = lazy(() => import("./pages/ClinicalPractice"));
 const GlobalSearch = lazy(() => import("./pages/GlobalSearch"));
 const StudySystemAdmin = lazy(() => import("./pages/StudySystemAdmin"));
 const CategoryManager = lazy(() => import("./pages/CategoryManager"));
@@ -98,35 +102,40 @@ const AnimatedRoutes = () => {
           <Routes location={location}>
             <Route path="/" element={<Index />} />
             <Route path="/timetable-2026" element={<Timetable2026 />} />
-            <Route path="/library/:year/*" element={<Library />} />
+            <Route path="/library/:year/*" element={<RailLayout><Library /></RailLayout>} />
             <Route path="/year-1-library" element={<LegacyLibraryRedirect slug="year-1" />} />
             <Route path="/year-2-library" element={<LegacyLibraryRedirect slug="year-2" />} />
             <Route path="/year-3-library" element={<LegacyLibraryRedirect slug="year-3" />} />
             <Route path="/year-4-library" element={<LegacyLibraryRedirect slug="year-4" />} />
-            <Route path="/course-outlines" element={<CourseOutlines />} />
-            <Route path="/timetable/:year" element={<YearTimetable />} />
+            <Route path="/course-outlines" element={<RailLayout><CourseOutlines /></RailLayout>} />
+            <Route path="/timetable/:year" element={<RailLayout><YearTimetable /></RailLayout>} />
             <Route path="/timetable" element={<Navigate to="/timetable/year-1" replace />} />
-            <Route path="/course-outlines/:dept" element={<CourseOutlines />} />
-            <Route path="/year/:yearNumber" element={<YearHub />} />
+            <Route path="/course-outlines/:dept" element={<RailLayout><CourseOutlines /></RailLayout>} />
+            <Route path="/year/:yearNumber" element={<RailLayout><YearHub /></RailLayout>} />
             <Route path="/year/:yearNumber/unit/:unitSlug" element={<UnitPage />} />
             <Route path="/my-revision" element={<SignedInRoute><MyRevision /></SignedInRoute>} />
             <Route path="/revision-planner" element={<SignedInRoute><RevisionPlanner /></SignedInRoute>} />
             <Route path="/supplementary-revision" element={<Navigate to="/revision-index" replace />} />
             <Route path="/revision-index" element={<RevisionIndex />} />
-            <Route path="/revise" element={<SmartRevision />} />
+            <Route path="/revise" element={<RailLayout><SmartRevision /></RailLayout>} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/study-map" element={<StudyMap />} />
-            <Route path="/study-map/:system" element={<StudyMap />} />
-            <Route path="/search" element={<GlobalSearch />} />
+            <Route path="/study-map" element={<RailLayout><StudyMap /></RailLayout>} />
+            <Route path="/clinical" element={<ClinicalHub />} />
+            <Route path="/clinical/case/:id" element={<ClinicalCase />} />
+            <Route path="/clinical/consultant" element={<ClinicalPractice />} />
+            <Route path="/clinical/reason" element={<ClinicalPractice />} />
+            <Route path="/clinical/cards" element={<ClinicalPractice />} />
+            <Route path="/study-map/:system" element={<RailLayout><StudyMap /></RailLayout>} />
+            <Route path="/search" element={<RailLayout><GlobalSearch /></RailLayout>} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
-            <Route path="/flashcards" element={<Flashcards />} />
+            <Route path="/flashcards" element={<RailLayout><Flashcards /></RailLayout>} />
             <Route path="/flashcards/:id" element={<FlashcardStudy />} />
-            <Route path="/mcqs" element={<Exams />} />
+            <Route path="/mcqs" element={<RailLayout><Exams /></RailLayout>} />
             <Route path="/mcqs/:id" element={<ExamStart />} />
-            <Route path="/exams" element={<Exams />} />
+            <Route path="/exams" element={<RailLayout><Exams /></RailLayout>} />
             <Route path="/exams/:id/start" element={<ExamStart />} />
-            <Route path="/contests" element={<Contests />} />
+            <Route path="/contests" element={<RailLayout><Contests /></RailLayout>} />
             <Route path="/contests/:slug/briefing" element={<ContestBriefing />} />
             <Route path="/contests/:slug/register" element={<SignedInRoute><ContestRegistration /></SignedInRoute>} />
             <Route path="/contests/:slug/lobby" element={<SignedInRoute><ContestLobby /></SignedInRoute>} />
@@ -143,10 +152,10 @@ const AnimatedRoutes = () => {
             <Route path="/admin/contests/operations" element={<AdminRoute><ContestOperations /></AdminRoute>} />
             <Route path="/admin/contests/rehearsal" element={<AdminRoute><ContestRehearsal /></AdminRoute>} />
             <Route path="/admin/contests/appeals" element={<AdminRoute><ContestAppealsAdmin /></AdminRoute>} />
-            <Route path="/stories" element={<Stories />} />
+            <Route path="/stories" element={<RailLayout><Stories /></RailLayout>} />
             <Route path="/stories/:id" element={<StoryRead />} />
             <Route path="/submit-story" element={<SignedInRoute><SubmitStory /></SignedInRoute>} />
-            <Route path="/essays" element={<Essays />} />
+            <Route path="/essays" element={<RailLayout><Essays /></RailLayout>} />
             <Route path="/essays/:slug" element={<EssayStudy />} />
             <Route path="/login" element={<Login />} />
             <Route path="/auth/callback" element={<AuthCallback />} />

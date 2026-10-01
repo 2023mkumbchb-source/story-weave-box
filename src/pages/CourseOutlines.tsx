@@ -14,6 +14,7 @@ import { findOutline, libraryFileNames, loadYearOutlines, OUTLINE_YEARS } from "
 import { toggleFlag, useTopicFlags } from "@/lib/topicFlags";
 import { Skeleton } from "@/components/ui/skeleton";
 import ConnectedLearning from "@/components/ConnectedLearning";
+import { ROTATIONS } from "@/clinical/types";
 import { Link2 } from "lucide-react";
 
 // Turn an outline title into a library search: first clause, no roman numerals/brackets, first three real words.
@@ -130,6 +131,21 @@ function OutlineIndex({ year }: { year: number }) {
             <h2 className="font-serif text-xl font-bold text-foreground">{curated.length ? "More units — lecture checklists" : "Unit checklists"}</h2>
             <p className="mb-3 text-xs text-muted-foreground">Built from the lecture slides in the library: open a file, read it here, tick it off.</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{autos.map((o) => <Card key={o.id} o={o} />)}</div>
+          </section>
+        )}
+        {year === 4 && (
+          <section>
+            <h2 className="font-serif text-xl font-bold text-foreground">Practise it on the wards</h2>
+            <p className="mb-3 text-xs text-muted-foreground">Every Year 4 clinical rotation has realistic cases in the clinical reasoning simulator.</p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {ROTATIONS.map((r) => (
+                <Link key={r.id} to={`/clinical?rot=${r.id}`} className="group block min-w-0 rounded-2xl border border-primary/30 bg-primary/5 p-4 transition-all hover:-translate-y-0.5 hover:border-primary/60">
+                  <p className="font-serif text-lg font-bold text-foreground">{r.emoji} {r.label}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{r.blurb}</p>
+                  <p className="mt-2 text-[11px] font-bold text-primary">Open cases →</p>
+                </Link>
+              ))}
+            </div>
           </section>
         )}
         {list && list.length === 0 && <p className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">Nothing for Year {year} yet. <Link to="/course-outlines/year-4" className="font-semibold text-primary hover:underline">See Year 4</Link></p>}

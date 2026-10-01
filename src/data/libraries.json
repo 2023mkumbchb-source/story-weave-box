@@ -125,6 +125,14 @@
       "tagline": "Three trimesters, from principles to oncology drugs",
       "theme": 205,
       "year": 3
+    },
+    {
+      "slug": "paediatrics",
+      "department": "Paediatrics & Child Health",
+      "title": "Year 4 Paediatrics & Child Health Course Outline",
+      "tagline": "Three trimesters, from history taking to infectious diseases",
+      "theme": 45,
+      "year": 4
     }
   ],
   "contactWhatsApp": "254115475543",

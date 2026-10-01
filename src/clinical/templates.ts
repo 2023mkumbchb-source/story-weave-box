@@ -1,0 +1,172 @@
+import type { ExItem, HxItem, MCQ, Opt, Skill } from "./types";
+
+// ---------- authoring helpers ----------
+export const o = (t: string, ok: boolean, why = ""): Opt => ({ t, ok, why });
+export function mcq(id: string, skill: Skill, q: string, options: Opt[], hints: string[], explain: string, extra: Partial<MCQ> = {}): MCQ {
+  return { id, skill, q, options, hints, explain, multi: options.filter((x) => x.ok).length > 1, ...extra };
+}
+
+const h = (id: string, group: string, label: string, def: string, why?: string): HxItem => ({ id, group, label, def, why });
+const e = (id: string, group: string, label: string, def: string, looking: string): ExItem => ({ id, group, label, def, looking });
+
+// ---------- history sets ----------
+export const HISTORY_SETS: Record<string, HxItem[]> = {
+  core: [
+    h("onset", "Presenting complaint", "When did it start, and how?", "It started a while ago; he can't give an exact date.", "Acute vs chronic separates emergencies from slow disease."),
+    h("prog", "Presenting complaint", "How has it changed since it started?", "Gradually the same.", "Progression shows tempo and whether the patient is deteriorating."),
+    h("sev", "Presenting complaint", "How does it limit daily activities?", "Manages usual activities.", "Functional limitation grades severity."),
+    h("agg", "Presenting complaint", "What makes it better or worse?", "Nothing in particular.", "Relieving/aggravating factors point to mechanism (exertion, posture, food, movement)."),
+    h("fever", "Associated symptoms", "Fever, night sweats, rigors?", "No fever or sweats.", "Infection, TB, malignancy, inflammation."),
+    h("wt", "Associated symptoms", "Weight loss or change in appetite?", "Weight and appetite are stable.", "Weight loss: malignancy, TB, HIV, thyrotoxicosis, diabetes."),
+    h("cp", "Review of systems", "Chest pain?", "No chest pain.", "Ischaemia, pleurisy, PE, dissection, reflux."),
+    h("palp", "Review of systems", "Palpitations, dizziness, blackouts?", "None.", "Arrhythmia, hypotension, hypoglycaemia, seizures."),
+    h("sob", "Review of systems", "Breathlessness, orthopnoea, PND?", "No breathlessness.", "Cardiac vs respiratory vs anaemia vs metabolic acidosis."),
+    h("cough", "Review of systems", "Cough, sputum, haemoptysis?", "No cough.", "Pneumonia, TB, malignancy, PE, asthma/COPD."),
+    h("gi", "Review of systems", "Nausea, vomiting, haematemesis, melaena?", "None.", "Upper GI bleed, obstruction, metabolic/raised ICP causes of vomiting."),
+    h("abd", "Review of systems", "Abdominal pain, bowel habit, jaundice?", "No abdominal symptoms; bowels normal.", "Surgical, hepatobiliary, infective, malignant causes."),
+    h("gu", "Review of systems", "Urine: volume, colour, frothiness, dysuria?", "Passing urine as usual.", "Oliguria, haematuria, proteinuria, UTI, obstruction."),
+    h("neuro", "Review of systems", "Headache, weakness, speech or vision change, fits, confusion?", "None.", "Stroke, meningitis, raised ICP, seizures, metabolic encephalopathy."),
+    h("skin", "Review of systems", "Rash, joint pain, bleeding or bruising?", "None.", "Vasculitis, autoimmune disease, bleeding disorder, infection."),
+    h("swell", "Review of systems", "Swelling of legs, face or abdomen?", "No swelling.", "Cardiac, renal, hepatic, nutritional or venous causes."),
+    h("pmh", "Background", "Past medical history (HTN, diabetes, asthma, TB, epilepsy, HIV, sickle cell…)", "No known medical illness.", "Chronic disease changes the likelihood and the danger of nearly everything."),
+    h("adm", "Background", "Previous admissions and operations", "No previous admissions or operations.", "Recurrent events, complications, previous diagnoses."),
+    h("drugs", "Background", "Medications — prescribed, herbal and over-the-counter", "No regular medication.", "Drug side effects and non-adherence are common causes."),
+    h("allergy", "Background", "Allergies", "No known drug allergies.", "Safety before prescribing."),
+    h("fh", "Background", "Family history", "Nothing relevant in the family.", "Genetic and familial risk (diabetes, HTN, sickle cell, cancers, psychiatric illness)."),
+    h("occ", "Social", "Occupation, exposures and living situation", "Works locally; lives with family.", "Occupational exposure, crowding (TB), support at home."),
+    h("alc", "Social", "Alcohol", "Does not drink.", "Liver, pancreas, GI bleeding, withdrawal, cardiomyopathy."),
+    h("smoke", "Social", "Smoking", "Non-smoker.", "Vascular disease, COPD, malignancy."),
+    h("subst", "Social", "Recreational drugs (khat/miraa, bhang, others)", "None.", "Psychosis, arrhythmia, seizures, delirium."),
+    h("sex", "Social", "Sexual history and HIV status", "Monogamous; HIV test was negative last year.", "HIV/STI link to TB, meningitis, pneumonia, opportunistic infection."),
+    h("travel", "Social", "Travel, contacts (TB, malaria), animal or water exposure", "No recent travel; no known contacts with TB.", "Malaria, TB, zoonoses, water-borne infection."),
+  ],
+  paeds: [
+    h("onset", "Presenting complaint", "How long has the child been ill, and how did it start?", "A few days.", "Tempo and trajectory."),
+    h("danger", "Danger signs", "Can the child drink or breastfeed? Vomiting everything? Convulsions? Lethargic?", "Drinking and breastfeeding normally; no convulsions; active.", "WHO/IMCI general danger signs — any one means urgent assessment and treatment."),
+    h("fever", "Associated symptoms", "Fever — how long, how high, pattern?", "No fever.", "Malaria, sepsis, meningitis, pneumonia, UTI."),
+    h("resp", "Associated symptoms", "Cough, fast or difficult breathing, noisy breathing?", "No cough or breathing difficulty.", "Pneumonia, asthma, bronchiolitis, heart failure, anaemia, acidosis."),
+    h("gi", "Associated symptoms", "Vomiting, diarrhoea (blood, mucus), urine output?", "No vomiting or diarrhoea; passing urine normally.", "Dehydration and its causes."),
+    h("neuro", "Associated symptoms", "Convulsions, drowsiness, neck stiffness, bulging fontanelle?", "None.", "Meningitis, cerebral malaria, febrile seizures."),
+    h("other", "Associated symptoms", "Rash, jaundice, pallor, swelling, limping, pain on passing urine?", "None.", "Haemolysis, sickling, nephrotic/nephritic, infection."),
+    h("birth", "Birth and neonatal", "Birth history: gestation, delivery, birth weight, resuscitation, jaundice, NICU", "Term, normal delivery, birth weight 3.1 kg, cried immediately.", "Prematurity, asphyxia and neonatal problems shape later disease."),
+    h("feed", "Nutrition and growth", "Feeding: breast/formula, weaning, diet; weight trend on the clinic card", "Breastfed, weaned on porridge and family foods; weight following the growth curve.", "Malnutrition, anaemia, rickets; feeding is the child’s ‘vital sign’."),
+    h("imm", "Prevention", "Immunisation (KEPI card) and vitamin A", "Fully immunised for age.", "Measles, pneumococcus, Hib, rotavirus protection; BCG."),
+    h("dev", "Development", "Developmental milestones for age; school performance", "Milestones appropriate for age.", "Delay may reflect chronic illness, hypoxia, infection or neurological disease."),
+    h("pmh", "Background", "Past illnesses, admissions, chronic conditions (sickle cell, asthma, HIV, TB)", "No previous serious illness.", "Chronic disease and previous admissions change risk."),
+    h("drugs", "Background", "Medicines given so far (herbal, antimalarials, antibiotics) and allergies", "Only paracetamol; no allergies.", "Partial treatment alters the picture; safety."),
+    h("hiv", "Background", "Maternal HIV status, PMTCT, child’s HIV test", "Mother HIV negative.", "HIV exposure drives pneumonia (PCP), TB, malnutrition."),
+    h("fam", "Family and social", "Who cares for the child? Siblings, sick contacts, water, sanitation, TB contacts", "Lives with parents; no sick contacts.", "Transmission, neglect, poverty, safeguarding."),
+  ],
+  obs: [
+    h("onset", "Presenting complaint", "What brought you in, and since when?", "She came because of the problem described.", "Triage: what is urgent?"),
+    h("gp", "Obstetric history", "Gravida / para, living children, previous pregnancies", "Not yet established.", "Parity changes risk and labour progress."),
+    h("lnmp", "Obstetric history", "LNMP, cycle regularity, EDD and gestational age", "LNMP gives a gestation consistent with the fundal height.", "Gestational age decides which conditions are possible."),
+    h("prevob", "Obstetric history", "Previous deliveries: mode, complications, caesarean, PPH, pre-eclampsia, stillbirth", "No complications in previous pregnancies.", "Recurrence risks: pre-eclampsia, PPH, uterine scar, preterm birth."),
+    h("anc", "Antenatal care", "ANC attendance, Hb, BP, urinalysis, HIV, syphilis, malaria prophylaxis, ultrasound", "Attended ANC; routine tests normal.", "Shows risk status and what has been missed."),
+    h("fm", "Current pregnancy", "Fetal movements", "Fetal movements are present and normal.", "Reduced movements signal fetal compromise."),
+    h("bleed", "Current pregnancy", "Vaginal bleeding — amount, pain, trauma, after intercourse", "No bleeding.", "APH, ectopic, miscarriage, trauma."),
+    h("leak", "Current pregnancy", "Draining liquor — time, colour, smell", "No leakage of fluid.", "PROM, chorioamnionitis, cord prolapse risk."),
+    h("contr", "Current pregnancy", "Contractions — onset, frequency, duration", "No contractions.", "Labour vs false labour; progress."),
+    h("htn", "Current pregnancy", "Headache, visual disturbance, epigastric pain, swelling", "None.", "Severe pre-eclampsia features."),
+    h("fever", "Associated symptoms", "Fever, foul discharge, dysuria", "None.", "Sepsis, UTI, chorioamnionitis."),
+    h("pmh", "Background", "Medical history: HTN, diabetes, HIV, sickle cell, TB, epilepsy, asthma", "No chronic illness.", "Pre-existing disease and pregnancy interact."),
+    h("drugs", "Background", "Medicines, supplements (iron, folate), allergies", "Iron/folate only; no allergies.", "Safety in pregnancy."),
+    h("social", "Social", "Smoking, alcohol, partner support, distance from hospital, domestic violence", "Supportive partner; lives 10 km away.", "Delivery planning, risk, safeguarding."),
+    h("gyn", "Gynaecology", "Menstrual history, contraception, cervical screening, STIs", "Not relevant to this presentation.", "Gynaecological context."),
+  ],
+  psych: [
+    h("pc", "Presenting complaint", "In your own words, what has been happening?", "Answers briefly and avoids eye contact.", "Let the patient tell the story first."),
+    h("onset", "Presenting complaint", "When did you (or they) first notice the change? Sudden or gradual?", "Not sure — over some weeks.", "Sudden onset suggests delirium or substance; gradual suggests primary psychiatric illness."),
+    h("mood", "Symptoms", "Mood: low, irritable or elevated; interest and enjoyment", "Not reported.", "Depression/mania screen."),
+    h("sleep", "Symptoms", "Sleep and appetite", "Not reported.", "Early morning waking, reduced need for sleep."),
+    h("psychosis", "Symptoms", "Voices, strange beliefs, feeling watched, thoughts controlled", "Not reported.", "Hallucinations and delusions."),
+    h("anx", "Symptoms", "Worry, panic attacks, avoidance, compulsions", "Not reported.", "Anxiety disorders, OCD."),
+    h("cog", "Medical screen", "Confusion, fluctuating attention, disorientation, head injury, fever", "None noticed.", "Delirium and organic causes must be excluded before ‘functional’ diagnosis."),
+    h("subst", "Substances", "Alcohol, khat/miraa, bhang, other drugs; last use", "Occasional alcohol only.", "Intoxication, withdrawal, substance-induced psychosis."),
+    h("meds", "Medical", "Medicines, steroids, antimalarials, ARVs (efavirenz), medical illness, HIV", "None.", "Drug-induced and medical causes of psychiatric symptoms."),
+    h("risk-self", "Risk", "Thoughts of self-harm or suicide; plans, means, previous attempts", "Denies.", "Always ask directly; asking does not cause suicide."),
+    h("risk-other", "Risk", "Thoughts of harming others; command hallucinations; aggression", "Denies.", "Risk to others and to dependants."),
+    h("past", "Background", "Previous psychiatric illness, admissions, treatment, adherence", "None.", "Relapse vs first episode."),
+    h("fam", "Background", "Family psychiatric history, suicide, substance use", "None.", "Heritability."),
+    h("pers", "Background", "Personal and developmental history, education, work, relationships, trauma", "Unremarkable.", "Context and vulnerability."),
+    h("collat", "Background", "Collateral history from family/friends", "Not available yet.", "Insight may be absent: collateral is essential."),
+  ],
+};
+
+// ---------- examination sets ----------
+export const EXAM_SETS: Record<string, ExItem[]> = {
+  general: [
+    e("vit", "General & vital signs", "Vital signs: BP, pulse, RR, SpO₂, temperature, weight", "Recorded.", "Always first. Abnormal vitals decide urgency (ABCDE) before anything else."),
+    e("gcs", "General & vital signs", "Level of consciousness (GCS / AVPU)", "Alert, GCS 15/15.", "Falling consciousness = brain, hypoxia, hypoglycaemia, sepsis, drugs."),
+    e("hands", "General & vital signs", "Hands: nails, clubbing, palmar pallor, tremor, temperature", "Normal.", "Chronic hypoxia/liver/endocarditis, anaemia, thyrotoxicosis."),
+    e("pulse", "General & vital signs", "Pulse: rate, rhythm, volume, character", "Regular, normal volume.", "AF, bradycardia, collapsing or low-volume pulses."),
+    e("face", "General & vital signs", "Eyes and face: pallor, jaundice, xanthelasma, oedema", "No pallor or jaundice.", "Anaemia, liver disease, nephrotic/nephritic facial puffiness."),
+    e("mouth", "General & vital signs", "Mouth: mucosa, tongue, candida, teeth, central cyanosis", "Moist, pink mucosa, no candida.", "Dehydration, HIV, anaemia, hypoxia."),
+    e("neck", "General & vital signs", "Neck: JVP, thyroid, carotids, trachea", "JVP not elevated; no goitre.", "Raised JVP = right heart failure/overload; goitre; tracheal shift."),
+    e("nodes", "General & vital signs", "Lymph nodes: neck, axillae, groins", "No lymphadenopathy.", "Infection, TB, lymphoma, HIV, metastases."),
+    e("oed", "General & vital signs", "Peripheral oedema (pitting? level?)", "None.", "Cardiac, renal, hepatic, venous, nutritional."),
+    e("hydr", "General & vital signs", "Hydration: skin turgor, mucosa, capillary refill", "Adequately hydrated.", "Volume status guides fluids."),
+    e("nutr", "General & vital signs", "Nutritional state: BMI, wasting, MUAC", "Well nourished.", "Malnutrition, cachexia, obesity."),
+  ],
+  cvs: [
+    e("apex", "Cardiovascular", "Apex beat, heaves and thrills", "Apex beat in the 5th space, midclavicular line; no thrills.", "Displaced/diffuse apex = ventricular enlargement."),
+    e("hs", "Cardiovascular", "Heart sounds and murmurs", "Normal first and second sounds, no murmurs.", "Gallop, murmurs, rubs identify valve, myocardial and pericardial disease."),
+    e("bases", "Cardiovascular", "Lung bases: crackles / dullness", "Clear.", "Pulmonary oedema, effusion."),
+    e("sacral", "Cardiovascular", "Sacral oedema, peripheral pulses, calves", "Nothing abnormal.", "Fluid overload, arterial insufficiency, DVT."),
+  ],
+  resp: [
+    e("rr", "Respiratory", "Respiratory rate, effort, accessory muscles, speech", "Normal effort.", "Work of breathing is the best bedside marker of severity."),
+    e("chest", "Respiratory", "Chest expansion, percussion, tracheal position", "Symmetrical, resonant.", "Dull = consolidation/effusion; hyper-resonant = pneumothorax/COPD."),
+    e("breath", "Respiratory", "Breath sounds, added sounds, vocal resonance", "Vesicular breath sounds, no added sounds.", "Crackles, wheeze, bronchial breathing, absent sounds."),
+  ],
+  abd: [
+    e("abdi", "Abdomen", "Inspection: distension, scars, hernial orifices, visible peristalsis", "Flat, no scars.", "Obstruction, ascites, hernia, previous surgery."),
+    e("abdp", "Abdomen", "Palpation: tenderness, guarding, rebound, masses", "Soft, non-tender.", "Peritonism (guarding/rebound) means surgical emergency until proven otherwise."),
+    e("liv", "Abdomen", "Liver, spleen, kidneys", "No organomegaly.", "Hepatomegaly, splenomegaly, renal masses."),
+    e("asc", "Abdomen", "Shifting dullness / fluid thrill, bowel sounds", "No ascites; normal bowel sounds.", "Ascites; absent sounds (ileus/peritonitis) or tinkling (obstruction)."),
+    e("pr", "Abdomen", "Digital rectal examination", "Normal; no blood.", "Melaena, mass, prostate, tone."),
+  ],
+  neuro: [
+    e("cn", "Neurological", "Pupils, eye movements, cranial nerves, fundi", "Normal.", "Raised ICP, lesion localisation."),
+    e("tone", "Neurological", "Tone, power, reflexes, plantar responses", "Normal.", "UMN vs LMN pattern and side."),
+    e("sens", "Neurological", "Sensation, cerebellar signs, gait", "Normal.", "Level of lesion; cerebellar disease."),
+    e("mening", "Neurological", "Neck stiffness, Kernig/Brudzinski, photophobia", "Neck supple.", "Meningeal irritation."),
+    e("speech", "Neurological", "Speech, language, cognition", "Normal.", "Dysphasia/dysarthria/neglect localise cortical lesions."),
+  ],
+  obs: [
+    e("ofh", "Obstetric", "Fundal height and abdominal inspection", "Fundal height consistent with dates.", "Size vs dates: growth restriction, polyhydramnios, multiple pregnancy."),
+    e("olie", "Obstetric", "Lie, presentation, engagement (Leopold’s manoeuvres)", "Longitudinal lie, cephalic, 3/5 palpable.", "Malpresentation, obstructed labour risk."),
+    e("ofhr", "Obstetric", "Fetal heart rate and rhythm", "Fetal heart 140/min, regular.", "Normal 110–160; abnormal = fetal compromise."),
+    e("ouid", "Obstetric", "Uterine tone, tenderness, contractions", "Soft, non-tender, no contractions.", "Hard tender uterus = abruption; contractions = labour."),
+    e("ove", "Obstetric", "Speculum / vaginal examination (only if no placenta praevia suspected)", "Not performed.", "Never do a digital VE in antepartum bleeding until praevia is excluded by ultrasound."),
+    e("oref", "Obstetric", "Reflexes, clonus, oedema, urine protein", "Normal reflexes, no clonus.", "Hyperreflexia/clonus = imminent eclampsia."),
+  ],
+  paeds: [
+    e("pgen", "Paediatric general", "General appearance, AVPU, vital signs for age, weight, MUAC", "Recorded.", "Child ‘looks sick’ is a validated sign; compare with age-specific norms."),
+    e("phyd", "Paediatric general", "Hydration: eyes, skin pinch, thirst, fontanelle, capillary refill", "Not dehydrated.", "Classify: no dehydration / some / severe."),
+    e("presp", "Paediatric chest", "Respiratory rate, recession, grunting, nasal flaring, auscultation", "Normal.", "Fast breathing and chest indrawing are the key pneumonia signs."),
+    e("pcvs", "Paediatric chest", "Heart rate, perfusion, murmurs, liver edge", "Normal.", "Shock, heart failure, congenital heart disease."),
+    e("pabd", "Paediatric abdomen", "Abdomen: distension, tenderness, organomegaly, hernias, genitalia", "Normal.", "Obstruction, appendicitis, intussusception, hepatosplenomegaly (malaria, sickle cell)."),
+    e("pneuro", "Paediatric neuro", "Tone, fontanelle, neck stiffness, pupils, convulsions", "Normal.", "Meningitis, cerebral malaria, encephalopathy."),
+    e("pskin", "Paediatric skin & other", "Skin, nodes, ENT, pallor, jaundice, oedema, development", "Normal.", "Rash, anaemia, nephrotic oedema, otitis."),
+  ],
+  mse: [
+    e("m-app", "Mental state examination", "Appearance and behaviour", "Well kempt, cooperative.", "Self-care, agitation, retardation, odd behaviour."),
+    e("m-speech", "Mental state examination", "Speech: rate, volume, quantity", "Normal rate and volume.", "Pressured (mania), poverty (depression/negative symptoms)."),
+    e("m-mood", "Mental state examination", "Mood (subjective) and affect (observed)", "Euthymic, affect appropriate.", "Depressed, elevated, anxious, flat, labile."),
+    e("m-form", "Mental state examination", "Thought form", "Logical and goal-directed.", "Flight of ideas, loosening of associations, thought block."),
+    e("m-content", "Mental state examination", "Thought content: delusions, preoccupations, suicidal/homicidal ideas", "No abnormal content.", "Delusions, guilt, hopelessness, obsessions."),
+    e("m-perc", "Mental state examination", "Perception: hallucinations (type), illusions", "No hallucinations.", "Auditory = psychosis; visual = delirium/organic."),
+    e("m-cog", "Mental state examination", "Cognition: orientation, attention, memory", "Oriented to time, place and person.", "Impaired attention/orientation = delirium; memory loss = dementia."),
+    e("m-ins", "Mental state examination", "Insight and judgment", "Good insight.", "Determines adherence, admission and capacity."),
+  ],
+  abcde: [
+    e("A", "Primary survey", "A — Airway (with C-spine protection if trauma)", "Patent.", "Airway first: talking = patent."),
+    e("B", "Primary survey", "B — Breathing: rate, SpO₂, chest", "Normal.", "Tension pneumothorax, haemothorax, flail chest, hypoxia."),
+    e("C", "Primary survey", "C — Circulation: pulse, BP, capillary refill, bleeding", "Normal.", "Shock; stop external haemorrhage; IV access."),
+    e("D", "Primary survey", "D — Disability: GCS, pupils, glucose", "Alert; glucose normal.", "Always check glucose in any altered patient."),
+    e("E", "Primary survey", "E — Exposure and environment", "No other injuries.", "Look everywhere; keep warm."),
+  ],
+};
+
+export const SET_LABEL: Record<string, string> = { core: "Adult history", paeds: "Paediatric history", obs: "Obstetric history", psych: "Psychiatric history" };

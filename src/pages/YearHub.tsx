@@ -133,6 +133,12 @@ export default function YearHub() {
       to: `/flashcards?year=${encodeURIComponent(yearLabel)}`,
       icon: GraduationCap,
     },
+    ...(parsedYear >= 4 ? [{
+      title: "Clinical simulator",
+      description: "Ward-round cases: history, exam, differentials, emergencies",
+      to: "/clinical",
+      icon: Stethoscope,
+    }] : []),
     {
       title: "Study map",
       description: "Anatomy, histology, physiology and pathology — connected",

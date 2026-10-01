@@ -41,6 +41,10 @@ interface PageDef { title: string; href: string; words: string }
 const PAGES: PageDef[] = [
   { title: "My dashboard", href: "/dashboard", words: "dashboard progress goal streak overview home" },
   { title: "Study map — every system, every discipline", href: "/study-map", words: "study map connected learning anatomy histology embryology physiology pathology pharmacology system cardiovascular respiratory" },
+  { title: "Clinical reasoning simulator — ward-round cases", href: "/clinical", words: "clinical simulator ward round cases history examination differential diagnosis consultant emergency psychiatry medicine surgery paediatrics obstetrics" },
+  { title: "Consultant interrogation", href: "/clinical/consultant", words: "consultant rapid fire questions hints clinical" },
+  { title: "Clinical recall cards — if you see this, think these", href: "/clinical/cards", words: "recall cards flashcards pattern recognition clinical" },
+  { title: "Reverse clinical reasoning", href: "/clinical/reason", words: "finding mechanism system diseases differentials backwards" },
   { title: "Smart revision", href: "/revise", words: "revision revise spaced review timer pomodoro focus streak flagged" },
   { title: "Revision planner", href: "/revision-planner", words: "planner plan schedule exam" },
   { title: "My revision", href: "/my-revision", words: "my revision saved progress" },
