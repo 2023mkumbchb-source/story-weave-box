@@ -78,7 +78,7 @@ export default function SmartRevision() {
         </div>
       </section>
 
-      <div className="mx-auto grid max-w-5xl gap-6 px-5 py-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 px-5 py-8 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-8">
           <section aria-labelledby="due-today">
             <div className="flex items-end justify-between gap-3">
@@ -124,7 +124,7 @@ export default function SmartRevision() {
           <section aria-labelledby="week-plan">
             <h2 id="week-plan" className="font-serif text-xl font-bold text-foreground">This week's classes</h2>
             {weekPlan.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">No timetable published for Year {year} yet.</p> : (
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {weekPlan.map(({ day, sessions }) => (
                   <div key={day} className={`rounded-2xl border bg-card p-3 ${day === today ? "border-primary/50 ring-1 ring-primary/20" : "border-border"}`}>
                     <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">{day}{day === today && <span className="rounded-full bg-primary px-2 py-0.5 text-[9px] text-primary-foreground">Today</span>}</p>
@@ -140,7 +140,7 @@ export default function SmartRevision() {
           {subjectsThisWeek.length > 0 && (
             <section aria-labelledby="week-subjects">
               <h2 id="week-subjects" className="font-serif text-xl font-bold text-foreground">Study material for this week's subjects</h2>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {subjectsThisWeek.map((s) => <div key={s.key} className="rounded-xl border border-border bg-card p-3"><p className="text-sm font-bold text-foreground">{s.subject}</p><SubjectLinks subject={s.subject} year={year} /></div>)}
               </div>
             </section>

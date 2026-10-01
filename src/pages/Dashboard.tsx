@@ -90,8 +90,8 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <div className="mx-auto grid max-w-6xl gap-5 px-5 py-8 lg:grid-cols-3">
-        <div className="space-y-5 lg:col-span-2">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-5 px-5 py-8 lg:grid-cols-3">
+        <div className="min-w-0 space-y-5 lg:col-span-2">
           <Panel title="Daily goal" icon={Target} action={
             <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
               <button type="button" onClick={() => setGoal(goal - 15)} aria-label="Lower goal by 15 minutes" className="rounded-full border border-border p-1 hover:border-primary/50"><Minus className="h-3.5 w-3.5" /></button>

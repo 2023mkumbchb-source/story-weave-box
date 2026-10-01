@@ -55,7 +55,7 @@ export default function LibrarySearchHits({ query, year }: { query: string; year
   return (
     <section className="mb-6 rounded-2xl border border-primary/25 bg-primary/5 p-4" aria-label="Matching files from the library">
       <h2 className="mb-2 flex items-center gap-2 text-sm font-bold text-foreground"><FolderOpen className="h-4 w-4 text-primary" /> Files from the course-work library</h2>
-      <ul className="grid gap-2 sm:grid-cols-2">
+      <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {hits.map((h) => (
           <li key={h.file[0]}>
             <Link to={h.href} className="flex items-center gap-2.5 rounded-xl border border-border bg-card p-2 transition-colors hover:border-primary/50">

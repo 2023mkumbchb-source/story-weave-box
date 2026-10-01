@@ -154,12 +154,12 @@ export default function StudyFileLibrary({ def, slugs }: { def: LibraryDef; slug
             </nav>
 
             {folders.length > 0 && (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {folders.map((f) => (
                   <Link
                     key={f.s}
                     to={libraryPath(def, [...slugs, f.s])}
-                    className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-[var(--shadow-elevated)]"
+                    className="group flex min-w-0 items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-[var(--shadow-elevated)]"
                   >
                     <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><FolderOpen className="h-5 w-5" /></span>
                     <span className="min-w-0 flex-1">

@@ -39,6 +39,7 @@ export function TodayClasses({ year, wide = false }: { year: number; wide?: bool
   const tables = useTimetable(year);
   const groups = useMemo(() => [...new Set(tables.flatMap((t) => t.rows.map((r) => r.group ?? "").filter(Boolean)))].sort(), [tables]);
   const [group, setGroup] = useState("");
+  const [showAll, setShowAll] = useState(false);
   useEffect(() => { setGroup(safeGet(`ompath_group_y${year}`) ?? ""); }, [year]);
 
   const today = new Date();
@@ -78,7 +79,7 @@ export function TodayClasses({ year, wide = false }: { year: number; wide?: bool
         <div>
           <p className="mb-1.5 text-[11px] font-bold text-foreground">{notStarted ? "First week · " : ""}{label}{found.offset > 1 ? "" : ` · ${found.day}`}</p>
           <ul className={`space-y-1.5 ${wide ? "sm:grid sm:grid-cols-2 sm:gap-2 sm:space-y-0" : ""}`}>
-            {found.rows.flatMap((r, i) => r.entries.map((e, k) => ({ r, i, e, k }))).slice(0, wide ? 40 : 5).map(({ r, i, e, k }) => {
+            {found.rows.flatMap((r, i) => r.entries.map((e, k) => ({ r, i, e, k }))).slice(0, wide ? (showAll ? 60 : 6) : 5).map(({ r, i, e, k }) => {
               const [code, ...rest] = e.split(" · ");
               return (
                 <li key={`${i}-${k}`} className="flex items-start gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5">
@@ -88,6 +89,7 @@ export function TodayClasses({ year, wide = false }: { year: number; wide?: bool
               );
             })}
           </ul>
+          {wide && !showAll && found.rows.reduce((n, r) => n + r.entries.length, 0) > 6 && <button type="button" onClick={() => setShowAll(true)} className="mt-2 text-[11px] font-bold text-primary hover:underline">Show all {found.rows.reduce((n, r) => n + r.entries.length, 0)} sessions</button>}
           {!wide && found.rows.reduce((n, r) => n + r.entries.length, 0) > 5 && <p className="mt-1 text-[10px] text-muted-foreground">+{found.rows.reduce((n, r) => n + r.entries.length, 0) - 5} more — open the full timetable.</p>}
         </div>
       )}

@@ -84,7 +84,7 @@ export default function GlobalSearch() {
       )}
 
       {loading && !hits.length ? (
-        <div className="mt-8 space-y-8">{[1, 2].map((g) => <div key={g}><Skeleton className="mb-3 h-6 w-40" /><div className="grid gap-2 sm:grid-cols-2"><Skeleton className="h-20 rounded-xl" /><Skeleton className="h-20 rounded-xl" /></div></div>)}</div>
+        <div className="mt-8 space-y-8">{[1, 2].map((g) => <div key={g}><Skeleton className="mb-3 h-6 w-40" /><div className="grid grid-cols-1 gap-2 sm:grid-cols-2"><Skeleton className="h-20 rounded-xl" /><Skeleton className="h-20 rounded-xl" /></div></div>)}</div>
       ) : searched && hits.length === 0 ? (
         <div className="mt-10 rounded-xl border border-dashed border-border p-8 text-center">
           <p className="text-muted-foreground">No results for “{q}”{hasFilters ? " with the current filters" : ""}.</p>
@@ -96,9 +96,9 @@ export default function GlobalSearch() {
           {groups.map(({ group, rows }) => (
             <section key={group}>
               <h2 className="mb-3 font-serif text-xl font-bold text-foreground">{group} <span className="text-sm font-semibold text-muted-foreground">{rows.length}</span></h2>
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {rows.slice(0, 40).map((h) => (
-                  <Link key={h.key} to={h.href} onClick={() => void logSearch(q, hits.length, { type: h.kind, id: h.key })} className="group flex items-start gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-primary/5">
+                  <Link key={h.key} to={h.href} onClick={() => void logSearch(q, hits.length, { type: h.kind, id: h.key })} className="group flex min-w-0 items-start gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-primary/5">
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10"><HitIcon hit={h} /></span>
                     <span className="min-w-0 flex-1">
                       <strong className="line-clamp-2 block text-sm text-foreground"><Highlight text={h.title} query={q} /></strong>

@@ -112,7 +112,7 @@ export default function YearTimetable() {
           </section>
         )}
 
-        <section className="grid gap-3 sm:grid-cols-2">
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {hasLibrary && (
             <Link to={`/library/year-${tt.year}`} className="group flex items-center gap-3 rounded-2xl border-2 border-primary/30 bg-primary/5 p-4 transition-colors hover:bg-primary/10">
               <FolderOpen className="h-6 w-6 text-primary" />

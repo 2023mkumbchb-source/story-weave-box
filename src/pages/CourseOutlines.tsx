@@ -115,19 +115,19 @@ function OutlineIndex({ year }: { year: number }) {
         </div>
       </section>
       <div className="mx-auto max-w-4xl space-y-8 px-5 py-8">
-        {!list && <div className="grid gap-3 sm:grid-cols-2">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 rounded-2xl" />)}</div>}
+        {!list && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 rounded-2xl" />)}</div>}
         {curated.length > 0 && (
           <section>
             <h2 className="font-serif text-xl font-bold text-foreground">Department course outlines</h2>
             <p className="mb-3 text-xs text-muted-foreground">Week-by-week scope from the departments.</p>
-            <div className="grid gap-3 sm:grid-cols-2">{curated.map((o) => <Card key={o.id} o={o} />)}</div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{curated.map((o) => <Card key={o.id} o={o} />)}</div>
           </section>
         )}
         {autos.length > 0 && (
           <section>
             <h2 className="font-serif text-xl font-bold text-foreground">{curated.length ? "More units — lecture checklists" : "Unit checklists"}</h2>
             <p className="mb-3 text-xs text-muted-foreground">Built from the lecture slides in the library: open a file, read it here, tick it off.</p>
-            <div className="grid gap-3 sm:grid-cols-2">{autos.map((o) => <Card key={o.id} o={o} />)}</div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{autos.map((o) => <Card key={o.id} o={o} />)}</div>
           </section>
         )}
         {list && list.length === 0 && <p className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">Nothing for Year {year} yet. <Link to="/course-outlines/year-4" className="font-semibold text-primary hover:underline">See Year 4</Link></p>}
