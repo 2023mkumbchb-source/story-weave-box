@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ChevronRight, Download, File, FileText, Film, FolderOpen, Image as ImageIcon, Loader2, Presentation, Search, Archive } from "lucide-react";
 import { updateMetaTags, SITE_URL } from "@/lib/seo";
+import { toast } from "@/hooks/use-toast";
 
 type Kind = "pdf" | "ppt" | "doc" | "video" | "img" | "zip" | "file";
 type DriveFile = [id: string, name: string, kind: Kind];
@@ -14,6 +15,18 @@ const KIND_ICON: Record<Kind, typeof File> = { pdf: FileText, ppt: Presentation,
 // drive.usercontent.google.com serves the file itself; confirm=t skips the
 // "can't scan for viruses" interstitial that large files (videos) otherwise hit.
 const downloadUrl = (id: string) => `https://drive.usercontent.google.com/download?id=${encodeURIComponent(id)}&export=download&confirm=t`;
+
+// Start the download without leaving the site: the file is served as an attachment, so
+// loading it in a hidden frame makes the browser save it and the page never navigates.
+function startDownload(id: string, name: string) {
+  const frame = document.createElement("iframe");
+  frame.style.display = "none";
+  frame.setAttribute("aria-hidden", "true");
+  frame.src = downloadUrl(id);
+  document.body.appendChild(frame);
+  window.setTimeout(() => frame.remove(), 5 * 60 * 1000);
+  toast({ title: "Download started", description: cleanName(name) });
+}
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 const countFiles = (f: DriveFolder): number => (f.f?.length ?? 0) + (f.d ?? []).reduce((s, c) => s + countFiles(c), 0);
@@ -190,8 +203,8 @@ function FileList({ rows }: { rows: { file: DriveFile; where?: string }[] }) {
           <li key={id}>
             <a
               href={downloadUrl(id)}
-              target="_blank"
-              rel="noopener noreferrer"
+              download={name}
+              onClick={(e) => { e.preventDefault(); startDownload(id, name); }}
               className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-primary/5"
             >
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"><Icon className="h-4 w-4" /></span>
