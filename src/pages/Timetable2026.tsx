@@ -70,7 +70,9 @@ const YEAR4_UNITS = [
 ] as const;
 
 function cleanText(value: string) {
-  return value.replace(/\s+/g, " ").trim();
+  const v = value.replace(/\s+/g, " ").trim();
+  const { title, sub } = formatUnitEntry(v, DEFAULT_UNIT_NAMES);
+  return sub ? `${title} · ${sub}` : title;
 }
 
 function semesterWeek() {

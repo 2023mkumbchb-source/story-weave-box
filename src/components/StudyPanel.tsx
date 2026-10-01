@@ -38,6 +38,7 @@ const parseDate = (iso: string) => { const [y, m, d] = iso.split("-").map(Number
 /** The next teaching day's sessions for a year, with a group picker that is remembered on this device. */
 export function TodayClasses({ year, wide = false }: { year: number; wide?: boolean }) {
   const tables = useTimetable(year);
+  const names = unitNameMap(useSiteConfig());
   const groups = useMemo(() => [...new Set(tables.flatMap((t) => t.rows.map((r) => r.group ?? "").filter(Boolean)))].sort(), [tables]);
   const [group, setGroup] = useState("");
   const [showAll, setShowAll] = useState(false);
