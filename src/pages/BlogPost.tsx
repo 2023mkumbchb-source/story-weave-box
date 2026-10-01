@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useLayoutEffect, forwardRef, memo } from "react";
+import SearchHighlightBar from "@/components/SearchHighlightBar";
 import StudyPanel from "@/components/StudyPanel";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -1784,6 +1785,8 @@ export default function BlogPost() {
           </div>
         </div>
       )}
+
+      <SearchHighlightBar term={new URLSearchParams(location.search).get("hl")} ready={Boolean(article)} />
 
       {/* Main layout */}
       <div className="mx-auto max-w-6xl px-3 py-5 sm:px-5 sm:py-8">

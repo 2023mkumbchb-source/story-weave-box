@@ -229,6 +229,9 @@ function FileList({ rows: allRows, broken, trail }: { rows: Row[]; broken: Set<s
   const ordered = [...docs, ...images]; // viewer order: documents first, then images
   const indexOf = new Map(ordered.map((r, i) => [r.file[0], i]));
   const { isSaved } = useFileShelf();
+  const [fileParams] = useSearchParams();
+  const openId = fileParams.get("file");
+  useEffect(() => { const at = openId ? indexOf.get(openId) : undefined; if (at !== undefined) setViewing(at); }, [openId, signature]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (viewing !== null && ordered[viewing]) addRecent(ordered[viewing].file, trail); }, [viewing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

@@ -43,6 +43,7 @@ export default function Navbar() {
   const links = useMemo(() => {
     const base = [
       { to: "/", label: "Home", icon: Home },
+      { to: "/dashboard", label: "My Day", icon: LayoutDashboard },
       { to: "/my-revision", label: "My Revision", icon: Target },
       { to: "/revision-index", label: "Exam Revision", icon: ListChecks },
       { to: "/contests", label: "Mega Contest", icon: Trophy },

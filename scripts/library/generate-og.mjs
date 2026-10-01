@@ -50,7 +50,7 @@ h1{font-family:Georgia,"Times New Roman",serif;font-size:${size}px;line-height:1
 <div class="stack"><div class="card a"></div><div class="card b"></div><div class="card c"><i style="top:34px;right:70px"></i><i style="top:62px"></i><i style="top:88px;opacity:.5"></i><i style="top:114px"></i><i style="top:140px;opacity:.5;right:60px"></i></div></div>
 <div class="tag">${esc(tag)}</div><h1>${esc(title)}</h1><div class="sub">${esc(subtitle)}</div>
 ${chip ? `<div class="chip">${esc(chip)}</div>` : ""}
-<div class="foot"><span>Used at MKU &amp; other universities</span><span><b>${esc((registry.thumbnailCredit ?? registry.credit))}</b></span></div>
+<div class="foot"><span>Used at MKU &amp; other universities</span><span><b>${esc((registry.seoCredit ?? registry.credit))}</b></span></div>
 </div></body></html>`;
 }
 

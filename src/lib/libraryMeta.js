@@ -59,23 +59,23 @@ export function folderMeta(registry, def, chain, totalFiles = 0) {
   if (chain.length === 0) {
     h1 = def.title;
     title = `${def.label} MBChB Notes, Slides & Past Papers | ${registry.brand}`;
-    description = `Free ${def.label} MBChB study library: ${def.tagline}. ${fileText} of lecture slides, notes, textbooks and past papers, sorted by ${def.rootLabel} for ${registry.audience}. ${registry.credit}.`;
+    description = `Free ${def.label} MBChB study library: ${def.tagline}. ${fileText} of lecture slides, notes, textbooks and past papers, sorted by ${def.rootLabel} for ${registry.audience}. ${(registry.seoCredit ?? registry.credit)}.`;
     keywords = [`${def.label} MBChB notes`, `${def.label} medicine notes`, "MKU MBChB notes", "Mount Kenya University medicine", "medical school past papers Kenya"];
   } else if (chain.length === 1) {
     h1 = `${def.label} ${subject} Notes`;
     title = `${def.label} ${subject} Notes, Slides & Past Papers | ${registry.brand}`;
-    description = `${def.label} MBChB ${subject} notes, lecture slides, textbooks and past papers — ${fileText}, organised by type and topic. Used at Mount Kenya University and other universities. ${registry.credit}.`;
+    description = `${def.label} MBChB ${subject} notes, lecture slides, textbooks and past papers — ${fileText}, organised by type and topic. Used at Mount Kenya University and other universities. ${(registry.seoCredit ?? registry.credit)}.`;
     keywords = [`${def.label} ${subject} notes`, `${subject} MBChB`, `${subject} past papers`, `${subject} lecture slides`, "MKU MBChB"];
   } else {
     const phrase = TYPE_PHRASE[names[1]];
     h1 = `${def.label} ${subject} — ${names.slice(1).join(" › ")}`;
     title = `${def.label} ${subject}: ${names.slice(1).join(" › ")} | ${registry.brand}`;
-    description = `${def.label} ${subject} ${names.length > 2 ? last + " " : ""}${phrase ?? names[1]} for MBChB students — ${fileText} to view or download. ${registry.credit}, shared for ${registry.audience}.`;
+    description = `${def.label} ${subject} ${names.length > 2 ? last + " " : ""}${phrase ?? names[1]} for MBChB students — ${fileText} to view or download. ${(registry.seoCredit ?? registry.credit)}, shared for ${registry.audience}.`;
     keywords = [`${def.label} ${subject} ${last}`, `${subject} ${last}`, `${last} notes`, `${last} MBChB`];
   }
   const shareText = chain.length
-    ? `📚 ${def.label} ${subject}${chain.length > 1 ? " – " + names.slice(1).join(" › ") : " notes"}: ${fileText} (slides, past papers & books)\n${registry.credit} · ${registry.brand}`
-    : `📚 ${def.label} MBChB notes library: ${def.tagline}\n${registry.credit} · ${registry.brand}`;
+    ? `📚 ${def.label} ${subject}${chain.length > 1 ? " – " + names.slice(1).join(" › ") : " notes"}: ${fileText} (slides, past papers & books)\n${(registry.seoCredit ?? registry.credit)} · ${registry.brand}`
+    : `📚 ${def.label} MBChB notes library: ${def.tagline}\n${(registry.seoCredit ?? registry.credit)} · ${registry.brand}`;
   return { title, description, h1, keywords, path, shareText, files, ogImage: ogImagePath(def, slugs[0]) };
 }
 
@@ -85,8 +85,8 @@ export function outlineMeta(registry, outline) {
   return {
     path,
     title: `${outline.title} — Weekly Topics & Progress Tracker | ${registry.brand}`,
-    description: `${outline.title} (${outline.tagline}) with a tick-off checklist so you can track what you have revised. For ${registry.audience}. ${registry.credit}.`,
-    shareText: `✅ ${outline.title}: ${outline.tagline}. Tick off topics as you revise.\n${registry.credit} · ${registry.brand}`,
+    description: `${outline.title} (${outline.tagline}) with a tick-off checklist so you can track what you have revised. For ${registry.audience}. ${(registry.seoCredit ?? registry.credit)}.`,
+    shareText: `✅ ${outline.title}: ${outline.tagline}. Tick off topics as you revise.\n${(registry.seoCredit ?? registry.credit)} · ${registry.brand}`,
     ogImage: `/og/library/outline-${outline.slug}.jpg`,
   };
 }
@@ -102,7 +102,7 @@ export function timetableMeta(registry, tt) {
     h1: `${label} MBChB teaching timetable`,
     title: `${label} Teaching Timetable, ${t.period} (${t.term}) | MKU MBChB | ${registry.brand}`,
     description: `${label} MBChB (${tt.intake}) ${t.term} timetable for ${t.period}: weekly schedule, units, venues and lecturers at Mount Kenya University. Teaching ${t.dates[0].value}; CAT ${t.dates[1].value}.`,
-    shareText: `📅 ${label} MBChB timetable – ${t.term}, ${t.period}\nUnits, venues & lecturers · ${registry.credit} · ${registry.brand}`,
+    shareText: `📅 ${label} MBChB timetable – ${t.term}, ${t.period}\nUnits, venues & lecturers · ${(registry.seoCredit ?? registry.credit)} · ${registry.brand}`,
     ogImage: `/og/library/timetable-${tt.slug}.jpg`,
     keywords: [`${label} MBChB timetable`, "MKU medicine timetable 2026", "Mount Kenya University MBChB timetable", `${label} teaching timetable September December 2026`],
   };

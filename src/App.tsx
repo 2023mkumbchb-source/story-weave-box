@@ -1,4 +1,5 @@
 import { Suspense, lazy } from "react";
+import SearchPalette from "@/components/SearchPalette";
 import AnnouncementBar from "@/components/AnnouncementBar";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -47,6 +48,7 @@ const MyRevision = lazy(() => import("./pages/MyRevision"));
 const RevisionPlanner = lazy(() => import("./pages/RevisionPlanner"));
 const RevisionIndex = lazy(() => import("./pages/RevisionIndex"));
 const SmartRevision = lazy(() => import("./pages/SmartRevision"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
 const GlobalSearch = lazy(() => import("./pages/GlobalSearch"));
 const StudySystemAdmin = lazy(() => import("./pages/StudySystemAdmin"));
 const CategoryManager = lazy(() => import("./pages/CategoryManager"));
@@ -111,6 +113,7 @@ const AnimatedRoutes = () => {
             <Route path="/supplementary-revision" element={<Navigate to="/revision-index" replace />} />
             <Route path="/revision-index" element={<RevisionIndex />} />
             <Route path="/revise" element={<SmartRevision />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/search" element={<GlobalSearch />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
@@ -176,6 +179,7 @@ const App = () => (
             <PurchaseResume />
             <LearnerProfileGate />
             <AnnouncementBar />
+            <SearchPalette />
             <Navbar />
             <AnimatedRoutes />
             <SiteFooter />

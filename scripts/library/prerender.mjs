@@ -51,7 +51,7 @@ try {
   const shell = (inner) =>
     `<main style="max-width:960px;margin:0 auto;padding:24px 20px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;line-height:1.55;color:#14302b">${inner}</main>`;
   const crumbs = (items) => `<nav aria-label="Breadcrumb" style="font-size:14px;margin-bottom:12px">${items.map(([label, href]) => (href ? `<a href="${href}">${esc(label)}</a>` : esc(label))).join(" › ")}</nav>`;
-  const credit = `<p style="margin-top:28px;font-size:14px"><strong>${esc(registry.credit)}</strong> · ${esc(registry.brand)} · shared for ${esc(registry.audience)}.</p>`;
+  const credit = `<p style="margin-top:28px;font-size:14px"><strong>${esc((registry.seoCredit ?? registry.credit))}</strong> · ${esc(registry.brand)} · shared for ${esc(registry.audience)}.</p>`;
 
   const written = [];
   const write = (urlPath, html, lastmod) => {
@@ -89,11 +89,11 @@ try {
         description: meta.description,
         url: `${site}${meta.path}`,
         isPartOf: { "@type": "WebSite", name: registry.brand, url: site },
-        author: { "@type": "Person", name: "Abongo" },
+        author: { "@type": "Person", name: "Abongo Davis" },
         educationalLevel: `${def.label} MBChB`,
         audience: { "@type": "EducationalAudience", educationalRole: "student" },
         inLanguage: "en",
-        ...(here?.f?.length ? { hasPart: here.f.slice(0, 150).map((f) => ({ "@type": "CreativeWork", name: prettyTitle(f[1]), description: `${fileBlurb(f[2], trailNames)}. ${registry.credit}.`, educationalLevel: `${def.label} MBChB`, author: { "@type": "Person", name: "Abongo" } })) } : {}),
+        ...(here?.f?.length ? { hasPart: here.f.slice(0, 150).map((f) => ({ "@type": "CreativeWork", name: prettyTitle(f[1]), description: `${fileBlurb(f[2], trailNames)}. ${(registry.seoCredit ?? registry.credit)}.`, educationalLevel: `${def.label} MBChB`, author: { "@type": "Person", name: "Abongo Davis" } })) } : {}),
       };
       write(meta.path, render({ title: meta.title, description: meta.description, path: meta.path, image: meta.ogImage, keywords: meta.keywords, body, jsonLd }), data.updated);
       for (const n of nodes) visit(n.d ?? [], [...chain, n]);
@@ -109,12 +109,12 @@ try {
   const idx = registry.outlines.map((o) => `<li><a href="/course-outlines/${o.slug}">${esc(o.title)}</a> — ${esc(o.tagline)}</li>`).join("");
   const allMeta = {
     title: `Course Outlines & Progress Tracker, Years 1–4 | ${registry.brand}`,
-    description: `MBChB course outlines for Years 3 and 4 (Pathology, Pharmacology, Virology, Psychiatry, Internal Medicine, Obstetrics & Gynaecology) plus lecture checklists for every year, with a tick-off tracker. For ${registry.audience}. ${registry.credit}.`,
+    description: `MBChB course outlines for Years 3 and 4 (Pathology, Pharmacology, Virology, Psychiatry, Internal Medicine, Obstetrics & Gynaecology) plus lecture checklists for every year, with a tick-off tracker. For ${registry.audience}. ${(registry.seoCredit ?? registry.credit)}.`,
     path: "/course-outlines",
     image: "/og/library/outline-all.jpg",
     keywords: ["MBChB course outline", "MKU course outline", "Year 3 pathology course outline", "Year 4 psychiatry course outline", "internal medicine course outline", "pharmacology course outline"],
   };
-  write(allMeta.path, render({ ...allMeta, body: shell(crumbs([["Home", "/"], ["Course outlines", null]]) + `<h1>MBChB course outlines &amp; progress tracker</h1><p>${esc(allMeta.description)}</p><ul>${idx}</ul>${credit}`), jsonLd: { "@context": "https://schema.org", "@type": "CollectionPage", name: allMeta.title, url: `${site}${allMeta.path}`, author: { "@type": "Person", name: "Abongo" } } }), undefined);
+  write(allMeta.path, render({ ...allMeta, body: shell(crumbs([["Home", "/"], ["Course outlines", null]]) + `<h1>MBChB course outlines &amp; progress tracker</h1><p>${esc(allMeta.description)}</p><ul>${idx}</ul>${credit}`), jsonLd: { "@context": "https://schema.org", "@type": "CollectionPage", name: allMeta.title, url: `${site}${allMeta.path}`, author: { "@type": "Person", name: "Abongo Davis" } } }), undefined);
 
   for (const reg of registry.outlines) {
     const meta = outlineMeta(registry, reg);
@@ -122,7 +122,7 @@ try {
     if (!outline) continue;
     const sections = outline.sections.map((s) => `<h2>${esc(s.title)}</h2>${s.note ? `<p>${esc(s.note)}</p>` : ""}<ul>${s.items.map((i) => `<li>${i.week ? `<strong>${esc(i.week)}</strong> ` : ""}${esc(i.title)}${i.detail ? ` — ${esc(i.detail)}` : ""}</li>`).join("")}</ul>`).join("");
     const body = shell(crumbs([["Home", "/"], [`Year ${reg.year}`, `/year/${reg.year}`], ["Course outlines", "/course-outlines"], [reg.department, null]]) + `<h1>${esc(outline.title)}</h1><p>${esc(outline.summary)}</p>${sections}${credit}`);
-    write(meta.path, render({ title: meta.title, description: meta.description, path: meta.path, image: meta.ogImage, keywords: [`${reg.department} course outline`, `Year ${reg.year} MBChB`, "MKU course outline"], body, jsonLd: { "@context": "https://schema.org", "@type": "Course", name: outline.title, description: meta.description, provider: { "@type": "CollegeOrUniversity", name: "Mount Kenya University" }, author: { "@type": "Person", name: "Abongo" }, url: `${site}${meta.path}` } }), undefined);
+    write(meta.path, render({ title: meta.title, description: meta.description, path: meta.path, image: meta.ogImage, keywords: [`${reg.department} course outline`, `Year ${reg.year} MBChB`, "MKU course outline"], body, jsonLd: { "@context": "https://schema.org", "@type": "Course", name: outline.title, description: meta.description, provider: { "@type": "CollegeOrUniversity", name: "Mount Kenya University" }, author: { "@type": "Person", name: "Abongo Davis" }, url: `${site}${meta.path}` } }), undefined);
   }
 
 

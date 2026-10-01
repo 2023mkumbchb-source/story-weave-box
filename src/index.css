@@ -418,3 +418,7 @@ body.no-copy img {
     font-size: 16px;
   }
 }
+
+/* Words a learner searched for, painted inside the opened note (CSS Custom Highlight API). */
+::highlight(search-hit) { background-color: #fde047; color: #000; }
+::highlight(search-hit-current) { background-color: #fb923c; color: #000; }

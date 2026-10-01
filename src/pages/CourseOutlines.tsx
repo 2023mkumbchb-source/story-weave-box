@@ -83,7 +83,7 @@ function OutlineIndex({ year }: { year: number }) {
   useEffect(() => {
     updateMetaTags({
       title: `Year ${year} Course Outlines & Study Checklists | ${registry.brand}`,
-      description: `Year ${year} MBChB course outlines and study checklists with a tick-off tracker, linked to the notes in the library. ${registry.credit}.`,
+      description: `Year ${year} MBChB course outlines and study checklists with a tick-off tracker, linked to the notes in the library. ${(registry.seoCredit ?? registry.credit)}.`,
       image: `${SITE_URL}/og/library/outline-all.jpg`, url: `${SITE_URL}/course-outlines/year-${year}`, type: "website",
     });
     window.scrollTo({ top: 0 });
@@ -175,12 +175,12 @@ function CourseOutlineView({ outline }: { outline: CourseOutline }) {
   const metaPath = `/course-outlines/${outline.id}`;
   const meta = reg ? outlineMeta(registry, reg) : null;
   const shareTitle = meta?.title ?? `${outline.title} | ${registry.brand}`;
-  const shareText = `✅ ${outline.title} — ${all.length} ${outline.auto ? "files" : "topics"} to tick off${signedIn && doneCount ? `. I'm ${pct(doneCount, all.length)}% through` : ""}.\n${registry.credit} · ${registry.brand}`;
+  const shareText = `✅ ${outline.title} — ${all.length} ${outline.auto ? "files" : "topics"} to tick off${signedIn && doneCount ? `. I'm ${pct(doneCount, all.length)}% through` : ""}.\n${(registry.seoCredit ?? registry.credit)} · ${registry.brand}`;
 
   useEffect(() => {
     updateMetaTags({
       title: shareTitle,
-      description: meta?.description ?? `${outline.title}: ${outline.summary} ${registry.credit}.`,
+      description: meta?.description ?? `${outline.title}: ${outline.summary} ${(registry.seoCredit ?? registry.credit)}.`,
       image: `${SITE_URL}${meta?.ogImage ?? "/og/library/outline-all.jpg"}`,
       url: `${SITE_URL}${metaPath}`,
       type: "website",
