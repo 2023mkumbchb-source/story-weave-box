@@ -90,7 +90,7 @@ export default function StudyFileLibrary({ def, slugs }: { def: LibraryDef; slug
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">{def.label} · MBChB</p>
-              <h1 className="mt-2 font-serif text-3xl font-bold text-foreground sm:text-4xl">{heading}</h1>
+              <h1 className="mt-2 font-serif text-2xl font-bold leading-tight text-foreground sm:text-4xl">{heading}</h1>
             </div>
             {meta && <ShareButton url={`${SITE_URL}${meta.path}`} title={meta.title} text={meta.shareText} />}
           </div>
@@ -234,7 +234,7 @@ function FileList({ rows: allRows, broken, trail }: { rows: Row[]; broken: Set<s
   return (
     <div>
       {(kinds.length > 1 || rows.length > 12) && kinds.length > 1 && (
-        <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Filter by file type">
+        <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible" role="group" aria-label="Filter by file type" style={{ scrollbarWidth: "none" }}>
           {[{ key: "all" as const, label: "All" }, ...kinds].map((f) => {
             const n = f.key === "all" ? rows.length : counts[f.key] ?? 0;
             const active = filter === f.key;
@@ -244,7 +244,7 @@ function FileList({ rows: allRows, broken, trail }: { rows: Row[]; broken: Set<s
                 type="button"
                 onClick={() => { setFilter(f.key); setImageLimit(IMAGE_PAGE); }}
                 aria-pressed={active}
-                className={`rounded-full border px-3 py-1 text-xs font-bold transition-colors ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:border-primary/50"}`}
+                className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold transition-colors ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:border-primary/50"}`}
               >{f.label} <span className={active ? "opacity-80" : "text-muted-foreground"}>{n}</span></button>
             );
           })}
@@ -270,11 +270,11 @@ function FileList({ rows: allRows, broken, trail }: { rows: Row[]; broken: Set<s
               );
             }
             return (
-              <li key={id} className={`group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-primary/5 ${hidden.has(id) ? "bg-amber-500/5 opacity-60" : ""}`}>
+              <li key={id} className={`group flex flex-wrap items-center [content-visibility:auto] [contain-intrinsic-size:auto_76px] gap-x-3 gap-y-2 px-3 py-3 transition-colors hover:bg-primary/5 sm:flex-nowrap sm:px-4 ${hidden.has(id) ? "bg-amber-500/5 opacity-60" : ""}`}>
                 <button
                   type="button"
                   onClick={() => { if (viewable) setViewing(indexOf.get(id) ?? null); else { addRecent(file, trail); startDownload(id, name); } }}
-                  className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  className="flex w-full min-w-0 items-center gap-3 text-left sm:w-auto sm:flex-1"
                 >
                   <FileThumb id={id} kind={kind} />
                   <span className="min-w-0 flex-1">
@@ -282,27 +282,29 @@ function FileList({ rows: allRows, broken, trail }: { rows: Row[]; broken: Set<s
                     <span className="block truncate text-[11px] text-muted-foreground">{KIND_LABEL[kind]}{where ? ` · ${where}` : ""}</span>
                   </span>
                 </button>
-                {isAdmin && (
-                  <span className="flex shrink-0 gap-0.5">
-                    <button type="button" onClick={() => rename(id, name)} aria-label="Rename file" title="Rename (admin)" className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>
-                    <button type="button" onClick={() => toggleHidden(id)} aria-label={hidden.has(id) ? "Unhide file" : "Hide file"} title={hidden.has(id) ? "Hidden from learners — tap to show" : "Hide from learners (admin)"} className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-primary">{hidden.has(id) ? <EyeOff className="h-3.5 w-3.5 text-amber-600" /> : <Eye className="h-3.5 w-3.5" />}</button>
-                  </span>
-                )}
-                <button type="button" onClick={() => toggleSaved(file, trail)} aria-pressed={saved} aria-label={saved ? `Remove ${cleanName(name)} from saved files` : `Save ${cleanName(name)}`} title={saved ? "Saved — tap to remove" : "Save for later"} className={`shrink-0 rounded-full p-1.5 transition-colors ${saved ? "text-amber-500" : "text-muted-foreground/60 hover:text-amber-500"}`}><Star className={`h-4 w-4 ${saved ? "fill-current" : ""}`} /></button>
-                {viewable && (
-                  <button
-                    type="button"
-                    onClick={() => setViewing(indexOf.get(id) ?? null)}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground hover:bg-primary/90"
-                  ><Eye className="h-3.5 w-3.5" /> View</button>
-                )}
-                <a
-                  href={downloadUrl(id)}
-                  download={name}
-                  onClick={(e) => { e.preventDefault(); addRecent(file, trail); startDownload(id, name); }}
-                  aria-label={`Download ${cleanName(name)}`}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/30 px-3 py-1 text-xs font-bold text-primary hover:bg-primary hover:text-primary-foreground"
-                ><Download className="h-3.5 w-3.5" /><span className="hidden sm:inline">Download</span></a>
+                <span className="flex w-full items-center justify-end gap-1.5 sm:w-auto sm:shrink-0">
+                  {isAdmin && (
+                    <span className="flex shrink-0 gap-0.5">
+                      <button type="button" onClick={() => rename(id, name)} aria-label="Rename file" title="Rename (admin)" className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => toggleHidden(id)} aria-label={hidden.has(id) ? "Unhide file" : "Hide file"} title={hidden.has(id) ? "Hidden from learners — tap to show" : "Hide from learners (admin)"} className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-primary">{hidden.has(id) ? <EyeOff className="h-3.5 w-3.5 text-amber-600" /> : <Eye className="h-3.5 w-3.5" />}</button>
+                    </span>
+                  )}
+                  <button type="button" onClick={() => toggleSaved(file, trail)} aria-pressed={saved} aria-label={saved ? `Remove ${cleanName(name)} from saved files` : `Save ${cleanName(name)}`} title={saved ? "Saved — tap to remove" : "Save for later"} className={`shrink-0 rounded-full p-1.5 transition-colors ${saved ? "text-amber-500" : "text-muted-foreground/60 hover:text-amber-500"}`}><Star className={`h-4 w-4 ${saved ? "fill-current" : ""}`} /></button>
+                  {viewable && (
+                    <button
+                      type="button"
+                      onClick={() => setViewing(indexOf.get(id) ?? null)}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground hover:bg-primary/90"
+                    ><Eye className="h-3.5 w-3.5" /> View</button>
+                  )}
+                  <a
+                    href={downloadUrl(id)}
+                    download={name}
+                    onClick={(e) => { e.preventDefault(); addRecent(file, trail); startDownload(id, name); }}
+                    aria-label={`Download ${cleanName(name)}`}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/30 px-3 py-1 text-xs font-bold text-primary hover:bg-primary hover:text-primary-foreground"
+                  ><Download className="h-3.5 w-3.5" /><span className="hidden sm:inline">Download</span></a>
+                </span>
               </li>
             );
           })}
