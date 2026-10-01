@@ -199,7 +199,7 @@ export default function Exams() {
       </section>
 
       {/* ── Exam list — 100% original logic, only subtitle text changed ── */}
-      <section className="mx-auto max-w-5xl space-y-4 px-4 py-8">
+      <section className="mx-auto max-w-6xl space-y-4 px-4 py-8">
         {loading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -207,46 +207,34 @@ export default function Exams() {
         ) : allExams.length === 0 ? (
           <p className="py-16 text-center text-muted-foreground">No exams available yet.</p>
         ) : (
-          allExams.map((exam, index) => {
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {allExams.map((exam) => {
             const isSample = exam.id === "sample-exam";
-            const unlocked = true;
             const unitName = inferUnit(exam);
-            const isCurrentPayment = payingForExamId === exam.id;
-
+            const yearTag = getYearFromCategory(exam.category);
             return (
-              <motion.div
-                key={exam.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.04 }}
-                className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"
-              >
-                <div className="mb-4 flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="mb-1 text-xs font-medium text-primary">Unit: {unitName}</p>
-                    <h2 className="font-serif text-lg font-bold text-foreground">{exam.title}</h2>
-                    {/* CHANGED: removed "Section B SAQs · Section C LAQ" — MCQs only */}
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Timed MCQ exam · Section A
-                    </p>
+              <div key={exam.id} className="flex flex-col justify-between rounded-xl border border-border bg-card p-4 shadow-sm transition-colors hover:border-primary/40 sm:p-5">
+                <div>
+                  <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                    <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">{unitName}</span>
+                    {yearTag && <span className="rounded-md border border-border bg-secondary px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">{yearTag}</span>}
+                    <span className="ml-auto rounded-full border border-border px-2 py-0.5 text-[10px] font-bold text-foreground">FREE</span>
                   </div>
-                  <span className="rounded-full border border-border bg-secondary px-3 py-1 text-[10px] font-semibold text-foreground">
-                    FREE
-                  </span>
+                  <h2 className="font-serif text-base font-bold leading-snug text-foreground">{exam.title}</h2>
+                  <p className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5 text-primary" /> Timed</span>
+                    <span className="flex items-center gap-1"><Shield className="h-3.5 w-3.5 text-primary" /> Proctored · MCQs</span>
+                  </p>
                 </div>
-
-                <Button onClick={() => navigate(isSample ? `/exams/${exam.id}/start` : buildExamPath(exam))} className="w-full gap-2">
-                  <Shield className="h-4 w-4" /> Start Exam <ArrowRight className="h-4 w-4" />
-                </Button>
-                {!isSample && !unlocked && (
-                  <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                    <Clock className="h-3.5 w-3.5" />
-                    First 15 questions are free. Pay KES {examPrice} inside the exam to unlock the rest.
-                  </div>
-                )}
-              </motion.div>
+                <div className="mt-4 flex items-center justify-end border-t border-border/60 pt-3">
+                  <Button size="sm" onClick={() => navigate(isSample ? `/exams/${exam.id}/start` : buildExamPath(exam))} className="gap-1.5">
+                    Start exam <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
             );
-          })
+          })}
+          </div>
         )}
 
         {/* Bottom support note */}

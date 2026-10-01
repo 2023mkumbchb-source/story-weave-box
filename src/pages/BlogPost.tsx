@@ -705,6 +705,25 @@ function ExamPreviewBall({ onOpen }: { onOpen: () => void }) {
 /* ─── Article content renderer ─── */
 let _sec = 0;
 
+/** Content wrapped in [locked]…[/locked]: readable for subscribers, a clean unlock card for everyone else. */
+function LockedSection({ lines }: { lines: string[] }) {
+  const access = useAccess();
+  const body = lines.map((l) => l.trim()).filter(Boolean);
+  const placeholder = body.every((l) => /hidden until payment/i.test(l));
+  if (access.canReveal && !placeholder) {
+    return <div className="my-4 space-y-3">{body.map((l, k) => <p key={k} className="text-[1.03rem] leading-8 text-foreground/90"><Inline text={l} /></p>)}</div>;
+  }
+  if (access.canReveal) return null;
+  return (
+    <div className="not-prose my-6 rounded-2xl border border-primary/30 bg-primary/5 p-6 text-center">
+      <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><Lock className="h-5 w-5" /></div>
+      <p className="font-serif text-lg font-bold text-foreground">Subscriber-only section</p>
+      <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">Model answers and marking points for this part are available to subscribers.</p>
+      <Button size="sm" className="mt-4" onClick={() => openSubscribePrompt("Subscribe to read the full answers on this paper.")}>Unlock section</Button>
+    </div>
+  );
+}
+
 const ArticleContent = memo(function ArticleContent({ content, articleId, category, title = "", contentKind = "" }: { content: string; articleId: string; category: string; title?: string; contentKind?: string }) {
   _sec = 0;
   const lines = preprocessContent(content).split("\n");
@@ -790,6 +809,24 @@ const ArticleContent = memo(function ArticleContent({ content, articleId, catego
       displayQuestionNumber += 1;
       t = t.replace(/^(#{1,6}\s+)Q(?:uestion)?\s*\d+/i, `$1Question ${displayQuestionNumber}`);
     }
+
+    if (/^\[locked(?:\s[^\]]*)?\]/i.test(t)) {
+      flushList(); flushTable(); flushFlow(); flushPractice(); underSubheading = false;
+      const inner: string[] = [];
+      const firstRest = t.replace(/^\[locked(?:\s[^\]]*)?\]/i, "").replace(/\[\/locked\]\s*$/i, "").trim();
+      if (firstRest) inner.push(firstRest);
+      let j = i + 1;
+      if (!/\[\/locked\]\s*$/i.test(t)) {
+        while (j < lines.length && !/\[\/locked\]/i.test(lines[j])) { inner.push(lines[j]); j++; }
+        const tail = (lines[j] || "").replace(/\[\/locked\].*$/i, "").trim();
+        if (tail) inner.push(tail);
+        j++;
+      }
+      skipUntil = j;
+      els.push(<LockedSection key={`locked-${i}`} lines={inner} />);
+      continue;
+    }
+    if (/^\[\/locked\]$/i.test(t)) continue;
 
     if (/^```/.test(t)) {
       if (codeBuf == null) {
@@ -1202,6 +1239,26 @@ const ArticleContent = memo(function ArticleContent({ content, articleId, catego
   flushList(); flushTable(); flushFlow(); flushPractice();
   return <div>{els}</div>;
 });
+
+/* ─── Question jump grid for question banks without headings ─── */
+function QuestionIndex() {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setCount(document.querySelectorAll('[data-article-question="true"]').length), 400);
+    return () => clearTimeout(t);
+  }, []);
+  if (!count) return null;
+  return (
+    <nav className="rounded-xl border border-border bg-card p-3" aria-label="Jump to question">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Questions ({count})</p>
+      <div className="grid grid-cols-5 gap-1.5">
+        {Array.from({ length: count }).map((_, k) => (
+          <button key={k} type="button" onClick={() => document.querySelectorAll('[data-article-question="true"]')[k]?.scrollIntoView({ behavior: "smooth", block: "start" })} className="rounded-md border border-border bg-background py-1 text-xs font-semibold text-foreground hover:border-primary hover:text-primary">{k + 1}</button>
+        ))}
+      </div>
+    </nav>
+  );
+}
 
 /* ─── Sidebar TOC ─── */
 function SidebarToc({ items, activeId }: { items: TocItem[]; activeId: string }) {
@@ -1791,14 +1848,14 @@ export default function BlogPost() {
       <SearchHighlightBar term={new URLSearchParams(location.search).get("hl")} ready={Boolean(article)} />
 
       {/* Main layout */}
-      <div className="mx-auto max-w-6xl px-3 py-5 sm:px-5 sm:py-8">
-        <div className={slideDeck ? "" : "lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10"}>
+      <div className="mx-auto max-w-[1600px] px-3 py-5 sm:px-6 sm:py-8">
+        <div className={slideDeck ? "" : "lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[260px_minmax(0,1fr)_300px]"}>
           {!slideDeck && (
             <aside className="hidden lg:block">
-              <div className="sticky top-20 max-h-[calc(100dvh-6rem)] space-y-4 overflow-y-auto pr-1">
-                {toc.length > 0 && <SidebarToc items={toc} activeId={activeSection} />}
+              <div className="space-y-4 pr-1">
+                {toc.length > 0 ? <SidebarToc items={toc} activeId={activeSection} /> : <QuestionIndex />}
                 <ConnectedLearning target={{ id: `note:${article.id}`, title: article.title, where: article.category, year: Number((yearName || "").match(/[1-6]/)?.[0]) || null }} />
-                <StudyPanel year={Number(/Years*([1-6])/i.exec(yearName || "")?.[1]) || null} />
+                <div className="xl:hidden"><StudyPanel year={Number(/Year\s*([1-6])/i.exec(yearName || "")?.[1]) || null} /></div>
               </div>
             </aside>
           )}
@@ -1975,6 +2032,11 @@ export default function BlogPost() {
             {(article as any).comments_enabled !== false && <ArticleComments articleId={article.id} />}
             </PasswordGate>
           </article>
+          {!slideDeck && (
+            <aside className="hidden xl:block" aria-label="Study desk">
+              <StudyPanel year={Number(/Year\s*([1-6])/i.exec(yearName || "")?.[1]) || null} />
+            </aside>
+          )}
           {!slideDeck && <ConnectedLearning className="mt-6 lg:hidden" target={{ id: `note:${article.id}`, title: article.title, where: article.category, year: Number((yearName || "").match(/[1-6]/)?.[0]) || null }} />}
           {slideDeck ? (
             <SlidePreviewModal

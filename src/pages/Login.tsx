@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
-import { LogIn, Loader2, Mail, ShieldCheck } from "lucide-react";
+import { LogIn, Loader2, Mail, ShieldCheck, Sparkles, BookOpen, Trophy, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -100,13 +100,34 @@ export default function Login() {
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
       </Helmet>
-      <div className="w-full max-w-sm">
+      <div className="grid w-full max-w-6xl items-center gap-12 py-10 lg:grid-cols-2">
+        <div className="hidden space-y-6 lg:block">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+            <Sparkles className="h-3.5 w-3.5" /> Your medical study workspace
+          </span>
+          <h2 className="font-serif text-4xl font-bold leading-tight text-foreground">Read, practise and revise — all in one place.</h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">One account keeps your subscription, saved files and study progress with you on every device.</p>
+          <div className="grid gap-3">
+            {[
+              { icon: BookOpen, t: "Notes for Year 1–6", d: "Unit-by-unit study notes, slides and past papers." },
+              { icon: Trophy, t: "Timed exams & CATs", d: "Proctored MCQ papers with instant scoring." },
+              { icon: Target, t: "Revision that follows you", d: "Streaks, bookmarks and your revision planner stay synced." },
+              { icon: ShieldCheck, t: "Your pass, everywhere", d: "Subscription and pass code tied to your email." },
+            ].map((p) => (
+              <div key={p.t} className="flex items-start gap-3 rounded-xl border border-border bg-card p-3.5">
+                <div className="shrink-0 rounded-lg bg-primary/10 p-2 text-primary"><p.icon className="h-4 w-4" /></div>
+                <div><p className="text-sm font-semibold text-foreground">{p.t}</p><p className="mt-0.5 text-xs text-muted-foreground">{p.d}</p></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      <div className="mx-auto w-full max-w-md">
         <div className="rounded-2xl border border-border bg-card p-8" style={{ boxShadow: "var(--shadow-elevated)" }}>
           <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <ShieldCheck className="h-7 w-7" />
           </div>
           <h1 className="mb-2 text-center font-serif text-2xl font-bold text-foreground">
-            {mode === "signup" ? "Create your account" : "Sign in"}
+            {mode === "signup" ? "Create your account" : "Welcome back"}
           </h1>
           <p className="mb-6 text-center text-sm text-muted-foreground">
             Sign in so your subscription and pass code follow your email everywhere.
@@ -122,8 +143,10 @@ export default function Login() {
           </div>
 
           <form onSubmit={emailAuth}>
-            <Input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="mb-3" required />
-            <Input type="password" placeholder="Password" value={readerPassword} onChange={(e) => setReaderPassword(e.target.value)} className="mb-4" required />
+            <label htmlFor="login-email" className="mb-1 block text-xs font-medium text-foreground">Email</label>
+            <Input id="login-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="mb-3" required />
+            <label htmlFor="login-password" className="mb-1 block text-xs font-medium text-foreground">Password</label>
+            <Input id="login-password" type="password" placeholder="Password" value={readerPassword} onChange={(e) => setReaderPassword(e.target.value)} className="mb-4" required />
             <Button type="submit" className="w-full gap-2" disabled={busy}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
               {mode === "signup" ? "Create account" : "Sign in"}
@@ -146,6 +169,7 @@ export default function Login() {
             <Link to="/" className="text-xs text-muted-foreground hover:underline">← Continue as guest</Link>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
