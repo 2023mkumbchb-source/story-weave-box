@@ -67,15 +67,18 @@ export default function Navbar() {
   const links = useMemo(() => {
     const base: { to: string; label: string; icon: typeof Home; more?: boolean }[] = [
       { to: "/", label: "Home", icon: Home },
-      { to: "/dashboard", label: "My Day", icon: LayoutDashboard },
+      { to: "/blog", label: "Notes", icon: BookOpen },
+      { to: "/exams", label: "Exams", icon: Trophy },
+      { to: "/flashcards", label: "Flashcards", icon: GraduationCap },
+      { to: "/my-revision", label: "Revision", icon: Target },
+      { to: "/dashboard", label: "My Day", icon: LayoutDashboard, more: true },
       { to: "/study-map", label: "Study Map", icon: Network, more: true },
-      { to: "/clinical", label: "Clinical Sim", icon: Stethoscope },
-      { to: "/pharmacology", label: "Pharmacology", icon: Pill },
-      { to: "/must-knows", label: "Must-Knows", icon: ListChecks },
+      { to: "/clinical", label: "Clinical Sim", icon: Stethoscope, more: true },
+      { to: "/pharmacology", label: "Pharmacology", icon: Pill, more: true },
+      { to: "/must-knows", label: "Must-Knows", icon: ListChecks, more: true },
       { to: "/daily", label: "Daily Dose", icon: Flame, more: true },
-      { to: "/my-revision", label: "My Revision", icon: Target },
       { to: "/revision-index", label: "Exam Revision", icon: ListChecks, more: true },
-      { to: "/contests", label: "Mega Contest", icon: Trophy },
+      { to: "/contests", label: "Mega Contest", icon: Trophy, more: true },
       { to: "/account", label: "Account", icon: UserRound, more: true },
       { to: "/download-app", label: "Download APK", icon: Smartphone, more: true },
     ];
@@ -166,15 +169,15 @@ export default function Navbar() {
   return (
     <>
       <nav className={`sticky top-0 z-40 border-b border-border bg-[hsl(174,62%,22%)] text-white transition-[transform,opacity] duration-300 ease-out will-change-transform ${hidden ? "-translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100 pointer-events-auto"}`}>
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5 sm:px-6">
-          <Link to="/" className="flex items-center gap-2 text-lg font-bold text-white">
+        <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-3 px-4 py-2 sm:px-6">
+          <Link to="/" className="flex shrink-0 items-center gap-2 text-lg font-bold text-white">
             <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-white/10 p-1">
               <img src={ompathLogo} alt="Ompath Study logo" width="32" height="32" className="h-full w-full object-contain" decoding="async" fetchPriority="high" />
             </div>
             <span className="font-serif">Ompath Study</span>
           </Link>
 
-          <div className="hidden items-center gap-1 md:flex">
+          <div className="hidden min-w-0 items-center gap-1 lg:flex">
             <div className="mr-2 flex items-center gap-0.5 rounded-lg bg-white/10 p-0.5">
               {YEAR_OPTIONS.map((yr) => (
                 <button
@@ -208,7 +211,8 @@ export default function Navbar() {
             <ThemeToggle />
           </div>
 
-          <div className="flex items-center gap-2 md:hidden">
+          <div className="flex items-center gap-2 lg:hidden">
+            <HeaderSearch variant="desktop" />
             <ThemeToggle />
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <SheetTrigger asChild>
