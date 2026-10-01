@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { ArrowRight, BookMarked, BookOpen, ClipboardCheck, Clock, ExternalLink, FileQuestion, FolderOpen, GraduationCap, Images, Stethoscope, Trophy } from "lucide-react";
+import { ArrowRight, BookMarked, BookOpen, ClipboardCheck, Clock, FileQuestion, FolderOpen, GraduationCap, Images, Stethoscope, Trophy } from "lucide-react";
 import {
   YEAR_CATEGORIES,
   getPublishedArticleSummaries,
@@ -227,9 +227,9 @@ export default function YearHub() {
                 <h2 id="year-four-library" className="mt-1 font-serif text-2xl font-bold text-foreground">Year 4 study files</h2>
                 <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">Open a clinical discipline, then choose its block notes, books or revision collection. Files retain their original document format.</p>
               </div>
-              <a href={YEAR4_SOURCE_FOLDER} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-primary/50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <FolderOpen className="h-4 w-4" /> All Year 4 files <ExternalLink className="h-3.5 w-3.5" />
-              </a>
+              <Link to={YEAR4_SOURCE_FOLDER} className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-primary/50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <FolderOpen className="h-4 w-4" /> All Year 4 files <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
           </div>
 
@@ -243,16 +243,16 @@ export default function YearHub() {
                   {group.collections.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2" aria-label={`${group.title} collections`}>
                       {group.collections.map((collection) => (
-                        <a key={collection.href} href={collection.href} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                        <Link key={collection.href} to={collection.href} className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                           <FolderOpen className="h-3.5 w-3.5" /> {collection.label}
-                        </a>
+                        </Link>
                       ))}
                     </div>
                   )}
                 </div>
-                <a href={group.folderHref} target="_blank" rel="noreferrer" aria-label={`Open all ${group.title} files`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                  Open files <ExternalLink className="h-4 w-4" />
-                </a>
+                <Link to={group.folderHref} aria-label={`Open all ${group.title} files`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                  Browse &amp; download <ArrowRight className="h-4 w-4" />
+                </Link>
               </article>
             ))}
           </div>
