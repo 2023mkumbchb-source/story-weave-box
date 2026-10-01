@@ -1240,6 +1240,26 @@ const ArticleContent = memo(function ArticleContent({ content, articleId, catego
   return <div>{els}</div>;
 });
 
+/* ─── Question jump grid for question banks without headings ─── */
+function QuestionIndex() {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setCount(document.querySelectorAll('[data-article-question="true"]').length), 400);
+    return () => clearTimeout(t);
+  }, []);
+  if (!count) return null;
+  return (
+    <nav className="rounded-xl border border-border bg-card p-3" aria-label="Jump to question">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Questions ({count})</p>
+      <div className="grid grid-cols-5 gap-1.5">
+        {Array.from({ length: count }).map((_, k) => (
+          <button key={k} type="button" onClick={() => document.querySelectorAll('[data-article-question="true"]')[k]?.scrollIntoView({ behavior: "smooth", block: "start" })} className="rounded-md border border-border bg-background py-1 text-xs font-semibold text-foreground hover:border-primary hover:text-primary">{k + 1}</button>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
 /* ─── Sidebar TOC ─── */
 function SidebarToc({ items, activeId }: { items: TocItem[]; activeId: string }) {
   if (items.length < 1) return null;
@@ -2012,6 +2032,11 @@ export default function BlogPost() {
             {(article as any).comments_enabled !== false && <ArticleComments articleId={article.id} />}
             </PasswordGate>
           </article>
+          {!slideDeck && (
+            <aside className="hidden xl:block" aria-label="Study desk">
+              <StudyPanel year={Number(/Year\s*([1-6])/i.exec(yearName || "")?.[1]) || null} />
+            </aside>
+          )}
           {!slideDeck && <ConnectedLearning className="mt-6 lg:hidden" target={{ id: `note:${article.id}`, title: article.title, where: article.category, year: Number((yearName || "").match(/[1-6]/)?.[0]) || null }} />}
           {slideDeck ? (
             <SlidePreviewModal

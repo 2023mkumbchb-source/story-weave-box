@@ -510,7 +510,7 @@ export default function Blog() {
       <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)]">
         {/* Desktop-only sidebar */}
         <aside className="hidden lg:block">
-          <div className="sticky top-20 max-h-[calc(100dvh-6rem)] space-y-3 overflow-y-auto pr-1">
+          <div className="space-y-3 pr-1">
             <StudyPanel year={yearNum} />
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Browse</p>
