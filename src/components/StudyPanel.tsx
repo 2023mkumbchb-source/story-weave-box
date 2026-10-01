@@ -13,6 +13,7 @@ import { startDownload } from "@/lib/driveDownload";
 import { shelfToFile, toggleSaved, useFileShelf, type ShelfItem } from "@/lib/fileShelf";
 import DriveFileViewer, { cleanName, downloadUrl } from "@/components/DriveFileViewer";
 import FileThumb from "@/components/FileThumb";
+import LatestFeed from "@/components/LatestFeed";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MY_YEAR_KEY = "ompath_my_year";
@@ -194,6 +195,8 @@ export default function StudyPanel({ year: preferredYear }: { year?: number | nu
           </ul>
         </Card>
       )}
+
+      <LatestFeed />
 
       <Card title={`Saved files${saved.length ? ` (${saved.length})` : ""}`} icon={Star}>
         {saved.length === 0 ? (

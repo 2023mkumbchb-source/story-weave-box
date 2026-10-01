@@ -150,7 +150,7 @@ const AnimatedRoutes = () => {
             <Route path="/daily" element={<DailyDose />} />
             <Route path="/study-map/:system" element={<RailLayout><StudyMap /></RailLayout>} />
             <Route path="/search" element={<RailLayout><GlobalSearch /></RailLayout>} />
-            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog" element={<RailLayout><Blog /></RailLayout>} />
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/flashcards" element={<RailLayout><Flashcards /></RailLayout>} />
             <Route path="/flashcards/:id" element={<FlashcardStudy />} />
