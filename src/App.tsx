@@ -37,6 +37,7 @@ const Account = lazy(() => import("./pages/Account"));
 const Admin = lazy(() => import("./pages/Admin"));
 const SourceLibrary = lazy(() => import("./pages/SourceLibrary"));
 const YearHub = lazy(() => import("./pages/YearHub"));
+const Year4Library = lazy(() => import("./pages/Year4Library"));
 const UnitPage = lazy(() => import("./pages/UnitPage"));
 const MyRevision = lazy(() => import("./pages/MyRevision"));
 const RevisionPlanner = lazy(() => import("./pages/RevisionPlanner"));
@@ -89,6 +90,7 @@ const AnimatedRoutes = () => {
           <Routes location={location}>
             <Route path="/" element={<Index />} />
             <Route path="/timetable-2026" element={<Timetable2026 />} />
+            <Route path="/year-4-library" element={<Year4Library />} />
             <Route path="/year/:yearNumber" element={<YearHub />} />
             <Route path="/year/:yearNumber/unit/:unitSlug" element={<UnitPage />} />
             <Route path="/my-revision" element={<SignedInRoute><MyRevision /></SignedInRoute>} />

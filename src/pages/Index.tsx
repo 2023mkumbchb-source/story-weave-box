@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
   BookOpen, GraduationCap, Loader2,
-  ArrowRight, Trophy, BookMarked, Phone, MessageCircle, Clock, Check, Search,
+  ArrowRight, Trophy, BookMarked, Phone, MessageCircle, Clock, Check, Search, FolderOpen,
 } from "lucide-react";
 import { getAllCategories, getCategoryDisplayName, getYearFromCategory, YEAR_CATEGORIES, buildBlogPath, buildFlashcardPath } from "@/lib/store";
 import { buildStoryPath, updateMetaTags } from "@/lib/seo";
@@ -19,6 +19,7 @@ const RESOURCES = [
   { to: "/blog", label: "Study Notes & MCQs", desc: "Notes and quiz questions by year & unit", icon: BookOpen, subject: "pathology" },
   { to: "/exams", label: "Past Papers & CATs", desc: "Timed exam mode, real papers", icon: Trophy, subject: "exam" },
   { to: "/flashcards", label: "Flashcards", desc: "Rapid recall before the ward", icon: GraduationCap, subject: "anatomy" },
+  { to: "/year-4-library", label: "Year 4 Library", desc: "Books, notes & slides to download by department", icon: FolderOpen, subject: "pharmacology" },
 ];
 
 const YEAR3_PRIORITY = [
