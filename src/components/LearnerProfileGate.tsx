@@ -43,7 +43,8 @@ export default function LearnerProfileGate() {
         setUniversity((data as any)?.university || "");
         setCourse((data as any)?.course || "MBChB — Medicine & Surgery");
         setYear((data as any)?.study_year ? String((data as any).study_year) : "");
-        setOpen(!(data as any)?.onboarding_completed);
+        const snoozed = Date.now() - Number(localStorage.getItem("ompath_profile_gate_snoozed_at") || 0) < 86400000;
+        setOpen(!(data as any)?.onboarding_completed && !snoozed);
       })
       .finally(() => { if (alive) setChecking(false); });
     return () => { alive = false; };
@@ -83,6 +84,7 @@ export default function LearnerProfileGate() {
       </div>
     ) : (
     <form onSubmit={save} className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl sm:p-8">
+      <button type="button" aria-label="Close" onClick={() => { localStorage.setItem("ompath_profile_gate_snoozed_at", String(Date.now())); setOpen(false); }} className="float-right -mr-2 -mt-2 h-10 w-10 rounded-full text-xl text-muted-foreground hover:bg-muted">×</button>
       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary"><GraduationCap /></div>
       <h1 className="mt-4 font-serif text-2xl font-bold">Tell us what you study</h1>
       <p className="mt-2 text-sm text-muted-foreground">This lets OmpathStudy identify untouched units and recommend topics from answers you miss.</p>
@@ -101,6 +103,7 @@ export default function LearnerProfileGate() {
         <option value="">Select year</option>{[1,2,3,4,5,6].map(x => <option key={x} value={x}>Year {x}</option>)}
       </select>
       <Button type="submit" disabled={saving} className="mt-6 min-h-11 w-full">{saving ? <Loader2 className="animate-spin" /> : "Start personalised revision"}</Button>
+      <button type="button" onClick={() => { localStorage.setItem("ompath_profile_gate_snoozed_at", String(Date.now())); setOpen(false); }} className="mt-3 min-h-10 w-full text-sm font-semibold text-muted-foreground hover:text-foreground">Skip for now — remind me later</button>
     </form>
     )}
   </div>;

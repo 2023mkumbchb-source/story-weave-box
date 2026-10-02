@@ -13,6 +13,7 @@ import { updateSiteConfig, useSiteConfig } from "@/lib/siteConfig";
 import { addRecent, toggleSaved, useFileShelf } from "@/lib/fileShelf";
 import { loadBrokenLinks, loadLibrary } from "@/lib/libraryData";
 import DriveFileViewer, { cleanName, canPreview, downloadUrl, reportUrl, thumbUrl, type DriveFile, type DriveKind } from "@/components/DriveFileViewer";
+import { getReadingSession, saveReadingSession, clearReadingSession } from "@/lib/reading-session";
 
 type Kind = DriveKind;
 export type LibraryDef = (typeof registry.libraries)[number];
@@ -237,10 +238,25 @@ function FileList({ rows: allRows, broken, trail }: { rows: Row[]; broken: Set<s
   const [fileParams] = useSearchParams();
   const openId = fileParams.get("file");
   useEffect(() => { const at = openId ? indexOf.get(openId) : undefined; if (at !== undefined) setViewing(at); }, [openId, signature]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (viewing !== null && ordered[viewing]) addRecent(ordered[viewing].file, trail); }, [viewing]); // eslint-disable-line react-hooks/exhaustive-deps
+  const scope = typeof window !== "undefined" ? window.location.pathname : trail;
+  const [resume, setResume] = useState(() => getReadingSession(scope));
+  useEffect(() => {
+    if (viewing !== null && ordered[viewing]) {
+      addRecent(ordered[viewing].file, trail);
+      saveReadingSession(scope, { fileId: ordered[viewing].file[0], name: ordered[viewing].file[1], path: scope });
+    } else setResume(getReadingSession(scope));
+  }, [viewing]); // eslint-disable-line react-hooks/exhaustive-deps
+  const resumeAt = resume ? indexOf.get(resume.fileId) : undefined;
 
   return (
     <div>
+      {resumeAt !== undefined && viewing === null && resume && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+          <p className="min-w-0 flex-1 truncate text-sm"><span className="font-bold text-primary">Continue reading:</span> {cleanName(resume.name)} <span className="text-muted-foreground">({resumeAt + 1} of {ordered.length})</span></p>
+          <button type="button" onClick={() => setViewing(resumeAt)} className="min-h-10 rounded-md bg-primary px-3 text-xs font-bold text-primary-foreground">Resume</button>
+          <button type="button" aria-label="Dismiss" onClick={() => { clearReadingSession(scope); setResume(null); }} className="min-h-10 px-2 text-muted-foreground">✕</button>
+        </div>
+      )}
       {(kinds.length > 1 || rows.length > 12) && kinds.length > 1 && (
         <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible" role="group" aria-label="Filter by file type" style={{ scrollbarWidth: "none" }}>
           {[{ key: "all" as const, label: "All" }, ...kinds].map((f) => {
