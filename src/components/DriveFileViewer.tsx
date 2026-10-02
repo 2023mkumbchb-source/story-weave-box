@@ -64,14 +64,15 @@ export default function DriveFileViewer({ items, index, onIndexChange, onDownloa
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onIndexChange(null); }}>
-      <DialogContent className="flex h-[92dvh] w-[96vw] max-w-6xl flex-col gap-0 overflow-hidden p-0">
+      <DialogContent className="fixed inset-0 left-0 top-0 flex h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:rounded-none">
         {file && (
           <>
-            <div className="flex items-center gap-2 border-b border-border px-4 py-3 pr-12">
+            <div className="flex items-center gap-2 border-b border-border px-3 py-2 pr-12">
+              <button type="button" onClick={() => onIndexChange(null)} aria-label="Close reader" className="inline-flex h-10 items-center gap-1 rounded-md border border-border px-2 text-xs font-bold"><ChevronLeft className="h-4 w-4" /> Back</button>
               <div className="min-w-0 flex-1">
-                <DialogTitle className="truncate text-sm font-bold">{cleanName(file[1])}</DialogTitle>
+                <DialogTitle className="line-clamp-2 text-sm font-bold">{cleanName(file[1])}</DialogTitle>
                 <DialogDescription className="text-[11px]">
-                  {(index as number) + 1} of {items.length} · use ← → to move between files{file[2] === "video" ? " · videos can take 10–30 seconds to start; download to watch offline" : ""}
+                  {(index as number) + 1} of {items.length}{where ? ` · ${where}` : ""}
                 </DialogDescription>
               </div>
               <button
@@ -79,7 +80,7 @@ export default function DriveFileViewer({ items, index, onIndexChange, onDownloa
                 onClick={() => onIndexChange((index as number) - 1)}
                 disabled={(index as number) <= 0}
                 aria-label="Previous file"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border disabled:opacity-40"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border disabled:opacity-40"
               ><ChevronLeft className="h-4 w-4" /></button>
               <button
                 type="button"
