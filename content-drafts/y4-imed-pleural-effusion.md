@@ -6,11 +6,15 @@ A pleural effusion is **an abnormal accumulation of fluid in the pleural space**
 
 ## Normal Physiology
 
+![Normal pleural physiology](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-02-ab344b33.jpg)
+
 - **5–15 mL** of lubricating serous fluid normally lies between the pleural layers.
 - Fluid is filtered from **parietal pleural capillaries** and removed by **parietal lymphatics**.
 - An effusion **restricts lung expansion**, causing symptoms.
 
 ## Mechanisms: Starling Forces
+
+![Starling forces in pleural effusion](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-03-887adbbd.jpg)
 
 | Mechanism | Effect | Example |
 |---|---|---|
@@ -22,6 +26,8 @@ A pleural effusion is **an abnormal accumulation of fluid in the pleural space**
 
 ## Clinical Presentation
 
+![Clinical presentation](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-04-fc329fee.jpg)
+
 - **Pleuritic chest pain** — sharp on inspiration (parietal pleural inflammation)
 - **Dyspnoea** — lung compression
 - **Orthopnoea** and **fever** if infective
@@ -30,6 +36,8 @@ A pleural effusion is **an abnormal accumulation of fluid in the pleural space**
 > Small effusions (<300 mL) may be completely asymptomatic.
 
 ## Physical Examination
+
+![Physical examination and percussion differential](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-05-46d22127.jpg)
 
 - **Asymmetric expansion** — lagging on the affected side
 - **Stony dullness** — highly characteristic
@@ -50,12 +58,16 @@ A pleural effusion is **an abnormal accumulation of fluid in the pleural space**
 ## Imaging
 
 ### Chest X-ray
+
+![Pleural effusion on chest X-ray](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-06-96aa24ec.jpg)
 - **Costophrenic angle blunting**
 - **Meniscus sign** — concave, homogeneous opacity
 - ~**200–300 mL** needed on an upright PA film
 - **Supine films** may only show a layering haze
 
 ### Ultrasound — bedside gold standard
+
+![Ultrasound and CT chest](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-07-5ccf7c41.jpg)
 - Detects as little as **20 mL**
 - Shows **septations** and **loculated** fluid
 - **Guides thoracentesis safely**
@@ -67,6 +79,8 @@ A pleural effusion is **an abnormal accumulation of fluid in the pleural space**
 
 ## Diagnostic Thoracentesis
 
+![Thoracentesis safety — over the top of the rib](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-08-6e6d2acb.jpg)
+
 - **Indication:** any new, unexplained unilateral effusion **>1 cm** on imaging.
 - **Safety rule:** pass the needle **over the top of the lower rib** to avoid the intercostal **vein, artery and nerve** under each rib.
 - Complications: pneumothorax, bleeding, infection, re-expansion oedema (avoid >1.5 L at once).
@@ -74,6 +88,8 @@ A pleural effusion is **an abnormal accumulation of fluid in the pleural space**
 **Send:** appearance, **protein and LDH** (with serum values), **glucose, pH**, cell count and differential, **Gram stain, culture, AFB, GeneXpert**, **cytology**; optionally ADA, amylase, triglycerides, albumin, haematocrit.
 
 ## Transudate vs Exudate
+
+![Transudate vs exudate](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-09-a57aeb94.jpg)
 
 | | **Transudate** (systemic problem) | **Exudate** (local problem) |
 |---|---|---|
@@ -85,6 +101,8 @@ A pleural effusion is **an abnormal accumulation of fluid in the pleural space**
 
 ## Light's Criteria
 
+![Light's criteria](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-10-9bcac354.jpg)
+
 An effusion is **EXUDATIVE if ANY ONE** is met:
 
 1. **Fluid protein / serum protein > 0.5**
@@ -94,6 +112,8 @@ An effusion is **EXUDATIVE if ANY ONE** is met:
 > **Exam pearl:** all negative = transudate. Only **one** positive proves an exudate.
 
 ### Exam trap: diuretics in heart failure
+
+![Exam trap: diuretics in heart failure](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-11-054f4257.jpg)
 - Diuretics remove water from the pleural space but leave protein behind.
 - A true transudate becomes concentrated and **falsely meets Light's criteria**.
 - **Solution:** serum–pleural **albumin gradient > 1.2 g/dL** proves a transudate.
@@ -101,6 +121,8 @@ An effusion is **EXUDATIVE if ANY ONE** is met:
 ## Causes
 
 ### Transudates
+
+![Causes of transudates](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-12-8e354774.jpg)
 - **Congestive heart failure** — commonest cause of **bilateral** effusions; ↑ hydrostatic pressure
 - **Cirrhosis (hepatic hydrothorax)** — ascites crosses diaphragmatic defects; **usually right-sided**
 - **Nephrotic syndrome** — urinary protein loss → ↓ oncotic pressure
@@ -108,12 +130,16 @@ An effusion is **EXUDATIVE if ANY ONE** is met:
 - Others: hypothyroidism, peritoneal dialysis, Meigs' syndrome
 
 ### Exudates
+
+![Causes of exudates](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-13-3b5da110.jpg)
 - **Infection:** parapneumonic effusion / empyema, **tuberculosis** (common in Kenya, especially with HIV)
 - **Malignancy:** lung, breast, lymphoma, mesothelioma — about **25%** of effusions
 - **Pulmonary embolism:** ~**80% exudative**, 20% transudative
 - **Autoimmune / inflammatory:** rheumatoid arthritis, SLE, pancreatitis, oesophageal rupture
 
 ## Special Fluid Analysis
+
+![Visual clues in pleural fluid](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-14-fba1288f.jpg)
 
 | Appearance | Think of | Confirm |
 |---|---|---|
@@ -125,6 +151,8 @@ An effusion is **EXUDATIVE if ANY ONE** is met:
 
 ### The pH clue: parapneumonic effusions
 
+![pH in parapneumonic effusions](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-15-a2bfe3c7.jpg)
+
 | Type | Features | Management |
 |---|---|---|
 | **Simple** | Sterile, free-flowing, **pH > 7.20** | Antibiotics |
@@ -132,12 +160,16 @@ An effusion is **EXUDATIVE if ANY ONE** is met:
 | **Empyema** | Frank pus / positive Gram stain | **Chest drain** ± surgery |
 
 ### Low glucose (< 60 mg/dL) — mnemonic **MEAT**
+
+![Low glucose — MEAT](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-16-d440394e.jpg)
 - **M** — Malignancy
 - **E** — Empyema
 - **A** — Arthritis (rheumatoid — often **< 30 mg/dL**)
 - **T** — Tuberculosis
 
 ### Targeted biomarkers
+
+![Targeted biomarker clues](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-17-10e9c480.jpg)
 
 | Marker | Meaning |
 |---|---|
@@ -149,6 +181,8 @@ An effusion is **EXUDATIVE if ANY ONE** is met:
 
 ## Management: Escalating Steps
 
+![Escalating interventions](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-18-8540eb89.jpg)
+
 **Step 1 — Treat the cause:** diuretics and salt restriction for heart failure; antibiotics for pneumonia; anti-TB therapy for TB. Small transudates often reabsorb.
 
 **Step 2 — Tube thoracostomy:** **mandatory** for **empyema**, **complicated parapneumonic effusion (pH < 7.20)** and significant **haemothorax**. Loculated empyema: intrapleural tPA + DNase or VATS.
@@ -156,6 +190,8 @@ An effusion is **EXUDATIVE if ANY ONE** is met:
 **Step 3 — Pleurodesis:** for **recurrent malignant effusions** — inflaming the pleura (e.g. **talc**) to fuse the layers. Use an **indwelling pleural catheter** if the lung is trapped.
 
 ## Key Numbers
+
+![Key numbers](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-pe-19-8675edee.jpg)
 
 | Value | Meaning |
 |---|---|
