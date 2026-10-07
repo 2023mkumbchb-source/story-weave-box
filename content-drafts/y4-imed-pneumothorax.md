@@ -12,6 +12,8 @@ Pneumothorax is the **presence of air or gas in the pleural space** — air outs
 
 ## Mechanism
 
+![Air entering the pleural space — collapsed lung](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-ptx-s5-1-0f5046b7.jpg)
+
 - Normal pleural pressure is **negative throughout the respiratory cycle** (about −5 cmH₂O).
 - It results from two opposing forces: the **outward pull of the chest wall** and the **elastic recoil of the lung**.
 - When a communication forms between an alveolus (or the atmosphere) and the pleural space, **air flows in until the pressure difference disappears or the leak seals**.
@@ -23,6 +25,8 @@ Pneumothorax is the **presence of air or gas in the pleural space** — air outs
 **Positive pressure (tension)** → compresses great veins and heart → impaired venous return → ↓ cardiac output → **hypotension** (obstructive shock).
 
 ## Classification
+
+![Classification of pneumothorax](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-ptx-s7-1-97689521.jpg)
 
 ```text
 Pneumothorax
@@ -62,6 +66,10 @@ Young healthy people; **rupture of apical subpleural blebs or bullae**.
 
 ## Clinical Types
 
+![Closed, open and tension pneumothorax compared](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-ptx-s14-1-cc20e4d0.jpg)
+
+![Clinical types of pneumothorax](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-ptx-s12-1-e38639bf.jpg)
+
 | | Closed | Open | Tension |
 |---|---|---|---|
 | Pleural tear | **Sealed** | **Open** | **Ball-valve** |
@@ -97,11 +105,19 @@ Classically **hypotension + hypoxia**; life-threatening.
 ## Investigations
 
 ### Chest X-ray (erect PA)
+
+![Pneumothorax with mediastinal shift](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-ptx-s24-1-2491b9e5.jpg)
+
+![Small pneumothorax on chest X-ray](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-ptx-s22-1-a93d5864.jpg)
+
+![Chest X-ray in erect and supine positions](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-ptx-s21-1-a9eeced2.jpg)
 - **Visceral pleural line** with **no lung markings** beyond it
 - BTS size cut-off: **2 cm rim** at the hilum
 - **Supine film:** **deep sulcus sign**, hyperlucent hemithorax
 
 ### CT chest
+
+![Pneumothorax on CT](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-ptx-s26-1-3f6ac974.jpg)
 - Lungs obscured by surgical emphysema
 - Distinguishes pneumothorax from a large **bulla**
 - Occult pneumothorax, surgical planning
@@ -114,6 +130,8 @@ Loss of **lung sliding**, absent B-lines, barcode sign; **lung point** is diagno
 **Goals:** re-expand the lung, remove the cause, prevent recurrence.
 
 ### BTS approach
+
+![BTS guideline for spontaneous pneumothorax](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-ptx-s28-1-f3f2dfcb.jpg)
 
 ```text
 Spontaneous pneumothorax
@@ -141,6 +159,10 @@ High-concentration O₂ **lowers pleural capillary nitrogen**, increasing the gr
 14–16G cannula, **2nd intercostal space mid-clavicular line** or **4th–5th space just anterior to mid-axillary line**; always follow with a chest drain.
 
 ### Intercostal tube drainage
+
+![The safe triangle for chest drain insertion](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-ptx-s34-1-c26fd5c1.jpg)
+
+![Intercostal drain with underwater seal](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-ptx-s33-1-60f3f0d8.jpg)
 
 **Indications:** unstable pneumothorax, severe dyspnoea, large collapse, open or tension pneumothorax, recurrence, failed aspiration, bilateral, ventilated patients, haemopneumothorax.
 

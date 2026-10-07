@@ -12,6 +12,8 @@ Three core features:
 
 ## Causes and Risk Factors
 
+![Drug triggers of asthma](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-asthma-s3-1-bdc17d5b.jpg)
+
 | Trigger | Mechanism |
 |---|---|
 | **Allergens** (house dust mite, pollen, cockroach, pets, moulds) | IgE-mediated type I hypersensitivity |
@@ -34,6 +36,8 @@ Three core features:
 - **Aspirin-exacerbated respiratory disease (Samter's triad)** — asthma + nasal polyps + aspirin sensitivity
 
 ## Immunological Mechanism on Allergen Exposure
+
+![Immunological mechanism on allergen exposure](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-asthma-s7-1-703797e8.jpg)
 
 1. **Sensitisation:** dendritic cells present allergen → **Th2** differentiation.
 2. **Th2 cytokines:** **IL-4** → IgE class switching; **IL-5** → eosinophils; **IL-13** → goblet-cell hyperplasia, mucus, hyper-responsiveness.
@@ -84,6 +88,8 @@ Pneumomediastinum, subcutaneous emphysema, mucus plugging with lobar collapse, A
 
 ## Diagnostic Approach
 
+![Peak expiratory flow and lung function testing](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-asthma-s15-1-81e4c673.jpg)
+
 | Test | Finding |
 |---|---|
 | **Chest X-ray** | Normal or hyperinflation; excludes pneumothorax and pneumonia |
@@ -117,6 +123,8 @@ Pneumomediastinum, subcutaneous emphysema, mucus plugging with lobar collapse, A
 Exclude pneumothorax; never sedate. Discharge when PEF >75%, inhaler technique checked and a written action plan given.
 
 ## Paediatric Asthma
+
+![Paediatric asthma](https://cdn.ompathstudy.com/uploads/2026/10/y4-imed-asthma-s16-1-9102a0cf.jpg)
 
 - Under 5: clinical diagnosis (recurrent wheeze, response to treatment); spirometry unreliable
 - Spacer with face mask
