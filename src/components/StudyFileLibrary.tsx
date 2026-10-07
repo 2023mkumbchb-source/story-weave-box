@@ -287,7 +287,7 @@ function FileList({ rows: allRows, broken, trail }: { rows: Row[]; broken: Set<s
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700"><AlertTriangle className="h-4 w-4" /></span>
                   <span className="min-w-0 flex-1">
                     <span className="block break-words text-sm font-semibold text-muted-foreground line-through decoration-amber-500/60">{cleanName(name)}</span>
-                    <span className="block text-[11px] font-semibold text-amber-700">Unavailable right now — the file was moved or removed from Drive</span>
+                    <span className="block text-[11px] font-semibold text-amber-700">Unavailable right now — the file was moved or removed from the library</span>
                   </span>
                   <a href={reportUrl(file, trail)} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center rounded-full border border-border px-3 py-1 text-xs font-bold hover:border-primary/50 hover:text-primary">Report</a>
                 </li>

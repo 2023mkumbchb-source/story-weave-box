@@ -26,7 +26,7 @@ interface Props {
   index: number | null;
   onIndexChange: (next: number | null) => void;
   onDownload: (file: DriveFile) => void;
-  /** File ids known to be removed from Drive (public/data/broken-links.json). */
+  /** File ids known to be removed from the library (public/data/broken-links.json). */
   broken?: Set<string>;
   /** Shown in the report message, e.g. "Year 1 > Anatomy". */
   where?: string;
@@ -159,7 +159,7 @@ export default function DriveFileViewer({ items, index, onIndexChange, onDownloa
 
             {!isBroken && canPreview(file[2]) && (
               <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
-                Blank or very slow? Google Drive may be busy — try Download, or
+                Blank or very slow? The file may be busy — try Download, or
                 <a href={reportUrl(file, where)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-bold text-primary hover:underline"><Flag className="h-3 w-3" /> report this file</a>
               </p>
             )}
