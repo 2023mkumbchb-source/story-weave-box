@@ -1068,21 +1068,36 @@ export type Database = {
       }
       profiles: {
         Row: {
+          course: string | null
           created_at: string
           display_name: string | null
           id: string
+          onboarding_completed: boolean
+          study_year: number | null
+          university: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
+          course?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          onboarding_completed?: boolean
+          study_year?: number | null
+          university?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
+          course?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          onboarding_completed?: boolean
+          study_year?: number | null
+          university?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -1537,6 +1552,48 @@ export type Database = {
         }
         Relationships: []
       }
+      student_access: {
+        Row: {
+          admin_seen: boolean
+          admission_no: string | null
+          created_at: string
+          email: string | null
+          entered_text: string | null
+          method: string
+          note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_seen?: boolean
+          admission_no?: string | null
+          created_at?: string
+          email?: string | null
+          entered_text?: string | null
+          method?: string
+          note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_seen?: boolean
+          admission_no?: string | null
+          created_at?: string
+          email?: string | null
+          entered_text?: string | null
+          method?: string
+          note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       syllabus_topics: {
         Row: {
           created_at: string
@@ -1915,7 +1972,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _process_admission: {
+        Args: { _email: string; _entered: string; _uid: string }
+        Returns: string
+      }
       _slugify: { Args: { input: string }; Returns: string }
+      admin_add_student: {
+        Args: { _admission?: string; _email: string }
+        Returns: string
+      }
+      admin_mark_requests_seen: { Args: never; Returns: undefined }
+      admin_review_student: {
+        Args: { _approve: boolean; _note?: string; _uid: string }
+        Returns: undefined
+      }
       category_counts: {
         Args: never
         Returns: {
@@ -1944,7 +2014,11 @@ export type Database = {
           title: string
         }[]
       }
+      is_mku_student: { Args: { _uid?: string }; Returns: boolean }
+      my_student_status: { Args: never; Returns: string }
+      normalize_admission: { Args: { raw: string }; Returns: string }
       slugify_title: { Args: { t: string }; Returns: string }
+      submit_admission: { Args: { _entered: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"
