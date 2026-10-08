@@ -106,6 +106,57 @@ export type Database = {
           },
         ]
       }
+      ai_answer_cache: {
+        Row: {
+          answer: string
+          cache_key: string
+          created_at: string
+          grounded: boolean
+          last_used: string
+          question: string
+          reports: number
+          uses: number
+        }
+        Insert: {
+          answer: string
+          cache_key: string
+          created_at?: string
+          grounded?: boolean
+          last_used?: string
+          question: string
+          reports?: number
+          uses?: number
+        }
+        Update: {
+          answer?: string
+          cache_key?: string
+          created_at?: string
+          grounded?: boolean
+          last_used?: string
+          question?: string
+          reports?: number
+          uses?: number
+        }
+        Relationships: []
+      }
+      ai_user_history: {
+        Row: {
+          data: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          data?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          data?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -1985,6 +2036,14 @@ export type Database = {
       admin_review_student: {
         Args: { _approve: boolean; _note?: string; _uid: string }
         Returns: undefined
+      }
+      ai_cache_report: { Args: { k: string }; Returns: undefined }
+      ai_cache_touch: { Args: { k: string }; Returns: undefined }
+      ai_cache_trending: {
+        Args: { n?: number }
+        Returns: {
+          question: string
+        }[]
       }
       category_counts: {
         Args: never
