@@ -68,6 +68,7 @@ const PAGES: PageDef[] = [
   { title: "Mega contest", href: "/contests", words: "contest competition leaderboard quiz" },
   { title: "Flashcards", href: "/flashcards", words: "flashcards cards memorise recall" },
   { title: "Essays", href: "/essays", words: "essays saq laq long answer" },
+  { title: "Ompath AI — ask your study notes", href: "/ai", words: "ai assistant ask chat gemini question answer notes" },
   { title: "Study notes (all years)", href: "/blog", words: "notes blog articles study" },
   { title: "Download the app", href: "/download-app", words: "app apk android download install" },
   { title: "About", href: "/about", words: "about founder contact abongo" },

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, GraduationCap, Home, LayoutDashboard, Network, Stethoscope, Menu, Trophy, ChevronRight, UserRound, Target, Database, Smartphone, ListChecks, Pill, Flame, ChevronDown } from "lucide-react";
+import { BookOpen, GraduationCap, Home, LayoutDashboard, Network, Stethoscope, Menu, Trophy, ChevronRight, UserRound, Target, Database, Smartphone, ListChecks, Pill, Flame, ChevronDown, Brain } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import ThemeToggle from "./ThemeToggle";
@@ -69,7 +69,8 @@ export default function Navbar() {
       { to: "/", label: "Home", icon: Home },
       { to: "/blog", label: "Notes", icon: BookOpen },
       { to: "/exams", label: "Exams", icon: Trophy },
-      { to: "/flashcards", label: "Flashcards", icon: GraduationCap },
+      { to: "/ai", label: "Ompath AI", icon: Brain },
+      { to: "/flashcards", label: "Flashcards", icon: GraduationCap, more: true },
       { to: "/my-revision", label: "Revision", icon: Target },
       { to: "/dashboard", label: "My Day", icon: LayoutDashboard, more: true },
       { to: "/study-map", label: "Study Map", icon: Network, more: true },
