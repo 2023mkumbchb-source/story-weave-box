@@ -39,13 +39,13 @@ function editDistance(a: string, b: string): number {
 }
 
 function medicalSuggestions(query: string): string[] {
-  const words = query.toLowerCase().trim().split(/\\s+/).filter(Boolean);
+  const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
   if (!words.length) return [];
   const last = words[words.length - 1].replace(/[^a-z-]/g, "");
   if (last.length < 3) return [];
   return MEDICAL_TERMS
     .map((term) => {
-      const termWords = term.toLowerCase().split(/\\s+/);
+      const termWords = term.toLowerCase().split(/\s+/);
       const candidate = termWords[termWords.length - 1];
       const distance = editDistance(last, candidate);
       return { term, candidate, distance };
