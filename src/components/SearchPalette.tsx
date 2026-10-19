@@ -36,11 +36,11 @@ function spellingDistance(a: string, b: string): number {
   return row[b.length];
 }
 function getMedicalSuggestions(query: string): string[] {
-  const parts = query.trim().split(/\\s+/).filter(Boolean);
+  const parts = query.trim().split(/\s+/).filter(Boolean);
   const last = (parts.at(-1) || "").toLowerCase().replace(/[^a-z-]/g, "");
   if (last.length < 3) return [];
   return MEDICAL_TERMS.map((term) => {
-    const candidate = term.split(/\\s+/).at(-1) || term;
+    const candidate = term.split(/\s+/).at(-1) || term;
     return { term, candidate, distance: spellingDistance(last, candidate) };
   }).filter((x) => x.candidate !== last && (x.candidate.startsWith(last) || (last.length >= 5 && x.distance <= (last.length >= 8 ? 2 : 1))))
     .sort((a, b) => Number(b.candidate.startsWith(last)) - Number(a.candidate.startsWith(last)) || a.distance - b.distance)
