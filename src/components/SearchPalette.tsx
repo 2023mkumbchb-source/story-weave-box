@@ -12,6 +12,42 @@ export const openSearch = (initial = "") => window.dispatchEvent(new CustomEvent
 
 const RECENT_KEY = "ompath_recent_searches";
 const readRecent = (): string[] => { try { const v = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]"); return Array.isArray(v) ? v.slice(0, 6) : []; } catch { return []; } };
+
+const MEDICAL_TERMS = [
+  "anaemia", "anemia", "appendicitis", "asthma", "bilirubin", "bronchiectasis", "bronchitis",
+  "cholecystitis", "cirrhosis", "conjunctivitis", "diabetes mellitus", "dyspnoea", "dyspnea",
+  "encephalopathy", "endocarditis", "epilepsy", "glomerulonephritis", "haematuria", "hematuria",
+  "haemoptysis", "hemoptysis", "hepatitis", "hepatomegaly", "hypertension", "hypotension",
+  "jaundice", "meningitis", "myocardial infarction", "nephrotic syndrome", "pancreatitis",
+  "percutaneous", "pneumonia", "pneumothorax", "pre-eclampsia", "preeclampsia",
+  "pulmonary embolism", "pyelonephritis", "sepsis", "thrombocytopenia", "tuberculosis",
+  "urinary tract infection"
+];
+function spellingDistance(a: string, b: string): number {
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let diagonal = row[0]; row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const above = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diagonal = above;
+    }
+  }
+  return row[b.length];
+}
+function getMedicalSuggestions(query: string): string[] {
+  const parts = query.trim().split(/\\s+/).filter(Boolean);
+  const last = (parts.at(-1) || "").toLowerCase().replace(/[^a-z-]/g, "");
+  if (last.length < 3) return [];
+  return MEDICAL_TERMS.map((term) => {
+    const candidate = term.split(/\\s+/).at(-1) || term;
+    return { term, candidate, distance: spellingDistance(last, candidate) };
+  }).filter((x) => x.candidate !== last && (x.candidate.startsWith(last) || (last.length >= 5 && x.distance <= (last.length >= 8 ? 2 : 1))))
+    .sort((a, b) => Number(b.candidate.startsWith(last)) - Number(a.candidate.startsWith(last)) || a.distance - b.distance)
+    .slice(0, 5)
+    .map((x) => parts.length > 1 ? [...parts.slice(0, -1), x.candidate].join(" ") : x.term);
+}
+
 const SUGGESTED = [
   { label: "Today's timetable", href: "/dashboard", icon: CalendarDays },
   { label: "Smart revision", href: "/revise", icon: GraduationCap },
@@ -38,6 +74,7 @@ export default function SearchPalette() {
   const shown = useMemo(() => hits.slice(0, 24), [hits]);
   const groups = useMemo(() => groupSiteHits(shown), [shown]);
   const flat = useMemo(() => groups.flatMap((g) => g.rows), [groups]);
+  const spellingSuggestions = useMemo(() => getMedicalSuggestions(q), [q]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -117,7 +154,20 @@ export default function SearchPalette() {
               <button type="button" onClick={() => { setOpen(false); navigate(`/search?q=${encodeURIComponent(q.trim())}`); }} className="mt-3 text-xs font-bold text-primary hover:underline">Search inside every note →</button>
             </div>
           ) : (
-            groups.map((g) => (
+            <>
+            {spellingSuggestions.length > 0 && (
+              <div className="border-b border-border px-4 py-3">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Medical term suggestions</p>
+                <div className="flex flex-wrap gap-2">
+                  {spellingSuggestions.map((suggestion) => (
+                    <button key={suggestion} type="button" onClick={() => setQ(suggestion)} className="rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10">
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {groups.map((g) => (
               <div key={g.group} className="mb-1">
                 <p className="px-4 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{g.group}</p>
                 {g.rows.map((h) => {
@@ -142,7 +192,8 @@ export default function SearchPalette() {
                   );
                 })}
               </div>
-            ))
+            ))}
+            </>
           )}
         </div>
 
