@@ -12,6 +12,51 @@ import { HitIcon } from "@/components/SearchPalette";
 
 const YEARS = [1, 2, 3, 4, 5, 6];
 
+const MEDICAL_TERMS = [
+  "abdominal pain", "anaemia", "anemia", "appendicitis", "asthma", "bilirubin", "bronchiectasis",
+  "bronchitis", "cardiomyopathy", "cholangitis", "cholecystitis", "cirrhosis", "coagulation",
+  "congestive heart failure", "conjunctivitis", "diabetes mellitus", "diarrhoea", "diarrhea",
+  "dyspnoea", "dyspnea", "encephalopathy", "endocarditis", "epilepsy", "glomerulonephritis",
+  "haematuria", "hematuria", "haemoptysis", "hemoptysis", "hepatitis", "hepatomegaly",
+  "hypertension", "hypotension", "jaundice", "meningitis", "myocardial infarction",
+  "nephrotic syndrome", "pancreatitis", "percutaneous", "pneumonia", "pneumothorax",
+  "pre-eclampsia", "preeclampsia", "pulmonary embolism", "pyelonephritis", "sepsis",
+  "thrombocytopenia", "tuberculosis", "urinary tract infection"
+];
+
+function editDistance(a: string, b: string): number {
+  const previous = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let diagonal = previous[0];
+    previous[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const above = previous[j];
+      previous[j] = Math.min(previous[j] + 1, previous[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diagonal = above;
+    }
+  }
+  return previous[b.length];
+}
+
+function medicalSuggestions(query: string): string[] {
+  const words = query.toLowerCase().trim().split(/\\s+/).filter(Boolean);
+  if (!words.length) return [];
+  const last = words[words.length - 1].replace(/[^a-z-]/g, "");
+  if (last.length < 3) return [];
+  return MEDICAL_TERMS
+    .map((term) => {
+      const termWords = term.toLowerCase().split(/\\s+/);
+      const candidate = termWords[termWords.length - 1];
+      const distance = editDistance(last, candidate);
+      return { term, candidate, distance };
+    })
+    .filter((item) => item.candidate !== last && (item.candidate.startsWith(last) || (last.length >= 5 && item.distance <= (last.length >= 8 ? 2 : 1))))
+    .sort((a, b) => (a.candidate.startsWith(last) ? -1 : 0) - (b.candidate.startsWith(last) ? -1 : 0) || a.distance - b.distance || a.term.localeCompare(b.term))
+    .slice(0, 6)
+    .map((item) => words.length > 1 ? [...words.slice(0, -1), item.candidate].join(" ") : item.term);
+}
+
+
 /** /search — everything the site has on a word: notes (title and inside the text), library files, outline topics, pages. */
 export default function GlobalSearch() {
   const [params, setParams] = useSearchParams();
@@ -22,6 +67,7 @@ export default function GlobalSearch() {
   const opts = useMemo(() => ({ year: year || undefined, contentType: contentType || undefined, deep: true }), [year, contentType]);
   const { hits, related, loading, searched } = useSiteSearch(q, opts);
   const groups = useMemo(() => groupSiteHits(hits), [hits]);
+  const spellingSuggestions = useMemo(() => medicalSuggestions(q), [q]);
 
   // Keep the URL in sync (without spamming browser history) so a search is shareable, but don't drive the search off it.
   useEffect(() => {
@@ -55,7 +101,12 @@ export default function GlobalSearch() {
         <div className="flex overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <label htmlFor="global-search-input" className="sr-only">Search the site</label>
           <Search className="ml-4 mt-3.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <input id="global-search-input" autoFocus value={q} onChange={(e) => setQ(e.target.value)} className="min-w-0 flex-1 bg-transparent px-3 py-3 text-sm outline-none sm:text-base" placeholder="Try TB, AGN, virology or MBMM3333" />
+          <input id="global-search-input" autoFocus value={q} list="medical-search-suggestions" onChange={(e) => setQ(e.target.value)} className="min-w-0 flex-1 bg-transparent px-3 py-3 text-sm outline-none sm:text-base" placeholder="Try TB, AGN, virology or MBMM3333" />
+          {spellingSuggestions.length > 0 && (
+            <datalist id="medical-search-suggestions">
+              {spellingSuggestions.map((suggestion) => <option key={suggestion} value={suggestion} />)}
+            </datalist>
+          )}
           <button type="submit" aria-label="Search" className="flex min-h-[44px] shrink-0 items-center gap-1.5 bg-primary px-5 text-sm font-bold text-primary-foreground">
             {loading ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground/40 border-t-primary-foreground" /> : "Search"}
           </button>
