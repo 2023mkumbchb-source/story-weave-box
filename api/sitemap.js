@@ -18,6 +18,18 @@ export default async function handler(req, res) {
     }, rawXml);
 
     const isSectionFile = file !== "all.xml";
+    // Keep these intentionally unlinked public landing pages discoverable via the sitemap.
+    if ((file === "all.xml" || file === "pages.xml") && xml.includes("</urlset>")) {
+      const hiddenPublicPages = [
+        ["/looking-for-a-friend-in-thika", "0.6"],
+        ["/medical-student-support-kenya", "0.7"],
+      ];
+      const additions = hiddenPublicPages
+        .filter(([path]) => !xml.includes("https://www.ompathstudy.com" + path))
+        .map(([path, priority]) => "  <url><loc>https://www.ompathstudy.com" + path + "</loc><priority>" + priority + "</priority><changefreq>monthly</changefreq></url>")
+        .join("\\n");
+      if (additions) xml = xml.replace("</urlset>", additions + "\\n</urlset>");
+    }
 
     res.setHeader("Content-Type", "application/xml; charset=utf-8");
     res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
