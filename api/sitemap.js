@@ -12,7 +12,7 @@ export default async function handler(req, res) {
       "https://www.ompathstudy.com/sitemap-dynamic.xml",
       "https://www.ompathstudy.com/blog/victory-school-club-membership-system-project-guide",
     ];
-    const xml = excluded.reduce((body, loc) => {
+    let xml = excluded.reduce((body, loc) => {
       const escaped = loc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       return body.replace(new RegExp(`\\s*<url>\\s*<loc>${escaped}<\\/loc>[\\s\\S]*?<\\/url>`, "g"), "");
     }, rawXml);
@@ -27,8 +27,8 @@ export default async function handler(req, res) {
       const additions = hiddenPublicPages
         .filter(([path]) => !xml.includes("https://www.ompathstudy.com" + path))
         .map(([path, priority]) => "  <url><loc>https://www.ompathstudy.com" + path + "</loc><priority>" + priority + "</priority><changefreq>monthly</changefreq></url>")
-        .join("\\n");
-      if (additions) xml = xml.replace("</urlset>", additions + "\\n</urlset>");
+        .join("\n");
+      if (additions) xml = xml.replace("</urlset>", additions + "\n</urlset>");
     }
 
     res.setHeader("Content-Type", "application/xml; charset=utf-8");
