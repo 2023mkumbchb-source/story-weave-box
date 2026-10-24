@@ -63,6 +63,8 @@ const OmpathAI = lazy(() => import("./pages/OmpathAI"));
 const StudySystemAdmin = lazy(() => import("./pages/StudySystemAdmin"));
 const CategoryManager = lazy(() => import("./pages/CategoryManager"));
 const About = lazy(() => import("./pages/About"));
+const FriendshipThika = lazy(() => import("./pages/FriendshipThika"));
+const MedicalStudentSupport = lazy(() => import("./pages/MedicalStudentSupport"));
 const Contests = lazy(() => import("./pages/Contests"));
 const ContestBriefing = lazy(() => import("./pages/ContestBriefing"));
 const ContestRegistration = lazy(() => import("./pages/ContestRegistration"));
@@ -192,6 +194,9 @@ const AnimatedRoutes = () => {
             <Route path="/source-library" element={<AdminRoute><SourceLibrary /></AdminRoute>} />
             <Route path="/source-library/:slug" element={<AdminRoute><SourceLibrary /></AdminRoute>} />
             <Route path="/about" element={<About />} />
+            {/* SEO landing pages intentionally omitted from all site navigation. */}
+            <Route path="/looking-for-a-friend-in-thika" element={<FriendshipThika />} />
+            <Route path="/medical-student-support-kenya" element={<MedicalStudentSupport />} />
             <Route path="/download-app" element={<AppDownload />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
