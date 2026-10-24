@@ -190,6 +190,8 @@ serve(async (req) => {
         ["/essays", "0.8", "weekly"],
         ["/exams", "0.8", "weekly"],
         ["/contests", "0.8", "weekly"],
+        ["/looking-for-a-friend-in-thika", "0.6", "monthly"],
+        ["/medical-student-support-kenya", "0.7", "monthly"],
       ].forEach(([path, priority, changefreq]) => {
         emittedPaths.add(path);
         xml += `  <url><loc>${baseUrl}${path}</loc><priority>${priority}</priority><changefreq>${changefreq}</changefreq></url>\n`;
