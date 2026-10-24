@@ -117,6 +117,14 @@
   ],
   "rewrites": [
     {
+      "source": "/looking-for-a-friend-in-thika",
+      "destination": "/looking-for-a-friend-in-thika/index.html"
+    },
+    {
+      "source": "/medical-student-support-kenya",
+      "destination": "/medical-student-support-kenya/index.html"
+    },
+    {
       "source": "/sitemap.xml",
       "destination": "/api/sitemap-index"
     },
@@ -127,28 +135,6 @@
     {
       "source": "/sitemap/:file",
       "destination": "/api/sitemap?file=:file"
-    },
-    {
-      "source": "/looking-for-a-friend-in-thika",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ww]hats[Aa]pp|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI|Google-InspectionTool|GoogleOther|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-Safety).*"
-        }
-      ],
-      "destination": "/api/og-meta?path=/looking-for-a-friend-in-thika"
-    },
-    {
-      "source": "/medical-student-support-kenya",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": ".*([Bb]ot|[Cc]rawl|[Ss]pider|[Aa]hrefs|[Ss]emrush|facebookexternalhit|[Ww]hats[Aa]pp|[Tt]witter[Bb]ot|[Ww]hats[Aa]pp|[Tt]elegram[Bb]ot|[Dd]iscord[Bb]ot|[Ll]inked[Ii]n[Bb]ot|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Google-Extended|Applebot|Bytespider|Amazonbot|YouBot|cohere-ai|MistralAI|Google-InspectionTool|GoogleOther|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-Safety).*"
-        }
-      ],
-      "destination": "/api/og-meta?path=/medical-student-support-kenya"
     },
     {
       "source": "/contests/:slug/briefing",
