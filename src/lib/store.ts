@@ -574,7 +574,7 @@ function toArticlePreview(row: any): Article {
 }
 
 // ─── Cache ────────────────────────────────────────────────────────────────────
-const SUMMARY_CACHE_KEY = "article_summaries_cache_v3";
+const SUMMARY_CACHE_KEY = "article_summaries_cache_v4";
 const SUMMARY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes — avoids repeated full-list reloads on a large site
 
 let memorySummaryCache: { data: Article[]; ts: number } | null = null;
