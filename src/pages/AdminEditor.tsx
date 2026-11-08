@@ -219,6 +219,22 @@ function ToolbarBtn({ onClick, active, children, title }: { onClick: () => void;
 
 const YEARS = [0, 1, 2, 3, 4, 5, 6]; // 0 = Uncategorized
 
+function countEditorialImages(content: string): number {
+  const text = String(content || "");
+  const markdown = text.match(/!\\[[^\\]]*\\]\\(https?:\\/\\/[^\\s)]+(?:\\s+[^)]*)?\\)/gi) || [];
+  const html = text.match(/<img\\b[^>]*\\bsrc\\s*=\\s*["'][^"']+["'][^>]*>/gi) || [];
+  return markdown.length + html.length;
+}
+
+function requiredEditorialImages(content: string): number {
+  const words = String(content || "").replace(/!\\[[^\\]]*\\]\\([^)]*\\)/g, " ").replace(/<[^>]+>/g, " ").split(/\\s+/).filter(Boolean).length;
+  if (words <= 800) return 1;
+  if (words <= 1800) return 2;
+  if (words <= 3000) return 3;
+  if (words <= 4500) return 4;
+  return 5;
+}
+
 function cleanMarkdownForPublish(content: string): string {
   return String(content || "")
     .replace(/&nbsp;|\u00A0/g, " ")
@@ -774,6 +790,17 @@ export default function AdminEditor() {
             metaDesc: editMetaDesc,
             slug: editSlug,
           });
+      if (editPublished) {
+        const imageCount = countEditorialImages(prepared.content);
+        const minimumImages = requiredEditorialImages(prepared.content);
+        if (imageCount < minimumImages) {
+          throw new Error(`Publishing checklist: this article has ${imageCount} relevant image(s), but needs at least ${minimumImages} based on its length. Add clinically relevant illustrations, diagrams or tables-as-images in the relevant sections before publishing.`);
+        }
+        const wordCount = prepared.content.replace(/!\\[[^\\]]*\\]\\([^)]*\\)/g, " ").replace(/<[^>]+>/g, " ").split(/\\s+/).filter(Boolean).length;
+        if (wordCount > 500 && !/learning objectives|by the end of this article|after studying/i.test(prepared.content)) {
+          throw new Error("Publishing checklist: add a clearly headed Learning objectives section before publishing.");
+        }
+      }
       const uniqueSlug = await ensureUniqueSlug("articles", prepared.slug, prepared.title, "article", fullArticle?.id);
       const payload: any = {
         title: prepared.title,
