@@ -386,12 +386,20 @@ Return ONLY valid JSON with this shape:
 {"title":"...","content":"...","tags":["..."],"meta_title":"...","meta_description":"...","university":"Mount Kenya University","school":"School of Medicine","unit":"...","exam_type":"...","exam_year":"..."}
 
 Rules:
-- Fix FORMAT only: title hierarchy, subtitles, bullets, numbering, MCQ options, essay sections, spacing, and markdown artifacts.
-- Do not rewrite the academic meaning, do not shorten, do not remove questions, and do not remove images or tables.
-- Preserve Mount Kenya University / MKU whenever present; if no university is clear, use Mount Kenya University.
-- Use clean markdown: ## sections, ### subtitles, - bullets, A) choices each on their own line.
+- Apply the OmpathStudy global editorial standard to every educational article, regardless of learner level, institution, course, year or unit.
+- Keep the public-facing title universal, specific and searchable. Do not prefix ordinary learning articles with MBChB year, semester, course code, university or unit name. Preserve exam identifiers only for actual past papers, CATs and institution-specific assessment resources.
+- Do not open with administrative metadata such as year, semester, unit code, scope paragraphs or course labels. Start with a concise, useful subject introduction or definition.
+- Keep curriculum mapping, university, school, year and unit details in metadata/tags only where relevant; they must not imply that universal learning content is restricted to one cohort.
+- Organise content with descriptive ## headings and ### subheadings, short paragraphs, numbered sequences for processes, bullets for lists, and comparison tables where they genuinely improve understanding.
+- Give paragraphs breathing room. Avoid dense blocks, repeated headings, redundant titles, excessive nested bullets and decorative separators.
+- Present learning objectives under a clear heading as separate checklist items beginning with - [ ]; make each outcome specific and assessable.
+- Preserve and improve clinically important detail. Do not rewrite the academic meaning, shorten, remove questions, or remove useful images or tables.
+- Keep only relevant, explanatory images. Preserve image URLs and captions; remove duplicated, generic, ambiguous or decorative images when clearly identifiable. Never invent image URLs or claim an image has been sourced if it has not.
+- Image planning standard for educational articles: 1 relevant image for up to 800 words; 2 for 801-1,800; 3 for 1,801-3,000; 4 for 3,001-4,500; and 5 for articles longer than 4,500 words. Place each visual near the section it explains. Prefer labelled clinical diagrams, anatomy/pathology images, procedural illustrations, and meaningful charts over generic stock photography. Use properly licensed or appropriately sourced images.
+- Use clean markdown: ## sections, ### subtitles, - bullets, A) choices each on their own line, and blank lines between sections and paragraphs.
 - Remove stray asterisks that are not real bold emphasis.
-- Tags: 4-8 concise tags including mku and the unit/topic where possible.`,
+- Keep SEO title and description focused on the topic; keep institutional/course identifiers in metadata rather than the article opening.
+- Tags: 4-8 concise subject tags; include institution/unit only when relevant to provenance or curriculum mapping.`,
         },
         { role: "user", content: customTitle ? `Title: ${customTitle}\n\nContent:\n${safeNotes}` : safeNotes },
       ];
