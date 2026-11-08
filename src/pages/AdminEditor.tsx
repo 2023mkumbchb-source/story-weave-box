@@ -221,13 +221,13 @@ const YEARS = [0, 1, 2, 3, 4, 5, 6]; // 0 = Uncategorized
 
 function countEditorialImages(content: string): number {
   const text = String(content || "");
-  const markdown = text.match(/!\\[[^\\]]*\\]\\(https?:\\/\\/[^\\s)]+(?:\\s+[^)]*)?\\)/gi) || [];
-  const html = text.match(/<img\\b[^>]*\\bsrc\\s*=\\s*["'][^"']+["'][^>]*>/gi) || [];
+  const markdown = text.match(/!\[[^\]]*\]\(https?:\/\/[^\s)]+(?:\s+[^)]*)?\)/gi) || [];
+  const html = text.match(/<img\b[^>]*\bsrc\s*=\s*["'][^"']+["'][^>]*>/gi) || [];
   return markdown.length + html.length;
 }
 
 function requiredEditorialImages(content: string): number {
-  const words = String(content || "").replace(/!\\[[^\\]]*\\]\\([^)]*\\)/g, " ").replace(/<[^>]+>/g, " ").split(/\\s+/).filter(Boolean).length;
+  const words = String(content || "").replace(/!\[[^\]]*\]\([^)]*\)/g, " ").replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length;
   if (words <= 800) return 1;
   if (words <= 1800) return 2;
   if (words <= 3000) return 3;
