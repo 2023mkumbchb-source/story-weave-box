@@ -797,7 +797,7 @@ export default function AdminEditor() {
           throw new Error(`Publishing checklist: this article has ${imageCount} relevant image(s), but needs at least ${minimumImages} based on its length. Add clinically relevant illustrations, diagrams or tables-as-images in the relevant sections before publishing.`);
         }
         const wordCount = prepared.content.replace(/!\\[[^\\]]*\\]\\([^)]*\\)/g, " ").replace(/<[^>]+>/g, " ").split(/\\s+/).filter(Boolean).length;
-        if (wordCount > 500 && !/learning objectives|by the end of this article|after studying/i.test(prepared.content)) {
+        if (wordCount > 500 && !/learning objectives|learning outcomes|by the end of this article|after studying/i.test(prepared.content)) {
           throw new Error("Publishing checklist: add a clearly headed Learning objectives section before publishing.");
         }
       }
