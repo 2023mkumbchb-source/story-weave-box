@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowUp, BookOpen, Brain, ExternalLink, History, Loader2, Square, Trash2, X } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowUp, BookOpen, Brain, History, Loader2, Square, Trash2 } from "lucide-react";
 import { siteSearch, type SiteHit } from "@/lib/siteSearch";
 import { HitIcon } from "@/components/SearchPalette";
 import DriveFileViewer, { type DriveFile, type DriveKind } from "@/components/DriveFileViewer";
@@ -49,7 +49,7 @@ export default function OmpathAI() {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [note, setNote] = useState<SiteHit | null>(null);
+  const navigate = useNavigate();
   const [files, setFiles] = useState<{ items: DriveFile[]; index: number | null }>({ items: [], index: null });
   const abort = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -57,16 +57,6 @@ export default function OmpathAI() {
   useEffect(() => { document.title = "Ompath AI — ask your study notes | Ompath Study"; }, []);
   useEffect(() => { saveHistory(turns); }, [turns]);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [turns.length]);
-  // Back button closes an open note instead of leaving the page.
-  useEffect(() => {
-    if (!note) return;
-    window.history.pushState({ ompathAiNote: true }, "");
-    const onPop = () => setNote(null);
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setNote(null); };
-    window.addEventListener("popstate", onPop); window.addEventListener("keydown", onKey);
-    return () => { window.removeEventListener("popstate", onPop); window.removeEventListener("keydown", onKey); if (window.history.state?.ompathAiNote) window.history.back(); };
-  }, [note]);
-
   const update = (id: string, patch: Partial<Turn>) => setTurns((t) => t.map((x) => (x.id === id ? { ...x, ...patch } : x)));
 
   const ask = async (question: string) => {
@@ -124,7 +114,7 @@ export default function OmpathAI() {
     if (hit.group === "Library files") {
       const list = all.filter((h) => h.group === "Library files").map((h) => [h.key.replace(/^file-/, ""), h.title, (h.kind as DriveKind) || "file"] as DriveFile);
       setFiles({ items: list, index: list.findIndex((f) => f[0] === hit.key.replace(/^file-/, "")) });
-    } else setNote(hit);
+    } else navigate(hit.href);
   };
 
   const notesOf = (hits: SiteHit[]) => hits.filter((h) => h.group === "Notes");
@@ -200,16 +190,6 @@ export default function OmpathAI() {
         </div>
       </form>
 
-      {note && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-background" role="dialog" aria-modal="true" aria-label={note.title}>
-          <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-            <button type="button" onClick={() => setNote(null)} aria-label="Close and go back" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted"><X className="h-5 w-5" /></button>
-            <p className="min-w-0 flex-1 truncate text-sm font-semibold">{note.title}</p>
-            <Link to={note.href} className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-primary hover:bg-muted"><ExternalLink className="h-4 w-4" /> Full page</Link>
-          </div>
-          <iframe title={note.title} src={note.href} className="min-h-0 w-full flex-1 border-0" />
-        </div>
-      )}
       <DriveFileViewer items={files.items} index={files.index} onIndexChange={(i) => setFiles((f) => ({ ...f, index: i }))} onDownload={() => {}} where="Ompath AI" />
     </div>
   );
