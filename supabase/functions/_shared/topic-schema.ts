@@ -24,6 +24,7 @@ export function validateTopicPage(value: unknown): { valid: boolean; errors: str
     if (typeof section.content !== "string") errors.push(`${name}.content must be a string`);
     if (!["high", "medium", "low"].includes(section.confidence)) errors.push(`${name}.confidence must be high, medium or low`);
     if (section.applicable === true && typeof section.content === "string" && !section.content.trim()) missing.push(name);
+    if ((name === "examiner_questions" || name === "common_questions") && section.applicable === true && typeof section.content === "string" && !/(?:answer|→|A\\s*:)/i.test(section.content)) errors.push(`${name} must include visible answers, not question-only headings`);
     if (section.applicable === false && typeof section.content === "string" && section.content.trim()) {
       errors.push(`${name} is not applicable and must have empty content`);
     }
