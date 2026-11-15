@@ -335,7 +335,7 @@ serve(async (req) => {
     const safeNotes = clipNotesForModel(notes);
 
     if (type === "article") {
-      const token = req.headers.get("Authorization")?.replace(/^Bearer\\s+/i, "");
+      const token = req.headers.get("Authorization")?.startsWith("Bearer ") ? req.headers.get("Authorization")!.slice(7) : undefined;
       if (!token) return new Response(JSON.stringify({ error: "Authentication required" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
       const adminDb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
