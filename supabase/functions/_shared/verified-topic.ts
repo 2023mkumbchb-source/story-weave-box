@@ -136,6 +136,19 @@ export async function persistVerifiedArticle(input: {
     if (revisionError) throw revisionError;
   }
 
+  for (let attemptIndex = 0; attemptIndex < input.result.attempts.length; attemptIndex++) {
+    const attemptReview = input.result.attempts[attemptIndex].review;
+    if (!attemptReview) continue;
+    for (const finding of attemptReview.findings) {
+      const { error } = await db.from("audit_findings").insert({
+        article_id: articleId, section: finding.section, claim: finding.claim,
+        verdict: finding.verdict, severity: finding.severity, reference: finding.reference,
+        suggested_fix: finding.suggested_fix, review_loop: attemptIndex,
+      });
+      if (error) throw error;
+    }
+  }
+
   if (input.result.review) {
     const { data: savedReview, error: reviewError } = await db.from("article_ai_reviews").insert({
       article_id: articleId, provider: "gemini", model: geminiReviewModel(),
@@ -144,14 +157,6 @@ export async function persistVerifiedArticle(input: {
       loop_count: input.result.loopCount,
     }).select("id").single();
     if (reviewError) throw reviewError;
-    for (const finding of input.result.review.findings) {
-      const { error } = await db.from("audit_findings").insert({
-        article_id: articleId, section: finding.section, claim: finding.claim,
-        verdict: finding.verdict, severity: finding.severity, reference: finding.reference,
-        suggested_fix: finding.suggested_fix,
-      });
-      if (error) throw error;
-    }
     const approved = input.result.status === "ai_checked" && savedReview?.id;
     const { error: updateError } = await db.from("articles").update({
       title, content, published: false, requires_review: !approved,
