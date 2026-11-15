@@ -29,7 +29,7 @@ serve(async (req) => {
     const saved = await persistVerifiedArticle({
       page: result.page, result, articleId: body.article_id || null, category: body.category,
     });
-    return Response.json({ ...saved, title: result.page.title, review: result.review, loop_count: result.loopCount }, { headers: { ...cors, "Content-Type": "application/json" } });
+    return Response.json({ ...saved, title: result.page.title, content: (await import("../_shared/verified-topic.ts")).renderTopicMarkdown(result.page), review: result.review, loop_count: result.loopCount }, { headers: { ...cors, "Content-Type": "application/json" } });
   } catch (error) {
     console.error("generate-verified-topic failed", error);
     return Response.json({ error: error instanceof Error ? error.message : "Generation failed" }, { status: 500, headers: cors });
