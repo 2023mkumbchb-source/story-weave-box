@@ -20,6 +20,11 @@ CREATE TABLE IF NOT EXISTS public.article_revisions (
 ALTER TABLE public.article_revisions ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.article_revisions FROM anon, authenticated;
 GRANT ALL ON public.article_revisions TO service_role;
+GRANT SELECT, INSERT ON public.article_revisions TO authenticated;
+CREATE POLICY "Admins manage article revisions" ON public.article_revisions
+  FOR ALL TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'))
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
 CREATE TABLE IF NOT EXISTS public.audit_findings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
