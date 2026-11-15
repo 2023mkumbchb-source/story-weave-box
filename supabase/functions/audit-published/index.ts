@@ -22,7 +22,7 @@ serve(async (req) => {
         article_id: article.id, provider: "gemini", model: Deno.env.get("GEMINI_REVIEW_MODEL") || "gemini-2.5-flash",
         verdict: review.verdict, overall_confidence: review.overall_confidence,
         findings: review.findings, missing_sections: review.missing_sections, loop_count: 0,
-      });
+      }).select("id").single();
       if (reviewError) throw reviewError;
       for (const finding of review.findings) {
         const { error: findingError } = await db.from("audit_findings").insert({
