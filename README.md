@@ -72,7 +72,7 @@ API request format:
 - Method: POST
 - Headers: Content-Type: application/json
 - Body: {"contents": [{"parts": [{"text": "your prompt here"}]}]}
-- Add API key as query parameter: ?key=YOUR_API_KEY
+- Read the provider credential from the server-side environment only; never send API keys from the browser.
 
 Show clear error messages if API key is missing or API call fails.
 ```
@@ -156,7 +156,7 @@ Make everything feel polished and professional.
 ### **Add Your API Key:**
 
 1. Look for the "Settings" or "API Configuration" page in your admin dashboard
-2. Do not paste API keys into source code, README files, browser settings, or chat. Store them only as server-side secrets.
+2. Do not paste API keys into source code, README files, browser settings, or chat. Store them only as Supabase Edge Function secrets.
 3. Save it
 
 ### **Test It:**
