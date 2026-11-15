@@ -157,7 +157,7 @@ export async function persistVerifiedArticle(input: {
       title, content, published: false, requires_review: !approved,
       ai_check_status: approved ? "ai_checked" : "needs_review",
       ai_checked_at: approved ? new Date().toISOString() : null,
-      ai_check_model: geminiReviewModel(), ai_generator_model: groqModel(),
+      ai_check_model: geminiReviewModel(), ai_generator_model: groqModel(), ai_review_id: savedReview?.id || null,
       ai_confidence: input.result.review.overall_confidence,
       review_loop_count: input.result.loopCount,
       verification_status: approved ? "ai_checked" : "needs_review",
