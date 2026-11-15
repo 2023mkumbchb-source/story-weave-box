@@ -471,6 +471,7 @@ export default function AdminEditor() {
   const [allStories, setAllStories] = useState<any[]>([]);
 
   const [editTitle, setEditTitle] = useState("");
+  const [verifiedDraftId, setVerifiedDraftId] = useState<string | null>(null);
   const [editMetaTitle, setEditMetaTitle] = useState("");
   const [editMetaDesc, setEditMetaDesc] = useState("");
   const [editSlug, setEditSlug] = useState("");
@@ -815,7 +816,9 @@ export default function AdminEditor() {
         ...prepared.extras,
       };
       if (isAddMode) {
+        if (verifiedDraftId) payload.id = verifiedDraftId;
         await saveArticle(payload);
+        setVerifiedDraftId(null);
         toast({ title: "Article created!" });
         setIsAddMode(false);
         await loadContent();
@@ -924,6 +927,7 @@ export default function AdminEditor() {
 
   const startAdd = (method: "direct" | "gemini") => {
     setIsAddMode(true);
+    setVerifiedDraftId(null);
     setAddMethod(editorMode === "mcqs" ? "gemini" : method);
       setEditTitle(""); setEditMetaTitle(""); setEditMetaDesc(""); setEditSlug("");
       setEditCategory(selectedUnit || `Year ${selectedYear}: General`);
@@ -956,8 +960,10 @@ export default function AdminEditor() {
         }
       }
       const contentType = editorMode === "mcqs" ? "mcqs" : editorMode === "stories" ? "article" : "article";
-      const { data, error } = await supabase.functions.invoke("generate-content", {
-        body: { notes: geminiNotes, type: contentType },
+      const { data, error } = await supabase.functions.invoke(editorMode === "articles" ? "generate-verified-topic" : "generate-content", {
+        body: editorMode === "articles"
+          ? { topic: editTitle || extractTitleFromNotes(geminiNotes) || "Medical study topic", context: geminiNotes, category: editCategory }
+          : { notes: geminiNotes, type: contentType },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -977,12 +983,13 @@ export default function AdminEditor() {
         await loadContent();
       } else {
         const finalTitle = data.title || extractTitleFromNotes(geminiNotes) || "Untitled";
+        if (editorMode === "articles" && data.id) setVerifiedDraftId(data.id);
         setEditTitle(finalTitle);
         setEditMetaTitle(finalTitle);
         setEditSlug(slugifyText(finalTitle));
         setEditMetaDesc(stripRichText(data.content || "", 160));
         if (editor) editor.commands.setContent(mdToHtml(data.content || ""));
-        toast({ title: "Generated!" });
+        toast({ title: editorMode === "articles" ? (data.ai_check_status === "ai_checked" ? "Generated and AI-checked; saved as draft." : "Generated; saved as draft requiring medical review.") : "Generated!" });
       }
     } catch (err: any) {
       toast({ title: "Generation failed", description: err.message, variant: "destructive" });
