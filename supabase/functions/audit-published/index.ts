@@ -5,10 +5,16 @@ import { reviewWithGemini, type ReviewResult } from "../_shared/gemini-review.ts
 
 const isProtectedClinicalSection = (section: string) => /management|classif|dose|drug|medication/i.test(section);
 
-async function saveReview(db: any, articleId: string, review: ReviewResult) {
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function saveReview(db: any, articleId: string, review: ReviewResult, reviewedContent: string) {
   const { data, error } = await db.from("article_ai_reviews").insert({
     article_id: articleId,
     provider: "gemini",
+    content_hash: await sha256Hex(reviewedContent),
     model: Deno.env.get("GEMINI_REVIEW_MODEL") || "gemini-2.5-flash",
     verdict: review.verdict,
     overall_confidence: review.overall_confidence,
@@ -52,7 +58,7 @@ serve(async (req) => {
     let autofixed = 0;
     for (const article of articles || []) {
       const review = await reviewWithGemini({ title: article.title, content: article.content });
-      const reviewId = await saveReview(db, article.id, review);
+      const reviewId = await saveReview(db, article.id, review, article.content || "");
       const hasMediumOrHigh = review.findings.some((finding) => finding.severity === "medium" || finding.severity === "high");
       const protectedMissing = review.missing_sections.filter(isProtectedClinicalSection);
 
@@ -143,7 +149,7 @@ serve(async (req) => {
           };
         }
         let finalReviewId = reviewId;
-        if (recheck.provider === "gemini") finalReviewId = await saveReview(db, article.id, recheck);
+        if (recheck.provider === "gemini") finalReviewId = await saveReview(db, article.id, recheck, revised);
         const recheckFailed = recheck.provider !== "gemini"
           || recheck.verdict !== "approved"
           || recheck.findings.some((finding) => finding.severity === "medium" || finding.severity === "high")
