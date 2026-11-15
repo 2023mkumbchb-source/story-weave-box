@@ -71,63 +71,15 @@ function inferCategoryFromKeywords(notes: string): string {
 }
 
 function normalizeArticleOutput(raw: string): { title: string; content: string } {
-  const cleaned = raw.replace(/```[\s\S]*?```/g, "").trim();
-  const lines = cleaned.split("\n");
-  const firstNonEmpty = lines.find((l) => l.trim().length > 0) ?? "Study Article";
+  const cleaned = raw.replace(/\`\`\`[\\s\\S]*?\`\`\`/g, "").trim();
+  const lines = cleaned.split("\\n");
+  const firstNonEmpty = lines.find((line) => line.trim().length > 0) ?? "Study Article";
   const title = cleanHeading(firstNonEmpty) || "Study Article";
   const bodyStart = lines[0]?.trim() === firstNonEmpty.trim() ? 1 : 0;
-  let body = lines.slice(bodyStart).join("\n").trim();
-  body = body.replace(/^#\s+/gm, "## ").trim();
-
-  const hasSummary = /^##\s+Summary\b/im.test(body);
-  const hasKeyPoints = /^##\s+Key Points\b/im.test(body);
-  const hasDetailed = /^##\s+Detailed Notes\b/im.test(body);
-  const hasPractice = /^##\s+Practice Questions\b/im.test(body);
-
-  if (hasSummary && hasKeyPoints && hasDetailed && hasPractice) {
-    return { title, content: body };
-  }
-
-  const paragraphs = body
-    .split(/\n\s*\n/)
-    .map((p) => compactWhitespace(p))
-    .filter(Boolean);
-
-  const summary = paragraphs[0] || "High-yield summary not provided.";
-  const keyPoints = paragraphs
-    .flatMap((p) => p.split(/(?<=[.!?])\s+/))
-    .map((s) => s.trim())
-    .filter((s) => s.length > 25)
-    .slice(0, 8)
-    .map((s) => `- ${s}`);
-
-  const detailed = paragraphs.slice(1).join("\n\n") || summary;
-  const practiceQuestions = [
-    `1. What is the core mechanism of ${title}? → Explain the key pathology/physiology process.`,
-    `2. Which finding most strongly supports ${title} clinically? → Identify the highest-yield clue.`,
-    `3. What is a key differential diagnosis for ${title}? → Contrast the differentiating features.`,
-    `4. Which investigation best confirms ${title}? → State the best test and why.`,
-    `5. What is first-line management principle in ${title}? → Give the priority step and rationale.`,
-    `6. Which complication is most exam-relevant for ${title}? → Name it and early clues.`,
-    `7. What is a frequent exam trap in ${title}? → Correct the misconception.`,
-    `8. How would ${title} present in a classic vignette? → Summarize hallmark cues.`,
-  ];
-
-  const content = [
-    "## Summary",
-    summary,
-    "",
-    "## Key Points",
-    ...(keyPoints.length ? keyPoints : ["- Add high-yield points for this topic."]),
-    "",
-    "## Detailed Notes",
-    detailed,
-    "",
-    "## Practice Questions",
-    ...practiceQuestions,
-  ].join("\n");
-
-  return { title, content };
+  const body = lines.slice(bodyStart).join("\\n").replace(/^#\\s+/gm, "## ").trim();
+  // Never manufacture generic placeholder practice questions. Missing clinical
+  // sections must be regenerated and independently reviewed by the verified-topic pipeline.
+  return { title, content: body };
 }
 
 function parseAndNormalizeMcqs(raw: string, expectedCount: number) {
