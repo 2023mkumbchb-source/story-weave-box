@@ -23,6 +23,7 @@ import { parseSlideDeck, SlideDeckView, SlidePreviewModal } from "@/components/S
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { VERIFIED_CONTENT_LABELS } from "@/lib/verified-content-labels";
+import ReportArticleError from "@/components/ReportArticleError";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccess } from "@/lib/access";
 import { SubscribeModal } from "@/components/SubscribeModal";
@@ -1942,6 +1943,7 @@ export default function BlogPost() {
 
             <div className="mt-10 pt-6 border-t border-border">
               <div className="mb-5"><HelpfulVote resourceType="article" resourceId={article.id} /></div>
+              <ReportArticleError articleId={article.id} />
               <ShareButtons
                 url={`${SITE_URL}${buildBlogPath(article)}`}
                 title={cleanMetaTitle(article)}
