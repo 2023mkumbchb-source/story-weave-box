@@ -92,3 +92,4 @@ ON public.articles FOR EACH ROW EXECUTE FUNCTION public.enforce_article_ai_revie
 ALTER TABLE public.articles ADD COLUMN IF NOT EXISTS reviewer_name text;
 ALTER TABLE public.audit_findings ADD COLUMN IF NOT EXISTS submitted_by uuid REFERENCES auth.users(id) ON DELETE SET NULL;
 ALTER TABLE public.audit_findings ADD COLUMN IF NOT EXISTS student_message text;
+ALTER TABLE public.audit_findings ADD COLUMN IF NOT EXISTS review_loop integer NOT NULL DEFAULT 0;
