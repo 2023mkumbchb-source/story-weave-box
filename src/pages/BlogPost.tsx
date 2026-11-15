@@ -22,6 +22,7 @@ import { markArticleVisited } from "@/lib/progress-store";
 import { parseSlideDeck, SlideDeckView, SlidePreviewModal } from "@/components/SlideDeck";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { VERIFIED_CONTENT_LABELS } from "@/lib/verified-content-labels";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccess } from "@/lib/access";
 import { SubscribeModal } from "@/components/SubscribeModal";
@@ -1884,6 +1885,16 @@ export default function BlogPost() {
             <div className="not-prose mb-5"><StudyControls resourceType="article" resourceId={article.id} title={cleanMetaTitle(article)} /></div>
 
             <SourceAttribution article={article} />
+            {(article as any).ai_check_status === "ai_checked" && (
+              <div className="not-prose my-3 inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300" title={VERIFIED_CONTENT_LABELS.aiChecked.tooltip}>
+                {VERIFIED_CONTENT_LABELS.aiChecked.label}
+              </div>
+            )}
+            {(article as any).ai_check_status === "human_reviewed" && (article as any).reviewer_name && (
+              <div className="not-prose my-3 inline-flex items-center rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
+                {VERIFIED_CONTENT_LABELS.humanReviewed((article as any).reviewer_name, (article as any).reviewed_at ? new Date((article as any).reviewed_at).toLocaleDateString("en-GB") : "")}
+              </div>
+            )}
 
             <HtmlEmbed data={(article as any).html_embed} position="top" />
             <VimeoEmbed url={(article as any).html_embed?.vimeo_url} />
