@@ -1682,6 +1682,7 @@ export default function BlogPost() {
         "learningResourceType": "Study notes and past paper questions",
         "datePublished": article.created_at,
         "dateModified": (article as { updated_at?: string }).updated_at || article.created_at,
+        ...((article as any).ai_check_status === "human_reviewed" && (article as any).reviewer_name ? { reviewedBy: { "@type": "Person", name: (article as any).reviewer_name }, dateReviewed: (article as any).reviewed_at || undefined } : {}),
         "author": { "@type": "Organization", "name": "Ompath Study", "url": SITE_URL },
         "publisher": {
           "@type": "Organization",
