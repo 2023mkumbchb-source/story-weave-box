@@ -52,32 +52,35 @@ export async function generateAndReviewTopic(topic: string, context = "", maxLoo
   for (let pass = 0; pass <= maxLoops; pass++) {
     const validation = validateTopicPage(page);
     let review: ReviewResult | null = null;
-    if (validation.valid) {
-      try {
-        review = await reviewWithGemini(page);
-      } catch (error) {
-        review = {
-          provider: "validator", verdict: "needs_fix", overall_confidence: 0,
-          findings: [{
-            section: "review_service", claim: error instanceof Error ? error.message : "Gemini review unavailable",
-            verdict: "unverifiable", severity: "high", reference: "Gemini reviewer unavailable",
-            suggested_fix: "Retry independent Gemini review before publication.",
-          }],
-          missing_sections: [],
-        };
-      }
-      lastReview = review;
-    } else {
+    try {
+      // Gemini independently reviews every generated page, including pages
+      // that already failed deterministic schema or safety validation.
+      review = await reviewWithGemini(page);
+    } catch (error) {
       review = {
         provider: "validator", verdict: "needs_fix", overall_confidence: 0,
-        findings: validation.errors.map((claim) => ({
-          section: claim.split(".")[0] || "schema", claim, verdict: "unverifiable" as const,
-          severity: "high" as const, reference: "Schema validation", suggested_fix: "Regenerate this section to satisfy the required schema.",
-        })),
-        missing_sections: validation.missing,
+        findings: [{
+          section: "review_service", claim: error instanceof Error ? error.message : "Gemini review unavailable",
+          verdict: "unverifiable", severity: "high", reference: "Gemini reviewer unavailable",
+          suggested_fix: "Retry independent Gemini review before publication.",
+        }],
+        missing_sections: [],
       };
-      lastReview = review;
     }
+    if (!validation.valid) {
+      const validationFindings = validation.errors.map((claim) => ({
+        section: claim.split(".")[0] || "schema", claim, verdict: "unverifiable" as const,
+        severity: "high" as const, reference: "Deterministic schema and safety validation",
+        suggested_fix: "Regenerate this section to satisfy the required schema.",
+      }));
+      review = {
+        ...review,
+        verdict: "needs_fix",
+        findings: [...review.findings, ...validationFindings],
+        missing_sections: [...new Set([...review.missing_sections, ...validation.missing])],
+      };
+    }
+    lastReview = review;
     attempts.push({ page: structuredClone(page), review, reason: pass === 0 ? "initial_generation" : "targeted_regeneration" });
     if (validation.valid && review && isReviewApproved(review)) {
       return { page, review, status: "ai_checked", loopCount, attempts };
