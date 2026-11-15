@@ -27,7 +27,7 @@ serve(async (req) => {
     if (!topic) return Response.json({ error: "topic is required" }, { status: 400, headers: cors });
     const result = await generateAndReviewTopic(topic, String(body.context || ""), 2);
     const saved = await persistVerifiedArticle({
-      page: result.page, result, articleId: body.article_id || null, category: body.category,
+      page: result.page, result, articleId: body.article_id || null, category: body.category, originalNotes: String(body.context || ""),
     });
     return Response.json({ ...saved, title: result.page.title, content: (await import("../_shared/verified-topic.ts")).renderTopicMarkdown(result.page), review: result.review, loop_count: result.loopCount }, { headers: { ...cors, "Content-Type": "application/json" } });
   } catch (error) {
