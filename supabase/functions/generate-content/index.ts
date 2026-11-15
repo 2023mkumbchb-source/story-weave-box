@@ -1,3 +1,4 @@
+import { generateAndReviewTopic, persistVerifiedArticle, renderTopicMarkdown } from "../_shared/verified-topic.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -70,63 +71,15 @@ function inferCategoryFromKeywords(notes: string): string {
 }
 
 function normalizeArticleOutput(raw: string): { title: string; content: string } {
-  const cleaned = raw.replace(/```[\s\S]*?```/g, "").trim();
-  const lines = cleaned.split("\n");
-  const firstNonEmpty = lines.find((l) => l.trim().length > 0) ?? "Study Article";
+  const cleaned = raw.trim().replace(/^\s*```(?:markdown|md)?\s*/i, "").replace(/\s*```\s*$/, "");
+  const lines = cleaned.split(/\r?\n/);
+  const firstNonEmpty = lines.find((line) => line.trim().length > 0) ?? "Study Article";
   const title = cleanHeading(firstNonEmpty) || "Study Article";
   const bodyStart = lines[0]?.trim() === firstNonEmpty.trim() ? 1 : 0;
-  let body = lines.slice(bodyStart).join("\n").trim();
-  body = body.replace(/^#\s+/gm, "## ").trim();
-
-  const hasSummary = /^##\s+Summary\b/im.test(body);
-  const hasKeyPoints = /^##\s+Key Points\b/im.test(body);
-  const hasDetailed = /^##\s+Detailed Notes\b/im.test(body);
-  const hasPractice = /^##\s+Practice Questions\b/im.test(body);
-
-  if (hasSummary && hasKeyPoints && hasDetailed && hasPractice) {
-    return { title, content: body };
-  }
-
-  const paragraphs = body
-    .split(/\n\s*\n/)
-    .map((p) => compactWhitespace(p))
-    .filter(Boolean);
-
-  const summary = paragraphs[0] || "High-yield summary not provided.";
-  const keyPoints = paragraphs
-    .flatMap((p) => p.split(/(?<=[.!?])\s+/))
-    .map((s) => s.trim())
-    .filter((s) => s.length > 25)
-    .slice(0, 8)
-    .map((s) => `- ${s}`);
-
-  const detailed = paragraphs.slice(1).join("\n\n") || summary;
-  const practiceQuestions = [
-    `1. What is the core mechanism of ${title}? → Explain the key pathology/physiology process.`,
-    `2. Which finding most strongly supports ${title} clinically? → Identify the highest-yield clue.`,
-    `3. What is a key differential diagnosis for ${title}? → Contrast the differentiating features.`,
-    `4. Which investigation best confirms ${title}? → State the best test and why.`,
-    `5. What is first-line management principle in ${title}? → Give the priority step and rationale.`,
-    `6. Which complication is most exam-relevant for ${title}? → Name it and early clues.`,
-    `7. What is a frequent exam trap in ${title}? → Correct the misconception.`,
-    `8. How would ${title} present in a classic vignette? → Summarize hallmark cues.`,
-  ];
-
-  const content = [
-    "## Summary",
-    summary,
-    "",
-    "## Key Points",
-    ...(keyPoints.length ? keyPoints : ["- Add high-yield points for this topic."]),
-    "",
-    "## Detailed Notes",
-    detailed,
-    "",
-    "## Practice Questions",
-    ...practiceQuestions,
-  ].join("\n");
-
-  return { title, content };
+  const body = lines.slice(bodyStart).join("\n").replace(/^#\s+/gm, "## ").trim();
+  // Never manufacture generic placeholder practice questions.
+  // Missing clinical sections must be regenerated and independently reviewed.
+  return { title, content: body };
 }
 
 function parseAndNormalizeMcqs(raw: string, expectedCount: number) {
@@ -220,38 +173,12 @@ function parseEssayOutput(raw: string) {
 }
 
 function getGroqKeys(): string[] {
-  const rawValues = [
-    Deno.env.get("GROQ_API_KEYS") || "",
-    Deno.env.get("GROQ_API_KEY") || "",
-  ];
-  const keys: string[] = [];
-
-  for (const raw of rawValues) {
-    const value = raw.trim();
-    if (!value) continue;
-
-    try {
-      const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) {
-        keys.push(...parsed.filter((item): item is string => typeof item === "string" && item.trim()).map((item) => item.trim()));
-        continue;
-      }
-      if (typeof parsed === "string" && parsed.trim()) {
-        keys.push(parsed.trim());
-        continue;
-      }
-    } catch {
-      // A single key or comma/newline-separated key list is also supported.
-    }
-
-    keys.push(...value.split(/[\\n,;]+/).map((item) => item.trim()).filter(Boolean));
-  }
-
-  return [...new Set(keys)];
+  const key = Deno.env.get("GROQ_API_KEY")?.trim();
+  return key ? [key] : [];
 }
 
 async function callGroq(messages: any[], apiKeys: string[]): Promise<string> {
-  const model = (Deno.env.get("GROQ_MODEL") || "openai/gpt-oss-120b").trim();
+  const model = (Deno.env.get("GROQ_MODEL") || "llama-3.3-70b-versatile").trim();
   const requestTimeoutMs = 60000;
   let lastError = "No Groq API key configured.";
 
@@ -308,7 +235,7 @@ async function callGroq(messages: any[], apiKeys: string[]): Promise<string> {
   throw new Error(lastError);
 }
 
-async function callAI(messages: any[], geminiKey?: string, allKeys?: string[]): Promise<string> {
+async function callAI(messages: any[]): Promise<string> {
   // Groq is the primary generation provider. Gemini is the automatic fallback.
   const groqKeys = getGroqKeys();
   if (groqKeys.length > 0) {
@@ -320,24 +247,16 @@ async function callAI(messages: any[], geminiKey?: string, allKeys?: string[]): 
       console.error("Groq unavailable; falling back to Gemini:", error instanceof Error ? error.message : String(error));
     }
   } else {
-    console.warn("GROQ_API_KEYS/GROQ_API_KEY is not configured in Supabase Edge Function secrets.");
+    console.warn("GROQ_API_KEY is not configured in Supabase Edge Function secrets.");
   }
 
-  // Build list of Gemini keys: request-provided keys first, then server-side secrets.
+  // Gemini credentials are server-side secrets only; browser-supplied keys are ignored.
   const keyList: string[] = [];
-  if (allKeys && allKeys.length > 0) {
-    keyList.push(...allKeys.filter((key) => key?.trim()));
-  } else if (geminiKey?.trim()) {
-    keyList.push(geminiKey.trim());
-  }
-
-  for (const name of ["GEMINI_API_KEY", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3", "GEMINI_API_KEY_4", "GEMINI_API_KEY_5"]) {
-    const value = Deno.env.get(name);
-    if (value && !keyList.includes(value)) keyList.push(value);
-  }
+  const reviewerKey = Deno.env.get("GEMINI_API_KEY");
+  if (reviewerKey) keyList.push(reviewerKey);
 
   if (keyList.length === 0) {
-    throw new Error("No AI provider configured. Set GROQ_API_KEYS in Supabase Edge Function secrets, or configure a Gemini API key.");
+    throw new Error("No AI provider configured. Set GROQ_API_KEY in Supabase Edge Function secrets, or configure a Gemini API key.");
   }
 
   const systemMsg = messages.find((message: any) => message.role === "system")?.content || "";
@@ -406,9 +325,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { notes, type, count = 20, geminiKey, geminiKeys, title: customTitle } = await req.json();
-    // geminiKeys is an array of API keys for rotation; geminiKey is legacy single key
-    const allKeys: string[] = Array.isArray(geminiKeys) ? geminiKeys.filter((k: string) => k?.trim()) : [];
+    const { notes, type, count = 20, title: customTitle } = await req.json();
     const cardCount = Math.min(Math.max(Number(count) || 20, 5), 100);
 
     if (!notes || typeof notes !== "string") {
@@ -416,6 +333,23 @@ serve(async (req) => {
     }
 
     const safeNotes = clipNotesForModel(notes);
+
+    if (type === "article") {
+      const token = req.headers.get("Authorization")?.startsWith("Bearer ") ? req.headers.get("Authorization")!.slice(7) : undefined;
+      if (!token) return new Response(JSON.stringify({ error: "Authentication required" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+      const adminDb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const { data: auth, error: authError } = await adminDb.auth.getUser(token);
+      if (authError || !auth.user) return new Response(JSON.stringify({ error: "Invalid session" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const { data: adminRole } = await adminDb.from("user_roles").select("role").eq("user_id", auth.user.id).eq("role", "admin").maybeSingle();
+      if (!adminRole) return new Response(JSON.stringify({ error: "Admin access required" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const topic = (customTitle || safeNotes.split(/\r?\n/).find((line: string) => line.trim()) || "Medical study topic").trim();
+      const verified = await generateAndReviewTopic(topic, safeNotes, 2);
+      const saved = await persistVerifiedArticle({ page: verified.page, result: verified, category: "Uncategorized", originalNotes: safeNotes });
+      return new Response(JSON.stringify({ id: saved.id, title: verified.page.title, content: renderTopicMarkdown(verified.page), published: false, ai_check_status: saved.ai_check_status, review: verified.review, loop_count: verified.loopCount }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (type === "categorize") {
       const catList = `Available unit categories:\n${UNIT_CATEGORIES.join("\n")}`;
@@ -428,7 +362,7 @@ serve(async (req) => {
       ];
 
       try {
-        const category = (await callAI(messages, geminiKey, allKeys)).trim().replace(/^"|"$/g, "");
+        const category = (await callAI(messages)).trim().replace(/^"|"$/g, "");
         const exact = UNIT_CATEGORIES.find((c) => c.toLowerCase() === category.toLowerCase());
         if (exact) {
           return new Response(JSON.stringify({ category: exact }), {
@@ -463,7 +397,7 @@ REQUIREMENTS:
         { role: "user", content: safeNotes },
       ];
 
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const result = parseEssayOutput(text);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -496,7 +430,7 @@ Rules:
         },
         { role: "user", content: customTitle ? `Title: ${customTitle}\n\nContent:\n${safeNotes}` : safeNotes },
       ];
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         const result = normalizeArticleOutput(text);
@@ -524,7 +458,7 @@ Rules:
         },
         { role: "user", content: `Title: ${customTitle || "Untitled"}\n\nStory:\n${safeNotes.slice(0, 15000)}` },
       ];
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         return new Response(JSON.stringify({ title: customTitle || "Untitled", content: notes, category: "Stories" }), {
@@ -571,7 +505,7 @@ Rules:
         { role: "user", content: customTitle ? `Title: ${customTitle}\n\nContent:\n${safeNotes}` : safeNotes },
       ];
 
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const result = normalizeArticleOutput(text);
       if (customTitle) result.title = customTitle;
 
@@ -600,7 +534,7 @@ Rules:
         { role: "user", content: safeNotes },
       ];
 
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const result = parseAndNormalizeMcqs(text, cardCount);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -616,7 +550,7 @@ Rules:
         { role: "user", content: safeNotes },
       ];
 
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (!jsonMatch) throw new Error("Failed to parse flashcards");
       const parsed = JSON.parse(jsonMatch[0]);
@@ -651,7 +585,7 @@ Rules:
         { role: "user", content: `Title: ${customTitle || "Untitled"}\n\nContent:\n${safeNotes.slice(0, 15000)}` },
       ];
 
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         return new Response(JSON.stringify({ approved: true, category: "Stories", content: notes }), {
@@ -681,7 +615,7 @@ Be lenient - accept personal reflections, medical experiences, creative writing,
         { role: "user", content: `Title: ${customTitle || "Untitled"}\n\nContent:\n${safeNotes.slice(0, 5000)}` },
       ];
 
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         return new Response(JSON.stringify({ approved: true, category: "Stories" }), {
@@ -715,7 +649,7 @@ Rules:
         { role: "user", content: customTitle ? `Title: ${customTitle}\n\nStory:\n${safeNotes}` : safeNotes },
       ];
 
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const lines = text.trim().split("\n");
       const title = cleanHeading(lines[0] || customTitle || "Untitled Story");
       const content = lines.slice(1).join("\n").trim();
@@ -745,7 +679,7 @@ Rules:
         { role: "user", content: safeNotes.slice(0, 10000) },
       ];
       try {
-        const text = await callAI(messages, geminiKey, allKeys);
+        const text = await callAI(messages);
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
@@ -776,7 +710,7 @@ Return ONLY valid JSON: {"meta_title":"...","meta_description":"...","slug":"...
         },
         { role: "user", content: safeNotes.slice(0, 5000) },
       ];
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("Failed to parse SEO meta");
       const parsed = JSON.parse(jsonMatch[0]);
@@ -826,7 +760,7 @@ Return ONLY valid JSON array: [{"question":"...","answer":"..."}]`;
       },
     ];
 
-    const text = await callAI(messages, geminiKey, allKeys);
+    const text = await callAI(messages);
 
     let result: any;
     if (type === "article") {

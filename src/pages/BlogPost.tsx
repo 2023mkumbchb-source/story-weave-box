@@ -22,6 +22,8 @@ import { markArticleVisited } from "@/lib/progress-store";
 import { parseSlideDeck, SlideDeckView, SlidePreviewModal } from "@/components/SlideDeck";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { VERIFIED_CONTENT_LABELS } from "@/lib/verified-content-labels";
+import ReportArticleError from "@/components/ReportArticleError";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccess } from "@/lib/access";
 import { SubscribeModal } from "@/components/SubscribeModal";
@@ -1681,6 +1683,7 @@ export default function BlogPost() {
         "learningResourceType": "Study notes and past paper questions",
         "datePublished": article.created_at,
         "dateModified": (article as { updated_at?: string }).updated_at || article.created_at,
+        ...((article as any).ai_check_status === "human_reviewed" && (article as any).reviewer_name ? { reviewedBy: { "@type": "Person", name: (article as any).reviewer_name }, dateReviewed: (article as any).reviewed_at || undefined } : {}),
         "author": { "@type": "Organization", "name": "Ompath Study", "url": SITE_URL },
         "publisher": {
           "@type": "Organization",
@@ -1884,6 +1887,16 @@ export default function BlogPost() {
             <div className="not-prose mb-5"><StudyControls resourceType="article" resourceId={article.id} title={cleanMetaTitle(article)} /></div>
 
             <SourceAttribution article={article} />
+            {(article as any).ai_check_status === "ai_checked" && (
+              <div className="not-prose my-3 inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300" title={VERIFIED_CONTENT_LABELS.aiChecked.tooltip}>
+                {VERIFIED_CONTENT_LABELS.aiChecked.label}
+              </div>
+            )}
+            {(article as any).ai_check_status === "human_reviewed" && (article as any).reviewer_name && (
+              <div className="not-prose my-3 inline-flex items-center rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
+                {VERIFIED_CONTENT_LABELS.humanReviewed((article as any).reviewer_name, (article as any).reviewed_at ? new Date((article as any).reviewed_at).toLocaleDateString("en-GB") : "")}
+              </div>
+            )}
 
             <HtmlEmbed data={(article as any).html_embed} position="top" />
             <VimeoEmbed url={(article as any).html_embed?.vimeo_url} />
@@ -1930,6 +1943,7 @@ export default function BlogPost() {
 
             <div className="mt-10 pt-6 border-t border-border">
               <div className="mb-5"><HelpfulVote resourceType="article" resourceId={article.id} /></div>
+              <ReportArticleError articleId={article.id} />
               <ShareButtons
                 url={`${SITE_URL}${buildBlogPath(article)}`}
                 title={cleanMetaTitle(article)}

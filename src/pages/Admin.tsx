@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, Bolt, AlertTriangle, Building2, Check, X, Sparkles, Eye, Upload, Wrench, Globe, Search, Copy, ExternalLink, BookOpen, ChevronDown, Edit3, Bell, HardDrive } from "lucide-react";
+import { Loader2, FileText, Layers, Settings, Trash2, Pencil, ListChecks, Save, Key, Zap, RefreshCw, Bolt, AlertTriangle, Building2, Check, X, Sparkles, Eye, Upload, Wrench, Globe, Search, Copy, ExternalLink, BookOpen, ChevronDown, Edit3, Bell, HardDrive, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,7 @@ import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/hooks/useAuth";
 import { ARTICLE_COLUMNS } from "@/lib/article-columns";
 
-type Tab = "create" | "unedited" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo" | "categories" | "editor" | "meta-manager" | "corrections" | "payments" | "notifications" | "google-drive" | "site-manager";
+type Tab = "create" | "unedited" | "articles" | "flashcards" | "mcqs" | "stories" | "raw" | "exams" | "settings" | "institutions" | "upgrade" | "import" | "cleanup" | "seo" | "categories" | "editor" | "review-queue" | "meta-manager" | "corrections" | "payments" | "notifications" | "google-drive" | "site-manager";
 type DirectType = "article" | "mcqs" | "flashcards";
 
 export default function Admin() {
@@ -61,7 +61,7 @@ export default function Admin() {
 
   // Persist tab in URL hash for refresh resilience
   const hashTab = location.hash.replace("#", "") as Tab;
-  const [tab, setTab] = useState<Tab>(hashTab && ["create","articles","flashcards","mcqs","stories","raw","exams","recycle","settings","institutions","upgrade","import","cleanup","seo","categories","editor","meta-manager","corrections","payments","notifications","google-drive","site-manager"].includes(hashTab) ? hashTab : "create");
+  const [tab, setTab] = useState<Tab>(hashTab && ["create","articles","flashcards","mcqs","stories","raw","exams","recycle","settings","institutions","upgrade","import","cleanup","seo","categories","editor","review-queue","meta-manager","corrections","payments","notifications","google-drive","site-manager"].includes(hashTab) ? hashTab : "create");
   
   const setTabAndHash = (t: Tab) => {
     setTab(t);
@@ -418,6 +418,7 @@ export default function Admin() {
     { id: "create", label: "Create", icon: FileText },
     { id: "unedited", label: "Unedited Uploads", icon: AlertTriangle },
     { id: "editor", label: "Editor", icon: Edit3 },
+    { id: "review-queue", label: "Clinical Review Queue", icon: ClipboardCheck },
     { id: "articles", label: "Articles", icon: FileText },
     { id: "categories", label: "Categories", icon: Layers },
     { id: "flashcards", label: "Flashcards", icon: Layers },
@@ -442,7 +443,7 @@ export default function Admin() {
   const activeTab = tabs.find(t => t.id === tab);
 
   const tabGroups = [
-    { label: "Content", items: tabs.filter(t => ["create","unedited","editor","articles","categories","flashcards","mcqs","stories","exams","corrections"].includes(t.id)) },
+    { label: "Content", items: tabs.filter(t => ["create","unedited","editor","review-queue","articles","categories","flashcards","mcqs","stories","exams","corrections"].includes(t.id)) },
     { label: "Tools", items: tabs.filter(t => ["meta-manager","upgrade","cleanup","seo"].includes(t.id)) },
     { label: "Data", items: tabs.filter(t => ["raw","import"].includes(t.id)) },
     { label: "System", items: tabs.filter(t => ["institutions","payments","notifications","google-drive","site-manager","settings"].includes(t.id)) },
@@ -485,7 +486,7 @@ export default function Admin() {
               <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{group.label}</p>
               <div className="grid grid-cols-3 gap-1.5">
                 {group.items.map(t => (
-                  <button key={t.id} onClick={() => { if (t.id === "unedited") { navigate("/source-library"); return; } if (t.id === "editor") { navigate("/admin/editor"); return; } if (t.id === "categories") { navigate("/admin/categories"); return; } setTabAndHash(t.id); document.getElementById("admin-nav-panel")?.classList.add("hidden"); }}
+                  <button key={t.id} onClick={() => { if (t.id === "unedited") { navigate("/source-library"); return; } if (t.id === "editor") { navigate("/admin/editor"); return; } if (t.id === "review-queue") { navigate("/admin/review-queue"); return; } if (t.id === "categories") { navigate("/admin/categories"); return; } setTabAndHash(t.id); document.getElementById("admin-nav-panel")?.classList.add("hidden"); }}
                     className={`flex flex-col items-center gap-1 rounded-lg px-2 py-2.5 text-[11px] font-medium transition-colors ${tab === t.id ? "bg-primary/10 text-primary ring-1 ring-primary/30" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                     <t.icon className="h-4 w-4" />
                     <span className="text-center leading-tight">{t.label}</span>
@@ -504,7 +505,7 @@ export default function Admin() {
             <p className="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{group.label}</p>
             <div className="flex flex-wrap gap-1">
               {group.items.map(t => (
-                <button key={t.id} onClick={() => { if (t.id === "unedited") { navigate("/source-library"); return; } if (t.id === "editor") { navigate("/admin/editor"); return; } if (t.id === "categories") { navigate("/admin/categories"); return; } setTabAndHash(t.id); }}
+                <button key={t.id} onClick={() => { if (t.id === "unedited") { navigate("/source-library"); return; } if (t.id === "editor") { navigate("/admin/editor"); return; } if (t.id === "review-queue") { navigate("/admin/review-queue"); return; } if (t.id === "categories") { navigate("/admin/categories"); return; } setTabAndHash(t.id); }}
                   className={`flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors ${tab === t.id ? "bg-primary/10 text-primary ring-1 ring-primary/30" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
                   <t.icon className="h-3.5 w-3.5" /><span>{t.label}</span>
                 </button>
