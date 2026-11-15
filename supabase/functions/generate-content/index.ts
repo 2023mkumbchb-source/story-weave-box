@@ -1,3 +1,4 @@
+import { generateAndReviewTopic, persistVerifiedArticle, renderTopicMarkdown } from "../_shared/verified-topic.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -308,7 +309,7 @@ async function callGroq(messages: any[], apiKeys: string[]): Promise<string> {
   throw new Error(lastError);
 }
 
-async function callAI(messages: any[], geminiKey?: string, allKeys?: string[]): Promise<string> {
+async function callAI(messages: any[]): Promise<string> {
   // Groq is the primary generation provider. Gemini is the automatic fallback.
   const groqKeys = getGroqKeys();
   if (groqKeys.length > 0) {
@@ -323,18 +324,10 @@ async function callAI(messages: any[], geminiKey?: string, allKeys?: string[]): 
     console.warn("GROQ_API_KEYS/GROQ_API_KEY is not configured in Supabase Edge Function secrets.");
   }
 
-  // Build list of Gemini keys: request-provided keys first, then server-side secrets.
+  // Gemini credentials are server-side secrets only; browser-supplied keys are ignored.
   const keyList: string[] = [];
-  if (allKeys && allKeys.length > 0) {
-    keyList.push(...allKeys.filter((key) => key?.trim()));
-  } else if (geminiKey?.trim()) {
-    keyList.push(geminiKey.trim());
-  }
-
-  for (const name of ["GEMINI_API_KEY", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3", "GEMINI_API_KEY_4", "GEMINI_API_KEY_5"]) {
-    const value = Deno.env.get(name);
-    if (value && !keyList.includes(value)) keyList.push(value);
-  }
+  const reviewerKey = Deno.env.get("GEMINI_API_KEY");
+  if (reviewerKey) keyList.push(reviewerKey);
 
   if (keyList.length === 0) {
     throw new Error("No AI provider configured. Set GROQ_API_KEYS in Supabase Edge Function secrets, or configure a Gemini API key.");
@@ -406,9 +399,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { notes, type, count = 20, geminiKey, geminiKeys, title: customTitle } = await req.json();
-    // geminiKeys is an array of API keys for rotation; geminiKey is legacy single key
-    const allKeys: string[] = Array.isArray(geminiKeys) ? geminiKeys.filter((k: string) => k?.trim()) : [];
+    const { notes, type, count = 20, title: customTitle } = await req.json();
     const cardCount = Math.min(Math.max(Number(count) || 20, 5), 100);
 
     if (!notes || typeof notes !== "string") {
@@ -416,6 +407,15 @@ serve(async (req) => {
     }
 
     const safeNotes = clipNotesForModel(notes);
+
+    if (type === "article") {
+      const topic = (customTitle || safeNotes.split(/\\r?\\n/).find((line: string) => line.trim()) || "Medical study topic").trim();
+      const verified = await generateAndReviewTopic(topic, safeNotes, 2);
+      const saved = await persistVerifiedArticle({ page: verified.page, result: verified, category: "Uncategorized" });
+      return new Response(JSON.stringify({ id: saved.id, title: verified.page.title, content: renderTopicMarkdown(verified.page), published: false, ai_check_status: saved.ai_check_status, review: verified.review, loop_count: verified.loopCount }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (type === "categorize") {
       const catList = `Available unit categories:\n${UNIT_CATEGORIES.join("\n")}`;
@@ -428,7 +428,7 @@ serve(async (req) => {
       ];
 
       try {
-        const category = (await callAI(messages, geminiKey, allKeys)).trim().replace(/^"|"$/g, "");
+        const category = (await callAI(messages)).trim().replace(/^"|"$/g, "");
         const exact = UNIT_CATEGORIES.find((c) => c.toLowerCase() === category.toLowerCase());
         if (exact) {
           return new Response(JSON.stringify({ category: exact }), {
