@@ -45,3 +45,7 @@ export function isReviewApproved(review: { verdict: string; findings: Array<{ se
   const medium = review.findings.filter((finding) => finding.severity === "medium").length;
   return review.verdict === "approved" && !high && medium < 3;
 }
+
+export function resolveAiCheckStatus(review: { verdict: string; findings: Array<{ severity: string }> } | null): "ai_checked" | "needs_review" {
+  return review && isReviewApproved(review) ? "ai_checked" : "needs_review";
+}
