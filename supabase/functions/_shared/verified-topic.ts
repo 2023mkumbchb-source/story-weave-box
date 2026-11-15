@@ -148,7 +148,7 @@ export function renderTopicMarkdown(page: TopicPage): string {
 }
 
 export async function persistVerifiedArticle(input: {
-  page: TopicPage; result: PipelineResult; articleId?: string | null; category?: string;
+  page: TopicPage; result: PipelineResult; articleId?: string | null; category?: string; originalNotes?: string;
 }): Promise<{ id: string; published: false; ai_check_status: string }> {
   const url = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -164,7 +164,7 @@ export async function persistVerifiedArticle(input: {
       verification_status: "ai_generated", ai_check_status: "unchecked",
       ai_generator_model: groqModel(), ai_check_model: geminiReviewModel(),
       review_loop_count: input.result.loopCount, category: input.category || "Uncategorized",
-      original_notes: "",
+      original_notes: input.originalNotes || "",
     }).select("id").single();
     if (error) throw error;
     articleId = data.id;
