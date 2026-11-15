@@ -37,7 +37,7 @@ serve(async (req) => {
     if (!articleId) return Response.json({ error: "article_id is required" }, { status: 400, headers: cors });
 
     if (action === "mark-reviewed") {
-      const reviewerName = String(auth.user.user_metadata?.full_name || auth.user.user_metadata?.name || auth.user.email || "OmpathStudy reviewer");
+      const reviewerName = String(auth.user.user_metadata?.full_name || auth.user.user_metadata?.name || "OmpathStudy reviewer");
       const now = new Date().toISOString();
       const { error } = await db.from("articles").update({
         reviewed_by: auth.user.id, reviewed_at: now, reviewer_name: reviewerName,
