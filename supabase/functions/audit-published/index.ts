@@ -18,7 +18,7 @@ serve(async (req) => {
     let audited = 0;
     for (const article of articles || []) {
       const review = await reviewWithGemini({ title: article.title, content: article.content });
-      const { error: reviewError } = await db.from("article_ai_reviews").insert({
+      const { data: savedReview, error: reviewError } = await db.from("article_ai_reviews").insert({
         article_id: article.id, provider: "gemini", model: Deno.env.get("GEMINI_REVIEW_MODEL") || "gemini-2.5-flash",
         verdict: review.verdict, overall_confidence: review.overall_confidence,
         findings: review.findings, missing_sections: review.missing_sections, loop_count: 0,
@@ -35,7 +35,7 @@ serve(async (req) => {
       const needsHuman = review.findings.some((f) => f.severity === "medium" || f.severity === "high") || review.verdict !== "approved";
       if (needsHuman) {
         const { error: downgradeError } = await db.from("articles").update({
-          requires_review: true, ai_check_status: "needs_review", ai_checked_at: null,
+          requires_review: true, ai_check_status: "needs_review", ai_checked_at: null, ai_review_id: savedReview?.id || null,
         }).eq("id", article.id);
         if (downgradeError) throw downgradeError;
       } else {
