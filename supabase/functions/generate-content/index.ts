@@ -415,7 +415,7 @@ REQUIREMENTS:
         { role: "user", content: safeNotes },
       ];
 
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const result = parseEssayOutput(text);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -448,7 +448,7 @@ Rules:
         },
         { role: "user", content: customTitle ? `Title: ${customTitle}\n\nContent:\n${safeNotes}` : safeNotes },
       ];
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         const result = normalizeArticleOutput(text);
@@ -476,7 +476,7 @@ Rules:
         },
         { role: "user", content: `Title: ${customTitle || "Untitled"}\n\nStory:\n${safeNotes.slice(0, 15000)}` },
       ];
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         return new Response(JSON.stringify({ title: customTitle || "Untitled", content: notes, category: "Stories" }), {
@@ -523,7 +523,7 @@ Rules:
         { role: "user", content: customTitle ? `Title: ${customTitle}\n\nContent:\n${safeNotes}` : safeNotes },
       ];
 
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const result = normalizeArticleOutput(text);
       if (customTitle) result.title = customTitle;
 
@@ -552,7 +552,7 @@ Rules:
         { role: "user", content: safeNotes },
       ];
 
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const result = parseAndNormalizeMcqs(text, cardCount);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -568,7 +568,7 @@ Rules:
         { role: "user", content: safeNotes },
       ];
 
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (!jsonMatch) throw new Error("Failed to parse flashcards");
       const parsed = JSON.parse(jsonMatch[0]);
@@ -603,7 +603,7 @@ Rules:
         { role: "user", content: `Title: ${customTitle || "Untitled"}\n\nContent:\n${safeNotes.slice(0, 15000)}` },
       ];
 
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         return new Response(JSON.stringify({ approved: true, category: "Stories", content: notes }), {
@@ -633,7 +633,7 @@ Be lenient - accept personal reflections, medical experiences, creative writing,
         { role: "user", content: `Title: ${customTitle || "Untitled"}\n\nContent:\n${safeNotes.slice(0, 5000)}` },
       ];
 
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         return new Response(JSON.stringify({ approved: true, category: "Stories" }), {
@@ -667,7 +667,7 @@ Rules:
         { role: "user", content: customTitle ? `Title: ${customTitle}\n\nStory:\n${safeNotes}` : safeNotes },
       ];
 
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const lines = text.trim().split("\n");
       const title = cleanHeading(lines[0] || customTitle || "Untitled Story");
       const content = lines.slice(1).join("\n").trim();
@@ -697,7 +697,7 @@ Rules:
         { role: "user", content: safeNotes.slice(0, 10000) },
       ];
       try {
-        const text = await callAI(messages, geminiKey, allKeys);
+        const text = await callAI(messages);
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
@@ -728,7 +728,7 @@ Return ONLY valid JSON: {"meta_title":"...","meta_description":"...","slug":"...
         },
         { role: "user", content: safeNotes.slice(0, 5000) },
       ];
-      const text = await callAI(messages, geminiKey, allKeys);
+      const text = await callAI(messages);
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("Failed to parse SEO meta");
       const parsed = JSON.parse(jsonMatch[0]);
@@ -778,7 +778,7 @@ Return ONLY valid JSON array: [{"question":"...","answer":"..."}]`;
       },
     ];
 
-    const text = await callAI(messages, geminiKey, allKeys);
+    const text = await callAI(messages);
 
     let result: any;
     if (type === "article") {
