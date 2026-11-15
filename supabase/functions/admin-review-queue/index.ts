@@ -28,6 +28,8 @@ serve(async (req) => {
         ? await db.from("audit_findings").select("*").in("article_id", ids).eq("status", "open").order("created_at", { ascending: false })
         : { data: [], error: null };
       if (findingError) throw findingError;
+      const studentPriority = new Set((findings || []).filter((item: any) => item.submitted_by).map((item: any) => item.article_id));
+      (articles || []).sort((left: any, right: any) => Number(studentPriority.has(right.id)) - Number(studentPriority.has(left.id)));
       return Response.json({ articles: articles || [], findings: findings || [] }, { headers: cors });
     }
 
