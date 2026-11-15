@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { reviewWithGemini } from "../_shared/gemini-review.ts";
 
-const protectedSections = new Set(["management", "classification", "doses", "drug_names", "drug names"]);
+const isProtectedClinicalSection = (section: string) => /management|classif|dose|drug|medication/i.test(section);
 serve(async (req) => {
   const expected = Deno.env.get("AUDIT_CRON_SECRET");
   if (!expected || req.headers.get("Authorization") !== `Bearer ${expected}`) {
@@ -42,7 +42,7 @@ serve(async (req) => {
         // Only deterministic low-risk formatting corrections are eligible for automation.
         // Clinical sections, medication details, doses and classifications are never edited.
         let revised = article.content || "";
-        for (const finding of review.findings.filter((f) => f.severity === "low" && f.suggested_fix && !protectedSections.has(f.section.toLowerCase()))) {
+        for (const finding of review.findings.filter((f) => f.severity === "low" && f.suggested_fix && !isProtectedClinicalSection(f.section))) {
           if (/format|spacing|punctuation|heading|typo/i.test(finding.claim) && revised.includes(finding.claim)) {
             revised = revised.replace(finding.claim, finding.suggested_fix);
           }
