@@ -56,7 +56,7 @@ serve(async (req) => {
           const { error: updateError } = await db.from("articles").update({ content: revised }).eq("id", article.id);
           if (updateError) throw updateError;
         }
-        const { error: stampError } = await db.from("articles").update({ ai_checked_at: new Date().toISOString() }).eq("id", article.id);
+        const { error: stampError } = await db.from("articles").update({ ai_checked_at: new Date().toISOString(), ai_review_id: savedReview.id }).eq("id", article.id);
         if (stampError) throw stampError;
       }
       audited++;
