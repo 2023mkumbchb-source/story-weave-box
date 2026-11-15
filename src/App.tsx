@@ -29,6 +29,7 @@ const FlashcardStudy = lazy(() => import("./pages/FlashcardStudy"));
 const Exams = lazy(() => import("./pages/Exams"));
 const ExamStart = lazy(() => import("./pages/ExamStart"));
 const AdminEditor = lazy(() => import("./pages/AdminEditor"));
+const AdminReviewQueue = lazy(() => import("./pages/AdminReviewQueue"));
 const Stories = lazy(() => import("./pages/Stories"));
 const StoryRead = lazy(() => import("./pages/StoryRead"));
 const SubmitStory = lazy(() => import("./pages/SubmitStory"));
@@ -170,7 +171,8 @@ const AnimatedRoutes = () => {
             <Route path="/contests/:slug/leaderboard" element={<ContestLeaderboard />} />
             <Route path="/contests/:slug/progress" element={<SignedInRoute><ContestProgress /></SignedInRoute>} />
             <Route path="/contests/:slug/certificate/:attemptId" element={<SignedInRoute><ContestCertificate /></SignedInRoute>} />
-            <Route path="/admin/editor" element={<AdminRoute><AdminEditor /></AdminRoute>} />
+            <Route path="/admin/editor" element={<AdminRoute><AdminEditor /></AdminRoute} />
+            <Route path="/admin/review-queue" element={<AdminRoute><AdminReviewQueue /></AdminRoute} />
             <Route path="/admin/categories" element={<AdminRoute><CategoryManager /></AdminRoute>} />
             <Route path="/admin/study-system" element={<AdminRoute><StudySystemAdmin /></AdminRoute>} />
             <Route path="/admin/contests" element={<AdminRoute><ContestAdmin /></AdminRoute>} />
