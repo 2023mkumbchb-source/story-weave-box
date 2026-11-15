@@ -44,6 +44,10 @@ export interface Article {
   ai_generator_model?: string | null;
   ai_confidence?: number | null;
   review_loop_count?: number;
+  reviewer_name?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  requires_review?: boolean;
 }
 
 export interface ArticleCategory {
@@ -510,7 +514,7 @@ export function buildBlogPath(article: Pick<Article, "id" | "title"> & { slug?: 
 
 // Keep article reads lean. `select("*")` also transfers source/OCR/admin fields
 // that can be much larger than the rendered article itself.
-const ARTICLE_DETAIL_COLUMNS = "id,title,content,created_at,updated_at,published,category,is_raw,meta_title,meta_description,og_image_url,slug,countdown,html_embed,password_protected,access_password,tags,featured_image,reading_time_minutes,toc_enabled,comments_enabled,university,school,lecturer,exam_type,exam_year,unit,content_kind";
+const ARTICLE_DETAIL_COLUMNS = "id,title,content,created_at,updated_at,published,category,is_raw,meta_title,meta_description,og_image_url,slug,countdown,html_embed,password_protected,access_password,tags,featured_image,reading_time_minutes,toc_enabled,comments_enabled,university,school,lecturer,exam_type,exam_year,unit,content_kind,ai_check_status,ai_checked_at,ai_check_model,ai_generator_model,ai_confidence,review_loop_count,reviewer_name,reviewed_by,reviewed_at,requires_review";
 
 const isQueuedScanPlaceholder = (content: string | null | undefined) =>
   String(content || "").trim().length < 500 && /(?:original paper scans are available|transcription is (?:being generated|queued))/i.test(String(content || ""));
@@ -907,6 +911,11 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
     if (previous && previous.content !== article.content) {
       const { error: revisionError } = await supabase.from("article_revisions").insert({ article_id: article.id, old_content: previous.content || "", new_content: article.content || "", reason: "Admin edited article content", source: "admin" } as any);
       if (revisionError) throw revisionError;
+      payload.ai_check_status = "needs_review";
+      payload.ai_checked_at = null;
+      payload.ai_review_id = null;
+      payload.requires_review = true;
+      payload.verification_status = "needs_review";
     }
     const { data, error } = await supabase
       .from("articles")
