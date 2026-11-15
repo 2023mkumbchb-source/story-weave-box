@@ -51,7 +51,7 @@ export async function generateAndReviewTopic(topic: string, context = "", maxLoo
 
   for (let pass = 0; pass <= maxLoops; pass++) {
     const validation = validateTopicPage(page);
-    let review: ReviewResult | null = null;
+    let review: ReviewResult;
     try {
       // Gemini independently reviews every generated page, including pages
       // that already failed deterministic schema or safety validation.
