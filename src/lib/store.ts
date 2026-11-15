@@ -911,6 +911,7 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
     if (previous && previous.content !== article.content) {
       const { error: revisionError } = await supabase.from("article_revisions").insert({ article_id: article.id, old_content: previous.content || "", new_content: article.content || "", reason: "Admin edited article content", source: "admin" } as any);
       if (revisionError) throw revisionError;
+      payload.published = false;
       payload.ai_check_status = "needs_review";
       payload.ai_checked_at = null;
       payload.ai_review_id = null;
