@@ -122,8 +122,8 @@ export async function generateAndReviewTopic(topic: string, context = "", maxLoo
 
 export function renderTopicMarkdown(page: TopicPage): string {
   return TOPIC_SECTIONS.map((name) => {
-    const section = page.sections[name];
-    if (!section?.applicable || !section.content.trim()) return "";
+    const section = page?.sections?.[name];
+    if (!section?.applicable || !section.content?.trim()) return "";
     const heading = name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
     return `## ${heading}\n\n${section.content.trim()}`;
   }).filter(Boolean).join("\n\n");
@@ -137,7 +137,7 @@ export async function persistVerifiedArticle(input: {
   if (!url || !serviceKey) throw new Error("Supabase server credentials are not configured");
   const db = createClient(url, serviceKey);
   const content = renderTopicMarkdown(input.page);
-  const title = input.page.title;
+  const title = String(input.page?.title || "Untitled medical topic");
   let articleId = input.articleId || null;
 
   if (!articleId) {
