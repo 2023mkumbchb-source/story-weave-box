@@ -81,3 +81,7 @@ ON public.articles FOR EACH ROW EXECUTE FUNCTION public.enforce_article_ai_revie
 
 -- Only service_role can access private review/audit/revision records. Admin UI reads
 -- them through authenticated, admin-checked Edge Functions rather than direct table access.
+
+ALTER TABLE public.articles ADD COLUMN IF NOT EXISTS reviewer_name text;
+ALTER TABLE public.audit_findings ADD COLUMN IF NOT EXISTS submitted_by uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.audit_findings ADD COLUMN IF NOT EXISTS student_message text;
