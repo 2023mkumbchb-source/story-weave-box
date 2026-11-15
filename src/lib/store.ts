@@ -909,7 +909,7 @@ export async function saveArticle(article: Omit<Article, "id"> & { id?: string }
     const { data: previous, error: previousError } = await supabase.from("articles").select("content").eq("id", article.id).maybeSingle();
     if (previousError) throw previousError;
     if (previous && previous.content !== article.content) {
-      const { error: revisionError } = await supabase.from("article_revisions").insert({ article_id: article.id, old_content: previous.content || "", new_content: article.content || "", reason: "Admin edited article content", source: "admin" } as any);
+      const { error: revisionError } = await (supabase as any).from("article_revisions").insert({ article_id: article.id, old_content: previous.content || "", new_content: article.content || "", reason: "Admin edited article content", source: "admin" } as any);
       if (revisionError) throw revisionError;
       payload.published = false;
       payload.ai_check_status = "needs_review";
