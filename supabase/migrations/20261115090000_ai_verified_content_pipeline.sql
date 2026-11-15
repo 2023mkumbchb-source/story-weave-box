@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS public.article_ai_reviews (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   article_id uuid NOT NULL REFERENCES public.articles(id) ON DELETE CASCADE,
   provider text NOT NULL CHECK (provider IN ('gemini','validator')),
+  content_hash text NOT NULL,
   model text NOT NULL,
   verdict text NOT NULL CHECK (verdict IN ('approved','needs_fix','rejected')),
   overall_confidence numeric NOT NULL CHECK (overall_confidence >= 0 AND overall_confidence <= 1),
@@ -65,13 +66,15 @@ CREATE INDEX IF NOT EXISTS article_revisions_article_created_idx ON public.artic
 CREATE INDEX IF NOT EXISTS audit_findings_queue_idx ON public.audit_findings(status, severity, created_at);
 CREATE INDEX IF NOT EXISTS articles_ai_review_queue_idx ON public.articles(requires_review, ai_check_status) WHERE published = true;
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
 CREATE OR REPLACE FUNCTION public.enforce_article_ai_review_gate()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, extensions AS $
 BEGIN
   IF NEW.ai_check_status = 'ai_checked' THEN
     IF NOT EXISTS (
       SELECT 1 FROM public.article_ai_reviews r
-      WHERE r.id = NEW.ai_review_id AND r.article_id = NEW.id AND r.provider = 'gemini' AND r.verdict = 'approved'
+      WHERE r.id = NEW.ai_review_id AND r.article_id = NEW.id AND r.provider = 'gemini' AND r.verdict = 'approved' AND r.content_hash = encode(digest(COALESCE(NEW.content, ''), 'sha256'), 'hex')
     ) THEN
       RAISE EXCEPTION 'An approved Gemini review must be saved before ai_check_status can be ai_checked';
     END IF;
@@ -83,7 +86,7 @@ BEGIN
 END;
 $$;
 DROP TRIGGER IF EXISTS articles_ai_review_gate ON public.articles;
-CREATE TRIGGER articles_ai_review_gate BEFORE INSERT OR UPDATE OF ai_check_status, requires_review
+CREATE TRIGGER articles_ai_review_gate BEFORE INSERT OR UPDATE
 ON public.articles FOR EACH ROW EXECUTE FUNCTION public.enforce_article_ai_review_gate();
 
 -- Only service_role can access private review/audit/revision records. Admin UI reads
