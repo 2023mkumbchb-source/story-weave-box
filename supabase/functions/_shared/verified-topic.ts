@@ -208,5 +208,5 @@ export async function persistVerifiedArticle(input: {
     }).eq("id", articleId);
     if (error) throw error;
   }
-  return { id: articleId, published: false, ai_check_status: input.result.status };
+  return { id: articleId, published: false, ai_check_status: input.result.status === "ai_checked" && input.result.review?.provider === "gemini" ? "ai_checked" : "needs_review" };
 }
