@@ -959,7 +959,7 @@ export default function AdminEditor() {
           return;
         }
       }
-      const contentType = editorMode === "mcqs" ? "mcqs" : editorMode === "stories" ? "article" : "article";
+      const contentType = editorMode === "mcqs" ? "mcqs" : editorMode === "stories" ? "direct-article" : "article";
       const { data, error } = await supabase.functions.invoke(editorMode === "articles" ? "generate-verified-topic" : "generate-content", {
         body: editorMode === "articles"
           ? { topic: editTitle || extractTitleFromNotes(geminiNotes) || "Medical study topic", context: geminiNotes, category: editCategory }
