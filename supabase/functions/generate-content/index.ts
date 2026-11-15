@@ -345,7 +345,7 @@ serve(async (req) => {
       if (!adminRole) return new Response(JSON.stringify({ error: "Admin access required" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const topic = (customTitle || safeNotes.split(/\r?\n/).find((line: string) => line.trim()) || "Medical study topic").trim();
       const verified = await generateAndReviewTopic(topic, safeNotes, 2);
-      const saved = await persistVerifiedArticle({ page: verified.page, result: verified, category: "Uncategorized" });
+      const saved = await persistVerifiedArticle({ page: verified.page, result: verified, category: "Uncategorized", originalNotes: safeNotes });
       return new Response(JSON.stringify({ id: saved.id, title: verified.page.title, content: renderTopicMarkdown(verified.page), published: false, ai_check_status: saved.ai_check_status, review: verified.review, loop_count: verified.loopCount }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
