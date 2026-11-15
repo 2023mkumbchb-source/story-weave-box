@@ -71,14 +71,14 @@ function inferCategoryFromKeywords(notes: string): string {
 }
 
 function normalizeArticleOutput(raw: string): { title: string; content: string } {
-  const cleaned = raw.replace(/\`\`\`[\\s\\S]*?\`\`\`/g, "").trim();
-  const lines = cleaned.split("\\n");
+  const cleaned = raw.trim().replace(/^\\s*```(?:markdown|md)?\\s*/i, "").replace(/\\s*```\\s*$/, "");
+  const lines = cleaned.split(/\\r?\\n/);
   const firstNonEmpty = lines.find((line) => line.trim().length > 0) ?? "Study Article";
   const title = cleanHeading(firstNonEmpty) || "Study Article";
   const bodyStart = lines[0]?.trim() === firstNonEmpty.trim() ? 1 : 0;
   const body = lines.slice(bodyStart).join("\\n").replace(/^#\\s+/gm, "## ").trim();
-  // Never manufacture generic placeholder practice questions. Missing clinical
-  // sections must be regenerated and independently reviewed by the verified-topic pipeline.
+  // Never manufacture generic placeholder practice questions.
+  // Missing clinical sections must be regenerated and independently reviewed.
   return { title, content: body };
 }
 
