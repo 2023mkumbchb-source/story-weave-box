@@ -53,11 +53,23 @@ export async function generateAndReviewTopic(topic: string, context = "", maxLoo
     const validation = validateTopicPage(page);
     let review: ReviewResult | null = null;
     if (validation.valid) {
-      review = await reviewWithGemini(page);
+      try {
+        review = await reviewWithGemini(page);
+      } catch (error) {
+        review = {
+          provider: "validator", verdict: "needs_fix", overall_confidence: 0,
+          findings: [{
+            section: "review_service", claim: error instanceof Error ? error.message : "Gemini review unavailable",
+            verdict: "unverifiable", severity: "high", reference: "Gemini reviewer unavailable",
+            suggested_fix: "Retry independent Gemini review before publication.",
+          }],
+          missing_sections: [],
+        };
+      }
       lastReview = review;
     } else {
       review = {
-        verdict: "needs_fix", overall_confidence: 0,
+        provider: "validator", verdict: "needs_fix", overall_confidence: 0,
         findings: validation.errors.map((claim) => ({
           section: claim.split(".")[0] || "schema", claim, verdict: "unverifiable" as const,
           severity: "high" as const, reference: "Schema validation", suggested_fix: "Regenerate this section to satisfy the required schema.",
@@ -73,15 +85,28 @@ export async function generateAndReviewTopic(topic: string, context = "", maxLoo
     if (pass === maxLoops) break;
 
     const affected = sectionPatch(page, review, validation.missing);
-    const fixes = await groqJson([
-      { role: "system", content: FIX_PROMPT },
-      { role: "user", content: JSON.stringify({
-        topic, affected_sections: affected, findings: review.findings,
-        missing_sections: [...new Set([...validation.missing, ...review.missing_sections])],
-        required_schema: "Each section: applicable:boolean, content:string, confidence:high|medium|low",
-      }) },
-    ], 9000);
-    const patch = parseJson(fixes);
+    let patch: any;
+    try {
+      const fixes = await groqJson([
+        { role: "system", content: FIX_PROMPT },
+        { role: "user", content: JSON.stringify({
+          topic, affected_sections: affected, findings: review.findings,
+          missing_sections: [...new Set([...validation.missing, ...review.missing_sections])],
+          required_schema: "Each section: applicable:boolean, content:string, confidence:high|medium|low",
+        }) },
+      ], 9000);
+      patch = parseJson(fixes);
+    } catch (error) {
+      lastReview = {
+        ...review, verdict: "needs_fix",
+        findings: [...review.findings, {
+          section: "regeneration", claim: error instanceof Error ? error.message : "Groq targeted regeneration failed",
+          verdict: "unverifiable", severity: "high", reference: "Generation pipeline",
+          suggested_fix: "Regenerate affected sections before publication.",
+        }],
+      };
+      break;
+    }
     if (!patch?.sections || typeof patch.sections !== "object") {
       lastReview = { ...review, verdict: "needs_fix" };
       break;
@@ -157,7 +182,7 @@ export async function persistVerifiedArticle(input: {
       loop_count: input.result.loopCount,
     }).select("id").single();
     if (reviewError) throw reviewError;
-    const approved = input.result.status === "ai_checked" && savedReview?.id;
+    const approved = input.result.status === "ai_checked" && input.result.review.provider === "gemini" && savedReview?.id;
     const { error: updateError } = await db.from("articles").update({
       title, content, published: false, requires_review: !approved,
       ai_check_status: approved ? "ai_checked" : "needs_review",
