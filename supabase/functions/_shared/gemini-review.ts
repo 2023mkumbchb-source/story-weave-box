@@ -26,6 +26,7 @@ export type ReviewFinding = {
 };
 
 export type ReviewResult = {
+  provider: "gemini" | "validator";
   verdict: "approved" | "needs_fix" | "rejected";
   overall_confidence: number;
   findings: ReviewFinding[];
@@ -66,6 +67,7 @@ export async function reviewWithGemini(page: unknown): Promise<ReviewResult> {
     const parsed = JSON.parse(raw);
     const findings = Array.isArray(parsed.findings) ? parsed.findings : [];
     const normalized: ReviewResult = {
+      provider: "gemini",
       verdict: ["approved", "needs_fix", "rejected"].includes(parsed.verdict) ? parsed.verdict : "needs_fix",
       overall_confidence: Math.max(0, Math.min(1, Number(parsed.overall_confidence) || 0)),
       findings: findings.map((f: any) => ({
