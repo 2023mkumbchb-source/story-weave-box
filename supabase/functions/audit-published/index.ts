@@ -106,6 +106,8 @@ serve(async (req) => {
             const value = sections[section];
             if (typeof value === "string" && value.trim()) {
               revised += "\n\n## " + section.replace(/_/g, " ") + "\n\n" + value.trim();
+            } else {
+              missingFixFailed = true;
             }
           }
         } catch (error) {
