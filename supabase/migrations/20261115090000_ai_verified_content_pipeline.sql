@@ -66,6 +66,7 @@ CREATE INDEX IF NOT EXISTS article_revisions_article_created_idx ON public.artic
 CREATE INDEX IF NOT EXISTS audit_findings_queue_idx ON public.audit_findings(status, severity, created_at);
 CREATE INDEX IF NOT EXISTS articles_ai_review_queue_idx ON public.articles(requires_review, ai_check_status) WHERE published = true;
 
+CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 
 CREATE OR REPLACE FUNCTION public.enforce_article_ai_review_gate()
