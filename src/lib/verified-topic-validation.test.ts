@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isReviewApproved, TOPIC_SECTIONS, validateTopicPage } from "../../supabase/functions/_shared/topic-schema";
+import { isReviewApproved, resolveAiCheckStatus, TOPIC_SECTIONS, validateTopicPage } from "../../supabase/functions/_shared/topic-schema";
 
 function validPage(title = "Test topic") {
   return {
@@ -39,4 +39,11 @@ describe("review verdict gate", () => {
     expect(isReviewApproved({ verdict: "approved", findings: [{ severity: "medium" }, { severity: "medium" }, { severity: "medium" }] })).toBe(false);
     expect(isReviewApproved({ verdict: "needs_fix", findings: [] })).toBe(false);
   });
+});
+
+it("keeps a page in draft review status after two unsuccessful Gemini reviews", () => {
+  const first = { verdict: "needs_fix", findings: [{ severity: "high" }] };
+  const second = { verdict: "needs_fix", findings: [{ severity: "medium" }] };
+  expect(resolveAiCheckStatus(first)).toBe("needs_review");
+  expect(resolveAiCheckStatus(second)).toBe("needs_review");
 });
