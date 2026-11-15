@@ -1,6 +1,6 @@
 # Remix of Remix of AI Content Studio
 
-Perfect! You have your Gemini API key. Now let's create your project in Lovable.
+Project setup notes. API credentials must be stored in server-side environment secrets.
 
 ---
 
@@ -156,7 +156,7 @@ Make everything feel polished and professional.
 ### **Add Your API Key:**
 
 1. Look for the "Settings" or "API Configuration" page in your admin dashboard
-2. Paste your API key: `AIzaSyCSzU5G7oNuyxznxZMahi0m5G7zhpbI3sM`
+2. Do not paste API keys into source code, README files, browser settings, or chat. Store them only as server-side secrets.
 3. Save it
 
 ### **Test It:**
@@ -176,10 +176,10 @@ Click "Generate Article" or "Generate Flashcards" and watch the magic! ✨
 
 ## **Important Notes:**
 
-⚠️ **I've included your API key in this response, but for security:**
+⚠️ **Security:**
 - Don't share your API key publicly
 - Lovable should store it securely (environment variable)
-- You can regenerate a new key anytime at https://aistudio.google.com/app/apikey
+- Rotate the Gemini API key previously exposed in this README immediately: https://aistudio.google.com/app/apikey
 
 ---
 
