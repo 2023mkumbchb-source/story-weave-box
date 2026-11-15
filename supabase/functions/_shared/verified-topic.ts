@@ -16,6 +16,11 @@ Do not invent practice questions to fill space. Return a valid JSON object only.
 
 const FIX_PROMPT = `You are correcting a clinical education page. Change ONLY the named affected sections. Do not rewrite unaffected sections. Apply each finding conservatively; omit claims that cannot be verified. Never invent classifications, doses, statistics or guideline recommendations. If a section has no standard classification, mark applicable:false with empty content. Return ONLY JSON object {"sections":{...}} using the required section object schema.`;
 
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 export type PipelineResult = {
   page: TopicPage;
   review: ReviewResult | null;
