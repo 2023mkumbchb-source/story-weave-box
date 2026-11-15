@@ -17,7 +17,7 @@ export async function groqJson(messages: ChatMessage[], maxTokens = 12000): Prom
   const model = groqModel();
   let lastError = "Groq request failed";
 
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60_000);
     try {
@@ -33,8 +33,8 @@ export async function groqJson(messages: ChatMessage[], maxTokens = 12000): Prom
       if (!response.ok) {
         const detail = await response.text().catch(() => "");
         lastError = `Groq HTTP ${response.status}: ${detail.slice(0, 500)}`;
-        if (attempt === 0 && (response.status === 429 || response.status >= 500)) {
-          await new Promise((resolve) => setTimeout(resolve, 900));
+        if (attempt < 2 && (response.status === 429 || response.status >= 500)) {
+          await new Promise((resolve) => setTimeout(resolve, 700 * (2 ** attempt)));
           continue;
         }
         throw new Error(lastError);
@@ -45,9 +45,9 @@ export async function groqJson(messages: ChatMessage[], maxTokens = 12000): Prom
       return content;
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error);
-      if (attempt === 0 && error instanceof DOMException && error.name === "AbortError") continue;
-      if (attempt === 0 && /fetch failed|network/i.test(lastError)) {
-        await new Promise((resolve) => setTimeout(resolve, 900));
+      if (attempt < 2 && error instanceof DOMException && error.name === "AbortError") { await new Promise((resolve) => setTimeout(resolve, 700 * (2 ** attempt))); continue; }
+      if (attempt < 2 && /fetch failed|network/i.test(lastError)) {
+        await new Promise((resolve) => setTimeout(resolve, 700 * (2 ** attempt)));
         continue;
       }
       throw new Error(lastError);
