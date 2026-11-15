@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { callOmniRoute, omniRouteConfig } from "../_shared/omniroute.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -220,34 +219,129 @@ function parseEssayOutput(raw: string) {
   return { saqs, laqs };
 }
 
-async function callAI(messages: any[], geminiKey?: string, allKeys?: string[]): Promise<string> {
-  // Prefer the OmniRoute combo (free providers) when configured; fall back to Gemini keys.
-  const omni = omniRouteConfig();
-  if (omni) {
+function getGroqKeys(): string[] {
+  const rawValues = [
+    Deno.env.get("GROQ_API_KEYS") || "",
+    Deno.env.get("GROQ_API_KEY") || "",
+  ];
+  const keys: string[] = [];
+
+  for (const raw of rawValues) {
+    const value = raw.trim();
+    if (!value) continue;
+
     try {
-      return await callOmniRoute(omni, { messages });
-    } catch (e: any) {
-      console.log("OmniRoute unavailable, falling back to Gemini:", e?.message || String(e));
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        keys.push(...parsed.filter((item): item is string => typeof item === "string" && item.trim()).map((item) => item.trim()));
+        continue;
+      }
+      if (typeof parsed === "string" && parsed.trim()) {
+        keys.push(parsed.trim());
+        continue;
+      }
+    } catch {
+      // A single key or comma/newline-separated key list is also supported.
+    }
+
+    keys.push(...value.split(/[\\n,;]+/).map((item) => item.trim()).filter(Boolean));
+  }
+
+  return [...new Set(keys)];
+}
+
+async function callGroq(messages: any[], apiKeys: string[]): Promise<string> {
+  const model = (Deno.env.get("GROQ_MODEL") || "openai/gpt-oss-120b").trim();
+  const requestTimeoutMs = 60000;
+  let lastError = "No Groq API key configured.";
+
+  for (const apiKey of apiKeys) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+
+      try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages,
+            stream: false,
+          }),
+          signal: controller.signal,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const text = data?.choices?.[0]?.message?.content;
+          if (typeof text === "string" && text.trim()) return text;
+          throw new Error("Groq returned an empty response.");
+        }
+
+        const errorText = await response.text().catch(() => "");
+        lastError = `Groq API error (${response.status}): ${errorText.slice(0, 300)}`;
+
+        if ((response.status === 429 || response.status >= 500) && attempt === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 1200));
+          continue;
+        }
+
+        // Invalid credentials: move to the next configured key.
+        if (response.status === 401 || response.status === 403) break;
+
+        // For model/configuration errors, stop retrying this key and let Gemini take over.
+        break;
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : String(error);
+        if (error instanceof DOMException && error.name === "AbortError" && attempt === 0) continue;
+        break;
+      } finally {
+        clearTimeout(timeout);
+      }
     }
   }
 
-  // Build list of keys to try: provided keys array > single key > env var
+  throw new Error(lastError);
+}
+
+async function callAI(messages: any[], geminiKey?: string, allKeys?: string[]): Promise<string> {
+  // Groq is the primary generation provider. Gemini is the automatic fallback.
+  const groqKeys = getGroqKeys();
+  if (groqKeys.length > 0) {
+    try {
+      const result = await callGroq(messages, groqKeys);
+      console.log("AI provider used: Groq");
+      return result;
+    } catch (error) {
+      console.error("Groq unavailable; falling back to Gemini:", error instanceof Error ? error.message : String(error));
+    }
+  } else {
+    console.warn("GROQ_API_KEYS/GROQ_API_KEY is not configured in Supabase Edge Function secrets.");
+  }
+
+  // Build list of Gemini keys: request-provided keys first, then server-side secrets.
   const keyList: string[] = [];
   if (allKeys && allKeys.length > 0) {
-    keyList.push(...allKeys.filter(k => k?.trim()));
+    keyList.push(...allKeys.filter((key) => key?.trim()));
   } else if (geminiKey?.trim()) {
     keyList.push(geminiKey.trim());
   }
-  // Pull primary + numbered fallback keys from env: GEMINI_API_KEY, GEMINI_API_KEY_2..5
+
   for (const name of ["GEMINI_API_KEY", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3", "GEMINI_API_KEY_4", "GEMINI_API_KEY_5"]) {
-    const v = Deno.env.get(name);
-    if (v && !keyList.includes(v)) keyList.push(v);
+    const value = Deno.env.get(name);
+    if (value && !keyList.includes(value)) keyList.push(value);
   }
 
-  if (keyList.length === 0) throw new Error("No AI provider configured. Set OMNIROUTE_BASE_URL/OMNIROUTE_API_KEY secrets or save a Gemini API key in Settings.");
+  if (keyList.length === 0) {
+    throw new Error("No AI provider configured. Set GROQ_API_KEYS in Supabase Edge Function secrets, or configure a Gemini API key.");
+  }
 
-  const systemMsg = messages.find((m: any) => m.role === "system")?.content || "";
-  const userMsg = messages.find((m: any) => m.role === "user")?.content || "";
+  const systemMsg = messages.find((message: any) => message.role === "system")?.content || "";
+  const userMsg = messages.find((message: any) => message.role === "user")?.content || "";
   const prompt = `${systemMsg}\n\n${userMsg}`;
 
   const MAX_RETRIES = 2;
@@ -276,37 +370,36 @@ async function callAI(messages: any[], geminiKey?: string, allKeys?: string[]): 
             if (data.error) throw new Error(`Gemini error: ${data.error.message || JSON.stringify(data.error)}`);
             const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
             if (!text) throw new Error("Gemini returned an empty response.");
+            console.log("AI provider used: Gemini fallback");
             return text;
           }
 
           const errText = await response.text();
           if (response.status === 429) {
             if (attempt < MAX_RETRIES - 1) {
-              await new Promise((r) => setTimeout(r, Math.pow(2, attempt) * 1500));
+              await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 1500));
               continue;
             }
-            // Exhausted retries for this model — try next model, then next key
             break;
           }
 
           if (response.status === 404) break;
           throw new Error(`Gemini API error (${response.status}): ${errText.slice(0, 300)}`);
-        } catch (err) {
-          if (err instanceof DOMException && err.name === "AbortError") {
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") {
             if (attempt < MAX_RETRIES - 1) continue;
             break;
           }
-          throw err;
+          throw error;
         } finally {
           clearTimeout(timeout);
         }
       }
     }
-    // All models exhausted for this key — try next key
-    console.log(`Key ending ...${apiKey.slice(-4)} exhausted, trying next key`);
+    console.log(`Gemini key ending ...${apiKey.slice(-4)} exhausted, trying next key`);
   }
 
-  throw new Error("All Gemini API keys are currently rate-limited. Wait a bit and retry, or add more keys in Settings.");
+  throw new Error("Groq failed and all Gemini API keys are exhausted. Check provider secrets and rate limits.");
 }
 
 serve(async (req) => {
