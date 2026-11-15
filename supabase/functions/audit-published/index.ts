@@ -32,7 +32,7 @@ serve(async (req) => {
         });
         if (findingError) throw findingError;
       }
-      const needsHuman = review.findings.some((f) => f.severity === "medium" || f.severity === "high") || review.verdict !== "approved";
+      const needsHuman = review.findings.some((f) => f.severity === "medium" || f.severity === "high") || review.verdict !== "approved" || review.missing_sections.length > 0;
       if (needsHuman) {
         const { error: downgradeError } = await db.from("articles").update({
           requires_review: true, ai_check_status: "needs_review", ai_checked_at: null, ai_review_id: savedReview?.id || null,
