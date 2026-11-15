@@ -360,6 +360,14 @@ serve(async (req) => {
     const safeNotes = clipNotesForModel(notes);
 
     if (type === "article") {
+      const token = req.headers.get("Authorization")?.replace(/^Bearer\\s+/i, "");
+      if (!token) return new Response(JSON.stringify({ error: "Authentication required" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+      const adminDb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const { data: auth, error: authError } = await adminDb.auth.getUser(token);
+      if (authError || !auth.user) return new Response(JSON.stringify({ error: "Invalid session" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const { data: adminRole } = await adminDb.from("user_roles").select("role").eq("user_id", auth.user.id).eq("role", "admin").maybeSingle();
+      if (!adminRole) return new Response(JSON.stringify({ error: "Admin access required" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const topic = (customTitle || safeNotes.split(/\r?\n/).find((line: string) => line.trim()) || "Medical study topic").trim();
       const verified = await generateAndReviewTopic(topic, safeNotes, 2);
       const saved = await persistVerifiedArticle({ page: verified.page, result: verified, category: "Uncategorized" });
