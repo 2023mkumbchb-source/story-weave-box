@@ -1,67 +1,181 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { reviewWithGemini } from "../_shared/gemini-review.ts";
+import { groqJson } from "../_shared/groq.ts";
+import { reviewWithGemini, type ReviewResult } from "../_shared/gemini-review.ts";
 
 const isProtectedClinicalSection = (section: string) => /management|classif|dose|drug|medication/i.test(section);
+
+async function saveReview(db: any, articleId: string, review: ReviewResult) {
+  const { data, error } = await db.from("article_ai_reviews").insert({
+    article_id: articleId,
+    provider: "gemini",
+    model: Deno.env.get("GEMINI_REVIEW_MODEL") || "gemini-2.5-flash",
+    verdict: review.verdict,
+    overall_confidence: review.overall_confidence,
+    findings: review.findings,
+    missing_sections: review.missing_sections,
+    loop_count: 0,
+  }).select("id").single();
+  if (error) throw error;
+  for (const finding of review.findings) {
+    const { error: findingError } = await db.from("audit_findings").insert({
+      article_id: articleId,
+      section: finding.section,
+      claim: finding.claim,
+      verdict: finding.verdict,
+      severity: finding.severity,
+      reference: finding.reference,
+      suggested_fix: finding.suggested_fix,
+    });
+    if (findingError) throw findingError;
+  }
+  return data.id as string;
+}
+
 serve(async (req) => {
   const expected = Deno.env.get("AUDIT_CRON_SECRET");
-  if (!expected || req.headers.get("Authorization") !== `Bearer ${expected}`) {
+  if (!expected || req.headers.get("Authorization") !== "Bearer " + expected) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
     const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: articles, error } = await db.from("articles")
       .select("id,title,content,ai_checked_at,ai_check_status")
-      .eq("published", true).eq("ai_check_status", "ai_checked")
-      .is("deleted_at", null).order("ai_checked_at", { ascending: true, nullsFirst: true }).limit(20);
+      .eq("published", true)
+      .eq("ai_check_status", "ai_checked")
+      .is("deleted_at", null)
+      .order("ai_checked_at", { ascending: true, nullsFirst: true })
+      .limit(20);
     if (error) throw error;
+
     let audited = 0;
+    let autofixed = 0;
     for (const article of articles || []) {
       const review = await reviewWithGemini({ title: article.title, content: article.content });
-      const { data: savedReview, error: reviewError } = await db.from("article_ai_reviews").insert({
-        article_id: article.id, provider: "gemini", model: Deno.env.get("GEMINI_REVIEW_MODEL") || "gemini-2.5-flash",
-        verdict: review.verdict, overall_confidence: review.overall_confidence,
-        findings: review.findings, missing_sections: review.missing_sections, loop_count: 0,
-      }).select("id").single();
-      if (reviewError) throw reviewError;
-      for (const finding of review.findings) {
-        const { error: findingError } = await db.from("audit_findings").insert({
-          article_id: article.id, section: finding.section, claim: finding.claim,
-          verdict: finding.verdict, severity: finding.severity, reference: finding.reference,
-          suggested_fix: finding.suggested_fix,
-        });
-        if (findingError) throw findingError;
-      }
-      const needsHuman = review.findings.some((f) => f.severity === "medium" || f.severity === "high") || review.verdict !== "approved" || review.missing_sections.length > 0;
-      if (needsHuman) {
+      const reviewId = await saveReview(db, article.id, review);
+      const hasMediumOrHigh = review.findings.some((finding) => finding.severity === "medium" || finding.severity === "high");
+      const protectedMissing = review.missing_sections.filter(isProtectedClinicalSection);
+
+      if (hasMediumOrHigh || review.verdict !== "approved" || protectedMissing.length > 0) {
         const { error: downgradeError } = await db.from("articles").update({
-          requires_review: true, ai_check_status: "needs_review", ai_checked_at: null, ai_review_id: savedReview?.id || null,
+          requires_review: true,
+          ai_check_status: "needs_review",
+          ai_checked_at: null,
+          ai_review_id: reviewId,
         }).eq("id", article.id);
         if (downgradeError) throw downgradeError;
-      } else {
-        // Only deterministic low-risk formatting corrections are eligible for automation.
-        // Clinical sections, medication details, doses and classifications are never edited.
-        let revised = article.content || "";
-        for (const finding of review.findings.filter((f) => f.severity === "low" && f.suggested_fix && !isProtectedClinicalSection(f.section))) {
-          if (/format|spacing|punctuation|heading|typo/i.test(finding.claim) && revised.includes(finding.claim)) {
-            revised = revised.replace(finding.claim, finding.suggested_fix);
-          }
+        audited++;
+        continue;
+      }
+
+      // Only low-severity, non-protected findings can be auto-corrected.
+      // Never touch management, classification, drug names, medication details or doses.
+      let revised = article.content || "";
+      for (const finding of review.findings.filter((item) =>
+        item.severity === "low" && item.suggested_fix && !isProtectedClinicalSection(item.section)
+      )) {
+        if (finding.claim && revised.includes(finding.claim)) {
+          revised = revised.replace(finding.claim, finding.suggested_fix);
         }
-        if (revised !== article.content) {
+      }
+
+      // Missing non-protected sections may be regenerated by Groq. Gemini must
+      // independently approve the complete revised page before it is saved.
+      const safeMissing = review.missing_sections.filter((section) => !isProtectedClinicalSection(section));
+      if (safeMissing.length > 0) {
+        try {
+          const generated = await groqJson([
+            {
+              role: "system",
+              content: "You are adding only missing sections to a medical education article. Return ONLY JSON {\"sections\":{\"section_name\":\"complete section text\"}}. Use conservative, standard undergraduate medical teaching. Never invent doses, classifications, statistics or guideline recommendations. If uncertain, state the limitation instead of guessing. Do not alter existing content.",
+            },
+            {
+              role: "user",
+              content: JSON.stringify({
+                title: article.title,
+                existing_content: revised,
+                missing_sections: safeMissing,
+                instruction: "Generate only these missing sections. Do not generate management, classification, drug names or doses.",
+              }),
+            },
+          ], 5000);
+          const parsed = JSON.parse(generated);
+          const sections = parsed?.sections && typeof parsed.sections === "object" ? parsed.sections : {};
+          for (const section of safeMissing) {
+            const value = sections[section];
+            if (typeof value === "string" && value.trim()) {
+              revised += "\n\n## " + section.replace(/_/g, " ") + "\n\n" + value.trim();
+            }
+          }
+        } catch (error) {
+          console.error("Low-risk missing-section regeneration failed for article", article.id, error);
+        }
+      }
+
+      if (revised !== (article.content || "")) {
+        let recheck: ReviewResult;
+        try {
+          recheck = await reviewWithGemini({ title: article.title, content: revised });
+        } catch (error) {
+          recheck = {
+            provider: "validator",
+            verdict: "needs_fix",
+            overall_confidence: 0,
+            findings: [{
+              section: "review_service",
+              claim: error instanceof Error ? error.message : "Gemini re-review unavailable",
+              verdict: "unverifiable",
+              severity: "high",
+              reference: "Gemini reviewer unavailable",
+              suggested_fix: "Retry Gemini review before applying the automated correction.",
+            }],
+            missing_sections: [],
+          };
+        }
+        let finalReviewId = reviewId;
+        if (recheck.provider === "gemini") finalReviewId = await saveReview(db, article.id, recheck);
+        const recheckFailed = recheck.provider !== "gemini"
+          || recheck.verdict !== "approved"
+          || recheck.findings.some((finding) => finding.severity === "medium" || finding.severity === "high")
+          || recheck.missing_sections.length > 0;
+
+        if (recheckFailed) {
+          const { error: downgradeError } = await db.from("articles").update({
+            requires_review: true,
+            ai_check_status: "needs_review",
+            ai_checked_at: null,
+            ai_review_id: finalReviewId,
+          }).eq("id", article.id);
+          if (downgradeError) throw downgradeError;
+        } else {
           const { error: revisionError } = await db.from("article_revisions").insert({
-            article_id: article.id, old_content: article.content || "", new_content: revised,
-            reason: "Nightly low-severity formatting audit", source: "gemini_fix",
+            article_id: article.id,
+            old_content: article.content || "",
+            new_content: revised,
+            reason: "Nightly low-severity correction and Gemini re-verification",
+            source: "gemini_fix",
           });
           if (revisionError) throw revisionError;
-          const { error: updateError } = await db.from("articles").update({ content: revised }).eq("id", article.id);
+          const { error: updateError } = await db.from("articles").update({
+            content: revised,
+            requires_review: false,
+            ai_check_status: "ai_checked",
+            ai_checked_at: new Date().toISOString(),
+            ai_review_id: finalReviewId,
+          }).eq("id", article.id);
           if (updateError) throw updateError;
+          autofixed++;
         }
-        const { error: stampError } = await db.from("articles").update({ ai_checked_at: new Date().toISOString(), ai_review_id: savedReview.id }).eq("id", article.id);
+      } else {
+        const { error: stampError } = await db.from("articles").update({
+          ai_checked_at: new Date().toISOString(),
+          ai_review_id: reviewId,
+        }).eq("id", article.id);
         if (stampError) throw stampError;
       }
       audited++;
     }
-    return Response.json({ ok: true, audited });
+    return Response.json({ ok: true, audited, autofixed });
   } catch (error) {
     console.error("audit-published failed", error);
     return Response.json({ error: error instanceof Error ? error.message : "Audit failed" }, { status: 500 });
