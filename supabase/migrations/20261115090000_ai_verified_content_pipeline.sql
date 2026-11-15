@@ -54,6 +54,8 @@ ALTER TABLE public.article_ai_reviews ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.article_ai_reviews FROM anon, authenticated;
 GRANT ALL ON public.article_ai_reviews TO service_role;
 
+ALTER TABLE public.articles ADD COLUMN IF NOT EXISTS ai_review_id uuid REFERENCES public.article_ai_reviews(id);
+
 CREATE INDEX IF NOT EXISTS article_revisions_article_created_idx ON public.article_revisions(article_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS audit_findings_queue_idx ON public.audit_findings(status, severity, created_at);
 CREATE INDEX IF NOT EXISTS articles_ai_review_queue_idx ON public.articles(requires_review, ai_check_status) WHERE published = true;
@@ -64,7 +66,7 @@ BEGIN
   IF NEW.ai_check_status = 'ai_checked' THEN
     IF NOT EXISTS (
       SELECT 1 FROM public.article_ai_reviews r
-      WHERE r.article_id = NEW.id AND r.provider = 'gemini' AND r.verdict = 'approved'
+      WHERE r.id = NEW.ai_review_id AND r.article_id = NEW.id AND r.provider = 'gemini' AND r.verdict = 'approved'
     ) THEN
       RAISE EXCEPTION 'An approved Gemini review must be saved before ai_check_status can be ai_checked';
     END IF;
