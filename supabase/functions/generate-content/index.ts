@@ -173,33 +173,8 @@ function parseEssayOutput(raw: string) {
 }
 
 function getGroqKeys(): string[] {
-  const rawValues = [
-    Deno.env.get("GROQ_API_KEY") || "",
-  ];
-  const keys: string[] = [];
-
-  for (const raw of rawValues) {
-    const value = raw.trim();
-    if (!value) continue;
-
-    try {
-      const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) {
-        keys.push(...parsed.filter((item): item is string => typeof item === "string" && item.trim()).map((item) => item.trim()));
-        continue;
-      }
-      if (typeof parsed === "string" && parsed.trim()) {
-        keys.push(parsed.trim());
-        continue;
-      }
-    } catch {
-      // A single key or comma/newline-separated key list is also supported.
-    }
-
-    keys.push(...value.split(/[\\n,;]+/).map((item) => item.trim()).filter(Boolean));
-  }
-
-  return [...new Set(keys)];
+  const key = Deno.env.get("GROQ_API_KEY")?.trim();
+  return key ? [key] : [];
 }
 
 async function callGroq(messages: any[], apiKeys: string[]): Promise<string> {
