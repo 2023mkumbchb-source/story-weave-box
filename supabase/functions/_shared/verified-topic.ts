@@ -49,7 +49,20 @@ export async function generateAndReviewTopic(topic: string, context = "", maxLoo
     { role: "system", content: GENERATOR_PROMPT },
     { role: "user", content: `Topic: ${topic}\n\nSource notes/context (treat as supplied context, not proof):\n${context.slice(0, 28000)}` },
   ]);
-  let page = parseJson(generation) as TopicPage;
+  let page: TopicPage;
+  try {
+    const parsed = parseJson(generation);
+    page = parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? {
+          ...parsed,
+          title: typeof parsed.title === "string" && parsed.title.trim() ? parsed.title : topic,
+          sections: parsed.sections && typeof parsed.sections === "object" && !Array.isArray(parsed.sections) ? parsed.sections : {},
+        } as TopicPage
+      : { title: topic, sections: {} as TopicPage["sections"] };
+  } catch {
+    // Persist an incomplete draft for review rather than losing the failed generation attempt.
+    page = { title: topic, sections: {} as TopicPage["sections"] };
+  }
   const attempts: PipelineResult["attempts"] = [];
   let lastReview: ReviewResult | null = null;
   let loopCount = 0;
