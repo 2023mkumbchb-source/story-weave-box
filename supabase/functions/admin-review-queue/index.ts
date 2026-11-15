@@ -51,7 +51,7 @@ serve(async (req) => {
       const { data: article, error } = await db.from("articles").select("title,content,original_notes,category").eq("id", articleId).single();
       if (error) throw error;
       const result = await generateAndReviewTopic(article.title, article.original_notes || article.content || "", 2);
-      const saved = await persistVerifiedArticle({ page: result.page, result, articleId, category: article.category });
+      const saved = await persistVerifiedArticle({ page: result.page, result, articleId, category: article.category, originalNotes: article.original_notes || article.content || "" });
       return Response.json({ ...saved, title: result.page.title, content: (await import("../_shared/verified-topic.ts")).renderTopicMarkdown(result.page) }, { headers: cors });
     }
 
