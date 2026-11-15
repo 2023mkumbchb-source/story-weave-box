@@ -233,6 +233,14 @@ export type Database = {
       }
       articles: {
         Row: {
+          ai_check_status: string
+          ai_checked_at: string | null
+          ai_check_model: string | null
+          ai_generator_model: string | null
+          ai_confidence: number | null
+          ai_review_id: string | null
+          review_loop_count: number
+          reviewer_name: string | null
           access_password: string | null
           answer_key_verified: boolean
           category: string
