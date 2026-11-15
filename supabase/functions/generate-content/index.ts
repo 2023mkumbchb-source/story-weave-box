@@ -174,7 +174,6 @@ function parseEssayOutput(raw: string) {
 
 function getGroqKeys(): string[] {
   const rawValues = [
-    Deno.env.get("GROQ_API_KEYS") || "",
     Deno.env.get("GROQ_API_KEY") || "",
   ];
   const keys: string[] = [];
@@ -204,7 +203,7 @@ function getGroqKeys(): string[] {
 }
 
 async function callGroq(messages: any[], apiKeys: string[]): Promise<string> {
-  const model = (Deno.env.get("GROQ_MODEL") || "openai/gpt-oss-120b").trim();
+  const model = (Deno.env.get("GROQ_MODEL") || "llama-3.3-70b-versatile").trim();
   const requestTimeoutMs = 60000;
   let lastError = "No Groq API key configured.";
 
@@ -273,7 +272,7 @@ async function callAI(messages: any[]): Promise<string> {
       console.error("Groq unavailable; falling back to Gemini:", error instanceof Error ? error.message : String(error));
     }
   } else {
-    console.warn("GROQ_API_KEYS/GROQ_API_KEY is not configured in Supabase Edge Function secrets.");
+    console.warn("GROQ_API_KEY is not configured in Supabase Edge Function secrets.");
   }
 
   // Gemini credentials are server-side secrets only; browser-supplied keys are ignored.
@@ -282,7 +281,7 @@ async function callAI(messages: any[]): Promise<string> {
   if (reviewerKey) keyList.push(reviewerKey);
 
   if (keyList.length === 0) {
-    throw new Error("No AI provider configured. Set GROQ_API_KEYS in Supabase Edge Function secrets, or configure a Gemini API key.");
+    throw new Error("No AI provider configured. Set GROQ_API_KEY in Supabase Edge Function secrets, or configure a Gemini API key.");
   }
 
   const systemMsg = messages.find((message: any) => message.role === "system")?.content || "";
@@ -361,7 +360,7 @@ serve(async (req) => {
     const safeNotes = clipNotesForModel(notes);
 
     if (type === "article") {
-      const topic = (customTitle || safeNotes.split(/\\r?\\n/).find((line: string) => line.trim()) || "Medical study topic").trim();
+      const topic = (customTitle || safeNotes.split(/\r?\n/).find((line: string) => line.trim()) || "Medical study topic").trim();
       const verified = await generateAndReviewTopic(topic, safeNotes, 2);
       const saved = await persistVerifiedArticle({ page: verified.page, result: verified, category: "Uncategorized" });
       return new Response(JSON.stringify({ id: saved.id, title: verified.page.title, content: renderTopicMarkdown(verified.page), published: false, ai_check_status: saved.ai_check_status, review: verified.review, loop_count: verified.loopCount }), {
